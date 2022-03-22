@@ -1,3 +1,14 @@
-fastapi==0.75.0
-uvicorn==0.17.6
-sqlalchemy==1.4.32
+fastapi==0.79.0
+uvicorn==0.18.2
+pydantic==1.9.2
+python-dotenv==0.20.0
+
+httpx==0.23.0
+
+sqlalchemy==1.4.40
+alembic==1.8.1
+fastapi-pagination[sqlalchemy]==0.9.3
+psycopg2-binary==2.9.3
+
+pytest-env==0.6.2
+pytest-postgresql==4.1.1
