@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, constr
 
@@ -12,7 +13,7 @@ class ExpenseType(EnumUpperBase):
 
 class ExpenseCategoryBase(BaseModel):
     name: constr(min_length=3, max_length=64)
-    description: Optional[constr(min_length=3, max_length=256)] = None
+    description: Optional[constr(min_length=3, max_length=256)]
     type: ExpenseType
 
     class Config:
@@ -23,19 +24,21 @@ class ExpenseCategoryCreate(ExpenseCategoryBase):
     status: EntityStatusType = EntityStatusType.ACTIVE
 
 
-class ExpenseCategoryUpdate(BaseModel):
-    name: Optional[constr(min_length=3, max_length=64)]
-    description: Optional[constr(min_length=3, max_length=256)]
-    type: Optional[ExpenseType]
+class ExpenseCategoryUpdate(ExpenseCategoryBase):
+    id: UUID
 
 
-class ExpenseCategory(ExpenseCategoryBase):
-    id: int
+class ExpenseCategoryUpdateStatus(BaseModel):
+    id: UUID
     status: EntityStatusType
 
 
-class ExpenseCategoryRequest(BaseModel):
-    name: Optional[constr(min_length=1, max_length=64)]
-    description: Optional[constr(min_length=1, max_length=256)]
+class ExpenseCategory(ExpenseCategoryBase):
+    id: UUID
+    status: EntityStatusType
+
+
+class ExpenseCategorySearch(BaseModel):
+    search_term: str = ''
     types: list[ExpenseType] = []
     statuses: list[EntityStatusType] = []

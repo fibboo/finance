@@ -1,58 +1,40 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from uuid import UUID
 
-from app.api.api_v1.deps import get_db
-from app.exceptions.exception import ProcessingException
-from app.schemas.base import EntityStatusType
-from app.schemas.expense.expense_place import ExpensePlace, ExpensePlaceCreate, ExpensePlaceUpdate, ExpensePlaceRequest
-from app.services.expense import exp_place_service
+from fastapi import APIRouter
+
+from app.schemas.expense.expense_place import (ExpensePlace, ExpensePlaceCreate, ExpensePlaceUpdate, ExpensePlaceSearch,
+                                               ExpensePlaceUpdateStatus)
+from app.services.expense import place_service
 
 router = APIRouter()
 
 
 @router.post('', response_model=ExpensePlace)
-def create_expense_place(expense_place_create: ExpensePlaceCreate, db: Session = Depends(get_db)):
-    expense_place: ExpensePlace = exp_place_service.create_expense_place(db=db,
-                                                                         expense_place_create=expense_place_create)
+async def create_expense_place(expense_place_create: ExpensePlaceCreate):
+    expense_place: ExpensePlace = await place_service.create_expense_place(expense_place_create=expense_place_create)
     return expense_place
 
 
 @router.post('/search', response_model=list[ExpensePlace])
-def search_expense_places(request: ExpensePlaceRequest, db: Session = Depends(get_db)):
-    expense_places: list[ExpensePlace] = exp_place_service.search_expense_places(db=db, request=request)
+async def search_expense_places(request: ExpensePlaceSearch):
+    expense_places: list[ExpensePlace] = await place_service.search_expense_places(request=request)
 
     return expense_places
 
 
 @router.get('/{expense_place_id}', response_model=ExpensePlace)
-def get_expense_place_by_id(expense_place_id: int, db: Session = Depends(get_db)):
-    expense_place: ExpensePlace = exp_place_service.get_expense_place_by_id(db=db,
-                                                                            expense_place_id=expense_place_id)
+async def get_expense_place_by_id(expense_place_id: UUID):
+    expense_place: ExpensePlace = await place_service.get_expense_place_by_id(expense_place_id=expense_place_id)
     return expense_place
 
 
-@router.put('/{expense_place_id}', response_model=ExpensePlace)
-def update_expense_place(expense_place_id: int,
-                         expense_place_update: ExpensePlaceUpdate,
-                         db: Session = Depends(get_db)):
-    expense_place: ExpensePlace = exp_place_service.update_expense_place(db=db,
-                                                                         expense_place_id=expense_place_id,
-                                                                         expense_place_update=expense_place_update)
+@router.put('/update', response_model=ExpensePlace)
+async def update_expense_place(request: ExpensePlaceUpdate):
+    expense_place: ExpensePlace = await place_service.update_expense_place(request=request)
     return expense_place
 
 
-@router.put('/status/{expense_place_id}/{status}', response_model=ExpensePlace)
-def update_expense_place_status(expense_place_id: int, status: EntityStatusType, db: Session = Depends(get_db)):
-    match status:
-        case EntityStatusType.ACTIVE:
-            expense_place: ExpensePlace = exp_place_service.update_expense_place_status(db=db,
-                                                                                        expense_place_id=expense_place_id,
-                                                                                        status=status)
-        case EntityStatusType.DELETED:
-            expense_place: ExpensePlace = exp_place_service.update_expense_place_status(db=db,
-                                                                                        expense_place_id=expense_place_id,
-                                                                                        status=status)
-        case _:
-            raise ProcessingException(f'Invalid entity status type: {status}')
-
+@router.put('/update-status', response_model=ExpensePlace)
+async def update_expense_place_status(request: ExpensePlaceUpdateStatus):
+    expense_place: ExpensePlace = await place_service.update_expense_place_status(request=request)
     return expense_place
