@@ -26,7 +26,7 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-logging.getLogger("uvicorn.access").setLevel(level=logging.WARNING)
+logging.getLogger("uvicorn.access").setLevel(level=logging.DEBUG)
 
 app.include_router(api_router)
 
@@ -51,7 +51,7 @@ async def http_error_exception_handler(_: Request, exc: HTTPError):
 # Root routes
 
 @app.get('/')
-def main():
+async def main():
     return 'The entry point of the tournaments.'
 
 

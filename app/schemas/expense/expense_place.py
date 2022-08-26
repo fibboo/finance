@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, constr
 
@@ -17,17 +18,20 @@ class ExpensePlaceCreate(ExpensePlaceBase):
     status: EntityStatusType = EntityStatusType.ACTIVE
 
 
-class ExpensePlaceUpdate(BaseModel):
-    name: Optional[constr(min_length=3, max_length=64)]
-    description: Optional[constr(min_length=3, max_length=256)]
+class ExpensePlaceUpdate(ExpensePlaceBase):
+    id: UUID
 
 
-class ExpensePlace(ExpensePlaceBase):
-    id: int
+class ExpensePlaceUpdateStatus(BaseModel):
+    id: UUID
     status: EntityStatusType
 
 
-class ExpensePlaceRequest(BaseModel):
-    name: Optional[constr(min_length=1, max_length=64)]
-    description: Optional[constr(min_length=1, max_length=256)]
+class ExpensePlace(ExpensePlaceBase):
+    id: UUID
+    status: EntityStatusType
+
+
+class ExpensePlaceSearch(BaseModel):
+    search_term: str = ''
     statuses: list[EntityStatusType] = []

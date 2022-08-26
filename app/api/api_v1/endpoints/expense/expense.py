@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from uuid import UUID
 
-from app.api.api_v1.deps import get_db
+from fastapi import APIRouter
+
 from app.schemas.expense.expense import Expense, ExpenseCreate, ExpenseUpdate, ExpenseRequest
 from app.services.expense import expense_service
 
@@ -9,29 +9,29 @@ router = APIRouter()
 
 
 @router.post('', response_model=Expense)
-def create_expense(expense_create: ExpenseCreate, db: Session = Depends(get_db)):
-    expanse: Expense = expense_service.create_expense(db=db, expense_create=expense_create)
+async def create_expense(expense_create: ExpenseCreate):
+    expanse: Expense = await expense_service.create_expense(expense_create=expense_create)
     return expanse
 
 
 @router.post('/list', response_model=list[Expense])
-def get_expenses(request: ExpenseRequest = Depends(), db: Session = Depends(get_db)):
-    expanse: list[Expense] = expense_service.get_expenses(db=db, request=request)
+async def get_expenses(request: ExpenseRequest):
+    expanse: list[Expense] = await expense_service.get_expenses(request=request)
     return expanse
 
 
 @router.get('/{expense_id}', response_model=Expense)
-def get_expense(expense_id: int, db: Session = Depends(get_db)):
-    expanse: Expense = expense_service.get_expense(db=db, expense_id=expense_id)
+async def get_expense_by_id(expense_id: UUID):
+    expanse: Expense = await expense_service.get_expense_by_id(expense_id=expense_id)
     return expanse
 
 
-@router.put('/{expense_id}', response_model=Expense)
-def update_expense(expense_id: int, expense_update: ExpenseUpdate, db: Session = Depends(get_db)):
-    expanse: Expense = expense_service.update_expense(db=db, expense_id=expense_id, expense_update=expense_update)
+@router.put('/update', response_model=Expense)
+async def update_expense(expense_update: ExpenseUpdate):
+    expanse: Expense = await expense_service.update_expense(expense_update=expense_update)
     return expanse
 
 
 @router.delete('/{expense_id}', status_code=200)
-def delete_expense(expense_id: int, db: Session = Depends(get_db)):
-    expense_service.delete_expense(db=db, expense_id=expense_id)
+async def delete_expense(expense_id: UUID):
+    await expense_service.delete_expense(expense_id=expense_id)
