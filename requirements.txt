@@ -13,4 +13,5 @@ psycopg2-binary==2.9.3
 edgedb==0.24
 
 pytest-env==0.6.2
-pytest-postgresql==4.1.1
+pytest-asyncio==0.19
+pytest-mock==3.8.2

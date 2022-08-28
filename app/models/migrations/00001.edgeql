@@ -1,4 +1,4 @@
-CREATE MIGRATION m1no5lk7aoimb436tkdwzsrvq3k22lyfky362aetdbwhe2qlbjq4ma
+CREATE MIGRATION m16w7j2laz5h3mwujgbexs2mhdy26jcrubfv2edur436h6nc5c5s2q
     ONTO initial
 {
   CREATE MODULE expense IF NOT EXISTS;
@@ -10,10 +10,34 @@ CREATE MIGRATION m1no5lk7aoimb436tkdwzsrvq3k22lyfky362aetdbwhe2qlbjq4ma
       };
       CREATE PROPERTY updated_at -> std::datetime {
           SET default := (std::datetime_current());
-          SET readonly := true;
+      };
+      CREATE REQUIRED PROPERTY user_id -> std::uuid;
+  };
+  CREATE ABSTRACT TYPE expense::ExpenseProperty {
+      CREATE PROPERTY description -> std::str {
+          CREATE CONSTRAINT std::max_len_value(256);
+          CREATE CONSTRAINT std::min_len_value(3);
+      };
+      CREATE REQUIRED PROPERTY name -> std::str {
+          CREATE CONSTRAINT std::exclusive;
+          CREATE CONSTRAINT std::max_len_value(64);
+          CREATE CONSTRAINT std::min_len_value(3);
+      };
+      CREATE REQUIRED PROPERTY status -> std::str {
+          CREATE CONSTRAINT std::max_len_value(32);
+          CREATE CONSTRAINT std::min_len_value(3);
       };
   };
+  CREATE TYPE expense::ExpenseCategory EXTENDING expense::Base, expense::ExpenseProperty {
+      CREATE REQUIRED PROPERTY type -> std::str {
+          CREATE CONSTRAINT std::max_len_value(64);
+          CREATE CONSTRAINT std::min_len_value(3);
+      };
+  };
+  CREATE TYPE expense::ExpensePlace EXTENDING expense::Base, expense::ExpenseProperty;
   CREATE TYPE expense::Expense EXTENDING expense::Base {
+      CREATE REQUIRED LINK category -> expense::ExpenseCategory;
+      CREATE REQUIRED LINK place -> expense::ExpensePlace;
       CREATE REQUIRED PROPERTY amount -> std::decimal {
           CREATE CONSTRAINT std::min_value(0);
       };
@@ -21,50 +45,6 @@ CREATE MIGRATION m1no5lk7aoimb436tkdwzsrvq3k22lyfky362aetdbwhe2qlbjq4ma
           CREATE CONSTRAINT std::max_len_value(256);
           CREATE CONSTRAINT std::min_len_value(3);
       };
-      CREATE REQUIRED PROPERTY date -> std::datetime;
-  };
-  CREATE TYPE expense::ExpenseCategory EXTENDING expense::Base {
-      CREATE PROPERTY description -> std::str {
-          CREATE CONSTRAINT std::max_len_value(256);
-          CREATE CONSTRAINT std::min_len_value(3);
-      };
-      CREATE REQUIRED PROPERTY name -> std::str {
-          CREATE CONSTRAINT std::exclusive;
-          CREATE CONSTRAINT std::max_len_value(64);
-          CREATE CONSTRAINT std::min_len_value(3);
-      };
-      CREATE REQUIRED PROPERTY status -> std::str {
-          CREATE CONSTRAINT std::max_len_value(32);
-          CREATE CONSTRAINT std::min_len_value(3);
-      };
-      CREATE REQUIRED PROPERTY type -> std::str {
-          CREATE CONSTRAINT std::max_len_value(64);
-          CREATE CONSTRAINT std::min_len_value(3);
-      };
-  };
-  CREATE TYPE expense::ExpensePlace EXTENDING expense::Base {
-      CREATE PROPERTY description -> std::str {
-          CREATE CONSTRAINT std::max_len_value(256);
-          CREATE CONSTRAINT std::min_len_value(3);
-      };
-      CREATE REQUIRED PROPERTY name -> std::str {
-          CREATE CONSTRAINT std::exclusive;
-          CREATE CONSTRAINT std::max_len_value(64);
-          CREATE CONSTRAINT std::min_len_value(3);
-      };
-      CREATE REQUIRED PROPERTY status -> std::str {
-          CREATE CONSTRAINT std::max_len_value(32);
-          CREATE CONSTRAINT std::min_len_value(3);
-      };
-  };
-  ALTER TYPE expense::Expense {
-      CREATE REQUIRED LINK category -> expense::ExpenseCategory;
-      CREATE REQUIRED LINK place -> expense::ExpensePlace;
-  };
-  ALTER TYPE expense::ExpenseCategory {
-      CREATE MULTI LINK expenses := (.<category[IS expense::Expense]);
-  };
-  ALTER TYPE expense::ExpensePlace {
-      CREATE MULTI LINK expenses := (.<place[IS expense::Expense]);
+      CREATE REQUIRED PROPERTY datetime -> std::datetime;
   };
 };
