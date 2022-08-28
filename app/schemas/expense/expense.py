@@ -3,15 +3,15 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, constr, conint, condecimal
+from pydantic import BaseModel, constr, conint, condecimal, root_validator
 
+from app.schemas.base import EnumLowerBase
 from app.schemas.expense.expense_category import ExpenseCategory
 from app.schemas.expense.expense_place import ExpensePlace
-from schemas.base import EnumLowerBase
 
 
 class ExpenseBase(BaseModel):
-    date: datetime
+    datetime: datetime
     amount: condecimal(gt=Decimal('0'))
     comment: Optional[constr(min_length=3, max_length=256)]
 
@@ -24,18 +24,21 @@ class ExpenseCreate(ExpenseBase):
     place_id: UUID
 
 
-class ExpenseUpdate(ExpenseCreate):
+class ExpenseUpdate(ExpenseBase):
     id: UUID
+    category_id: UUID
+    place_id: UUID
 
 
 class Expense(ExpenseBase):
     id: UUID
+    user_id: UUID
     category: ExpenseCategory
     place: ExpensePlace
 
 
 class OrderFieldType(EnumLowerBase):
-    date = 'date'
+    datetime = 'datetime'
     amount = 'amount'
 
 
@@ -47,8 +50,8 @@ class OrderDirectionType(EnumLowerBase):
 class ExpenseRequest(BaseModel):
     skip: conint(ge=0) = 0
     size: conint(ge=1, le=100) = 100
-    order_field: OrderFieldType = OrderFieldType.date
-    order_direction: OrderDirectionType = OrderDirectionType.asc
+    order_field: OrderFieldType = OrderFieldType.datetime
+    order_direction: OrderDirectionType = OrderDirectionType.desc
 
     date_from: datetime = datetime.now(timezone.utc) - timedelta(days=90)
     date_to: datetime = datetime.now(timezone.utc)
@@ -56,3 +59,11 @@ class ExpenseRequest(BaseModel):
     place_ids: list[UUID] = []
     amount_from: condecimal(ge=Decimal('0')) = Decimal('0')
     amount_to: condecimal(gt=Decimal('0')) = Decimal('999999999')
+
+    @root_validator
+    def prepare_dates(cls, values: dict) -> dict:
+        values['date_from'] = values['date_from'].replace(hour=0, minute=0, second=0, microsecond=0,
+                                                          tzinfo=timezone.utc)
+        values['date_to'] = values['date_to'].replace(hour=23, minute=59, second=59, microsecond=999999,
+                                                      tzinfo=timezone.utc)
+        return values

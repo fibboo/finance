@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, constr, validator
 
 from app.schemas.base import EnumUpperBase, EntityStatusType
 
@@ -35,6 +35,7 @@ class ExpenseCategoryUpdateStatus(BaseModel):
 
 class ExpenseCategory(ExpenseCategoryBase):
     id: UUID
+    user_id: UUID
     status: EntityStatusType
 
 
@@ -42,3 +43,7 @@ class ExpenseCategorySearch(BaseModel):
     search_term: str = ''
     types: list[ExpenseType] = []
     statuses: list[EntityStatusType] = []
+
+    @validator('search_term')
+    def to_lower(cls, value):
+        return value.lower()
