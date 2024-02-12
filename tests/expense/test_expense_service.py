@@ -1,563 +1,478 @@
-import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
-from pydantic import parse_obj_as
+from fastapi_pagination import Page
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.exceptions.exception import NotFoundEntity
-from app.schemas.base import EntityStatusType
+from app.crud.expense.category import category_crud
+from app.crud.expense.expense import expense_crud
+from app.crud.expense.location import location_crud
+from app.exceptions.exception import NotFoundEntity, IntegrityExistException
+from app.models import Category as CategoryModel, Location as LocationModel, Expense as ExpenseModel
+from app.schemas.base import EntityStatusType, CurrencyType
+from app.schemas.expense.category import CategoryType
 from app.schemas.expense.expense import (ExpenseCreate, Expense, ExpenseRequest, OrderFieldType, OrderDirectionType,
-                                         ExpenseUpdate)
-from app.schemas.expense.expense_category import ExpenseCategoryCreate, ExpenseType, ExpenseCategory
-from app.schemas.expense.expense_place import ExpensePlaceCreate, ExpensePlace
+                                         ExpenseUpdate, Order)
 from app.services.expense import expense_service
 
 
 @pytest.mark.asyncio
-async def test_create_expense_correct_data(db):
+async def test_create_expense_correct_data(db_fixture: AsyncSession):
     # Given
-    user_id = uuid.uuid4()
+    user_id = uuid4()
 
-    category_create = ExpenseCategoryCreate(
-        name='Food',
-        description='Food expenses',
-        type=ExpenseType.GENERAL,
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-            SELECT (
-                INSERT expense::ExpenseCategory {
-                    user_id := <uuid>$user_id,
-                    type := <str>$type,
-                    name := <str>$name,
-                    description := <optional str>$description,
-                    status := <str>$status
-                }) {id, user_id, type, name, description, status}
-            """
-    expense_category_db = await db.query_single(query, **category_create.dict(), user_id=user_id)
-    expense_category = parse_obj_as(ExpenseCategory, expense_category_db)
+    category_create = CategoryModel(user_id=user_id,
+                                    name='Food',
+                                    type=CategoryType.GENERAL,
+                                    status=EntityStatusType.ACTIVE)
+    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create, commit=True)
 
-    place_create = ExpensePlaceCreate(
-        name='Some shop',
-        description='Some shop description',
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-            SELECT (
-                INSERT expense::ExpensePlace {
-                    user_id := <uuid>$user_id,
-                    name := <str>$name,
-                    description := <optional str>$description,
-                    status := <str>$status
-                }) {id, user_id, name, description, status}
-            """
-    expense_place_db = await db.query_single(query, **place_create.dict(), user_id=user_id)
-    expense_place = parse_obj_as(ExpensePlace, expense_place_db)
+    location_create = LocationModel(user_id=user_id,
+                                    name='Some shop',
+                                    status=EntityStatusType.ACTIVE)
+    location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
 
-    current_date = datetime.now(timezone(timedelta(hours=0))).replace(second=0, microsecond=0)
-    expense_create = ExpenseCreate(
-        datetime=current_date,
-        amount=Decimal(10),
-        comment='comment',
-        category_id=expense_category.id,
-        place_id=expense_place.id
-    )
+    expense_create = ExpenseCreate(expense_date=datetime.now().date(),
+                                   original_amount=Decimal(10),
+                                   original_currency=CurrencyType.GEL,
+                                   comment='comment',
+                                   category_id=category_db.id,
+                                   location_id=location_db.id)
 
     # When
-    expense: Expense = await expense_service.create_expense(expense_create=expense_create, user_id=user_id)
+    expense: Expense = await expense_service.create_expense(db=db_fixture, expense_create=expense_create,
+                                                            user_id=user_id)
+
+    await db_fixture.commit()
 
     # Then
     assert expense is not None
     assert expense.id is not None
     assert expense.user_id == user_id
-    assert expense.datetime == expense_create.datetime
-    assert expense.amount == expense_create.amount
+    assert expense.expense_date == expense_create.expense_date
+    assert expense.amount == expense_service._get_currency_amount(expense_amount=expense_create.original_amount,
+                                                                  expense_currency=expense_create.original_currency,
+                                                                  base_currency=CurrencyType.USD)
+    assert expense.original_amount == expense_create.original_amount
+    assert expense.original_currency == expense_create.original_currency
     assert expense.comment == expense_create.comment
-    assert expense.category.id == expense_category.id
+    assert expense.category.id == category_db.id
     assert expense.category.user_id == user_id
-    assert expense.category.name == expense_category.name
-    assert expense.category.description == expense_category.description
-    assert expense.category.type == expense_category.type
-    assert expense.category.status == expense_category.status
-    assert expense.place.id == expense_place.id
-    assert expense.place.user_id == user_id
-    assert expense.place.name == expense_place.name
-    assert expense.place.description == expense_place.description
-    assert expense.place.status == expense_place.status
+    assert expense.category.name == category_db.name
+    assert expense.category.description == category_db.description
+    assert expense.category.type == category_db.type
+    assert expense.category.status == category_db.status
+    assert expense.location.id == location_db.id
+    assert expense.location.user_id == user_id
+    assert expense.location.name == location_db.name
+    assert expense.location.description == location_db.description
+    assert expense.location.status == location_db.status
+    assert expense.status == EntityStatusType.ACTIVE
 
 
 @pytest.mark.asyncio
-async def test_create_expense_incorrect_data(db):
+async def test_create_expense_incorrect_data(db_fixture: AsyncSession):
     # Given
-    user_id = uuid.uuid4()
+    user_id = uuid4()
+    category_id = uuid4()
 
-    current_date = datetime.now(timezone(timedelta(hours=0))).replace(second=0, microsecond=0)
-    expense_create = ExpenseCreate(
-        datetime=current_date,
-        amount=Decimal(10),
-        comment='comment',
-        category_id=uuid.uuid4(),
-        place_id=uuid.uuid4(),
-    )
+    expense_create = ExpenseCreate(expense_date=datetime.now().date(),
+                                   original_amount=Decimal(10),
+                                   original_currency=CurrencyType.GEL,
+                                   comment='comment',
+                                   category_id=category_id,
+                                   location_id=uuid4())
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
-        await expense_service.create_expense(expense_create=expense_create, user_id=user_id)
+    with pytest.raises(IntegrityExistException) as exc:
+        await expense_service.create_expense(db=db_fixture, expense_create=expense_create, user_id=user_id)
 
     # Then
-    assert exc.value.message in (f'Expense category or place not found by user_id #{user_id} and entity id. '
-                                 f'category_id: {expense_create.category_id}, place_id: {expense_create.place_id}')
+    assert exc.value.message in (f'Expense integrity exception: DETAIL:  '
+                                 f'Key (category_id)=({category_id}) '
+                                 f'is not present in table "categories".')
 
 
-async def _create_categories_places_and_expenses(db, expenses: bool = True):
-    user_id = uuid.uuid4()
-    current_date = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+async def _create_categories_places_and_expenses(db_fixture: AsyncSession, expenses: bool = True):
+    user_id = uuid4()
+    current_date = datetime.now().date()
 
     category_ids = []
+    location_ids = []
     for i in range(5):
-        category_create = ExpenseCategoryCreate(
-            name=f'Category {i}',
-            description=f'Category description {i}',
-            type=ExpenseType.GENERAL,
-            status=EntityStatusType.ACTIVE,
-        )
-        query = """
-                SELECT (
-                    INSERT expense::ExpenseCategory {
-                        user_id := <uuid>$user_id,
-                        type := <str>$type,
-                        name := <str>$name,
-                        description := <optional str>$description,
-                        status := <str>$status
-                    }) {id, user_id, type, name, description, status}
-                """
-        expense_category_db = await db.query_single(query, **category_create.dict(), user_id=user_id)
-        category_ids.append(parse_obj_as(ExpenseCategory, expense_category_db).id)
+        category_create = CategoryModel(user_id=user_id,
+                                        name=f'Category {i}',
+                                        description=f'Category description {i}',
+                                        type=CategoryType.GENERAL,
+                                        status=EntityStatusType.ACTIVE)
+        category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create, commit=True)
+        category_ids.append(category_db.id)
 
-    place_ids = []
-    for i in range(5):
-        place_create = ExpensePlaceCreate(
-            name=f'Place {i}',
-            description=f'Place description {i}',
-            status=EntityStatusType.ACTIVE,
-        )
-        query = """
-                SELECT (
-                    INSERT expense::ExpensePlace {
-                        user_id := <uuid>$user_id,
-                        name := <str>$name,
-                        description := <optional str>$description,
-                        status := <str>$status
-                    }) {id, user_id, name, description, status}
-                """
-        expense_place_db = await db.query_single(query, **place_create.dict(), user_id=user_id)
-        place_ids.append(parse_obj_as(ExpensePlace, expense_place_db).id)
+        location_create = LocationModel(user_id=user_id,
+                                        name=f'Place {i}',
+                                        description=f'Place description {i}',
+                                        status=EntityStatusType.ACTIVE)
+        location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
+        location_ids.append(location_db.id)
 
     if expenses:
         for i in range(1, 6):
-            expense_create = ExpenseCreate(
-                datetime=current_date - timedelta(days=i - 1),
-                amount=Decimal(10 * i),
-                comment=f'comment {i}',
-                category_id=category_ids[i - 1],
-                place_id=place_ids[i - 1],
-            )
-            await expense_service.create_expense(expense_create=expense_create, user_id=user_id)
+            expense_create = ExpenseModel(user_id=user_id,
+                                          expense_date=current_date - timedelta(days=i - 1),
+                                          amount=expense_service._get_currency_amount(expense_amount=Decimal(10 * i),
+                                                                                      expense_currency=CurrencyType.GEL,
+                                                                                      base_currency=CurrencyType.USD),
+                                          original_amount=Decimal(10 * i),
+                                          original_currency=CurrencyType.GEL,
+                                          comment=f'comment {i}',
+                                          category_id=category_ids[i - 1],
+                                          location_id=location_ids[i - 1],
+                                          status=EntityStatusType.ACTIVE)
+            await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
 
-    return user_id, category_ids, place_ids, current_date
+    return user_id, category_ids, location_ids, current_date
 
 
 @pytest.mark.asyncio
-async def test_get_expense_with_all_fields_filled(db):
+async def test_get_expense_with_all_fields_filled(db_fixture: AsyncSession):
     # Given
-    user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db)
+    user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture)
 
-    request = ExpenseRequest(
-        skip=0,
-        size=3,
-        order_field=OrderFieldType.amount,
-        order_direction=OrderDirectionType.asc,
-        date_from=current_date - timedelta(days=3),
-        date_to=current_date - timedelta(days=1),
-        category_ids=category_ids[1:4],
-        place_ids=place_ids[1:4],
-    )
+    request = ExpenseRequest(page=1,
+                             size=3,
+                             orders=[Order(field=OrderFieldType.EXPENSE_DATE, ordering=OrderDirectionType.DESC),
+                                     Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC)],
+                             date_from=current_date - timedelta(days=3),
+                             date_to=current_date - timedelta(days=1),
+                             category_ids=category_ids[1:4],
+                             place_ids=place_ids[1:4],
+                             statuses=[EntityStatusType.ACTIVE])
 
     # When
-    expenses: list[Expense] = await expense_service.get_expenses(request=request, user_id=user_id)
+    expenses: Page[Expense] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
 
     # Then
-    assert len(expenses) == 3
-    for i, expense in enumerate(expenses, start=1):
+    assert expenses.total == 3
+    for i, expense in enumerate(expenses.items, start=1):
         assert expense.id is not None
         assert expense.user_id == user_id
-        assert expense.datetime == current_date - timedelta(days=i)
-        assert expense.amount == Decimal(10 * (i + 1))
+        assert expense.expense_date == current_date - timedelta(days=i)
+        assert expense.amount == expense_service._get_currency_amount(expense_amount=Decimal(10 * (i + 1)),
+                                                                      expense_currency=CurrencyType.GEL,
+                                                                      base_currency=CurrencyType.USD)
+        assert expense.original_amount == Decimal(10 * (i + 1))
+        assert expense.original_currency == CurrencyType.GEL
         assert expense.comment == f'comment {i + 1}'
         assert expense.category.id == category_ids[i]
         assert expense.category.user_id == user_id
         assert expense.category.name == f'Category {i}'
         assert expense.category.description == f'Category description {i}'
-        assert expense.category.type == ExpenseType.GENERAL
+        assert expense.category.type == CategoryType.GENERAL
         assert expense.category.status == EntityStatusType.ACTIVE
-        assert expense.place.id == place_ids[i]
-        assert expense.place.user_id == user_id
-        assert expense.place.name == f'Place {i}'
-        assert expense.place.description == f'Place description {i}'
-        assert expense.place.status == EntityStatusType.ACTIVE
+        assert expense.location.id == place_ids[i]
+        assert expense.location.user_id == user_id
+        assert expense.location.name == f'Place {i}'
+        assert expense.location.description == f'Place description {i}'
+        assert expense.location.status == EntityStatusType.ACTIVE
+        assert expense.status == EntityStatusType.ACTIVE
 
 
 @pytest.mark.asyncio
-async def test_get_expense_with_all_fields_empty(db):
+async def test_get_expense_with_all_fields_empty(db_fixture: AsyncSession):
     # Given
-    user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db, expenses=True)
+    user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture=db_fixture,
+                                                                                                  expenses=True)
 
     request = ExpenseRequest()
 
     # When
-    expenses: list[Expense] = await expense_service.get_expenses(request=request, user_id=user_id)
+    expenses: Page[Expense] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
 
     # Then
-    assert len(expenses) == 5
-    for i, expense in enumerate(expenses, start=0):
+    assert expenses.total == 5
+    for i, expense in enumerate(expenses.items, start=0):
         assert expense.id is not None
         assert expense.user_id == user_id
-        assert expense.datetime == current_date - timedelta(days=i)
-        assert expense.amount == Decimal(10 * (i + 1))
+        assert expense.expense_date == current_date - timedelta(days=i)
+        assert expense.amount == expense_service._get_currency_amount(expense_amount=Decimal(10 * (i + 1)),
+                                                                      expense_currency=CurrencyType.GEL,
+                                                                      base_currency=CurrencyType.USD)
+        assert expense.original_amount == Decimal(10 * (i + 1))
+        assert expense.original_currency == CurrencyType.GEL
         assert expense.comment == f'comment {i + 1}'
         assert expense.category.id == category_ids[i]
         assert expense.category.user_id == user_id
         assert expense.category.name == f'Category {i}'
         assert expense.category.description == f'Category description {i}'
-        assert expense.category.type == ExpenseType.GENERAL
+        assert expense.category.type == CategoryType.GENERAL
         assert expense.category.status == EntityStatusType.ACTIVE
-        assert expense.place.id == place_ids[i]
-        assert expense.place.user_id == user_id
-        assert expense.place.name == f'Place {i}'
-        assert expense.place.description == f'Place description {i}'
-        assert expense.place.status == EntityStatusType.ACTIVE
+        assert expense.location.id == place_ids[i]
+        assert expense.location.user_id == user_id
+        assert expense.location.name == f'Place {i}'
+        assert expense.location.description == f'Place description {i}'
+        assert expense.location.status == EntityStatusType.ACTIVE
+        assert expense.status == EntityStatusType.ACTIVE
 
 
 @pytest.mark.asyncio
-async def test_get_expense_with_and_no_expenses(db):
+async def test_get_expense_with_and_no_expenses(db_fixture: AsyncSession):
     # Given
-    user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db, expenses=False)
+    user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture=db_fixture,
+                                                                                                  expenses=False)
 
     request = ExpenseRequest()
 
     # When
-    expenses: list[Expense] = await expense_service.get_expenses(request=request, user_id=user_id)
+    expenses: Page[Expense] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
 
     # Then
-    assert len(expenses) == 0
+    assert expenses.total == 0
 
 
 @pytest.mark.asyncio
-async def test_get_expense_by_id(db):
+async def test_get_expense_by_id(db_fixture: AsyncSession):
     # Given
-    user_id = uuid.uuid4()
+    user_id = uuid4()
 
-    category_create = ExpenseCategoryCreate(
-        name='Food',
-        description='Food expenses',
-        type=ExpenseType.GENERAL,
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-            SELECT (
-                INSERT expense::ExpenseCategory {
-                    user_id := <uuid>$user_id,
-                    type := <str>$type,
-                    name := <str>$name,
-                    description := <optional str>$description,
-                    status := <str>$status
-                }) {id, user_id, type, name, description, status}
-            """
-    expense_category_db = await db.query_single(query, **category_create.dict(), user_id=user_id)
-    expense_category = parse_obj_as(ExpenseCategory, expense_category_db)
+    category_create = CategoryModel(user_id=user_id,
+                                    name='Food',
+                                    type=CategoryType.GENERAL,
+                                    status=EntityStatusType.ACTIVE)
+    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create, commit=True)
 
-    place_create = ExpensePlaceCreate(
-        name='Some shop',
-        description='Some shop description',
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-            SELECT (
-                INSERT expense::ExpensePlace {
-                    user_id := <uuid>$user_id,
-                    name := <str>$name,
-                    description := <optional str>$description,
-                    status := <str>$status
-                }) {id, user_id, name, description, status}
-            """
-    expense_place_db = await db.query_single(query, **place_create.dict(), user_id=user_id)
-    expense_place = parse_obj_as(ExpensePlace, expense_place_db)
+    location_create = LocationModel(user_id=user_id,
+                                    name='Some shop',
+                                    status=EntityStatusType.ACTIVE)
+    location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
 
-    current_date = datetime.now(timezone(timedelta(hours=0))).replace(second=0, microsecond=0)
-    expense_create = ExpenseCreate(
-        datetime=current_date,
-        amount=Decimal(10),
-        comment='comment',
-        category_id=expense_category.id,
-        place_id=expense_place.id
-    )
-    created_expense = await expense_service.create_expense(expense_create, user_id)
+    amount = expense_service._get_currency_amount(expense_amount=Decimal('10'),
+                                                  expense_currency=CurrencyType.GEL,
+                                                  base_currency=CurrencyType.USD)
+    expense_create = ExpenseModel(user_id=user_id,
+                                  expense_date=datetime.now().date(),
+                                  amount=amount,
+                                  original_amount=Decimal('10'),
+                                  original_currency=CurrencyType.GEL,
+                                  comment=f'comment',
+                                  category_id=category_db.id,
+                                  location_id=location_db.id,
+                                  status=EntityStatusType.ACTIVE)
+    expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
 
     # When
-    expense: Expense = await expense_service.get_expense_by_id(expense_id=created_expense.id, user_id=user_id)
+    expense: Expense = await expense_service.get_expense_by_id(db=db_fixture, expense_id=expense_db.id, user_id=user_id)
 
     # Then
     assert expense is not None
-    assert expense.id == created_expense.id
-    assert expense.user_id == created_expense.user_id
-    assert expense.datetime == created_expense.datetime
-    assert expense.amount == created_expense.amount
-    assert expense.comment == created_expense.comment
-    assert expense.category.id == created_expense.category.id
-    assert expense.category.user_id == created_expense.category.user_id
-    assert expense.category.name == created_expense.category.name
-    assert expense.category.description == created_expense.category.description
-    assert expense.category.type == created_expense.category.type
-    assert expense.category.status == created_expense.category.status
-    assert expense.place.id == created_expense.place.id
-    assert expense.place.user_id == created_expense.place.user_id
-    assert expense.place.name == created_expense.place.name
-    assert expense.place.description == created_expense.place.description
-    assert expense.place.status == created_expense.place.status
+    assert expense.id == expense_db.id
+    assert expense.user_id == expense_db.user_id
+    assert expense.expense_date == expense_db.expense_date.date()
+    assert expense.amount == expense_db.amount
+    assert expense.original_amount == expense_db.original_amount
+    assert expense.original_currency == expense_db.original_currency
+    assert expense.comment == expense_db.comment
+    assert expense.category.id == expense_db.category.id
+    assert expense.category.user_id == expense_db.category.user_id
+    assert expense.category.name == expense_db.category.name
+    assert expense.category.description == expense_db.category.description
+    assert expense.category.type == expense_db.category.type
+    assert expense.category.status == expense_db.category.status
+    assert expense.location.id == expense_db.location.id
+    assert expense.location.user_id == expense_db.location.user_id
+    assert expense.location.name == expense_db.location.name
+    assert expense.location.description == expense_db.location.description
+    assert expense.location.status == expense_db.location.status
+    assert expense.status == EntityStatusType.ACTIVE
 
 
 @pytest.mark.asyncio
-async def test_get_expense_by_id_not_found(db):
+async def test_get_expense_by_id_not_found(db_fixture: AsyncSession):
     # Given
-    user_id = uuid.uuid4()
-    expense_id = uuid.uuid4()
+    user_id = uuid4()
+    expense_id = uuid4()
 
     # When
     with pytest.raises(NotFoundEntity) as exc:
-        await expense_service.get_expense_by_id(expense_id=expense_id, user_id=user_id)
+        await expense_service.get_expense_by_id(db=db_fixture, expense_id=expense_id, user_id=user_id)
 
     # Then
-    assert exc.value.message in f'Expense not found by user_id #{user_id} and entity id #{expense_id}.'
+    assert exc.value.message in f'Expense not found by user_id #{user_id} and expense_id #{expense_id}.'
 
 
 @pytest.mark.asyncio
-async def test_update_expense(db):
+async def test_update_expense(db_fixture: AsyncSession, db):
     # Given
-    user_id = uuid.uuid4()
+    user_id = uuid4()
 
-    category_create = ExpenseCategoryCreate(
-        name='Food',
-        description='Food expenses',
-        type=ExpenseType.GENERAL,
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-            SELECT (
-                INSERT expense::ExpenseCategory {
-                    user_id := <uuid>$user_id,
-                    type := <str>$type,
-                    name := <str>$name,
-                    description := <optional str>$description,
-                    status := <str>$status
-                }) {id, user_id, type, name, description, status}
-            """
-    expense_category_db = await db.query_single(query, **category_create.dict(), user_id=user_id)
-    expense_category = parse_obj_as(ExpenseCategory, expense_category_db)
+    category_create = CategoryModel(user_id=user_id,
+                                    name='Food',
+                                    type=CategoryType.GENERAL,
+                                    status=EntityStatusType.ACTIVE)
+    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create, commit=True)
 
-    place_create = ExpensePlaceCreate(
-        name='Some shop',
-        description='Some shop description',
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-            SELECT (
-                INSERT expense::ExpensePlace {
-                    user_id := <uuid>$user_id,
-                    name := <str>$name,
-                    description := <optional str>$description,
-                    status := <str>$status
-                }) {id, user_id, name, description, status}
-            """
-    expense_place_db = await db.query_single(query, **place_create.dict(), user_id=user_id)
-    expense_place = parse_obj_as(ExpensePlace, expense_place_db)
+    location_create = LocationModel(user_id=user_id,
+                                    name='Some shop',
+                                    status=EntityStatusType.ACTIVE)
+    location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
 
-    current_date = datetime.now(timezone(timedelta(hours=0))).replace(second=0, microsecond=0)
-    expense_create = ExpenseCreate(
-        datetime=current_date,
-        amount=Decimal(10),
-        comment='comment',
-        category_id=expense_category.id,
-        place_id=expense_place.id
-    )
-    created_expense = await expense_service.create_expense(expense_create, user_id)
+    amount = expense_service._get_currency_amount(expense_amount=Decimal('10'),
+                                                  expense_currency=CurrencyType.GEL,
+                                                  base_currency=CurrencyType.USD)
+    expense_create = ExpenseModel(user_id=user_id,
+                                  expense_date=datetime.now().date(),
+                                  amount=amount,
+                                  original_amount=Decimal('10'),
+                                  original_currency=CurrencyType.GEL,
+                                  comment=f'comment',
+                                  category_id=category_db.id,
+                                  location_id=location_db.id,
+                                  status=EntityStatusType.ACTIVE)
+    expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
 
-    expense_update = ExpenseUpdate(
-        id=created_expense.id,
-        datetime=created_expense.datetime - timedelta(days=1),
-        amount=Decimal(20),
-        comment='comment new',
-        category_id=created_expense.category.id,
-        place_id=created_expense.place.id,
-    )
+    expense_update = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
+                                   original_amount=Decimal('20'),
+                                   original_currency=CurrencyType.GEL,
+                                   comment='comment new',
+                                   category_id=expense_db.category_id,
+                                   location_id=expense_db.location_id)
 
     # When
-    updated_expense = await expense_service.update_expense(expense_update, user_id)
+    updated_expense: Expense = await expense_service.update_expense(db=db, expense_id=expense_db.id,
+                                                                    expense_update=expense_update, user_id=user_id)
+    await db.commit()
 
     # Then
     assert updated_expense is not None
-    assert updated_expense.id == expense_update.id
-    assert updated_expense.user_id == created_expense.user_id
-    assert updated_expense.datetime == expense_update.datetime
-    assert updated_expense.amount == expense_update.amount
+    assert updated_expense.id == expense_db.id
+    assert updated_expense.user_id == expense_db.user_id
+    assert updated_expense.expense_date == expense_update.expense_date
+    assert updated_expense.amount == expense_service._get_currency_amount(expense_amount=expense_update.original_amount,
+                                                                          expense_currency=expense_update.original_currency,
+                                                                          base_currency=CurrencyType.USD)
+    assert updated_expense.original_amount == expense_update.original_amount
+    assert updated_expense.original_currency == expense_update.original_currency
     assert updated_expense.comment == expense_update.comment
-    assert updated_expense.category.id == expense_update.category_id
-    assert updated_expense.place.id == expense_update.place_id
+    assert updated_expense.category.id == expense_db.category_id
+    assert updated_expense.location.id == expense_db.location_id
+    assert updated_expense.created_at == expense_db.created_at
+    assert updated_expense.updated_at != expense_db.updated_at
+    assert updated_expense.status == expense_db.status
 
 
 @pytest.mark.asyncio
-async def test_update_expense_not_found(db):
+async def test_update_expense_not_found(db_fixture: AsyncSession):
     # Given
-    user_id = uuid.uuid4()
+    user_id = uuid4()
 
-    category_create = ExpenseCategoryCreate(
-        name='Food',
-        description='Food expenses',
-        type=ExpenseType.GENERAL,
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-            SELECT (
-                INSERT expense::ExpenseCategory {
-                    user_id := <uuid>$user_id,
-                    type := <str>$type,
-                    name := <str>$name,
-                    description := <optional str>$description,
-                    status := <str>$status
-                }) {id, user_id, type, name, description, status}
-            """
-    expense_category_db = await db.query_single(query, **category_create.dict(), user_id=user_id)
-    expense_category = parse_obj_as(ExpenseCategory, expense_category_db)
+    category_create = CategoryModel(user_id=user_id,
+                                    name='Food',
+                                    type=CategoryType.GENERAL,
+                                    status=EntityStatusType.ACTIVE)
+    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create, commit=True)
 
-    place_create = ExpensePlaceCreate(
-        name='Some shop',
-        description='Some shop description',
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-            SELECT (
-                INSERT expense::ExpensePlace {
-                    user_id := <uuid>$user_id,
-                    name := <str>$name,
-                    description := <optional str>$description,
-                    status := <str>$status
-                }) {id, user_id, name, description, status}
-            """
-    expense_place_db = await db.query_single(query, **place_create.dict(), user_id=user_id)
-    expense_place = parse_obj_as(ExpensePlace, expense_place_db)
+    location_create = LocationModel(user_id=user_id,
+                                    name='Some shop',
+                                    status=EntityStatusType.ACTIVE)
+    location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
 
-    current_date = datetime.now(timezone(timedelta(hours=0))).replace(second=0, microsecond=0)
-    expense_create = ExpenseCreate(
-        datetime=current_date,
-        amount=Decimal(10),
-        comment='comment',
-        category_id=expense_category.id,
-        place_id=expense_place.id
-    )
-    created_expense = await expense_service.create_expense(expense_create, user_id)
+    amount = expense_service._get_currency_amount(expense_amount=Decimal('10'),
+                                                  expense_currency=CurrencyType.GEL,
+                                                  base_currency=CurrencyType.USD)
+    expense_create = ExpenseModel(user_id=user_id,
+                                  expense_date=datetime.now().date(),
+                                  amount=amount,
+                                  original_amount=Decimal('10'),
+                                  original_currency=CurrencyType.GEL,
+                                  comment=f'comment',
+                                  category_id=category_db.id,
+                                  location_id=location_db.id,
+                                  status=EntityStatusType.ACTIVE)
+    expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
 
-    fake_user_id = uuid.uuid4()
-    fake_expense_id = uuid.uuid4()
-    fake_category_id = uuid.uuid4()
-    fake_place_id = uuid.uuid4()
-    expense_update = ExpenseUpdate(
-        id=fake_expense_id,
-        datetime=created_expense.datetime - timedelta(days=1),
-        amount=Decimal(20),
-        comment='comment new',
-        category_id=fake_category_id,
-        place_id=fake_place_id,
-    )
+    expense_update = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
+                                   original_amount=Decimal(20),
+                                   original_currency=CurrencyType.GEL,
+                                   comment='comment new',
+                                   category_id=expense_db.category_id,
+                                   location_id=expense_db.location_id)
+
+    fake_user_id = uuid4()
+    fake_location_id = uuid4()
+    expense_update_integrity = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
+                                             original_amount=Decimal('20'),
+                                             original_currency=CurrencyType.GEL,
+                                             comment='comment new',
+                                             category_id=expense_db.category_id,
+                                             location_id=fake_location_id)
+
+    # When
+    with pytest.raises(NotFoundEntity) as exc_not_found:
+        await expense_service.update_expense(db=db_fixture, expense_id=expense_db.id, expense_update=expense_update,
+                                             user_id=fake_user_id)
+
+    with pytest.raises(IntegrityExistException) as exc_not_found_integrity:
+        await expense_service.update_expense(db=db_fixture, expense_id=expense_db.id,
+                                             expense_update=expense_update_integrity, user_id=user_id)
+
+    # Then
+    assert exc_not_found.value.message == f'Expense not found by user_id #{fake_user_id} and expense_id #{expense_db.id}'
+
+    assert exc_not_found_integrity.value.message in (f'Expense integrity exception: DETAIL:  '
+                                                     f'Key (location_id)=({fake_location_id}) '
+                                                     f'is not present in table "locations".')
+
+
+@pytest.mark.asyncio
+async def test_delete_expense(db_fixture: AsyncSession):
+    # Given
+    user_id = uuid4()
+
+    category_create = CategoryModel(user_id=user_id,
+                                    name='Food',
+                                    type=CategoryType.GENERAL,
+                                    status=EntityStatusType.ACTIVE)
+    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create, commit=True)
+
+    location_create = LocationModel(user_id=user_id,
+                                    name='Some shop',
+                                    status=EntityStatusType.ACTIVE)
+    location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
+
+    amount = expense_service._get_currency_amount(expense_amount=Decimal('10'),
+                                                  expense_currency=CurrencyType.GEL,
+                                                  base_currency=CurrencyType.USD)
+    expense_create = ExpenseModel(user_id=user_id,
+                                  expense_date=datetime.now().date(),
+                                  amount=amount,
+                                  original_amount=Decimal('10'),
+                                  original_currency=CurrencyType.GEL,
+                                  comment=f'comment',
+                                  category_id=category_db.id,
+                                  location_id=location_db.id,
+                                  status=EntityStatusType.ACTIVE)
+    expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
+
+    # When
+    await expense_service.delete_expense(db=db_fixture, expense_id=expense_db.id, user_id=user_id)
+    await db_fixture.commit()
+
+    # Then
+    expenses_db: list[ExpenseModel] = await expense_crud.get_batch(db=db_fixture, user_id=user_id)
+    assert len(expenses_db) == 1
+    assert expenses_db[0].status == EntityStatusType.DELETED
+
+
+@pytest.mark.asyncio
+async def test_delete_expense_not_found(db_fixture: AsyncSession):
+    # Given
+    fake_user_id = uuid4()
+    fake_expense_id = uuid4()
 
     # When
     with pytest.raises(NotFoundEntity) as exc:
-        await expense_service.update_expense(expense_update, fake_user_id)
+        await expense_service.delete_expense(db=db_fixture, expense_id=fake_expense_id, user_id=fake_user_id)
 
     # Then
-    assert exc.value.message == (f'Expense not found by user_id #{fake_user_id} and entity id #{expense_update.id} or '
-                                 f'category or place not found by id. '
-                                 f'category_id: {expense_update.category_id}, place_id: {expense_update.place_id}')
-
-
-@pytest.mark.asyncio
-async def test_delete_expense(db):
-    # Given
-    user_id = uuid.uuid4()
-
-    category_create = ExpenseCategoryCreate(
-        name='Food',
-        description='Food expenses',
-        type=ExpenseType.GENERAL,
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-                SELECT (
-                    INSERT expense::ExpenseCategory {
-                        user_id := <uuid>$user_id,
-                        type := <str>$type,
-                        name := <str>$name,
-                        description := <optional str>$description,
-                        status := <str>$status
-                    }) {id, user_id, type, name, description, status}
-                """
-    expense_category_db = await db.query_single(query, **category_create.dict(), user_id=user_id)
-    expense_category = parse_obj_as(ExpenseCategory, expense_category_db)
-
-    place_create = ExpensePlaceCreate(
-        name='Some shop',
-        description='Some shop description',
-        status=EntityStatusType.ACTIVE,
-    )
-    query = """
-                SELECT (
-                    INSERT expense::ExpensePlace {
-                        user_id := <uuid>$user_id,
-                        name := <str>$name,
-                        description := <optional str>$description,
-                        status := <str>$status
-                    }) {id, user_id, name, description, status}
-                """
-    expense_place_db = await db.query_single(query, **place_create.dict(), user_id=user_id)
-    expense_place = parse_obj_as(ExpensePlace, expense_place_db)
-
-    current_date = datetime.now(timezone(timedelta(hours=0))).replace(second=0, microsecond=0)
-    expense_create = ExpenseCreate(
-        datetime=current_date,
-        amount=Decimal(10),
-        comment='comment',
-        category_id=expense_category.id,
-        place_id=expense_place.id
-    )
-    created_expense = await expense_service.create_expense(expense_create, user_id)
-
-    # When
-    await expense_service.delete_expense(created_expense.id, user_id)
-
-    # Then
-    query = 'SELECT expense::Expense FILTER .id = <uuid>$expense_id AND .user_id = <uuid>$user_id'
-    expenses_db = await db.query(query, expense_id=created_expense.id, user_id=user_id)
-    assert len(expenses_db) == 0
-
-
-@pytest.mark.asyncio
-async def test_delete_expense_not_found(db):
-    # Given
-    fake_user_id = uuid.uuid4()
-    fake_expense_id = uuid.uuid4()
-
-    # When
-    with pytest.raises(NotFoundEntity) as exc:
-        await expense_service.delete_expense(fake_expense_id, fake_user_id)
-
-    # Then
-    assert exc.value.message == f'Expense not found by user_id #{fake_user_id} and entity id #{fake_expense_id}.'
+    assert exc.value.message == f'Expense not found by user_id #{fake_user_id} and expense_id #{fake_expense_id}'

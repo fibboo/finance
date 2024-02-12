@@ -9,7 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from app.api.api_v1.api import api_router
+from app.api.api import api_router
 from app.config.logging_settings import get_logger
 from app.exceptions.exception import EntityException, NotFoundEntity, UnauthorizedException
 
@@ -33,19 +33,21 @@ app.include_router(api_router)
 
 @app.exception_handler(EntityException)
 async def entity_exception(_: Request, exc: EntityException):
-    logger.error(f'Entity exception: {exc.message}')
+    logger.debug(f'Entity exception: {exc.message}')
     if isinstance(exc, NotFoundEntity):
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={'message': exc.message})
-    elif isinstance(exc, UnauthorizedException):
+
+    if isinstance(exc, UnauthorizedException):
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={'message': exc.message})
-    else:
-        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={'message': exc.message})
+
+    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={'message': exc.message})
 
 
 @app.exception_handler(HTTPError)
 async def http_error_exception_handler(_: Request, exc: HTTPError):
-    logger.error(f'Unprocessable http request: {exc.request.url}, body: {exc.response.content}')
-    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+    message = f'Unprocessable http request: {exc.request.url}'
+    logger.exception(message)
+    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={'message': message})
 
 
 # Root routes

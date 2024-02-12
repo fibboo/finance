@@ -1,9 +1,17 @@
 import os
 
-from pydantic import BaseSettings
+from app.schemas.base import EnumLowerBase
+from pydantic_settings import BaseSettings
+
+
+class EnvironmentType(EnumLowerBase):
+    DEV = 'dev'
+    PROD = 'prod'
 
 
 class Settings(BaseSettings):
+    environment: EnvironmentType
+
     db_user: str
     db_password: str
     db_host: str

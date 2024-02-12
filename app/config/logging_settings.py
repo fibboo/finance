@@ -2,6 +2,8 @@ import logging
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
+from app.config.settings import settings, EnvironmentType
+
 FORMATTER = logging.Formatter(fmt="%(levelname)s: %(asctime)s %(name)s: %(message)s",
                               datefmt='%Y-%m-%d %H:%M:%S')
 LOG_FILE = "campaign.log"
@@ -21,7 +23,10 @@ def get_file_handler():
 
 def get_logger(logger_name):
     logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.DEBUG)  # better to have too much log than not enough
+    if settings.environment == EnvironmentType.DEV:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
     logger.addHandler(get_console_handler())
     # logger.addHandler(get_file_handler())
     # with this pattern, it's rarely necessary to propagate the error up to parent
