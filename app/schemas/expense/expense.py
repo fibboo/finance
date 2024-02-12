@@ -1,69 +1,78 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, date
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, constr, conint, condecimal, root_validator
+from fastapi_pagination import Params
+from pydantic import Field, ConfigDict, condecimal, constr
 
-from app.schemas.base import EnumLowerBase
-from app.schemas.expense.expense_category import ExpenseCategory
-from app.schemas.expense.expense_place import ExpensePlace
+from app.schemas.base import BaseServiceModel, EnumUpperBase, EntityStatusType, CurrencyType
+from app.schemas.expense.category import Category
+from app.schemas.expense.location import Location
 
 
-class ExpenseBase(BaseModel):
-    datetime: datetime
-    amount: condecimal(gt=Decimal('0'))
-    comment: Optional[constr(min_length=3, max_length=256)]
-
-    class Config:
-        orm_mode = True
+class ExpenseBase(BaseServiceModel):
+    expense_date: date
+    original_amount: condecimal(gt=Decimal('0'))
+    original_currency: CurrencyType
+    comment: Optional[constr(min_length=3, max_length=256)] = None
+    category_id: UUID
+    location_id: UUID
 
 
 class ExpenseCreate(ExpenseBase):
-    category_id: UUID
-    place_id: UUID
+    pass
 
 
 class ExpenseUpdate(ExpenseBase):
-    id: UUID
-    category_id: UUID
-    place_id: UUID
+    pass
 
 
 class Expense(ExpenseBase):
     id: UUID
     user_id: UUID
-    category: ExpenseCategory
-    place: ExpensePlace
+    status: EntityStatusType
+    amount: condecimal(gt=Decimal('0'))
+    category: Category
+    location: Location
+
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
-class OrderFieldType(EnumLowerBase):
-    datetime = 'datetime'
-    amount = 'amount'
+class OrderFieldType(EnumUpperBase):
+    CREATED_AT = 'CREATED_AT'
+    EXPENSE_DATE = 'EXPENSE_DATE'
+    AMOUNT = 'AMOUNT'
 
 
-class OrderDirectionType(EnumLowerBase):
-    asc = 'asc'
-    desc = 'desc'
+class OrderDirectionType(EnumUpperBase):
+    ASC = 'ASC'
+    DESC = 'DESC'
 
 
-class ExpenseRequest(BaseModel):
-    skip: conint(ge=0) = 0
-    size: conint(ge=1, le=100) = 100
-    order_field: OrderFieldType = OrderFieldType.datetime
-    order_direction: OrderDirectionType = OrderDirectionType.desc
+class Order(BaseServiceModel):
+    field: OrderFieldType
+    ordering: Optional[OrderDirectionType] = None
 
-    date_from: datetime = datetime.now(timezone.utc) - timedelta(days=90)
-    date_to: datetime = datetime.now(timezone.utc)
+
+class ExpenseRequest(Params):
+    page: int = Field(1, ge=1, description="Page number")
+    size: int = Field(20, ge=1, le=100, description="Page size")
+    orders: list[Order] = [Order(field=OrderFieldType.EXPENSE_DATE, ordering=OrderDirectionType.DESC),
+                           Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC)]
+
+    amount_from: Optional[condecimal(ge=Decimal('0'))] = None
+    amount_to: Optional[condecimal(gt=Decimal('0'))] = None
+    original_amount_from: Optional[Decimal] = None
+    original_amount_to: Optional[Decimal] = None
+    original_currencies: Optional[list[CurrencyType]] = []
+
+    date_from: Optional[datetime] = datetime.now() - timedelta(days=90)
+    date_to: Optional[datetime] = datetime.now()
+
     category_ids: list[UUID] = []
-    place_ids: list[UUID] = []
-    amount_from: condecimal(ge=Decimal('0')) = Decimal('0')
-    amount_to: condecimal(gt=Decimal('0')) = Decimal('999999999')
-
-    @root_validator
-    def prepare_dates(cls, values: dict) -> dict:
-        values['date_from'] = values['date_from'].replace(hour=0, minute=0, second=0, microsecond=0,
-                                                          tzinfo=timezone.utc)
-        values['date_to'] = values['date_to'].replace(hour=23, minute=59, second=59, microsecond=999999,
-                                                      tzinfo=timezone.utc)
-        return values
+    location_ids: list[UUID] = []
+    statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]

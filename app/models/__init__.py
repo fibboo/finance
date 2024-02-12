@@ -1,4 +1,3 @@
-from .expense.expense import *
-from .expense.expense_category import *
-from .expense.expense_place import *
-from .income import *
+from app.models.expanse.expense import *
+from app.models.expanse.category import *
+from app.models.expanse.location import *

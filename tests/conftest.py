@@ -1,11 +1,9 @@
-import asyncio
-import os
-
-import edgedb
 import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from app.config.settings import settings
-from app.services.expense import expense_service, category_service, place_service
+from app.db import Base
 
 
 @pytest.fixture
@@ -13,40 +11,34 @@ def app_settings():
     return settings.settings
 
 
-@pytest.fixture(scope='session')
-def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()
+@pytest_asyncio.fixture
+async def engine(postgresql):
+    connection = f'postgresql+asyncpg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
+    engine = create_async_engine(connection)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield engine
 
 
-@pytest.fixture(scope='session', autouse=True)
-def edgedb_connection(event_loop):
-    conn = edgedb.create_async_client()
-    event_loop.run_until_complete(conn.execute('CREATE DATABASE test_db;'))
-    test_conn = edgedb.create_async_client(database='test_db')
+@pytest_asyncio.fixture
+async def db_fixture(engine):
+    SessionLocalPytest = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
+    session = SessionLocalPytest()
 
-    migration_path = os.path.join(os.path.dirname(__file__), '../app/models/migrations')
+    yield session
 
-    for file in os.listdir(migration_path):
-        if file.endswith('.edgeql'):
-            event_loop.run_until_complete(test_conn.execute(open(os.path.join(migration_path, file), 'r').read()))
-
-    yield test_conn
-
-    event_loop.run_until_complete(test_conn.aclose())
-    event_loop.run_until_complete(conn.execute('DROP DATABASE test_db;'))
-    event_loop.run_until_complete(conn.aclose())
+    await session.close()
 
 
-@pytest.fixture
-def db(mocker, edgedb_connection, event_loop):
-    mocker.patch.object(expense_service, 'db', edgedb_connection)
-    mocker.patch.object(category_service, 'db', edgedb_connection)
-    mocker.patch.object(place_service, 'db', edgedb_connection)
+@pytest_asyncio.fixture
+async def db(engine):
+    SessionLocalPytest = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
 
-    yield edgedb_connection
-
-    event_loop.run_until_complete(edgedb_connection.query(f'DELETE expense::Expense'))
-    event_loop.run_until_complete(edgedb_connection.query(f'DELETE expense::ExpensePlace'))
-    event_loop.run_until_complete(edgedb_connection.query(f'DELETE expense::ExpenseCategory'))
+    try:
+        async with SessionLocalPytest.begin() as session:
+            yield session
+    finally:
+        await session.commit()
+        await session.close()

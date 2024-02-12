@@ -1,17 +1,14 @@
-fastapi==0.79.0
-uvicorn==0.18.2
-pydantic==1.9.2
-python-dotenv==0.20.0
+fastapi==0.109.2
+uvicorn==0.27.1
+pydantic==2.6.1
+pydantic_settings==2.1.0
 
-httpx[cli]==0.23.0
+httpx==0.26.0
 
-sqlalchemy==1.4.40
-alembic==1.8.1
-fastapi-pagination[sqlalchemy]==0.9.3
-psycopg2-binary==2.9.3
-
-edgedb==0.24
+sqlalchemy==2.0.26
+asyncpg==0.29.0
+fastapi-pagination[sqlalchemy]==0.12.15
 
 pytest-env==0.6.2
 pytest-asyncio==0.19
-pytest-mock==3.8.2
+pytest-postgresql==5.1.0
