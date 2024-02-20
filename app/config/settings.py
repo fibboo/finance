@@ -18,5 +18,9 @@ class Settings(BaseSettings):
     db_port: int
     db_name: str
 
+    telegram_token: str
+    telegram_client_id: str
+    session_expire_seconds: int
+
 
 settings = Settings(_env_file=os.getenv('APP_CONFIG'), _env_file_encoding='utf-8')

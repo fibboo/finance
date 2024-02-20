@@ -11,7 +11,7 @@ from starlette.responses import JSONResponse
 
 from app.api.api import api_router
 from app.config.logging_settings import get_logger
-from app.exceptions.exception import EntityException, NotFoundEntity, UnauthorizedException
+from app.exceptions.exception import EntityException, NotFoundException, UnauthorizedException
 
 logger = get_logger(__name__)
 
@@ -34,7 +34,7 @@ app.include_router(api_router)
 @app.exception_handler(EntityException)
 async def entity_exception(_: Request, exc: EntityException):
     logger.debug(f'Entity exception: {exc.message}')
-    if isinstance(exc, NotFoundEntity):
+    if isinstance(exc, NotFoundException):
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={'message': exc.message})
 
     if isinstance(exc, UnauthorizedException):

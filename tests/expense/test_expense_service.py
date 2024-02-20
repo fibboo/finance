@@ -9,19 +9,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.expense.category import category_crud
 from app.crud.expense.expense import expense_crud
 from app.crud.expense.location import location_crud
-from app.exceptions.exception import NotFoundEntity, IntegrityExistException
-from app.models import Category as CategoryModel, Location as LocationModel, Expense as ExpenseModel
+from app.crud.user.user import user_crud
+from app.exceptions.exception import NotFoundException, IntegrityExistException
+from app.models import Category as CategoryModel, Location as LocationModel, Expense as ExpenseModel, User
 from app.schemas.base import EntityStatusType, CurrencyType
 from app.schemas.expense.category import CategoryType
 from app.schemas.expense.expense import (ExpenseCreate, Expense, ExpenseRequest, OrderFieldType, OrderDirectionType,
                                          ExpenseUpdate, Order)
+from app.schemas.user.external_user import ProviderType
 from app.services.expense import expense_service
 
 
 @pytest.mark.asyncio
 async def test_create_expense_correct_data(db_fixture: AsyncSession):
     # Given
-    user_id = uuid4()
+    user_create = User(username='test',
+                       registration_provider=ProviderType.TELEGRAM)
+    user_db: User = await user_crud.create(db=db_fixture, obj_in=user_create, commit=True)
+    user_id = user_db.id
 
     category_create = CategoryModel(user_id=user_id,
                                     name='Food',
@@ -75,7 +80,10 @@ async def test_create_expense_correct_data(db_fixture: AsyncSession):
 @pytest.mark.asyncio
 async def test_create_expense_incorrect_data(db_fixture: AsyncSession):
     # Given
-    user_id = uuid4()
+    user_create = User(username='test',
+                       registration_provider=ProviderType.TELEGRAM)
+    user_db: User = await user_crud.create(db=db_fixture, obj_in=user_create, commit=True)
+    user_id = user_db.id
     category_id = uuid4()
 
     expense_create = ExpenseCreate(expense_date=datetime.now().date(),
@@ -96,7 +104,10 @@ async def test_create_expense_incorrect_data(db_fixture: AsyncSession):
 
 
 async def _create_categories_places_and_expenses(db_fixture: AsyncSession, expenses: bool = True):
-    user_id = uuid4()
+    user_create = User(username='test',
+                       registration_provider=ProviderType.TELEGRAM)
+    user_db: User = await user_crud.create(db=db_fixture, obj_in=user_create, commit=True)
+    user_id = user_db.id
     current_date = datetime.now().date()
 
     category_ids = []
@@ -234,7 +245,10 @@ async def test_get_expense_with_and_no_expenses(db_fixture: AsyncSession):
 @pytest.mark.asyncio
 async def test_get_expense_by_id(db_fixture: AsyncSession):
     # Given
-    user_id = uuid4()
+    user_create = User(username='test',
+                       registration_provider=ProviderType.TELEGRAM)
+    user_db: User = await user_crud.create(db=db_fixture, obj_in=user_create, commit=True)
+    user_id = user_db.id
 
     category_create = CategoryModel(user_id=user_id,
                                     name='Food',
@@ -294,7 +308,7 @@ async def test_get_expense_by_id_not_found(db_fixture: AsyncSession):
     expense_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
+    with pytest.raises(NotFoundException) as exc:
         await expense_service.get_expense_by_id(db=db_fixture, expense_id=expense_id, user_id=user_id)
 
     # Then
@@ -302,9 +316,12 @@ async def test_get_expense_by_id_not_found(db_fixture: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_update_expense(db_fixture: AsyncSession, db):
+async def test_update_expense(db_fixture: AsyncSession, db: AsyncSession):
     # Given
-    user_id = uuid4()
+    user_create = User(username='test',
+                       registration_provider=ProviderType.TELEGRAM)
+    user_db: User = await user_crud.create(db=db_fixture, obj_in=user_create, commit=True)
+    user_id = user_db.id
 
     category_create = CategoryModel(user_id=user_id,
                                     name='Food',
@@ -364,7 +381,10 @@ async def test_update_expense(db_fixture: AsyncSession, db):
 @pytest.mark.asyncio
 async def test_update_expense_not_found(db_fixture: AsyncSession):
     # Given
-    user_id = uuid4()
+    user_create = User(username='test',
+                       registration_provider=ProviderType.TELEGRAM)
+    user_db: User = await user_crud.create(db=db_fixture, obj_in=user_create, commit=True)
+    user_id = user_db.id
 
     category_create = CategoryModel(user_id=user_id,
                                     name='Food',
@@ -408,7 +428,7 @@ async def test_update_expense_not_found(db_fixture: AsyncSession):
                                              location_id=fake_location_id)
 
     # When
-    with pytest.raises(NotFoundEntity) as exc_not_found:
+    with pytest.raises(NotFoundException) as exc_not_found:
         await expense_service.update_expense(db=db_fixture, expense_id=expense_db.id, expense_update=expense_update,
                                              user_id=fake_user_id)
 
@@ -417,7 +437,7 @@ async def test_update_expense_not_found(db_fixture: AsyncSession):
                                              expense_update=expense_update_integrity, user_id=user_id)
 
     # Then
-    assert exc_not_found.value.message == f'Expense not found by user_id #{fake_user_id} and expense_id #{expense_db.id}'
+    assert exc_not_found.value.message == f'User with id #{fake_user_id} not found'
 
     assert exc_not_found_integrity.value.message in (f'Expense integrity exception: DETAIL:  '
                                                      f'Key (location_id)=({fake_location_id}) '
@@ -471,7 +491,7 @@ async def test_delete_expense_not_found(db_fixture: AsyncSession):
     fake_expense_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
+    with pytest.raises(NotFoundException) as exc:
         await expense_service.delete_expense(db=db_fixture, expense_id=fake_expense_id, user_id=fake_user_id)
 
     # Then

@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.location import location_crud
-from app.exceptions.exception import NotFoundEntity, IntegrityExistException
+from app.exceptions.exception import NotFoundException, IntegrityExistException
 from app.models import Location as LocationModel
 from app.schemas.base import EntityStatusType
 from app.schemas.expense.location import LocationCreate, Location, LocationUpdate, LocationRequest
@@ -35,7 +35,7 @@ async def get_location_by_id(db: AsyncSession, location_id: UUID, user_id: UUID)
     location_db: Optional[Location] = await location_crud.get(db=db, id=location_id, user_id=user_id)
 
     if location_db is None:
-        raise NotFoundEntity(f'Location not found by user_id #{user_id} and location_id #{location_id}.')
+        raise NotFoundException(f'Location not found by user_id #{user_id} and location_id #{location_id}.')
 
     location: Location = Location.model_validate(location_db)
     return location
@@ -51,7 +51,7 @@ async def update_location(db: AsyncSession, location_id: UUID, request: Location
         raise IntegrityExistException(model=LocationModel, exception=exc)
 
     if location_db is None:
-        raise NotFoundEntity(f'Location not found by user_id #{user_id} and location_id #{location_id}')
+        raise NotFoundException(f'Location not found by user_id #{user_id} and location_id #{location_id}')
 
     location: Location = Location.model_validate(location_db)
     return location
@@ -68,4 +68,4 @@ async def delete_location(db: AsyncSession, location_id: UUID, user_id: UUID) ->
         raise IntegrityExistException(model=LocationModel, exception=exc)
 
     if location_db is None:
-        raise NotFoundEntity(f'Location not found by user_id #{user_id} and location_id #{location_id}')
+        raise NotFoundException(f'Location not found by user_id #{user_id} and location_id #{location_id}')

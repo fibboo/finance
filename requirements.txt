@@ -1,6 +1,6 @@
 fastapi==0.109.2
 uvicorn==0.27.1
-pydantic==2.6.1
+pydantic[email]==2.6.1
 pydantic_settings==2.1.0
 
 httpx==0.26.0
@@ -12,3 +12,4 @@ fastapi-pagination[sqlalchemy]==0.12.15
 pytest-env==0.6.2
 pytest-asyncio==0.19
 pytest-postgresql==5.1.0
+pytest_httpx==0.29.0

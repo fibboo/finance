@@ -4,7 +4,6 @@ from fastapi import Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.postgres import SessionLocal
-from app.schemas.user.user import User
 
 
 async def get_db() -> AsyncSession:
@@ -16,7 +15,9 @@ async def get_db() -> AsyncSession:
         await session.close()
 
 
-async def get_user_id(x_auth_token: UUID = Header(...)) -> UUID:
-    # get user logic here
-    user = User(id=x_auth_token)
-    return user.id
+def get_user_id(user_id: UUID = Header(...)) -> UUID:
+    return user_id
+
+
+def get_token(x_auth_token: UUID = Header(...)) -> UUID:
+    return x_auth_token

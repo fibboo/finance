@@ -6,7 +6,7 @@ from pydantic import parse_obj_as
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.category import category_crud
-from app.exceptions.exception import ProcessingException, NotFoundEntity, IntegrityExistException
+from app.exceptions.exception import ProcessingException, NotFoundException, IntegrityExistException
 from app.models import Category as CategoryModel
 from app.schemas.base import EntityStatusType
 from app.schemas.expense.category import CategoryCreate, Category, CategorySearch, CategoryUpdate, CategoryType
@@ -218,7 +218,7 @@ async def test_get_category_by_id_incorrect_data(db_fixture: AsyncSession):
     category_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
+    with pytest.raises(NotFoundException) as exc:
         await category_service.get_category_by_id(db=db_fixture, category_id=category_id, user_id=user_id)
 
     # Then
@@ -277,7 +277,7 @@ async def test_update_category_not_found(db_fixture: AsyncSession):
                                      type=CategoryType.GENERAL)
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
+    with pytest.raises(NotFoundException) as exc:
         await category_service.update_category(db=db_fixture, category_id=category_id,
                                                category_update=category_update, user_id=wrong_user_id)
 
@@ -346,7 +346,7 @@ async def test_delete_category_not_found(db_fixture: AsyncSession):
     fake_category_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
+    with pytest.raises(NotFoundException) as exc:
         await category_service.delete_category(db=db_fixture, category_id=fake_category_id, user_id=fake_user_id)
 
     # Then

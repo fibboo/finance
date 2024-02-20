@@ -8,11 +8,11 @@ class EntityException(Exception):
         self.message = message
 
 
-class NotFoundEntity(EntityException):
+class NotFoundException(EntityException):
     pass
 
 
-class NotFoundIntegrity(NotFoundEntity):
+class NotFoundIntegrity(NotFoundException):
     def __init__(self, model: Base, exception: IntegrityError):
         error_detail = exception.orig.args[0].split('\n')[1]
         message = f'{model.__name__} not found: {error_detail}'
