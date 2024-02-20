@@ -5,7 +5,7 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.location import location_crud
-from app.exceptions.exception import ProcessingException, NotFoundEntity, IntegrityExistException
+from app.exceptions.exception import ProcessingException, NotFoundException, IntegrityExistException
 from app.models import Location as LocationModel
 from app.schemas.base import EntityStatusType
 from app.schemas.expense.location import Location, LocationCreate, LocationRequest, LocationUpdate
@@ -165,7 +165,7 @@ async def test_get_location_by_id_not_found(db: AsyncSession):
     location_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
+    with pytest.raises(NotFoundException) as exc:
         await location_service.get_location_by_id(db=db, location_id=location_id, user_id=user_id)
 
     # Then
@@ -219,7 +219,7 @@ async def test_update_location_not_found(db_fixture: AsyncSession):
                                      description='Location description updated')
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
+    with pytest.raises(NotFoundException) as exc:
         await location_service.update_location(db=db_fixture, location_id=location_id,
                                                request=location_update, user_id=wrong_user_id)
 
@@ -284,7 +284,7 @@ async def test_delete_location_not_found(db_fixture: AsyncSession):
     fake_location_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundEntity) as exc:
+    with pytest.raises(NotFoundException) as exc:
         await location_service.delete_location(db=db_fixture, location_id=fake_location_id, user_id=fake_user_id)
 
     # Then

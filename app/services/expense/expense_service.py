@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.expense import expense_crud
-from app.exceptions.exception import NotFoundEntity, IntegrityExistException, ProcessingException
+from app.exceptions.exception import NotFoundException, IntegrityExistException, ProcessingException
 from app.models import Expense as ExpenseModel
 from app.schemas.base import EntityStatusType, CurrencyType
 from app.schemas.expense.expense import ExpenseCreate, Expense, ExpenseUpdate, ExpenseRequest
@@ -58,7 +58,7 @@ async def get_expense_by_id(db: AsyncSession, expense_id: UUID, user_id: UUID) -
     expense_db: Optional[ExpenseModel] = await expense_crud.get(db=db, id=expense_id, user_id=user_id)
 
     if expense_db is None:
-        raise NotFoundEntity(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}.')
+        raise NotFoundException(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}.')
 
     expense: Expense = Expense.model_validate(expense_db)
     return expense
@@ -82,7 +82,7 @@ async def update_expense(db: AsyncSession, expense_id: UUID, expense_update: Exp
         raise IntegrityExistException(model=ExpenseModel, exception=exc)
 
     if expense_db is None:
-        raise NotFoundEntity(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}')
+        raise NotFoundException(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}')
 
     expense: Expense = Expense.model_validate(expense_db)
     return expense
@@ -99,4 +99,4 @@ async def delete_expense(db: AsyncSession, expense_id: UUID, user_id: UUID) -> N
         raise IntegrityExistException(model=ExpenseModel, exception=exc)
 
     if expense_db is None:
-        raise NotFoundEntity(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}')
+        raise NotFoundException(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}')

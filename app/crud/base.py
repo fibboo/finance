@@ -88,6 +88,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             await db.flush()
         if commit:
             await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
     async def update(self,

@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.category import category_crud
-from app.exceptions.exception import NotFoundEntity, IntegrityExistException
+from app.exceptions.exception import NotFoundException, IntegrityExistException
 from app.models import Category as CategoryModel
 from app.schemas.base import EntityStatusType
 from app.schemas.expense.category import CategoryCreate, Category, CategoryUpdate, CategorySearch
@@ -35,7 +35,7 @@ async def get_category_by_id(db: AsyncSession, category_id: UUID, user_id: UUID)
     category_db: Optional[CategoryModel] = await category_crud.get(db=db, id=category_id, user_id=user_id)
 
     if category_db is None:
-        raise NotFoundEntity(f'Category not found by user_id #{user_id} and category_id #{category_id}.')
+        raise NotFoundException(f'Category not found by user_id #{user_id} and category_id #{category_id}.')
 
     category: Category = Category.model_validate(category_db)
     return category
@@ -52,7 +52,7 @@ async def update_category(db: AsyncSession, category_id: UUID, category_update: 
         raise IntegrityExistException(model=CategoryModel, exception=exc)
 
     if category_db is None:
-        raise NotFoundEntity(f'Category not found by user_id #{user_id} and category_id #{category_id}')
+        raise NotFoundException(f'Category not found by user_id #{user_id} and category_id #{category_id}')
 
     category: Category = Category.model_validate(category_db)
     return category
@@ -69,4 +69,4 @@ async def delete_category(db: AsyncSession, category_id: UUID, user_id: UUID) ->
         raise IntegrityExistException(model=CategoryModel, exception=exc)
 
     if category_db is None:
-        raise NotFoundEntity(f'Category not found by user_id #{user_id} and category_id #{category_id}')
+        raise NotFoundException(f'Category not found by user_id #{user_id} and category_id #{category_id}')
