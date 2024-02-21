@@ -76,3 +76,18 @@ class ExpenseRequest(Params):
     category_ids: list[UUID] = []
     location_ids: list[UUID] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
+
+    def __hash__(self):
+        return hash((self.page,
+                     self.size,
+                     ''.join([f'{order.field}|{order.ordering}' for order in self.orders]),
+                     self.amount_from,
+                     self.amount_to,
+                     self.original_amount_from,
+                     self.original_amount_to,
+                     ''.join(map(str, self.original_currencies)),
+                     self.date_from,
+                     self.date_to,
+                     ''.join(map(str, self.category_ids)),
+                     ''.join(map(str, self.location_ids)),
+                     ''.join(map(str, self.statuses))))

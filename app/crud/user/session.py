@@ -11,13 +11,13 @@ from app.schemas.user.session import UserSessionCreate, UserSessionUpdate
 
 
 class CRUDUserSession(CRUDBase[UserSession, UserSessionCreate, UserSessionUpdate]):
-    async def get_active_sessions(self, db: AsyncSession, user_id: UUID, date: datetime) -> list[UserSession]:
+    async def get_active_session(self, db: AsyncSession, user_id: UUID, date: datetime) -> Optional[UserSession]:
         query = (select(self.model)
                  .where(self.model.user_id == user_id)
-                 .where(self.model.expires_at <= date))
+                 .where(self.model.expires_at >= date))
 
-        sessions: list[UserSession] = (await db.scalars(query)).all()
-        return sessions
+        session: Optional[UserSession] = await db.scalar(query)
+        return session
 
     async def revoke(self,
                      db: AsyncSession,

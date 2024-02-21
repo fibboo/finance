@@ -8,6 +8,7 @@ from app.schemas.base import EnumUpperBase, BaseServiceModel
 
 class ProviderType(EnumUpperBase):
     TELEGRAM = 'TELEGRAM'
+    TEST = 'TEST'
 
 
 class ExternalUserBase(BaseServiceModel):

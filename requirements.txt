@@ -9,6 +9,8 @@ sqlalchemy==2.0.26
 asyncpg==0.29.0
 fastapi-pagination[sqlalchemy]==0.12.15
 
+aiocache==0.12.2
+
 pytest-env==0.6.2
 pytest-asyncio==0.19
 pytest-postgresql==5.1.0

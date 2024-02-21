@@ -8,20 +8,22 @@ from app.schemas.user.external_user import ProviderType
 from app.services.user import session_service
 from app.services.user.auth.auth_client import AuthClient
 from app.services.user.auth.telegram_client import AuthTelegramClient
+from app.services.user.auth.test_client import AuthTestClient
 
 router = APIRouter()
 
-auth_clients: dict[ProviderType, AuthClient] = {ProviderType.TELEGRAM: AuthTelegramClient()}
+auth_clients: dict[ProviderType, AuthClient] = {ProviderType.TELEGRAM: AuthTelegramClient(),
+                                                ProviderType.TEST: AuthTestClient()}
 
 
-@router.get('/{provider}/route')
+@router.get('/route')
 async def get_auth_url(provider: ProviderType):
     client: AuthClient = auth_clients[provider]
     auth_url: str = client.auth_link
     return auth_url
 
 
-@router.get('/{provider}/login')
+@router.get('/login')
 async def login(provider: ProviderType,
                 auth_code: str,
                 db: AsyncSession = Depends(get_db)):
@@ -30,7 +32,7 @@ async def login(provider: ProviderType,
     return token
 
 
-@router.post("/logout")
+@router.post('/logout')
 async def logout(db: AsyncSession = Depends(get_db),
                  x_auth_token: UUID = Depends(get_token)):
     await session_service.revoke_session(db=db, token=x_auth_token)

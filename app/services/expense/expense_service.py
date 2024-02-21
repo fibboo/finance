@@ -12,6 +12,7 @@ from app.models import Expense as ExpenseModel
 from app.schemas.base import EntityStatusType, CurrencyType
 from app.schemas.expense.expense import ExpenseCreate, Expense, ExpenseUpdate, ExpenseRequest
 from app.services.user import user_service
+from app.utils.cache import memory_cache, cache
 
 
 async def create_expense(db: AsyncSession, expense_create: ExpenseCreate, user_id: UUID) -> Expense:
@@ -48,12 +49,20 @@ def _get_currency_amount(expense_amount: Decimal,
             raise ProcessingException(f'Currency {expense_currency} is not supported.')
 
 
+@memory_cache(ttl=10,
+              response_model=Page[Expense],
+              key_builder=lambda *args, **kwargs: hash((kwargs['request'] if kwargs else args[1],
+                                                        kwargs['user_id'] if kwargs else args[2])))
 async def get_expenses(db: AsyncSession, request: ExpenseRequest, user_id: UUID) -> Page[Expense]:
     expenses_db: Page[ExpenseModel] = await expense_crud.get_expenses(db=db, request=request, user_id=user_id)
     expenses = Page[Expense].model_validate(expenses_db)
     return expenses
 
 
+@memory_cache(ttl=60 * 5,
+              response_model=Expense,
+              key_builder=lambda *args, **kwargs: f'get_expense_by_id_{kwargs["expense_id"] if kwargs else args[1]}_'
+                                                  f'{kwargs["user_id"] if kwargs else args[2]}')
 async def get_expense_by_id(db: AsyncSession, expense_id: UUID, user_id: UUID) -> Expense:
     expense_db: Optional[ExpenseModel] = await expense_crud.get(db=db, id=expense_id, user_id=user_id)
 
@@ -84,6 +93,7 @@ async def update_expense(db: AsyncSession, expense_id: UUID, expense_update: Exp
     if expense_db is None:
         raise NotFoundException(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}')
 
+    await cache.delete(key=f'get_expense_by_id_{expense_id}_{user_id}')
     expense: Expense = Expense.model_validate(expense_db)
     return expense
 
@@ -100,3 +110,5 @@ async def delete_expense(db: AsyncSession, expense_id: UUID, user_id: UUID) -> N
 
     if expense_db is None:
         raise NotFoundException(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}')
+
+    await cache.delete(key=f'get_expense_by_id_{expense_id}_{user_id}')

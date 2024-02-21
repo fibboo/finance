@@ -44,3 +44,10 @@ class CategorySearch(Params):
     search_term: Optional[str] = None
     types: list[CategoryType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
+
+    def __hash__(self):
+        return hash((self.page,
+                     self.size,
+                     self.search_term,
+                     ''.join(map(str, self.types)),
+                     ''.join(map(str, self.statuses))))

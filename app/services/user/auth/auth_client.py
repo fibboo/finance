@@ -1,5 +1,6 @@
 from abc import abstractmethod, ABC
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
@@ -31,7 +32,7 @@ class AuthClient(ABC):
     def get_session_auth(self, auth_code: str) -> tuple[SessionAuth, AuthUser]:
         pass
 
-    async def _create_user(self, db: AsyncSession, auth_user: AuthUser) -> User:
+    async def _create_user(self, db: AsyncSession, auth_user: AuthUser) -> UserModel:
         user_create = UserCreate(username=auth_user.username,
                                  avatar=auth_user.avatar,
                                  registration_provider=self.provider)
@@ -52,22 +53,23 @@ class AuthClient(ABC):
                                                   email=auth_user.email)
         external_user_db: ExternalUserModel = await external_user_crud.create(db=db, obj_in=external_user_create)
         user_db.external_users = [external_user_db]
-
-        user: User = User.model_validate(user_db)
-        return user
+        return user_db
 
     async def get_token(self, db: AsyncSession, auth_code: str) -> UUID:
         session_auth, auth_user = self.get_session_auth(auth_code=auth_code)
-        user: User = await self._create_user(db=db, auth_user=auth_user)
+        user_db: Optional[UserModel] = await user_crud.get_user_by_external_id(db=db,
+                                                                               external_id=auth_user.external_id,
+                                                                               provider=self.provider)
+        if user_db is None:
+            user_db: UserModel = await self._create_user(db=db, auth_user=auth_user)
 
-        active_sessions: list[UserSession] = await user_session_crud.get_active_sessions(db=db,
+        user: User = User.model_validate(user_db)
+        user_session: Optional[UserSession] = await user_session_crud.get_active_session(db=db,
                                                                                          user_id=user.id,
                                                                                          date=datetime.now())
-        if len(active_sessions) > 0:
-            return active_sessions[0].token
-
-        session: UserSession = await session_service.create_session(db=db,
-                                                                    user_id=user.id,
-                                                                    provider=self.provider,
-                                                                    session_auth=session_auth)
-        return session.id
+        if user_session is None:
+            user_session: UserSession = await session_service.create_session(db=db,
+                                                                             user_id=user.id,
+                                                                             provider=self.provider,
+                                                                             session_auth=session_auth)
+        return user_session.id
