@@ -1,26 +1,37 @@
 import os
 
-from app.schemas.base import EnumLowerBase
 from pydantic_settings import BaseSettings
+
+from app.schemas.base import EnumLowerBase
 
 
 class EnvironmentType(EnumLowerBase):
     DEV = 'dev'
     PROD = 'prod'
+    LOCAL = 'local'
 
 
 class Settings(BaseSettings):
-    environment: EnvironmentType
-
-    db_user: str
-    db_password: str
-    db_host: str
-    db_port: int
-    db_name: str
-
-    telegram_token: str
-    telegram_client_id: str
-    session_expire_seconds: int
+    environment: EnvironmentType = EnvironmentType.LOCAL
+    session_expire_seconds: int = 60 * 60 * 24 * 7
 
 
-settings = Settings(_env_file=os.getenv('APP_CONFIG'), _env_file_encoding='utf-8')
+base_settings = Settings()
+
+
+class DatabaseSettings(BaseSettings):
+    database_url: str = 'postgresql+asyncpg://user:password@localhost:5432/fibboo-finance'
+
+
+database_settings = DatabaseSettings()
+
+
+class TelegramSettings(BaseSettings):
+    token: str
+    client_id: str
+
+    class Config:
+        env_prefix = 'telegram_'
+
+
+telegram_settings = TelegramSettings()

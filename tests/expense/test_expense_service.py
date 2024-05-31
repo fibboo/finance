@@ -10,12 +10,12 @@ from app.crud.expense.category import category_crud
 from app.crud.expense.expense import expense_crud
 from app.crud.expense.location import location_crud
 from app.crud.user.user import user_crud
-from app.exceptions.exception import NotFoundException, IntegrityExistException
-from app.models import Category as CategoryModel, Location as LocationModel, Expense as ExpenseModel, User
-from app.schemas.base import EntityStatusType, CurrencyType
+from app.exceptions.exception import IntegrityExistException, NotFoundException
+from app.models import Category as CategoryModel, Expense as ExpenseModel, Location as LocationModel, User
+from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.expense.category import CategoryType
-from app.schemas.expense.expense import (ExpenseCreate, Expense, ExpenseRequest, OrderFieldType, OrderDirectionType,
-                                         ExpenseUpdate, Order)
+from app.schemas.expense.expense import (Expense, ExpenseCreate, ExpenseRequest, ExpenseUpdate, Order,
+                                         OrderDirectionType, OrderFieldType)
 from app.schemas.user.external_user import ProviderType
 from app.services.expense import expense_service
 

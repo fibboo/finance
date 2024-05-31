@@ -1,12 +1,8 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.config.settings import settings
+from app.config.settings import database_settings
 
-DATABASE_URL = (f"postgresql+asyncpg://{settings.db_user}:"
-                f"{settings.db_password}@{settings.db_host}:"
-                f"{settings.db_port}/{settings.db_name}")
-
-engine = create_async_engine(DATABASE_URL,
+engine = create_async_engine(database_settings.database_url,
                              pool_pre_ping=True,
                              pool_size=5,
                              max_overflow=50)

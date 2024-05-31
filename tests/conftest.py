@@ -1,14 +1,7 @@
-import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.config.settings import settings
 from app.db import Base
-
-
-@pytest.fixture
-def app_settings():
-    return settings.settings
 
 
 @pytest_asyncio.fixture
