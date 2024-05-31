@@ -6,11 +6,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.category import category_crud
-from app.exceptions.exception import NotFoundException, IntegrityExistException
-from app.models import Category as CategoryModel
+from app.exceptions.exception import IntegrityExistException, NotFoundException
+from app.models.expense.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
-from app.schemas.expense.category import CategoryCreate, Category, CategoryUpdate, CategorySearch
-from app.utils.cache import memory_cache, cache
+from app.schemas.expense.category import Category, CategoryCreate, CategorySearch, CategoryUpdate
+from app.utils.cache import cache, memory_cache
 
 
 async def create_category(db: AsyncSession, category_create: CategoryCreate, user_id: UUID) -> Category:
@@ -38,8 +38,8 @@ async def get_categories(db: AsyncSession, request: CategorySearch, user_id: UUI
 
 @memory_cache(ttl=60 * 5,
               response_model=Category,
-              key_builder=lambda *args, **kwargs: f'get_category_by_id_{kwargs["category_id"] if kwargs else args[1]}_'
-                                                  f'{kwargs["user_id"] if kwargs else args[2]}')
+              key_builder=lambda *args, **kwargs: (f'get_category_by_id_{kwargs["category_id"] if kwargs else args[1]}_'
+                                                   f'{kwargs["user_id"] if kwargs else args[2]}'))
 async def get_category_by_id(db: AsyncSession, category_id: UUID, user_id: UUID) -> Category:
     category_db: Optional[CategoryModel] = await category_crud.get(db=db, id=category_id, user_id=user_id)
 

@@ -1,10 +1,10 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import constr, ConfigDict
+from pydantic import ConfigDict, constr
 
 from app.schemas.base import BaseServiceModel, CurrencyType
-from app.schemas.user.external_user import ProviderType, ExternalUser
+from app.schemas.user.external_user import ExternalUser, ProviderType
 
 
 class UserBase(BaseServiceModel):

@@ -11,7 +11,10 @@ from app.crud.expense.expense import expense_crud
 from app.crud.expense.location import location_crud
 from app.crud.user.user import user_crud
 from app.exceptions.exception import IntegrityExistException, NotFoundException
-from app.models import Category as CategoryModel, Expense as ExpenseModel, Location as LocationModel, User
+from app.models.expense.category import Category as CategoryModel
+from app.models.expense.expense import Expense as ExpenseModel
+from app.models.expense.location import Location as LocationModel
+from app.models.user.user import User
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.expense.category import CategoryType
 from app.schemas.expense.expense import (Expense, ExpenseCreate, ExpenseRequest, ExpenseUpdate, Order,
@@ -282,7 +285,7 @@ async def test_get_expense_by_id(db_fixture: AsyncSession):
     assert expense is not None
     assert expense.id == expense_db.id
     assert expense.user_id == expense_db.user_id
-    assert expense.expense_date == expense_db.expense_date.date()
+    assert expense.expense_date == expense_db.expense_date
     assert expense.amount == expense_db.amount
     assert expense.original_amount == expense_db.original_amount
     assert expense.original_currency == expense_db.original_currency
@@ -347,6 +350,7 @@ async def test_update_expense(db_fixture: AsyncSession, db: AsyncSession):
                                   location_id=location_db.id,
                                   status=EntityStatusType.ACTIVE)
     expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
+    await db_fixture.commit()
 
     expense_update = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
                                    original_amount=Decimal('20'),

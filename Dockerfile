@@ -13,5 +13,7 @@ COPY requirements/* requirements/
 RUN pip install -r requirements/base.txt
 
 COPY app app
+COPY alembic.ini alembic.ini
+COPY db_migration db_migration
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

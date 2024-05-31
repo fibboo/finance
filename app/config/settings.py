@@ -1,5 +1,3 @@
-import os
-
 from pydantic_settings import BaseSettings
 
 from app.schemas.base import EnumLowerBase
@@ -28,7 +26,7 @@ database_settings = DatabaseSettings()
 
 class TelegramSettings(BaseSettings):
     token: str
-    client_id: str
+    client_id: str = 'fibboo_finance_bot'
 
     class Config:
         env_prefix = 'telegram_'

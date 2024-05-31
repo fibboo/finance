@@ -6,11 +6,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.location import location_crud
-from app.exceptions.exception import NotFoundException, IntegrityExistException
-from app.models import Location as LocationModel
+from app.exceptions.exception import IntegrityExistException, NotFoundException
+from app.models.expense.location import Location as LocationModel
 from app.schemas.base import EntityStatusType
-from app.schemas.expense.location import LocationCreate, Location, LocationUpdate, LocationRequest
-from app.utils.cache import memory_cache, cache
+from app.schemas.expense.location import Location, LocationCreate, LocationRequest, LocationUpdate
+from app.utils.cache import cache, memory_cache
 
 
 async def create_location(db: AsyncSession, location_create: LocationCreate, user_id: UUID) -> Location:
@@ -38,8 +38,8 @@ async def get_locations(db: AsyncSession, request: LocationRequest, user_id: UUI
 
 @memory_cache(ttl=60 * 5,
               response_model=Location,
-              key_builder=lambda *args, **kwargs: f'get_location_by_id_{kwargs["location_id"] if kwargs else args[1]}_'
-                                                  f'{kwargs["user_id"] if kwargs else args[2]}')
+              key_builder=lambda *args, **kwargs: (f'get_location_by_id_{kwargs["location_id"] if kwargs else args[1]}_'
+                                                   f'{kwargs["user_id"] if kwargs else args[2]}'))
 async def get_location_by_id(db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
     location_db: Optional[Location] = await location_crud.get(db=db, id=location_id, user_id=user_id)
 

@@ -6,7 +6,7 @@ from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
-from app.models import Location
+from app.models.expense.location import Location
 from app.schemas.expense.location import LocationCreate, LocationUpdate, LocationRequest
 
 

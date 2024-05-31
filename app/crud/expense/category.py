@@ -2,12 +2,12 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
-from app.models import Category
-from app.schemas.expense.category import CategoryUpdate, CategoryCreate, CategorySearch
+from app.models.expense.category import Category
+from app.schemas.expense.category import CategoryCreate, CategorySearch, CategoryUpdate
 
 
 class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):

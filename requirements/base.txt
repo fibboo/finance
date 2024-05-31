@@ -10,3 +10,6 @@ fastapi-pagination[sqlalchemy]==0.12.24
 httpx==0.27.0
 
 aiocache==0.12.2
+
+alembic
+psycopg2-binary

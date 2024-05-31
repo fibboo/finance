@@ -7,12 +7,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.expense import expense_crud
-from app.exceptions.exception import NotFoundException, IntegrityExistException, ProcessingException
-from app.models import Expense as ExpenseModel
-from app.schemas.base import EntityStatusType, CurrencyType
-from app.schemas.expense.expense import ExpenseCreate, Expense, ExpenseUpdate, ExpenseRequest
+from app.exceptions.exception import IntegrityExistException, NotFoundException, ProcessingException
+from app.models.expense.expense import Expense as ExpenseModel
+from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.expense.expense import Expense, ExpenseCreate, ExpenseRequest, ExpenseUpdate
 from app.services.user import user_service
-from app.utils.cache import memory_cache, cache
+from app.utils.cache import cache, memory_cache
 
 
 async def create_expense(db: AsyncSession, expense_create: ExpenseCreate, user_id: UUID) -> Expense:
@@ -61,8 +61,8 @@ async def get_expenses(db: AsyncSession, request: ExpenseRequest, user_id: UUID)
 
 @memory_cache(ttl=60 * 5,
               response_model=Expense,
-              key_builder=lambda *args, **kwargs: f'get_expense_by_id_{kwargs["expense_id"] if kwargs else args[1]}_'
-                                                  f'{kwargs["user_id"] if kwargs else args[2]}')
+              key_builder=lambda *args, **kwargs: (f'get_expense_by_id_{kwargs["expense_id"] if kwargs else args[1]}_'
+                                                   f'{kwargs["user_id"] if kwargs else args[2]}'))
 async def get_expense_by_id(db: AsyncSession, expense_id: UUID, user_id: UUID) -> Expense:
     expense_db: Optional[ExpenseModel] = await expense_crud.get(db=db, id=expense_id, user_id=user_id)
 

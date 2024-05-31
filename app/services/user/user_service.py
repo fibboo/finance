@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.user.user import user_crud
 from app.exceptions.exception import NotFoundException
-from app.models import User
+from app.models.user.user import User
 from app.schemas.base import CurrencyType
 
 

@@ -18,6 +18,8 @@ RUN pip install -r requirements/local_tests.txt
 
 COPY app app
 COPY tests tests
+COPY alembic.ini alembic.ini
+COPY db_migration db_migration
 
 RUN useradd test && chown -R test:test /app
 USER test

@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -10,9 +10,10 @@ from app.crud.user.external_user import external_user_crud
 from app.crud.user.session import user_session_crud
 from app.crud.user.user import user_crud
 from app.exceptions.exception import IntegrityExistException
-from app.models import UserSession, User as UserModel, ExternalUser as ExternalUserModel
-from app.schemas.user.external_user import ProviderType, ExternalUserCreate
-from app.schemas.user.session import SessionAuth, AuthUser
+from app.models.user.external_user import ExternalUser as ExternalUserModel
+from app.models.user.session import User as UserModel, UserSession
+from app.schemas.user.external_user import ExternalUserCreate, ProviderType
+from app.schemas.user.session import AuthUser, SessionAuth
 from app.schemas.user.user import User, UserCreate
 from app.services.user import session_service
 

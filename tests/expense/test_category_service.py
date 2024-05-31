@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.category import category_crud
 from app.exceptions.exception import IntegrityExistException, NotFoundException, ProcessingException
-from app.models import Category as CategoryModel
+from app.models.expense.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
 from app.schemas.expense.category import Category, CategoryCreate, CategorySearch, CategoryType, CategoryUpdate
 from app.services.expense import category_service

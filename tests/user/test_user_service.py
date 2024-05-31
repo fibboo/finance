@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.user.user import user_crud
-from app.models import User
+from app.models.user.user import User
 from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ProviderType
 from app.services.user.user_service import get_user_base_currency
