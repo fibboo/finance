@@ -2,7 +2,7 @@ import logging
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
-from app.config.settings import settings, EnvironmentType
+from app.config.settings import EnvironmentType, base_settings
 
 FORMATTER = logging.Formatter(fmt="%(levelname)s: %(asctime)s %(name)s: %(message)s",
                               datefmt='%Y-%m-%d %H:%M:%S')
@@ -23,7 +23,7 @@ def get_file_handler():
 
 def get_logger(logger_name):
     logger = logging.getLogger(logger_name)
-    if settings.environment == EnvironmentType.DEV:
+    if base_settings.environment != EnvironmentType.PROD:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)

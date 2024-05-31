@@ -6,7 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
-from app.models import UserSession
+from app.models.user.session import UserSession
 from app.schemas.user.session import UserSessionCreate, UserSessionUpdate
 
 

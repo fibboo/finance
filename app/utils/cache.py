@@ -1,11 +1,12 @@
 import json
 from typing import Type
 
-from aiocache import caches, cached
+from aiocache import cached, caches
 from fastapi.encoders import jsonable_encoder
 from pydantic._internal._model_construction import ModelMetaclass
 
 from app.config.logging_settings import get_logger
+
 
 logger = get_logger(__name__)
 cache = caches.get('default')
@@ -44,8 +45,8 @@ class memory_cache(cached):  # noqa N801
     async def set_in_cache(self, key, value):
         generic_args = getattr(self.response_model, '__args__', ())
         try:
-            if (isinstance(self.response_model, ModelMetaclass)
-                    or (generic_args and isinstance(generic_args[0], ModelMetaclass))):
+            if (isinstance(self.response_model, ModelMetaclass) or
+                    (generic_args and isinstance(generic_args[0], ModelMetaclass))):
                 value = jsonable_encoder(value)
 
             value = json.dumps(value)

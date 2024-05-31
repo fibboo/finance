@@ -1,30 +1,30 @@
 import base64
 from datetime import datetime
 
-from app.config.settings import settings, EnvironmentType
+from app.config.settings import EnvironmentType, base_settings
 from app.exceptions.exception import UnauthorizedException
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.session import SessionAuth, AuthUser
+from app.schemas.user.session import AuthUser, SessionAuth
 from app.services.user.auth.auth_client import AuthClient
 
 
 class AuthTestClient(AuthClient):
     @property
     def provider(self) -> ProviderType:
-        if settings.environment != EnvironmentType.DEV:
-            raise UnauthorizedException(f'Test client requires environment {EnvironmentType.DEV}')
+        if base_settings.environment != EnvironmentType.LOCAL:
+            raise UnauthorizedException(f'Test client requires environment {EnvironmentType.LOCAL}')
 
         return ProviderType.TEST
 
     @property
     def auth_link(self) -> str:
-        if settings.environment != EnvironmentType.DEV:
-            raise UnauthorizedException(f'Test client requires environment {EnvironmentType.DEV}')
+        if base_settings.environment != EnvironmentType.LOCAL:
+            raise UnauthorizedException(f'Test client requires environment {EnvironmentType.LOCAL}')
 
         return 'test'
 
     def get_session_auth(self, auth_code: str) -> tuple[SessionAuth, AuthUser]:
-        if settings.environment != EnvironmentType.DEV:
+        if base_settings.environment != EnvironmentType.DEV:
             raise UnauthorizedException(f'Test client requires environment {EnvironmentType.DEV}')
 
         user_identifier = base64.b64encode(auth_code.encode()).decode('utf-8')
@@ -32,7 +32,7 @@ class AuthTestClient(AuthClient):
 
         session_auth = SessionAuth(access_token=str(hash(auth_code)),
                                    token_type='test_hash',
-                                   expires_in=settings.session_expire_seconds,
+                                   expires_in=base_settings.session_expire_seconds,
                                    scope='test_scope',
                                    user_identifier=user_identifier)
 

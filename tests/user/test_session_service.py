@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from uuid import uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.user.session import user_session_crud
 from app.crud.user.user import user_crud
-from app.models import UserSession, User
+from app.models.user.user import User
+from app.models.user.session import UserSession
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import UserSessionCreate
 from app.schemas.user.user import UserCreate

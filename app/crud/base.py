@@ -1,11 +1,12 @@
 from typing import Any, Generic, Optional, Type, TypeVar
 from uuid import UUID
 
-from sqlalchemy import update, select, insert
+from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import Base
+from app.models.base import Base
 from app.schemas.base import BaseServiceModel
+
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseServiceModel)

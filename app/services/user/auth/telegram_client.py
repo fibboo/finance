@@ -5,10 +5,10 @@ from collections import OrderedDict
 from datetime import datetime
 from urllib import parse
 
-from app.config.settings import settings
+from app.config.settings import base_settings, telegram_settings
 from app.exceptions.exception import UnauthorizedException
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.session import SessionAuth, AuthUser
+from app.schemas.user.session import AuthUser, SessionAuth
 from app.services.user.auth.auth_client import AuthClient
 
 
@@ -19,7 +19,7 @@ class AuthTelegramClient(AuthClient):
 
     @property
     def auth_link(self) -> str:
-        return settings.telegram_client_id
+        return telegram_settings.client_id
 
     def get_session_auth(self, auth_code: str) -> tuple[SessionAuth, AuthUser]:
         decoded_token = base64.b64decode(auth_code).decode('utf-8')
@@ -40,7 +40,7 @@ class AuthTelegramClient(AuthClient):
 
         session_auth = SessionAuth(access_token=telegram_hash,
                                    token_type='telegramHash',
-                                   expires_in=settings.session_expire_seconds,
+                                   expires_in=base_settings.session_expire_seconds,
                                    scope='write-message+auth',
                                    user_identifier=telegram_id)
 
@@ -61,7 +61,7 @@ class AuthTelegramClient(AuthClient):
         key_values: list[str] = [f'{k}={v}' for k, v in auth_data_ordered.items()]
         key_values_joined = '\n'.join(key_values)
 
-        hash_secret = hashlib.sha256(settings.telegram_token.encode("utf-8")).digest()
+        hash_secret = hashlib.sha256(telegram_settings.token.encode("utf-8")).digest()
 
         sign = hmac.new(hash_secret, key_values_joined.encode("utf-8"), hashlib.sha256).hexdigest()
 

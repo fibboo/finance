@@ -4,7 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
-from app.models import User, ExternalUser
+from app.models.user.external_user import ExternalUser
+from app.models.user.user import User
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate, UserUpdate
 

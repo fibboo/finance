@@ -2,14 +2,13 @@ from uuid import uuid4
 
 import pytest
 from fastapi_pagination import Page
-from pydantic import parse_obj_as
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.category import category_crud
-from app.exceptions.exception import ProcessingException, NotFoundException, IntegrityExistException
-from app.models import Category as CategoryModel
+from app.exceptions.exception import IntegrityExistException, NotFoundException, ProcessingException
+from app.models.expense.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
-from app.schemas.expense.category import CategoryCreate, Category, CategorySearch, CategoryUpdate, CategoryType
+from app.schemas.expense.category import Category, CategoryCreate, CategorySearch, CategoryType, CategoryUpdate
 from app.services.expense import category_service
 
 

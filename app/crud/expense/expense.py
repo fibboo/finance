@@ -6,7 +6,7 @@ from sqlalchemy import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
-from app.models.expanse.expense import Expense
+from app.models.expense.expense import Expense
 from app.schemas.expense.expense import ExpenseCreate, ExpenseUpdate, ExpenseRequest, OrderDirectionType, OrderFieldType
 
 

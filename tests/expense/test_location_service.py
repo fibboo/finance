@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.expense.location import location_crud
 from app.exceptions.exception import ProcessingException, NotFoundException, IntegrityExistException
-from app.models import Location as LocationModel
+from app.models.expense.location import Location as LocationModel
 from app.schemas.base import EntityStatusType
 from app.schemas.expense.location import Location, LocationCreate, LocationRequest, LocationUpdate
 from app.services.expense import location_service
