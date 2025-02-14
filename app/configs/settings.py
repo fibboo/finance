@@ -18,14 +18,17 @@ base_settings = Settings()
 
 
 class DatabaseSettings(BaseSettings):
-    database_url: str = 'postgresql+asyncpg://user:password@localhost:5432/fibboo-finance'
+    database_url: str = 'postgresql+asyncpg://user:password@postgres:5432/fibboo_finance'
+
+    def db_sync_url(self):
+        return self.database_url.replace('postgresql+asyncpg://', 'postgresql+psycopg2://')
 
 
 database_settings = DatabaseSettings()
 
 
 class TelegramSettings(BaseSettings):
-    token: str
+    token: str = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
     client_id: str = 'fibboo_finance_bot'
 
     class Config:

@@ -1,18 +1,21 @@
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
 
 from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.configs.logging_settings import get_logger
 from app.crud.expense.expense import expense_crud
-from app.exceptions.exception import IntegrityExistException, NotFoundException, ProcessingException
+from app.exceptions.conflict_409 import IntegrityException
+from app.exceptions.not_fount_404 import EntityNotFound
+from app.exceptions.not_implemented_501 import NotImplementedException
 from app.models.expense.expense import Expense as ExpenseModel
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.expense.expense import Expense, ExpenseCreate, ExpenseRequest, ExpenseUpdate
 from app.services.user import user_service
-from app.utils.cache import cache, memory_cache
+
+logger = get_logger(__name__)
 
 
 async def create_expense(db: AsyncSession, expense_create: ExpenseCreate, user_id: UUID) -> Expense:
@@ -27,7 +30,7 @@ async def create_expense(db: AsyncSession, expense_create: ExpenseCreate, user_i
     try:
         expense_db: ExpenseModel = await expense_crud.create(db=db, obj_in=obj_in)
     except IntegrityError as exc:
-        raise IntegrityExistException(model=ExpenseModel, exception=exc)
+        raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
 
     expense: Expense = Expense.model_validate(expense_db)
     return expense
@@ -46,28 +49,20 @@ def _get_currency_amount(expense_amount: Decimal,
         case CurrencyType.RUB:
             return round(expense_amount / Decimal('95'), 2)
         case _:
-            raise ProcessingException(f'Currency {expense_currency} is not supported.')
+            raise NotImplementedException(log_message=f'Currency {expense_currency} is not supported.', logger=logger)
 
 
-@memory_cache(ttl=10,
-              response_model=Page[Expense],
-              key_builder=lambda *args, **kwargs: hash((kwargs['request'] if kwargs else args[1],
-                                                        kwargs['user_id'] if kwargs else args[2])))
 async def get_expenses(db: AsyncSession, request: ExpenseRequest, user_id: UUID) -> Page[Expense]:
     expenses_db: Page[ExpenseModel] = await expense_crud.get_expenses(db=db, request=request, user_id=user_id)
     expenses = Page[Expense].model_validate(expenses_db)
     return expenses
 
 
-@memory_cache(ttl=60 * 5,
-              response_model=Expense,
-              key_builder=lambda *args, **kwargs: (f'get_expense_by_id_{kwargs["expense_id"] if kwargs else args[1]}_'
-                                                   f'{kwargs["user_id"] if kwargs else args[2]}'))
 async def get_expense_by_id(db: AsyncSession, expense_id: UUID, user_id: UUID) -> Expense:
-    expense_db: Optional[ExpenseModel] = await expense_crud.get(db=db, id=expense_id, user_id=user_id)
+    expense_db: ExpenseModel | None = await expense_crud.get_or_none(db=db, id=expense_id, user_id=user_id)
 
     if expense_db is None:
-        raise NotFoundException(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}.')
+        raise EntityNotFound(entity=ExpenseModel, search_params={'id': expense_id, 'user_id': user_id}, logger=logger)
 
     expense: Expense = Expense.model_validate(expense_db)
     return expense
@@ -83,32 +78,30 @@ async def update_expense(db: AsyncSession, expense_id: UUID, expense_update: Exp
                                                       user_id=user_id,
                                                       status=EntityStatusType.ACTIVE)
     try:
-        expense_db: Optional[ExpenseModel] = await expense_crud.update(db=db,
-                                                                       id=expense_id,
-                                                                       obj_in=expense_update_model,
-                                                                       user_id=user_id)
+        expense_db: ExpenseModel | None = await expense_crud.update(db=db,
+                                                                    id=expense_id,
+                                                                    obj_in=expense_update_model,
+                                                                    user_id=user_id)
     except IntegrityError as exc:
-        raise IntegrityExistException(model=ExpenseModel, exception=exc)
+        raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
 
     if expense_db is None:
-        raise NotFoundException(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}')
+        raise EntityNotFound(entity=ExpenseModel, search_params={'id': expense_id, 'user_id': user_id}, logger=logger)
 
-    await cache.delete(key=f'get_expense_by_id_{expense_id}_{user_id}')
     expense: Expense = Expense.model_validate(expense_db)
     return expense
 
 
 async def delete_expense(db: AsyncSession, expense_id: UUID, user_id: UUID) -> None:
     delete_update_data = {'status': EntityStatusType.DELETED}
+
     try:
-        expense_db: Optional[ExpenseModel] = await expense_crud.update(db=db,
-                                                                       id=expense_id,
-                                                                       obj_in=delete_update_data,
-                                                                       user_id=user_id)
+        expense_db: ExpenseModel | None = await expense_crud.update(db=db,
+                                                                    id=expense_id,
+                                                                    obj_in=delete_update_data,
+                                                                    user_id=user_id)
     except IntegrityError as exc:
-        raise IntegrityExistException(model=ExpenseModel, exception=exc)
+        raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
 
     if expense_db is None:
-        raise NotFoundException(f'Expense not found by user_id #{user_id} and expense_id #{expense_id}')
-
-    await cache.delete(key=f'get_expense_by_id_{expense_id}_{user_id}')
+        raise EntityNotFound(entity=ExpenseModel, search_params={'id': expense_id, 'user_id': user_id}, logger=logger)

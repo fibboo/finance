@@ -10,9 +10,9 @@ from app.schemas.user.external_user import ProviderType
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = 'users'
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)  # noqa: A003
 
     username: Mapped[str] = mapped_column(String(64), nullable=False, index=True, unique=True)
     avatar: Mapped[str | None] = mapped_column(String(2560), nullable=True)

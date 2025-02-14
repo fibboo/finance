@@ -4,10 +4,13 @@ import pytest
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.configs.logging_settings import LogLevelType
 from app.crud.expense.category import category_crud
-from app.exceptions.exception import IntegrityExistException, NotFoundException, ProcessingException
+from app.exceptions.conflict_409 import IntegrityException
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.expense.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
+from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 from app.schemas.expense.category import Category, CategoryCreate, CategorySearch, CategoryType, CategoryUpdate
 from app.services.expense import category_service
 
@@ -48,12 +51,17 @@ async def test_create_category_with_existing_name(db_fixture: AsyncSession):
     category_create = CategoryCreate(name='Category 1', type=CategoryType.GENERAL, )
 
     # When
-    with pytest.raises(ProcessingException) as exc:
+    with pytest.raises(IntegrityException) as exc:
         await category_service.create_category(db=db_fixture, category_create=category_create, user_id=user_id)
 
     # Then
-    assert exc.value.message == (f'Category integrity exception: DETAIL:  Key (user_id, name, status)=({user_id}, '
-                                 f'{category_create_model.name}, ACTIVE) already exists.')
+    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.title == 'Entity integrity error'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_message == (f'Category integrity error: DETAIL:  Key (user_id, name, status)=({user_id}, '
+                                     f'{category_create_model.name}, ACTIVE) already exists.')
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
 
 @pytest.mark.asyncio
@@ -217,11 +225,17 @@ async def test_get_category_by_id_incorrect_data(db_fixture: AsyncSession):
     category_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await category_service.get_category_by_id(db=db_fixture, category_id=category_id, user_id=user_id)
 
     # Then
-    assert exc.value.message == f'Category not found by user_id #{user_id} and category_id #{category_id}.'
+    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.title == 'Entity not found'
+    search_params = {'id': category_id, 'user_id': user_id}
+    assert exc.value.log_message == f'{CategoryModel.__name__} not found by {search_params}'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -276,12 +290,18 @@ async def test_update_category_not_found(db_fixture: AsyncSession):
                                      type=CategoryType.GENERAL)
 
     # When
-    with pytest.raises(NotFoundException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await category_service.update_category(db=db_fixture, category_id=category_id,
                                                category_update=category_update, user_id=wrong_user_id)
 
     # Then
-    assert exc.value.message == f'Category not found by user_id #{wrong_user_id} and category_id #{category_id}'
+    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.title == 'Entity not found'
+    search_params = {'id': category_id, 'user_id': wrong_user_id}
+    assert exc.value.log_message == f'{CategoryModel.__name__} not found by {search_params}'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -307,13 +327,18 @@ async def test_update_category_double(db_fixture: AsyncSession):
                                      type=category_db.type)
 
     # When
-    with pytest.raises(IntegrityExistException) as exc:
+    with pytest.raises(IntegrityException) as exc:
         await category_service.update_category(db=db_fixture, category_id=category_db.id,
                                                category_update=category_update, user_id=user_id)
 
     # Then
-    assert exc.value.message == (f'Category integrity exception: DETAIL:  Key (user_id, name, status)=({user_id}, '
-                                 f'{category_update.name}, ACTIVE) already exists.')
+    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.title == 'Entity integrity error'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_message == (f'Category integrity error: DETAIL:  Key (user_id, name, status)=({user_id}, '
+                                     f'{category_update.name}, ACTIVE) already exists.')
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
 
 @pytest.mark.asyncio
@@ -345,8 +370,14 @@ async def test_delete_category_not_found(db_fixture: AsyncSession):
     fake_category_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await category_service.delete_category(db=db_fixture, category_id=fake_category_id, user_id=fake_user_id)
 
     # Then
-    assert exc.value.message == f'Category not found by user_id #{fake_user_id} and category_id #{fake_category_id}'
+    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.title == 'Entity not found'
+    search_params = {'id': fake_category_id, 'user_id': fake_user_id}
+    assert exc.value.log_message == f'{CategoryModel.__name__} not found by {search_params}'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND

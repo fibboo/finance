@@ -1,31 +1,34 @@
 import base64
 from datetime import datetime
 
-from app.config.settings import EnvironmentType, base_settings
-from app.exceptions.exception import UnauthorizedException
+from app.configs.logging_settings import get_logger
+from app.configs.settings import EnvironmentType, base_settings
+from app.exceptions.forbidden_403 import EnvironmentMismatch
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import AuthUser, SessionAuth
 from app.services.user.auth.auth_client import AuthClient
+
+logger = get_logger(__name__)
 
 
 class AuthTestClient(AuthClient):
     @property
     def provider(self) -> ProviderType:
         if base_settings.environment != EnvironmentType.LOCAL:
-            raise UnauthorizedException(f'Test client requires environment {EnvironmentType.LOCAL}')
+            raise EnvironmentMismatch(required_env=EnvironmentType.LOCAL, logger=logger)
 
         return ProviderType.TEST
 
     @property
     def auth_link(self) -> str:
         if base_settings.environment != EnvironmentType.LOCAL:
-            raise UnauthorizedException(f'Test client requires environment {EnvironmentType.LOCAL}')
+            raise EnvironmentMismatch(required_env=EnvironmentType.LOCAL, logger=logger)
 
         return 'test'
 
     def get_session_auth(self, auth_code: str) -> tuple[SessionAuth, AuthUser]:
         if base_settings.environment != EnvironmentType.DEV:
-            raise UnauthorizedException(f'Test client requires environment {EnvironmentType.DEV}')
+            raise EnvironmentMismatch(required_env=EnvironmentType.DEV, logger=logger)
 
         user_identifier = base64.b64encode(auth_code.encode()).decode('utf-8')
         username = f'Test user {str(datetime.now().timestamp())[-6:]}'
@@ -38,7 +41,6 @@ class AuthTestClient(AuthClient):
 
         auth_user = AuthUser(external_id=user_identifier,
                              username=username,
-                             provider=self.provider,
-                             is_notify=True)
+                             provider=self.provider)
 
         return session_auth, auth_user

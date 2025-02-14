@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import EmailStr, ConfigDict
@@ -13,21 +12,21 @@ class SessionAuth(BaseServiceModel):
     access_token: str
     token_type: str
     expires_in: int
-    refresh_token: Optional[str] = None
+    refresh_token: str | None = None
     scope: str
-    user_identifier: Optional[str] = None
-    email: Optional[EmailStr] = None
+    user_identifier: str | None = None
+    email: EmailStr | None = None
 
 
 class AuthUser(BaseServiceModel):
     provider: ProviderType
     external_id: str
     username: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    avatar: Optional[str] = None
-    profile_url: Optional[str] = None
-    email: Optional[str] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    avatar: str | None = None
+    profile_url: str | None = None
+    email: str | None = None
 
 
 class UserSessionBase(BaseServiceModel):
@@ -35,11 +34,11 @@ class UserSessionBase(BaseServiceModel):
     expires_at: datetime
     provider: ProviderType
 
-    access_token: Optional[str] = None
-    token_type: Optional[str] = None
-    expires_in: Optional[int] = None
-    refresh_token: Optional[str] = None
-    scope: Optional[str] = None
+    access_token: str | None = None
+    token_type: str | None = None
+    expires_in: int | None = None
+    refresh_token: str | None = None
+    scope: str | None = None
 
 
 class UserSessionCreate(UserSessionBase):
@@ -51,7 +50,7 @@ class UserSessionUpdate(UserSessionBase):
 
 
 class UserSession(UserSessionBase):
-    id: UUID
+    id: UUID  # noqa: A003
     user: User
 
     model_config = ConfigDict(from_attributes=True)

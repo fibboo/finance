@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,13 +12,13 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def get_user_by_external_id(self,
                                       db: AsyncSession,
                                       external_id: str,
-                                      provider: ProviderType) -> Optional[User]:
+                                      provider: ProviderType) -> User | None:
         query = (select(User)
                  .join(ExternalUser, ExternalUser.user_id == User.id)
                  .where(ExternalUser.external_id == external_id)
                  .where(ExternalUser.provider == provider.value))
 
-        user: Optional[User] = await db.scalar(query)
+        user: User | None = await db.scalar(query)
         return user
 
 

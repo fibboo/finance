@@ -15,7 +15,7 @@ from app.schemas.base import CurrencyType, EntityStatusType
 class Expense(Base):
     __tablename__ = 'expenses'
 
-    id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), primary_key=True, default=uuid4)  # noqa: A003
     user_id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), nullable=False, index=True)
 
     expense_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)

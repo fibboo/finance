@@ -1,21 +1,23 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.configs.logging_settings import get_logger
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.session import user_session_crud
 from app.crud.user.user import user_crud
-from app.exceptions.exception import IntegrityExistException
+from app.exceptions.conflict_409 import IntegrityException
 from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.session import User as UserModel, UserSession
 from app.schemas.user.external_user import ExternalUserCreate, ProviderType
 from app.schemas.user.session import AuthUser, SessionAuth
 from app.schemas.user.user import User, UserCreate
 from app.services.user import session_service
+
+logger = get_logger(__name__)
 
 
 class AuthClient(ABC):
@@ -41,7 +43,7 @@ class AuthClient(ABC):
         try:
             user_db: UserModel = await user_crud.create(db=db, obj_in=user_create)
         except IntegrityError as exc:
-            raise IntegrityExistException(model=UserModel, exception=exc)
+            raise IntegrityException(entity=UserModel, exception=exc, logger=logger)
 
         external_user_create = ExternalUserCreate(user_id=user_db.id,
                                                   provider=self.provider,
@@ -58,16 +60,16 @@ class AuthClient(ABC):
 
     async def get_token(self, db: AsyncSession, auth_code: str) -> UUID:
         session_auth, auth_user = self.get_session_auth(auth_code=auth_code)
-        user_db: Optional[UserModel] = await user_crud.get_user_by_external_id(db=db,
-                                                                               external_id=auth_user.external_id,
-                                                                               provider=self.provider)
+        user_db: UserModel | None = await user_crud.get_user_by_external_id(db=db,
+                                                                            external_id=auth_user.external_id,
+                                                                            provider=self.provider)
         if user_db is None:
             user_db: UserModel = await self._create_user(db=db, auth_user=auth_user)
 
         user: User = User.model_validate(user_db)
-        user_session: Optional[UserSession] = await user_session_crud.get_active_session(db=db,
-                                                                                         user_id=user.id,
-                                                                                         date=datetime.now())
+        user_session: UserSession | None = await user_session_crud.get_active_session(db=db,
+                                                                                      user_id=user.id,
+                                                                                      date=datetime.now())
         if user_session is None:
             user_session: UserSession = await session_service.create_session(db=db,
                                                                              user_id=user.id,

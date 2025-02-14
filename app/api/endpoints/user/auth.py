@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_token
+from app.api.deps import get_db_transaction, get_token
 from app.schemas.user.external_user import ProviderType
 from app.services.user import session_service
 from app.services.user.auth.auth_client import AuthClient
@@ -26,13 +26,13 @@ async def get_auth_url(provider: ProviderType):
 @router.get('/login')
 async def login(provider: ProviderType,
                 auth_code: str,
-                db: AsyncSession = Depends(get_db)):
+                db: AsyncSession = Depends(get_db_transaction)):
     client: AuthClient = auth_clients[provider]
     token: UUID = await client.get_token(db=db, auth_code=auth_code)
     return token
 
 
 @router.post('/logout')
-async def logout(db: AsyncSession = Depends(get_db),
+async def logout(db: AsyncSession = Depends(get_db_transaction),
                  x_auth_token: UUID = Depends(get_token)):
     await session_service.revoke_session(db=db, token=x_auth_token)

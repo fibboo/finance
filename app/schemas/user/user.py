@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from pydantic import ConfigDict, constr
@@ -9,9 +8,9 @@ from app.schemas.user.external_user import ExternalUser, ProviderType
 
 class UserBase(BaseServiceModel):
     username: constr(min_length=3, max_length=64)
-    avatar: Optional[constr(min_length=3, max_length=2560)] = None
+    avatar: constr(min_length=3, max_length=2560) | None = None
     registration_provider: ProviderType
-    base_currency: Optional[CurrencyType] = CurrencyType.USD
+    base_currency: CurrencyType | None = CurrencyType.USD
 
 
 class UserCreate(UserBase):
@@ -23,7 +22,7 @@ class UserUpdate(UserBase):
 
 
 class User(UserBase):
-    id: UUID
+    id: UUID  # noqa: A003
     external_users: list[ExternalUser]
 
     model_config = ConfigDict(from_attributes=True)

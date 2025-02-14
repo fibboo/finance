@@ -6,16 +6,19 @@ import pytest
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.configs.logging_settings import LogLevelType
 from app.crud.expense.category import category_crud
 from app.crud.expense.expense import expense_crud
 from app.crud.expense.location import location_crud
 from app.crud.user.user import user_crud
-from app.exceptions.exception import IntegrityExistException, NotFoundException
+from app.exceptions.conflict_409 import IntegrityException
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.expense.category import Category as CategoryModel
 from app.models.expense.expense import Expense as ExpenseModel
 from app.models.expense.location import Location as LocationModel
 from app.models.user.user import User
 from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 from app.schemas.expense.category import CategoryType
 from app.schemas.expense.expense import (Expense, ExpenseCreate, ExpenseRequest, ExpenseUpdate, Order,
                                          OrderDirectionType, OrderFieldType)
@@ -97,13 +100,17 @@ async def test_create_expense_incorrect_data(db_fixture: AsyncSession):
                                    location_id=uuid4())
 
     # When
-    with pytest.raises(IntegrityExistException) as exc:
+    with pytest.raises(IntegrityException) as exc:
         await expense_service.create_expense(db=db_fixture, expense_create=expense_create, user_id=user_id)
 
     # Then
-    assert exc.value.message in (f'Expense integrity exception: DETAIL:  '
-                                 f'Key (category_id)=({category_id}) '
-                                 f'is not present in table "categories".')
+    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.title == 'Entity integrity error'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_message == (f'Expense integrity error: DETAIL:  Key (category_id)=({category_id}) '
+                                     f'is not present in table "categories".')
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
 
 async def _create_categories_places_and_expenses(db_fixture: AsyncSession, expenses: bool = True):
@@ -311,11 +318,17 @@ async def test_get_expense_by_id_not_found(db_fixture: AsyncSession):
     expense_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await expense_service.get_expense_by_id(db=db_fixture, expense_id=expense_id, user_id=user_id)
 
     # Then
-    assert exc.value.message in f'Expense not found by user_id #{user_id} and expense_id #{expense_id}.'
+    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.title == 'Entity not found'
+    search_params = {'id': expense_id, 'user_id': user_id}
+    assert exc.value.log_message == f'{ExpenseModel.__name__} not found by {search_params}'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -424,28 +437,39 @@ async def test_update_expense_not_found(db_fixture: AsyncSession):
 
     fake_user_id = uuid4()
     fake_location_id = uuid4()
-    expense_update_integrity = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
-                                             original_amount=Decimal('20'),
-                                             original_currency=CurrencyType.GEL,
-                                             comment='comment new',
-                                             category_id=expense_db.category_id,
-                                             location_id=fake_location_id)
+    expense_update_inegrity = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
+                                            original_amount=Decimal('20'),
+                                            original_currency=CurrencyType.GEL,
+                                            comment='comment new',
+                                            category_id=expense_db.category_id,
+                                            location_id=fake_location_id)
 
     # When
-    with pytest.raises(NotFoundException) as exc_not_found:
+    with pytest.raises(EntityNotFound) as exc_not_found:
         await expense_service.update_expense(db=db_fixture, expense_id=expense_db.id, expense_update=expense_update,
                                              user_id=fake_user_id)
 
-    with pytest.raises(IntegrityExistException) as exc_not_found_integrity:
+    with pytest.raises(IntegrityException) as exc_integrity:
         await expense_service.update_expense(db=db_fixture, expense_id=expense_db.id,
-                                             expense_update=expense_update_integrity, user_id=user_id)
+                                             expense_update=expense_update_inegrity, user_id=user_id)
 
     # Then
-    assert exc_not_found.value.message == f'User with id #{fake_user_id} not found'
+    assert exc_not_found.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc_not_found.value.title == 'Entity not found'
+    search_params = {'id': fake_user_id}
+    assert exc_not_found.value.log_message == f'{User.__name__} not found by {search_params}'
+    assert exc_not_found.value.message == exc_not_found.value.log_message
+    assert exc_not_found.value.log_level == LogLevelType.ERROR
+    assert exc_not_found.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
-    assert exc_not_found_integrity.value.message in (f'Expense integrity exception: DETAIL:  '
-                                                     f'Key (location_id)=({fake_location_id}) '
-                                                     f'is not present in table "locations".')
+    assert exc_integrity.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc_integrity.value.title == 'Entity integrity error'
+    assert exc_integrity.value.message == exc_integrity.value.log_message
+    assert exc_integrity.value.log_message == (f'Expense integrity error: DETAIL:  '
+                                               f'Key (location_id)=({fake_location_id}) '
+                                               f'is not present in table "locations".')
+    assert exc_integrity.value.log_level == LogLevelType.ERROR
+    assert exc_integrity.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
 
 @pytest.mark.asyncio
@@ -495,8 +519,14 @@ async def test_delete_expense_not_found(db_fixture: AsyncSession):
     fake_expense_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await expense_service.delete_expense(db=db_fixture, expense_id=fake_expense_id, user_id=fake_user_id)
 
     # Then
-    assert exc.value.message == f'Expense not found by user_id #{fake_user_id} and expense_id #{fake_expense_id}'
+    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.title == 'Entity not found'
+    search_params = {'id': fake_expense_id, 'user_id': fake_user_id}
+    assert exc.value.log_message == f'{ExpenseModel.__name__} not found by {search_params}'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND

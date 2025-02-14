@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.user.session import user_session_crud
 from app.crud.user.user import user_crud
-from app.models.user.user import User
 from app.models.user.session import UserSession
+from app.models.user.user import User
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import UserSessionCreate
 from app.schemas.user.user import UserCreate
@@ -30,7 +29,8 @@ async def test_revoke_session(db_fixture: AsyncSession):
     await db_fixture.commit()
 
     # Then
-    user_session_revoked: Optional[UserSession] = await user_session_crud.get(db=db_fixture, id=user_session_db.id)
+    user_session_revoked: UserSession | None = await user_session_crud.get_or_none(db=db_fixture,
+                                                                                   id=user_session_db.id)
 
     assert user_session_revoked.expires_at <= datetime.now()
     assert user_session_revoked.expires_at <= user_session_db.expires_at

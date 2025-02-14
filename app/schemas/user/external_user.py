@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -17,11 +16,11 @@ class ExternalUserBase(BaseServiceModel):
     provider: ProviderType
     external_id: str
     username: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    avatar: Optional[str] = None
-    profile_url: Optional[str] = None
-    email: Optional[str] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    avatar: str | None = None
+    profile_url: str | None = None
+    email: str | None = None
 
 
 class ExternalUserCreate(ExternalUserBase):
@@ -33,6 +32,6 @@ class ExternalUserUpdate(ExternalUserBase):
 
 
 class ExternalUser(ExternalUserBase):
-    id: UUID
+    id: UUID  # noqa: A003
 
     model_config = ConfigDict(from_attributes=True)

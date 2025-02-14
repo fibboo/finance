@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from fastapi_pagination import Params
@@ -15,8 +14,8 @@ class CategoryType(EnumUpperBase):
 
 class CategoryBase(BaseServiceModel):
     name: constr(min_length=3, max_length=64)
-    description: Optional[constr(min_length=3, max_length=256)] = None
-    type: CategoryType
+    description: constr(min_length=3, max_length=256) | None = None
+    type: CategoryType  # noqa: A003
 
 
 class CategoryCreate(CategoryBase):
@@ -28,7 +27,7 @@ class CategoryUpdate(CategoryBase):
 
 
 class Category(CategoryBase):
-    id: UUID
+    id: UUID  # noqa: A003
     user_id: UUID
     status: EntityStatusType
     created_at: datetime
@@ -38,10 +37,10 @@ class Category(CategoryBase):
 
 
 class CategorySearch(Params):
-    page: int = Field(1, ge=1, description="Page number")
-    size: int = Field(20, ge=1, le=100, description="Page size")
+    page: int = Field(1, ge=1, description='Page number')
+    size: int = Field(20, ge=1, le=100, description='Page size')
 
-    search_term: Optional[str] = None
+    search_term: str | None = None
     types: list[CategoryType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 

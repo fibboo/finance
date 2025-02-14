@@ -13,7 +13,7 @@ class Location(Base):
     __tablename__ = 'locations'
     __table_args__ = (UniqueConstraint('user_id', 'name', 'status', name='place_unique_user_id_name_status'),)
 
-    id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), primary_key=True, default=uuid4)  # noqa: A003
     user_id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), nullable=False, index=True)
 
     name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)

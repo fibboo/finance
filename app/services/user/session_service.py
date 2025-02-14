@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config.settings import base_settings
+from app.configs.logging_settings import get_logger
+from app.configs.settings import base_settings
 from app.crud.user.session import user_session_crud
-from app.exceptions.exception import NotFoundException
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.user.session import UserSession as UserSessionModel
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.session import UserSession, SessionAuth, UserSessionCreate
-from app.utils.cache import cache, memory_cache
+from app.schemas.user.session import SessionAuth, UserSession, UserSessionCreate
+
+logger = get_logger(__name__)
 
 
 async def create_session(db: AsyncSession,
@@ -32,13 +33,10 @@ async def create_session(db: AsyncSession,
     return session
 
 
-@memory_cache(ttl=60 * 5,
-              response_model=UserSession,
-              key_builder=lambda *args, **kwargs: f'get_session_by_token_{kwargs["token"] if kwargs else args[1]}')
 async def get_session_by_token(db: AsyncSession, token: UUID) -> UserSession:
-    user_session_db: Optional[UserSessionModel] = await user_session_crud.get(db=db, id=token)
+    user_session_db: UserSessionModel | None = await user_session_crud.get_or_none(db=db, id=token)
     if user_session_db is None:
-        raise NotFoundException(f'Session with token #{token} not found')
+        raise EntityNotFound(entity=UserSessionModel, search_params={'id': token}, logger=logger)
 
     user_session: UserSession = UserSession.model_validate(user_session_db)
     return user_session
@@ -46,4 +44,3 @@ async def get_session_by_token(db: AsyncSession, token: UUID) -> UserSession:
 
 async def revoke_session(db: AsyncSession, token: UUID) -> None:
     await user_session_crud.revoke(db=db, id=token)
-    await cache.delete(key=f'get_session_by_token_{token}')

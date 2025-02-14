@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, date
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
 
 from fastapi_pagination import Params
@@ -15,7 +14,7 @@ class ExpenseBase(BaseServiceModel):
     expense_date: date
     original_amount: condecimal(gt=Decimal('0'))
     original_currency: CurrencyType
-    comment: Optional[constr(min_length=3, max_length=256)] = None
+    comment: constr(min_length=3, max_length=256) | None = None
     category_id: UUID
     location_id: UUID
 
@@ -29,7 +28,7 @@ class ExpenseUpdate(ExpenseBase):
 
 
 class Expense(ExpenseBase):
-    id: UUID
+    id: UUID  # noqa: A003
     user_id: UUID
     status: EntityStatusType
     amount: condecimal(gt=Decimal('0'))
@@ -55,23 +54,23 @@ class OrderDirectionType(EnumUpperBase):
 
 class Order(BaseServiceModel):
     field: OrderFieldType
-    ordering: Optional[OrderDirectionType] = None
+    ordering: OrderDirectionType | None = None
 
 
 class ExpenseRequest(Params):
-    page: int = Field(1, ge=1, description="Page number")
-    size: int = Field(20, ge=1, le=100, description="Page size")
+    page: int = Field(1, ge=1, description='Page number')
+    size: int = Field(20, ge=1, le=100, description='Page size')
     orders: list[Order] = [Order(field=OrderFieldType.EXPENSE_DATE, ordering=OrderDirectionType.DESC),
                            Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC)]
 
-    amount_from: Optional[condecimal(ge=Decimal('0'))] = None
-    amount_to: Optional[condecimal(gt=Decimal('0'))] = None
-    original_amount_from: Optional[Decimal] = None
-    original_amount_to: Optional[Decimal] = None
-    original_currencies: Optional[list[CurrencyType]] = []
+    amount_from: condecimal(ge=Decimal('0')) | None = None
+    amount_to: condecimal(gt=Decimal('0')) | None = None
+    original_amount_from: Decimal | None = None
+    original_amount_to: Decimal | None = None
+    original_currencies: list[CurrencyType] | None = []
 
-    date_from: Optional[datetime] = datetime.now() - timedelta(days=90)
-    date_to: Optional[datetime] = datetime.now()
+    date_from: datetime | None = datetime.now() - timedelta(days=90)
+    date_to: datetime | None = datetime.now()
 
     category_ids: list[UUID] = []
     location_ids: list[UUID] = []

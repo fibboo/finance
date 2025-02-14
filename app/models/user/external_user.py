@@ -13,7 +13,7 @@ from app.schemas.user.external_user import ProviderType
 class ExternalUser(Base):
     __tablename__ = 'external_users'
 
-    id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), primary_key=True, default=uuid4)  # noqa: A003
     user_id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), ForeignKey(User.id), nullable=False)
 
     provider: Mapped[ProviderType] = mapped_column(Enum(ProviderType, native_enum=False, validate_strings=True,

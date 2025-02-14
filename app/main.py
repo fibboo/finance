@@ -1,46 +1,34 @@
 import logging
-import os
 
-import uvicorn
 from fastapi import FastAPI
 from httpx import HTTPError
 from starlette import status
-from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from app.api.api import api_router
-from app.config.logging_settings import get_logger
-from app.exceptions.exception import EntityException, NotFoundException, UnauthorizedException
+from app.configs.logging_settings import get_logger
+from app.configs.settings import base_settings, EnvironmentType
+from app.exceptions.base import AppBaseException
+from app.schemas.error_response import Error, ErrorResponse
 
 logger = get_logger(__name__)
-
 app = FastAPI()
 
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
-)
-
-logging.getLogger("uvicorn.access").setLevel(level=logging.DEBUG)
+log_level = logging.INFO if base_settings.environment == EnvironmentType.PROD else logging.DEBUG
+logging.getLogger('uvicorn.access').setLevel(log_level)
 
 app.include_router(api_router)
 
 
-@app.exception_handler(EntityException)
-async def entity_exception(_: Request, exc: EntityException):
-    logger.debug(f'Entity exception: {exc.message}')
-    if isinstance(exc, NotFoundException):
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={'message': exc.message})
+@app.exception_handler(AppBaseException)
+async def entity_exception(_: Request, exc: AppBaseException):
+    exc.logger.log(level=exc.log_level, msg=exc.log_message)
+    content = ErrorResponse(error=Error(title=exc.title, message=exc.message),
+                            error_code=exc.error_code)
 
-    if isinstance(exc, UnauthorizedException):
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={'message': exc.message})
-
-    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={'message': exc.message})
+    return JSONResponse(status_code=exc.status_code.value,
+                        content=content.model_dump())
 
 
 @app.exception_handler(HTTPError)
@@ -54,8 +42,4 @@ async def http_error_exception_handler(_: Request, exc: HTTPError):
 
 @app.get('/')
 async def main():
-    return 'The entry point of the tournaments.'
-
-
-if __name__ == '__main__':
-    uvicorn.run('app.main:app', host='0.0.0.0', port=os.getenv('PORT', 8000))
+    return 'The entry for the API'

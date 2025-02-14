@@ -4,10 +4,13 @@ import pytest
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.configs.logging_settings import LogLevelType
 from app.crud.expense.location import location_crud
-from app.exceptions.exception import ProcessingException, NotFoundException, IntegrityExistException
+from app.exceptions.conflict_409 import IntegrityException
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.expense.location import Location as LocationModel
 from app.schemas.base import EntityStatusType
+from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 from app.schemas.expense.location import Location, LocationCreate, LocationRequest, LocationUpdate
 from app.services.expense import location_service
 
@@ -44,12 +47,17 @@ async def test_create_location_with_existing_name(db: AsyncSession):
     await location_service.create_location(db=db, location_create=location_create, user_id=user_id)
 
     # When
-    with pytest.raises(ProcessingException) as exc:
+    with pytest.raises(IntegrityException) as exc:
         await location_service.create_location(db=db, location_create=location_create, user_id=user_id)
 
     # Then
-    assert exc.value.message == (f'Location integrity exception: DETAIL:  Key (user_id, name, status)=({user_id}, '
-                                 f'{location_create.name}, ACTIVE) already exists.')
+    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.title == 'Entity integrity error'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_message == (f'Location integrity error: DETAIL:  Key (user_id, name, status)=({user_id}, '
+                                     f'{location_create.name}, ACTIVE) already exists.')
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
 
 @pytest.mark.asyncio
@@ -165,11 +173,17 @@ async def test_get_location_by_id_not_found(db: AsyncSession):
     location_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await location_service.get_location_by_id(db=db, location_id=location_id, user_id=user_id)
 
     # Then
-    assert exc.value.message == f'Location not found by user_id #{user_id} and location_id #{location_id}.'
+    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.title == 'Entity not found'
+    search_params = {'id': location_id, 'user_id': user_id}
+    assert exc.value.log_message == f'{LocationModel.__name__} not found by {search_params}'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -219,12 +233,18 @@ async def test_update_location_not_found(db_fixture: AsyncSession):
                                      description='Location description updated')
 
     # When
-    with pytest.raises(NotFoundException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await location_service.update_location(db=db_fixture, location_id=location_id,
                                                request=location_update, user_id=wrong_user_id)
 
     # Then
-    assert exc.value.message == f'Location not found by user_id #{wrong_user_id} and location_id #{location_id}'
+    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.title == 'Entity not found'
+    search_params = {'id': location_id, 'user_id': wrong_user_id}
+    assert exc.value.log_message == f'{LocationModel.__name__} not found by {search_params}'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -247,13 +267,18 @@ async def test_update_location_double(db_fixture: AsyncSession):
                                      description='Location description updated')
 
     # When
-    with pytest.raises(IntegrityExistException) as exc:
+    with pytest.raises(IntegrityException) as exc:
         await location_service.update_location(db=db_fixture, location_id=location_db.id,
                                                request=location_update, user_id=user_id)
 
     # Then
-    assert exc.value.message == (f'Location integrity exception: DETAIL:  Key (user_id, name, status)=({user_id}, '
-                                 f'{location_update.name}, ACTIVE) already exists.')
+    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.title == 'Entity integrity error'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_message == (f'Location integrity error: DETAIL:  Key (user_id, name, status)=({user_id}, '
+                                     f'{location_update.name}, ACTIVE) already exists.')
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
 
 @pytest.mark.asyncio
@@ -284,8 +309,14 @@ async def test_delete_location_not_found(db_fixture: AsyncSession):
     fake_location_id = uuid4()
 
     # When
-    with pytest.raises(NotFoundException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await location_service.delete_location(db=db_fixture, location_id=fake_location_id, user_id=fake_user_id)
 
     # Then
-    assert exc.value.message == f'Location not found by user_id #{fake_user_id} and location_id #{fake_location_id}'
+    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.title == 'Entity not found'
+    search_params = {'id': fake_location_id, 'user_id': fake_user_id}
+    assert exc.value.log_message == f'{LocationModel.__name__} not found by {search_params}'
+    assert exc.value.message == exc.value.log_message
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
