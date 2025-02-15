@@ -18,24 +18,6 @@ from app.services.user import user_service
 logger = get_logger(__name__)
 
 
-async def create_expense(db: AsyncSession, expense_create: ExpenseCreate, user_id: UUID) -> Expense:
-    base_currency: CurrencyType = await user_service.get_user_base_currency(db=db, user_id=user_id)
-    amount: Decimal = _get_currency_amount(expense_amount=expense_create.original_amount,
-                                           expense_currency=expense_create.original_currency,
-                                           base_currency=base_currency)
-    obj_in: ExpenseModel = ExpenseModel(**expense_create.model_dump(),
-                                        amount=amount,
-                                        user_id=user_id,
-                                        status=EntityStatusType.ACTIVE)
-    try:
-        expense_db: ExpenseModel = await expense_crud.create(db=db, obj_in=obj_in)
-    except IntegrityError as exc:
-        raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
-
-    expense: Expense = Expense.model_validate(expense_db)
-    return expense
-
-
 def _get_currency_amount(expense_amount: Decimal,
                          expense_currency: CurrencyType,
                          base_currency: CurrencyType) -> Decimal:
@@ -50,6 +32,25 @@ def _get_currency_amount(expense_amount: Decimal,
             return round(expense_amount / Decimal('95'), 2)
         case _:
             raise NotImplementedException(log_message=f'Currency {expense_currency} is not supported.', logger=logger)
+
+
+async def create_expense(db: AsyncSession, expense_create: ExpenseCreate, user_id: UUID) -> Expense:
+    base_currency: CurrencyType = await user_service.get_user_base_currency(db=db, user_id=user_id)
+    amount: Decimal = _get_currency_amount(expense_amount=expense_create.original_amount,
+                                           expense_currency=expense_create.original_currency,
+                                           base_currency=base_currency)
+    obj_in: ExpenseModel = ExpenseModel(**expense_create.model_dump(),
+                                        amount=amount,
+                                        user_id=user_id,
+                                        status=EntityStatusType.ACTIVE)
+    try:
+        expense_db: ExpenseModel = await expense_crud.create(db=db, obj_in=obj_in)
+
+    except IntegrityError as exc:
+        raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
+
+    expense: Expense = Expense.model_validate(expense_db)
+    return expense
 
 
 async def get_expenses(db: AsyncSession, request: ExpenseRequest, user_id: UUID) -> Page[Expense]:

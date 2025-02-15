@@ -1,16 +1,15 @@
+from enum import Enum
 from uuid import UUID
 
-from pydantic import ConfigDict
-
-from app.schemas.base import EnumUpperBase, BaseServiceModel
+from pydantic import BaseModel, ConfigDict
 
 
-class ProviderType(EnumUpperBase):
+class ProviderType(str, Enum):
     TELEGRAM = 'TELEGRAM'
     TEST = 'TEST'
 
 
-class ExternalUserBase(BaseServiceModel):
+class ExternalUserBase(BaseModel):
     user_id: UUID
 
     provider: ProviderType

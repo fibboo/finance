@@ -1,18 +1,19 @@
 from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 from fastapi_pagination import Params
-from pydantic import constr, ConfigDict, Field
+from pydantic import BaseModel, constr, ConfigDict, Field
 
-from app.schemas.base import EnumUpperBase, EntityStatusType, BaseServiceModel
+from app.schemas.base import EntityStatusType
 
 
-class CategoryType(EnumUpperBase):
+class CategoryType(str, Enum):
     GENERAL = 'GENERAL'
     TARGET = 'TARGET'
 
 
-class CategoryBase(BaseServiceModel):
+class CategoryBase(BaseModel):
     name: constr(min_length=3, max_length=64)
     description: constr(min_length=3, max_length=256) | None = None
     type: CategoryType  # noqa: A003

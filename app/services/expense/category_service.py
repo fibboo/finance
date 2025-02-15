@@ -21,6 +21,7 @@ async def create_category(db: AsyncSession, category_create: CategoryCreate, use
                                           status=EntityStatusType.ACTIVE)
     try:
         expense_db: CategoryModel = await category_crud.create(db=db, obj_in=obj_in)
+
     except IntegrityError as exc:
         raise IntegrityException(entity=CategoryModel, exception=exc, logger=logger)
 

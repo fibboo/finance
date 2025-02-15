@@ -1,16 +1,16 @@
 from typing import Any, Generic, Type, TypeVar
 from uuid import UUID
 
+from pydantic import BaseModel
 from sqlalchemy import insert, select, Select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import Base
-from app.schemas.base import BaseServiceModel
 
 
 Model = TypeVar('Model', bound=Base)
-CreateSchema = TypeVar('CreateSchema', bound=BaseServiceModel)
-UpdateSchema = TypeVar('UpdateSchema', bound=BaseServiceModel)
+CreateSchema = TypeVar('CreateSchema', bound=BaseModel)
+UpdateSchema = TypeVar('UpdateSchema', bound=BaseModel)
 
 
 class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
@@ -52,31 +52,9 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
         result: Model = (await db.execute(query)).unique().scalar_one()
         return result
 
-    async def get_by_ids(self,
-                         db: AsyncSession,
-                         ids: list[Any],
-                         user_id: UUID | None = None,
-                         limit: int | None = None) -> list[Model]:
-        query = select(self.model).where(self.model.id.in_(ids))
-
-        if user_id is not None:
-            query = query.where(self.model.user_id == user_id)
-
-        if limit is not None:
-            query = query.limit(limit)
-
-        result: list[Model] = (await db.scalars(query)).all()
-        return result
-
-    async def get_batch(self,
-                        db: AsyncSession,
-                        user_id: UUID | None = None) -> list[Model]:
-        query = select(self.model)
-
-        if user_id is not None:
-            query = query.where(self.model.user_id == user_id)
-
-        result: list[Model] = (await db.scalars(query)).all()
+    async def get_batch(self, db: AsyncSession, skip: int = 0, limit: int = 100, **kwargs) -> list[Model]:
+        query: Select = self._build_get_query(**kwargs).offset(skip).limit(limit)
+        result: list[Model] = (await db.execute(query)).unique().scalars().all()
         return result
 
     async def create(self,
@@ -84,7 +62,7 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
                      obj_in: CreateSchema | dict[str, Any] | Model,
                      flush: bool | None = True,
                      commit: bool | None = False) -> Model:
-        if isinstance(obj_in, BaseServiceModel):
+        if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump()
         elif isinstance(obj_in, Base):
             obj_data = obj_in.__dict__
@@ -109,7 +87,7 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
                      user_id: UUID | None = None,
                      flush: bool | None = True,
                      commit: bool | None = False) -> Model | None:
-        if isinstance(obj_in, BaseServiceModel):
+        if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump()
         elif isinstance(obj_in, Base):
             obj_data = obj_in.__dict__

@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: f42aa38353e7
+Revision ID: 4688ddbae0fd
 Revises: 
-Create Date: 2025-02-14 09:49:36.580494
+Create Date: 2025-02-15 20:04:14.420836
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'f42aa38353e7'
+revision: str = '4688ddbae0fd'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,8 +25,8 @@ def upgrade() -> None:
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('name', sa.String(length=64), nullable=False),
     sa.Column('description', sa.String(length=4096), nullable=True),
-    sa.Column('status', sa.Enum('ACTIVE', 'DELETED', name='entitystatustype', native_enum=False), nullable=False),
-    sa.Column('type', sa.Enum('GENERAL', 'TARGET', name='categorytype', native_enum=False), nullable=False),
+    sa.Column('status', sa.String(length=24), nullable=False),
+    sa.Column('type', sa.String(length=24), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
@@ -42,7 +42,7 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=64), nullable=False),
     sa.Column('description', sa.String(length=4096), nullable=True),
     sa.Column('coordinates', sa.String(length=64), nullable=True),
-    sa.Column('status', sa.Enum('ACTIVE', 'DELETED', name='entitystatustype', native_enum=False), nullable=False),
+    sa.Column('status', sa.String(length=24), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
@@ -56,8 +56,8 @@ def upgrade() -> None:
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('username', sa.String(length=64), nullable=False),
     sa.Column('avatar', sa.String(length=2560), nullable=True),
-    sa.Column('registration_provider', sa.Enum('TELEGRAM', 'TEST', name='providertype', native_enum=False), nullable=False),
-    sa.Column('base_currency', sa.Enum('USD', 'GEL', 'RUB', name='currencytype', native_enum=False), server_default='USD', nullable=False),
+    sa.Column('registration_provider', sa.String(length=24), nullable=False),
+    sa.Column('base_currency', sa.String(length=24), server_default='USD', nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
@@ -69,11 +69,11 @@ def upgrade() -> None:
     sa.Column('expense_date', sa.Date(), nullable=False),
     sa.Column('amount', sa.Numeric(), nullable=False),
     sa.Column('original_amount', sa.Numeric(), nullable=False),
-    sa.Column('original_currency', sa.Enum('USD', 'GEL', 'RUB', name='currencytype', native_enum=False), nullable=False),
+    sa.Column('original_currency', sa.String(length=24), nullable=False),
     sa.Column('comment', sa.String(length=256), nullable=True),
     sa.Column('category_id', sa.UUID(), nullable=False),
     sa.Column('location_id', sa.UUID(), nullable=False),
-    sa.Column('status', sa.Enum('ACTIVE', 'DELETED', name='entitystatustype', native_enum=False), nullable=False),
+    sa.Column('status', sa.String(length=24), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
@@ -91,7 +91,7 @@ def upgrade() -> None:
     op.create_table('external_users',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
-    sa.Column('provider', sa.Enum('TELEGRAM', 'TEST', name='providertype', native_enum=False), nullable=False),
+    sa.Column('provider', sa.String(length=24), nullable=False),
     sa.Column('external_id', sa.String(), nullable=False),
     sa.Column('username', sa.String(), nullable=False),
     sa.Column('first_name', sa.String(), nullable=True),
@@ -111,7 +111,7 @@ def upgrade() -> None:
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('expires_at', sa.DateTime(), nullable=False),
-    sa.Column('provider', sa.Enum('TELEGRAM', 'TEST', name='providertype', native_enum=False), nullable=False),
+    sa.Column('provider', sa.String(length=24), nullable=False),
     sa.Column('access_token', sa.String(), nullable=True),
     sa.Column('token_type', sa.String(), nullable=True),
     sa.Column('expires_in', sa.BigInteger(), nullable=True),

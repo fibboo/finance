@@ -25,7 +25,7 @@ class User(Base):
                                                              values_callable=lambda x: [i.value for i in x]),
                                                         nullable=False, server_default=CurrencyType.USD.value)
 
-    external_users: Mapped[list['ExternalUser']] = relationship('ExternalUser', lazy='selectin', uselist=True)  # noqa: F821
+    external_users: Mapped[list['ExternalUser']] = relationship('ExternalUser', lazy='joined')  # noqa: F821
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(),

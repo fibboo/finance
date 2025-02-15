@@ -1,12 +1,12 @@
 from uuid import UUID
 
-from pydantic import ConfigDict, constr
+from pydantic import BaseModel, ConfigDict, constr
 
-from app.schemas.base import BaseServiceModel, CurrencyType
+from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ExternalUser, ProviderType
 
 
-class UserBase(BaseServiceModel):
+class UserBase(BaseModel):
     username: constr(min_length=3, max_length=64)
     avatar: constr(min_length=3, max_length=2560) | None = None
     registration_provider: ProviderType

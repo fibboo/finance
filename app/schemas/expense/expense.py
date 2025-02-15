@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta, date
 from decimal import Decimal
+from enum import Enum
 from uuid import UUID
 
 from fastapi_pagination import Params
-from pydantic import Field, ConfigDict, condecimal, constr
+from pydantic import BaseModel, Field, ConfigDict, condecimal, constr
 
-from app.schemas.base import BaseServiceModel, EnumUpperBase, EntityStatusType, CurrencyType
+from app.schemas.base import EntityStatusType, CurrencyType
 from app.schemas.expense.category import Category
 from app.schemas.expense.location import Location
 
 
-class ExpenseBase(BaseServiceModel):
+class ExpenseBase(BaseModel):
     expense_date: date
     original_amount: condecimal(gt=Decimal('0'))
     original_currency: CurrencyType
@@ -41,18 +42,18 @@ class Expense(ExpenseBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class OrderFieldType(EnumUpperBase):
+class OrderFieldType(str, Enum):
     CREATED_AT = 'CREATED_AT'
     EXPENSE_DATE = 'EXPENSE_DATE'
     AMOUNT = 'AMOUNT'
 
 
-class OrderDirectionType(EnumUpperBase):
+class OrderDirectionType(str, Enum):
     ASC = 'ASC'
     DESC = 'DESC'
 
 
-class Order(BaseServiceModel):
+class Order(BaseModel):
     field: OrderFieldType
     ordering: OrderDirectionType | None = None
 

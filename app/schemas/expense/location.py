@@ -2,12 +2,12 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi_pagination import Params
-from pydantic import constr, ConfigDict, Field
+from pydantic import BaseModel, constr, ConfigDict, Field
 
-from app.schemas.base import EntityStatusType, BaseServiceModel
+from app.schemas.base import EntityStatusType
 
 
-class LocationBase(BaseServiceModel):
+class LocationBase(BaseModel):
     name: constr(min_length=3, max_length=64)
     description: constr(min_length=3, max_length=256) | None = None
     coordinates: constr(min_length=3, max_length=64) | None = None

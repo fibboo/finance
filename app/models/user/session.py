@@ -27,7 +27,7 @@ class UserSession(Base):
     refresh_token: Mapped[str | None] = mapped_column(String, nullable=True)
     scope: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    user: Mapped[User] = relationship(User, lazy='selectin')
+    user: Mapped[User] = relationship(User, lazy='joined')
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(),

@@ -1,9 +1,9 @@
+from enum import Enum
+
 from pydantic_settings import BaseSettings
 
-from app.schemas.base import EnumLowerBase
 
-
-class EnvironmentType(EnumLowerBase):
+class EnvironmentType(str, Enum):
     DEV = 'dev'
     PROD = 'prod'
     LOCAL = 'local'

@@ -1,14 +1,13 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict
 
-from app.schemas.base import BaseServiceModel
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import User
 
 
-class SessionAuth(BaseServiceModel):
+class SessionAuth(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
@@ -18,7 +17,7 @@ class SessionAuth(BaseServiceModel):
     email: EmailStr | None = None
 
 
-class AuthUser(BaseServiceModel):
+class AuthUser(BaseModel):
     provider: ProviderType
     external_id: str
     username: str
@@ -29,7 +28,7 @@ class AuthUser(BaseServiceModel):
     email: str | None = None
 
 
-class UserSessionBase(BaseServiceModel):
+class UserSessionBase(BaseModel):
     user_id: UUID
     expires_at: datetime
     provider: ProviderType
