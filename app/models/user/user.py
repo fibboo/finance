@@ -1,7 +1,6 @@
 from datetime import datetime
-from uuid import uuid4
 
-from sqlalchemy import DateTime, Enum, func, String, UUID
+from sqlalchemy import DateTime, Enum, func, String, text, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -12,7 +11,7 @@ from app.schemas.user.external_user import ProviderType
 class User(Base):
     __tablename__ = 'users'
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)  # noqa: A003
+    id: Mapped[UUID] = mapped_column(UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
 
     username: Mapped[str] = mapped_column(String(64), nullable=False, index=True, unique=True)
     avatar: Mapped[str | None] = mapped_column(String(2560), nullable=True)

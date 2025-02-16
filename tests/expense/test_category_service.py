@@ -8,10 +8,10 @@ from app.configs.logging_settings import LogLevelType
 from app.crud.expense.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.expense.category import Category as CategoryModel
+from app.models.transaction.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
-from app.schemas.expense.category import Category, CategoryCreate, CategorySearch, CategoryType, CategoryUpdate
+from app.schemas.transaction.category import Category, CategoryCreate, CategoryRequest, CategoryType, CategoryUpdate
 from app.services.expense import category_service
 
 
@@ -90,7 +90,7 @@ async def test_search_categories_with_all_fields_filled(db_fixture: AsyncSession
                                               status=EntityStatusType.ACTIVE)
         await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
 
-    request = CategorySearch(search_term='Cat', types=[CategoryType.GENERAL], statuses=[EntityStatusType.ACTIVE])
+    request = CategoryRequest(search_term='Cat', types=[CategoryType.GENERAL], statuses=[EntityStatusType.ACTIVE])
 
     # When
     categories: Page[Category] = await category_service.get_categories(db=db_fixture, request=request,
@@ -135,7 +135,7 @@ async def test_search_categories_with_all_fields_empty(db_fixture: AsyncSession)
                                               status=EntityStatusType.ACTIVE)
         await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
 
-    request = CategorySearch(statuses=[EntityStatusType.ACTIVE, EntityStatusType.DELETED])
+    request = CategoryRequest(statuses=[EntityStatusType.ACTIVE, EntityStatusType.DELETED])
 
     # When
     categories: Page[Category] = await category_service.get_categories(db=db_fixture, request=request,
@@ -180,7 +180,7 @@ async def test_search_categories_nothing_found(db_fixture: AsyncSession):
                                               status=EntityStatusType.ACTIVE)
         await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
 
-    request = CategorySearch(search_term='nothing')
+    request = CategoryRequest(search_term='nothing')
 
     # When
     categories: Page[Category] = await category_service.get_categories(db=db_fixture, request=request,

@@ -13,15 +13,15 @@ from app.crud.expense.location import location_crud
 from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.expense.category import Category as CategoryModel
-from app.models.expense.expense import Expense as ExpenseModel
-from app.models.expense.location import Location as LocationModel
+from app.models.transaction.category import Category as CategoryModel
+from app.models.transaction.transaction import Transaction as ExpenseModel
+from app.models.transaction.location import Location as LocationModel
 from app.models.user.user import User
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
-from app.schemas.expense.category import CategoryType
-from app.schemas.expense.expense import (Expense, ExpenseCreate, ExpenseRequest, ExpenseUpdate, Order,
-                                         OrderDirectionType, OrderFieldType)
+from app.schemas.transaction.category import CategoryType
+from app.schemas.transaction.transaction import (Transaction, TransactionCreate, TransactionRequest, TransactionUpdate, Order,
+                                                 OrderDirectionType, OrderFieldType)
 from app.schemas.user.external_user import ProviderType
 from app.services.expense import expense_service
 
@@ -45,16 +45,16 @@ async def test_create_expense_correct_data(db_fixture: AsyncSession):
                                     status=EntityStatusType.ACTIVE)
     location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
 
-    expense_create = ExpenseCreate(expense_date=datetime.now().date(),
-                                   original_amount=Decimal(10),
-                                   original_currency=CurrencyType.GEL,
-                                   comment='comment',
-                                   category_id=category_db.id,
-                                   location_id=location_db.id)
+    expense_create = TransactionCreate(transaction_date=datetime.now().date(),
+                                       amount=Decimal(10),
+                                       currency=CurrencyType.GEL,
+                                       comment='comment',
+                                       category_id=category_db.id,
+                                       location_id=location_db.id)
 
     # When
-    expense: Expense = await expense_service.create_expense(db=db_fixture, expense_create=expense_create,
-                                                            user_id=user_id)
+    expense: Transaction = await expense_service.spend(db=db_fixture, expense_create=expense_create,
+                                                       user_id=user_id)
 
     await db_fixture.commit()
 
@@ -62,12 +62,12 @@ async def test_create_expense_correct_data(db_fixture: AsyncSession):
     assert expense is not None
     assert expense.id is not None
     assert expense.user_id == user_id
-    assert expense.expense_date == expense_create.expense_date
-    assert expense.amount == expense_service._get_currency_amount(expense_amount=expense_create.original_amount,
-                                                                  expense_currency=expense_create.original_currency,
+    assert expense.transaction_date == expense_create.transaction_date
+    assert expense.amount == expense_service._get_currency_amount(expense_amount=expense_create.amount,
+                                                                  expense_currency=expense_create.currency,
                                                                   base_currency=CurrencyType.USD)
-    assert expense.original_amount == expense_create.original_amount
-    assert expense.original_currency == expense_create.original_currency
+    assert expense.amount == expense_create.amount
+    assert expense.currency == expense_create.currency
     assert expense.comment == expense_create.comment
     assert expense.category.id == category_db.id
     assert expense.category.user_id == user_id
@@ -92,16 +92,16 @@ async def test_create_expense_incorrect_data(db_fixture: AsyncSession):
     user_id = user_db.id
     category_id = uuid4()
 
-    expense_create = ExpenseCreate(expense_date=datetime.now().date(),
-                                   original_amount=Decimal(10),
-                                   original_currency=CurrencyType.GEL,
-                                   comment='comment',
-                                   category_id=category_id,
-                                   location_id=uuid4())
+    expense_create = TransactionCreate(transaction_date=datetime.now().date(),
+                                       amount=Decimal(10),
+                                       currency=CurrencyType.GEL,
+                                       comment='comment',
+                                       category_id=category_id,
+                                       location_id=uuid4())
 
     # When
     with pytest.raises(IntegrityException) as exc:
-        await expense_service.create_expense(db=db_fixture, expense_create=expense_create, user_id=user_id)
+        await expense_service.spend(db=db_fixture, expense_create=expense_create, user_id=user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
@@ -161,30 +161,30 @@ async def test_get_expense_with_all_fields_filled(db_fixture: AsyncSession):
     # Given
     user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture)
 
-    request = ExpenseRequest(page=1,
-                             size=3,
-                             orders=[Order(field=OrderFieldType.EXPENSE_DATE, ordering=OrderDirectionType.DESC),
+    request = TransactionRequest(page=1,
+                                 size=3,
+                                 orders=[Order(field=OrderFieldType.TRANSACTION_DATE, ordering=OrderDirectionType.DESC),
                                      Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC)],
-                             date_from=current_date - timedelta(days=3),
-                             date_to=current_date - timedelta(days=1),
-                             category_ids=category_ids[1:4],
-                             place_ids=place_ids[1:4],
-                             statuses=[EntityStatusType.ACTIVE])
+                                 date_from=current_date - timedelta(days=3),
+                                 date_to=current_date - timedelta(days=1),
+                                 category_ids=category_ids[1:4],
+                                 place_ids=place_ids[1:4],
+                                 statuses=[EntityStatusType.ACTIVE])
 
     # When
-    expenses: Page[Expense] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
+    expenses: Page[Transaction] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
 
     # Then
     assert expenses.total == 3
     for i, expense in enumerate(expenses.items, start=1):
         assert expense.id is not None
         assert expense.user_id == user_id
-        assert expense.expense_date == current_date - timedelta(days=i)
+        assert expense.transaction_date == current_date - timedelta(days=i)
         assert expense.amount == expense_service._get_currency_amount(expense_amount=Decimal(10 * (i + 1)),
                                                                       expense_currency=CurrencyType.GEL,
                                                                       base_currency=CurrencyType.USD)
-        assert expense.original_amount == Decimal(10 * (i + 1))
-        assert expense.original_currency == CurrencyType.GEL
+        assert expense.amount == Decimal(10 * (i + 1))
+        assert expense.currency == CurrencyType.GEL
         assert expense.comment == f'comment {i + 1}'
         assert expense.category.id == category_ids[i]
         assert expense.category.user_id == user_id
@@ -206,22 +206,22 @@ async def test_get_expense_with_all_fields_empty(db_fixture: AsyncSession):
     user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture=db_fixture,
                                                                                                   expenses=True)
 
-    request = ExpenseRequest()
+    request = TransactionRequest()
 
     # When
-    expenses: Page[Expense] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
+    expenses: Page[Transaction] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
 
     # Then
     assert expenses.total == 5
     for i, expense in enumerate(expenses.items, start=0):
         assert expense.id is not None
         assert expense.user_id == user_id
-        assert expense.expense_date == current_date - timedelta(days=i)
+        assert expense.transaction_date == current_date - timedelta(days=i)
         assert expense.amount == expense_service._get_currency_amount(expense_amount=Decimal(10 * (i + 1)),
                                                                       expense_currency=CurrencyType.GEL,
                                                                       base_currency=CurrencyType.USD)
-        assert expense.original_amount == Decimal(10 * (i + 1))
-        assert expense.original_currency == CurrencyType.GEL
+        assert expense.amount == Decimal(10 * (i + 1))
+        assert expense.currency == CurrencyType.GEL
         assert expense.comment == f'comment {i + 1}'
         assert expense.category.id == category_ids[i]
         assert expense.category.user_id == user_id
@@ -243,10 +243,10 @@ async def test_get_expense_with_and_no_expenses(db_fixture: AsyncSession):
     user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture=db_fixture,
                                                                                                   expenses=False)
 
-    request = ExpenseRequest()
+    request = TransactionRequest()
 
     # When
-    expenses: Page[Expense] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
+    expenses: Page[Transaction] = await expense_service.get_expenses(db=db_fixture, request=request, user_id=user_id)
 
     # Then
     assert expenses.total == 0
@@ -286,16 +286,16 @@ async def test_get_expense_by_id(db_fixture: AsyncSession):
     expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
 
     # When
-    expense: Expense = await expense_service.get_expense_by_id(db=db_fixture, expense_id=expense_db.id, user_id=user_id)
+    expense: Transaction = await expense_service.get_expense_by_id(db=db_fixture, transaction_id=expense_db.id, user_id=user_id)
 
     # Then
     assert expense is not None
     assert expense.id == expense_db.id
     assert expense.user_id == expense_db.user_id
-    assert expense.expense_date == expense_db.expense_date
+    assert expense.transaction_date == expense_db.transaction_date
     assert expense.amount == expense_db.amount
-    assert expense.original_amount == expense_db.original_amount
-    assert expense.original_currency == expense_db.original_currency
+    assert expense.amount == expense_db.original_amount
+    assert expense.currency == expense_db.currency
     assert expense.comment == expense_db.comment
     assert expense.category.id == expense_db.category.id
     assert expense.category.user_id == expense_db.category.user_id
@@ -319,7 +319,7 @@ async def test_get_expense_by_id_not_found(db_fixture: AsyncSession):
 
     # When
     with pytest.raises(EntityNotFound) as exc:
-        await expense_service.get_expense_by_id(db=db_fixture, expense_id=expense_id, user_id=user_id)
+        await expense_service.get_expense_by_id(db=db_fixture, transaction_id=expense_id, user_id=user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
@@ -365,28 +365,28 @@ async def test_update_expense(db_fixture: AsyncSession, db: AsyncSession):
     expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
     await db_fixture.commit()
 
-    expense_update = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
-                                   original_amount=Decimal('20'),
-                                   original_currency=CurrencyType.GEL,
-                                   comment='comment new',
-                                   category_id=expense_db.category_id,
-                                   location_id=expense_db.location_id)
+    expense_update = TransactionUpdate(transaction_date=expense_db.transaction_date - timedelta(days=1),
+                                       amount=Decimal('20'),
+                                       currency=CurrencyType.GEL,
+                                       comment='comment new',
+                                       category_id=expense_db.category_id,
+                                       location_id=expense_db.location_id)
 
     # When
-    updated_expense: Expense = await expense_service.update_expense(db=db, expense_id=expense_db.id,
-                                                                    expense_update=expense_update, user_id=user_id)
+    updated_expense: Transaction = await expense_service.update_expense(db=db, transaction_id=expense_db.id,
+                                                                        transaction_update=expense_update, user_id=user_id)
     await db.commit()
 
     # Then
     assert updated_expense is not None
     assert updated_expense.id == expense_db.id
     assert updated_expense.user_id == expense_db.user_id
-    assert updated_expense.expense_date == expense_update.expense_date
-    assert updated_expense.amount == expense_service._get_currency_amount(expense_amount=expense_update.original_amount,
-                                                                          expense_currency=expense_update.original_currency,
+    assert updated_expense.transaction_date == expense_update.transaction_date
+    assert updated_expense.amount == expense_service._get_currency_amount(expense_amount=expense_update.amount,
+                                                                          expense_currency=expense_update.currency,
                                                                           base_currency=CurrencyType.USD)
-    assert updated_expense.original_amount == expense_update.original_amount
-    assert updated_expense.original_currency == expense_update.original_currency
+    assert updated_expense.amount == expense_update.amount
+    assert updated_expense.currency == expense_update.currency
     assert updated_expense.comment == expense_update.comment
     assert updated_expense.category.id == expense_db.category_id
     assert updated_expense.location.id == expense_db.location_id
@@ -428,30 +428,30 @@ async def test_update_expense_not_found(db_fixture: AsyncSession):
                                   status=EntityStatusType.ACTIVE)
     expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
 
-    expense_update = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
-                                   original_amount=Decimal(20),
-                                   original_currency=CurrencyType.GEL,
-                                   comment='comment new',
-                                   category_id=expense_db.category_id,
-                                   location_id=expense_db.location_id)
+    expense_update = TransactionUpdate(transaction_date=expense_db.transaction_date - timedelta(days=1),
+                                       amount=Decimal(20),
+                                       currency=CurrencyType.GEL,
+                                       comment='comment new',
+                                       category_id=expense_db.category_id,
+                                       location_id=expense_db.location_id)
 
     fake_user_id = uuid4()
     fake_location_id = uuid4()
-    expense_update_inegrity = ExpenseUpdate(expense_date=expense_db.expense_date - timedelta(days=1),
-                                            original_amount=Decimal('20'),
-                                            original_currency=CurrencyType.GEL,
-                                            comment='comment new',
-                                            category_id=expense_db.category_id,
-                                            location_id=fake_location_id)
+    expense_update_inegrity = TransactionUpdate(transaction_date=expense_db.transaction_date - timedelta(days=1),
+                                                amount=Decimal('20'),
+                                                currency=CurrencyType.GEL,
+                                                comment='comment new',
+                                                category_id=expense_db.category_id,
+                                                location_id=fake_location_id)
 
     # When
     with pytest.raises(EntityNotFound) as exc_not_found:
-        await expense_service.update_expense(db=db_fixture, expense_id=expense_db.id, expense_update=expense_update,
+        await expense_service.update_expense(db=db_fixture, transaction_id=expense_db.id, transaction_update=expense_update,
                                              user_id=fake_user_id)
 
     with pytest.raises(IntegrityException) as exc_integrity:
-        await expense_service.update_expense(db=db_fixture, expense_id=expense_db.id,
-                                             expense_update=expense_update_inegrity, user_id=user_id)
+        await expense_service.update_expense(db=db_fixture, transaction_id=expense_db.id,
+                                             transaction_update=expense_update_inegrity, user_id=user_id)
 
     # Then
     assert exc_not_found.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
@@ -503,7 +503,7 @@ async def test_delete_expense(db_fixture: AsyncSession):
     expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
 
     # When
-    await expense_service.delete_expense(db=db_fixture, expense_id=expense_db.id, user_id=user_id)
+    await expense_service.delete_expense(db=db_fixture, transaction_id=expense_db.id, user_id=user_id)
     await db_fixture.commit()
 
     # Then
@@ -520,7 +520,7 @@ async def test_delete_expense_not_found(db_fixture: AsyncSession):
 
     # When
     with pytest.raises(EntityNotFound) as exc:
-        await expense_service.delete_expense(db=db_fixture, expense_id=fake_expense_id, user_id=fake_user_id)
+        await expense_service.delete_expense(db=db_fixture, transaction_id=fake_expense_id, user_id=fake_user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND

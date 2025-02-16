@@ -1,7 +1,7 @@
 from datetime import datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, func, String
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, func, String, text
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -13,8 +13,8 @@ from app.schemas.user.external_user import ProviderType
 class UserSession(Base):
     __tablename__ = 'session'
 
-    id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), primary_key=True, default=uuid4)  # noqa: A003
-    user_id: Mapped[UUID] = mapped_column(DB_UUID(as_uuid=True), ForeignKey(User.id), nullable=False)
+    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
+    user_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=False)
 
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     provider: Mapped[ProviderType] = mapped_column(Enum(ProviderType, native_enum=False, validate_strings=True,

@@ -8,9 +8,9 @@ from app.configs.logging_settings import get_logger
 from app.crud.expense.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.expense.category import Category as CategoryModel
+from app.models.transaction.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
-from app.schemas.expense.category import Category, CategoryCreate, CategorySearch, CategoryUpdate
+from app.schemas.transaction.category import Category, CategoryCreate, CategoryRequest, CategoryUpdate
 
 logger = get_logger(__name__)
 
@@ -29,7 +29,7 @@ async def create_category(db: AsyncSession, category_create: CategoryCreate, use
     return category
 
 
-async def get_categories(db: AsyncSession, request: CategorySearch, user_id: UUID) -> Page[Category]:
+async def get_categories(db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
     categories_db: Page[CategoryModel] = await category_crud.get_categories(db=db, request=request, user_id=user_id)
     categories: Page[Category] = Page[Category].model_validate(categories_db)
     return categories

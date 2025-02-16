@@ -59,16 +59,12 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
 
     async def create(self,
                      db: AsyncSession,
-                     obj_in: CreateSchema | dict[str, Any] | Model,
+                     obj_in: CreateSchema | dict[str, Any],
                      flush: bool | None = True,
                      commit: bool | None = False) -> Model:
+        obj_data = obj_in
         if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump()
-        elif isinstance(obj_in, Base):
-            obj_data = obj_in.__dict__
-            obj_data.pop('_sa_instance_state', None)
-        else:
-            obj_data = obj_in
 
         query = insert(self.model).values(obj_data).returning(self.model)
         db_obj: Model = await db.scalar(query)
@@ -83,17 +79,13 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
     async def update(self,
                      db: AsyncSession,
                      id: Any,  # noqa: A002
-                     obj_in: UpdateSchema | dict[str, Any] | Model,
+                     obj_in: UpdateSchema | dict[str, Any],
                      user_id: UUID | None = None,
                      flush: bool | None = True,
                      commit: bool | None = False) -> Model | None:
+        obj_data = obj_in
         if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump()
-        elif isinstance(obj_in, Base):
-            obj_data = obj_in.__dict__
-            obj_data.pop('_sa_instance_state', None)
-        else:
-            obj_data = obj_in
 
         query = update(self.model).filter_by(id=id, user_id=user_id).values(obj_data).returning(self.model)
         db_obj: Model | None = await db.scalar(query)

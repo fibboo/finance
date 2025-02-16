@@ -8,9 +8,9 @@ from app.configs.logging_settings import get_logger
 from app.crud.expense.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.expense.location import Location as LocationModel
+from app.models.transaction.location import Location as LocationModel
 from app.schemas.base import EntityStatusType
-from app.schemas.expense.location import Location, LocationCreate, LocationRequest, LocationUpdate
+from app.schemas.transaction.location import Location, LocationCreate, LocationRequest, LocationUpdate
 
 logger = get_logger(__name__)
 
