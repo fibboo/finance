@@ -9,16 +9,15 @@ from app.crud.transaction.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.transaction.location import Location as LocationModel
-from app.schemas.base import EntityStatusType
-from app.schemas.transaction.location import Location, LocationCreate, LocationRequest, LocationUpdate
+from app.schemas.transaction.location import (Location, LocationCreate, LocationCreateRequest, LocationRequest,
+                                              LocationUpdate)
 
 logger = get_logger(__name__)
 
 
-async def create_location(db: AsyncSession, location_create: LocationCreate, user_id: UUID) -> Location:
-    obj_in: LocationModel = LocationModel(**location_create.model_dump(),
-                                          user_id=user_id,
-                                          status=EntityStatusType.ACTIVE)
+async def create_location(db: AsyncSession, create_data: LocationCreateRequest, user_id: UUID) -> Location:
+    obj_in: LocationCreate = LocationCreate(**create_data.model_dump(),
+                                            user_id=user_id)
     try:
         expense_db: LocationModel = await location_crud.create(db=db, obj_in=obj_in)
     except IntegrityError as exc:
@@ -44,11 +43,14 @@ async def get_location_by_id(db: AsyncSession, location_id: UUID, user_id: UUID)
     return location
 
 
-async def update_location(db: AsyncSession, location_id: UUID, request: LocationUpdate, user_id: UUID) -> Location:
+async def update_location(db: AsyncSession,
+                          location_id: UUID,
+                          update_data: LocationUpdate,
+                          user_id: UUID) -> Location:
     try:
         location_db: LocationModel | None = await location_crud.update(db=db,
                                                                        id=location_id,
-                                                                       obj_in=request,
+                                                                       obj_in=update_data,
                                                                        user_id=user_id)
     except IntegrityError as exc:
         raise IntegrityException(entity=LocationModel, exception=exc, logger=logger)

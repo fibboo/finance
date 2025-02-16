@@ -12,14 +12,14 @@ from app.schemas.transaction.transaction import (TransactionRequest, OrderDirect
 
 
 class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate]):
-    async def get_expenses(self, db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
+    async def get_transactions(self, db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
         query = select(self.model).where(self.model.user_id == user_id)
 
         if request.amount_from is not None:
-            query = query.where(self.model.amount >= request.amount_from)
+            query = query.where(self.model.transaction_amount >= request.amount_from)
 
         if request.amount_to is not None:
-            query = query.where(self.model.amount <= request.amount_to)
+            query = query.where(self.model.transaction_amount <= request.amount_to)
 
         if request.original_amount_from is not None:
             query = query.where(self.model.original_amount >= request.original_amount_from)
@@ -29,7 +29,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
 
         if len(request.currencies) > 0:
             currencies = [c for c in request.currencies]
-            query = query.where(self.model.currency.in_(currencies))
+            query = query.where(self.model.transaction_currency.in_(currencies))
 
         if request.date_from is not None:
             query = query.where(self.model.transaction_date >= request.date_from)
@@ -49,7 +49,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
 
         order_fields_map = {OrderFieldType.CREATED_AT: self.model.created_at,
                             OrderFieldType.TRANSACTION_DATE: self.model.transaction_date,
-                            OrderFieldType.AMOUNT: self.model.amount}
+                            OrderFieldType.AMOUNT: self.model.transaction_amount}
         for order in request.orders:
             func_ordering = desc if order.ordering == OrderDirectionType.DESC else asc
             query = query.order_by(func_ordering(order_fields_map[order.field]))

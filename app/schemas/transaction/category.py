@@ -3,9 +3,7 @@ from enum import Enum
 from uuid import UUID
 
 from fastapi_pagination import Params
-from pydantic import BaseModel, constr, ConfigDict, Field
-
-from app.schemas.base import EntityStatusType
+from pydantic import BaseModel, ConfigDict, constr, Field
 
 
 class CategoryType(str, Enum):
@@ -30,7 +28,6 @@ class CategoryUpdate(CategoryBase):
 class Category(CategoryBase):
     id: UUID  # noqa: A003
     user_id: UUID
-    status: EntityStatusType
     created_at: datetime
     updated_at: datetime
 
@@ -43,7 +40,6 @@ class CategoryRequest(Params):
 
     search_term: str | None = None
     types: list[CategoryType] = []
-    statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 
     def __hash__(self):
         return hash((self.page,

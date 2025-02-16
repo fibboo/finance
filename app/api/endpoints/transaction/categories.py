@@ -12,20 +12,22 @@ router = APIRouter()
 
 
 @router.post('')
-async def create_category(category_create: CategoryCreate,
+async def create_category(create_data: CategoryCreate,
                           user_id: UUID = Depends(get_user_id),
                           db: AsyncSession = Depends(get_db_transaction)) -> Category:
     category: Category = await category_service.create_category(db=db,
-                                                                category_create=category_create,
+                                                                create_data=create_data,
                                                                 user_id=user_id)
     return category
 
 
 @router.get('')
-async def get_categories(category_request: CategoryRequest,
+async def get_categories(request: CategoryRequest,
                          user_id: UUID = Depends(get_user_id),
                          db: AsyncSession = Depends(get_db)) -> Page[Category]:
-    categories: Page[Category] = await category_service.get_categories(db=db, request=category_request, user_id=user_id)
+    categories: Page[Category] = await category_service.get_categories(db=db,
+                                                                       request=request,
+                                                                       user_id=user_id)
     return categories
 
 
@@ -39,11 +41,11 @@ async def get_category_by_id(category_id: UUID,
 
 @router.put('/{category_id}')
 async def update_category(category_id: UUID,
-                          category_update: CategoryUpdate,
+                          update_data: CategoryUpdate,
                           user_id: UUID = Depends(get_user_id),
                           db: AsyncSession = Depends(get_db_transaction)) -> Category:
     category: Category = await category_service.update_category(db=db,
                                                                 category_id=category_id,
-                                                                category_update=category_update,
+                                                                update_data=update_data,
                                                                 user_id=user_id)
     return category

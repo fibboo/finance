@@ -26,10 +26,6 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
             types = [t.value for t in request.types]
             query = query.where(self.model.type.in_(types))
 
-        if len(request.statuses) > 0:
-            statuses = [s.value for s in request.statuses]
-            query = query.where(self.model.status.in_(statuses))
-
         paginated_expenses = await paginate(db, query, request)
         return paginated_expenses
 

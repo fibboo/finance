@@ -5,14 +5,14 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import LogLevelType
-from app.crud.expense.category import category_crud
+from app.crud.transaction.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.transaction.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 from app.schemas.transaction.category import Category, CategoryCreate, CategoryRequest, CategoryType, CategoryUpdate
-from app.services.expense import category_service
+from app.services.transaction import category_service
 
 
 @pytest.mark.asyncio
@@ -23,7 +23,7 @@ async def test_create_category(db: AsyncSession):
                                      type=CategoryType.GENERAL)
 
     # When
-    category: Category = await category_service.create_category(db=db, category_create=category_create, user_id=user_id)
+    category: Category = await category_service.create_category(db=db, create_data=category_create, user_id=user_id)
     await db.commit()
 
     # Then
@@ -52,7 +52,7 @@ async def test_create_category_with_existing_name(db_fixture: AsyncSession):
 
     # When
     with pytest.raises(IntegrityException) as exc:
-        await category_service.create_category(db=db_fixture, category_create=category_create, user_id=user_id)
+        await category_service.create_category(db=db_fixture, create_data=category_create, user_id=user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
@@ -256,7 +256,7 @@ async def test_update_category_correct_data(db_fixture: AsyncSession, db: AsyncS
 
     # When
     category: Category = await category_service.update_category(db=db, category_id=category_db.id,
-                                                                category_update=category_update, user_id=user_id)
+                                                                update_data=category_update, user_id=user_id)
     await db.commit()
 
     # Then
@@ -292,7 +292,7 @@ async def test_update_category_not_found(db_fixture: AsyncSession):
     # When
     with pytest.raises(EntityNotFound) as exc:
         await category_service.update_category(db=db_fixture, category_id=category_id,
-                                               category_update=category_update, user_id=wrong_user_id)
+                                               update_data=category_update, user_id=wrong_user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
@@ -329,7 +329,7 @@ async def test_update_category_double(db_fixture: AsyncSession):
     # When
     with pytest.raises(IntegrityException) as exc:
         await category_service.update_category(db=db_fixture, category_id=category_db.id,
-                                               category_update=category_update, user_id=user_id)
+                                               update_data=category_update, user_id=user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT

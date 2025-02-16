@@ -5,14 +5,14 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import LogLevelType
-from app.crud.expense.location import location_crud
+from app.crud.transaction.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.transaction.location import Location as LocationModel
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
-from app.schemas.transaction.location import Location, LocationCreate, LocationRequest, LocationUpdate
-from app.services.expense import location_service
+from app.schemas.transaction.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
+from app.services.transaction import location_service
 
 
 @pytest.mark.asyncio
@@ -20,11 +20,11 @@ async def test_create_location(db: AsyncSession):
     # Given
     user_id = uuid4()
 
-    location_create = LocationCreate(name='Test place')
+    location_create = LocationCreateRequest(name='Test place')
 
     # When
     location: Location = await location_service.create_location(db=db,
-                                                                location_create=location_create,
+                                                                create_data=location_create,
                                                                 user_id=user_id)
 
     # Then
@@ -43,12 +43,12 @@ async def test_create_location_with_existing_name(db: AsyncSession):
     # Given
     user_id = uuid4()
 
-    location_create = LocationCreate(name='Test place', description='Test place description')
-    await location_service.create_location(db=db, location_create=location_create, user_id=user_id)
+    location_create = LocationCreateRequest(name='Test place', description='Test place description')
+    await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
 
     # When
     with pytest.raises(IntegrityException) as exc:
-        await location_service.create_location(db=db, location_create=location_create, user_id=user_id)
+        await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
@@ -146,8 +146,8 @@ async def test_get_location_by_id(db_fixture: AsyncSession):
     # Given
     user_id = uuid4()
 
-    location_create = LocationCreate(name='Test place', description='Test place description')
-    location: Location = await location_service.create_location(db=db_fixture, location_create=location_create,
+    location_create = LocationCreateRequest(name='Test place', description='Test place description')
+    location: Location = await location_service.create_location(db=db_fixture, create_data=location_create,
                                                                 user_id=user_id)
     await db_fixture.commit()
 
@@ -202,7 +202,7 @@ async def test_update_location_correct_data(db_fixture: AsyncSession, db: AsyncS
 
     # When
     location: Location = await location_service.update_location(db=db, location_id=location_db.id,
-                                                                request=location_update, user_id=user_id)
+                                                                update_data=location_update, user_id=user_id)
     await db.commit()
 
     # Then
@@ -235,7 +235,7 @@ async def test_update_location_not_found(db_fixture: AsyncSession):
     # When
     with pytest.raises(EntityNotFound) as exc:
         await location_service.update_location(db=db_fixture, location_id=location_id,
-                                               request=location_update, user_id=wrong_user_id)
+                                               update_data=location_update, user_id=wrong_user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
@@ -269,7 +269,7 @@ async def test_update_location_double(db_fixture: AsyncSession):
     # When
     with pytest.raises(IntegrityException) as exc:
         await location_service.update_location(db=db_fixture, location_id=location_db.id,
-                                               request=location_update, user_id=user_id)
+                                               update_data=location_update, user_id=user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT

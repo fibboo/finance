@@ -9,16 +9,14 @@ from app.crud.transaction.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.transaction.category import Category as CategoryModel
-from app.schemas.base import EntityStatusType
 from app.schemas.transaction.category import Category, CategoryCreate, CategoryRequest, CategoryUpdate
 
 logger = get_logger(__name__)
 
 
-async def create_category(db: AsyncSession, category_create: CategoryCreate, user_id: UUID) -> Category:
-    obj_in: CategoryModel = CategoryModel(**category_create.model_dump(),
-                                          user_id=user_id,
-                                          status=EntityStatusType.ACTIVE)
+async def create_category(db: AsyncSession, create_data: CategoryCreate, user_id: UUID) -> Category:
+    obj_in: CategoryModel = CategoryModel(**create_data.model_dump(),
+                                          user_id=user_id)
     try:
         expense_db: CategoryModel = await category_crud.create(db=db, obj_in=obj_in)
 
@@ -45,12 +43,11 @@ async def get_category_by_id(db: AsyncSession, category_id: UUID, user_id: UUID)
     return category
 
 
-async def update_category(db: AsyncSession, category_id: UUID, category_update: CategoryUpdate,
-                          user_id: UUID) -> Category:
+async def update_category(db: AsyncSession, category_id: UUID, update_data: CategoryUpdate, user_id: UUID) -> Category:
     try:
         category_db: CategoryModel | None = await category_crud.update(db=db,
                                                                        id=category_id,
-                                                                       obj_in=category_update,
+                                                                       obj_in=update_data,
                                                                        user_id=user_id)
     except IntegrityError as exc:
         raise IntegrityException(entity=CategoryModel, exception=exc, logger=logger)

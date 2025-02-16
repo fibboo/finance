@@ -3,7 +3,7 @@ from typing import AsyncGenerator
 from uuid import UUID
 
 from fastapi import Depends, Header
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionTransaction
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.db.postgres import SessionLocal
@@ -24,7 +24,7 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
         await session.close()
 
 
-async def get_db_transaction() -> AsyncGenerator[AsyncSessionTransaction]:
+async def get_db_transaction() -> AsyncGenerator[AsyncSession]:
     async with SessionLocal.begin() as session:
         try:
             yield session

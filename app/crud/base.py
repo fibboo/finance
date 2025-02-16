@@ -2,11 +2,12 @@ from typing import Any, Generic, Type, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlalchemy import insert, select, Select, update
+from sqlalchemy import select, Select, update, Update
+from sqlalchemy.dialects.postgresql import Insert, insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.dml import ReturningInsert
 
 from app.models.base import Base
-
 
 Model = TypeVar('Model', bound=Base)
 CreateSchema = TypeVar('CreateSchema', bound=BaseModel)
@@ -34,6 +35,11 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
 
         return query
 
+    async def get(self, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model:
+        query: Select = self._build_get_query(with_for_update=with_for_update, **kwargs)
+        result: Model = (await db.execute(query)).unique().scalar_one()
+        return result
+
     async def get_or_none(self, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model | None:
         query: Select = self._build_get_query(with_for_update=with_for_update, **kwargs)
 
@@ -45,11 +51,6 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
         query: Select = query.order_by(self.model.created_at.desc())
 
         result: Model | None = (await db.execute(query)).unique().scalars().first()
-        return result
-
-    async def get(self, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model:
-        query: Select = self._build_get_query(with_for_update=with_for_update, **kwargs)
-        result: Model = (await db.execute(query)).unique().scalar_one()
         return result
 
     async def get_batch(self, db: AsyncSession, skip: int = 0, limit: int = 100, **kwargs) -> list[Model]:
@@ -66,7 +67,7 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
         if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump()
 
-        query = insert(self.model).values(obj_data).returning(self.model)
+        query: ReturningInsert = insert(self.model).values(obj_data).returning(self.model)
         db_obj: Model = await db.scalar(query)
 
         if flush:
@@ -85,9 +86,9 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
                      commit: bool | None = False) -> Model | None:
         obj_data = obj_in
         if isinstance(obj_in, BaseModel):
-            obj_data = obj_in.model_dump()
+            obj_data = obj_in.model_dump(exclude_unset=True)
 
-        query = update(self.model).filter_by(id=id, user_id=user_id).values(obj_data).returning(self.model)
+        query: Update = update(self.model).filter_by(id=id, user_id=user_id).values(obj_data).returning(self.model)
         db_obj: Model | None = await db.scalar(query)
 
         if flush:

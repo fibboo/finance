@@ -1,10 +1,7 @@
-from datetime import datetime
 from uuid import UUID
 
 from fastapi_pagination import Params
-from pydantic import BaseModel, constr, ConfigDict, Field
-
-from app.schemas.base import EntityStatusType
+from pydantic import BaseModel, ConfigDict, constr, Field
 
 
 class LocationBase(BaseModel):
@@ -13,20 +10,20 @@ class LocationBase(BaseModel):
     coordinates: constr(min_length=3, max_length=64) | None = None
 
 
-class LocationCreate(LocationBase):
+class LocationCreateRequest(LocationBase):
     pass
+
+
+class LocationCreate(LocationBase):
+    user_id: UUID
 
 
 class LocationUpdate(LocationBase):
     pass
 
 
-class Location(LocationBase):
+class Location(LocationCreate):
     id: UUID  # noqa: A003
-    user_id: UUID
-    status: EntityStatusType
-    created_at: datetime
-    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -36,7 +33,6 @@ class LocationRequest(Params):
     size: int = Field(20, ge=1, le=100, description='Page size')
 
     search_term: str | None = None
-    statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 
     def __hash__(self):
         return hash((self.page,

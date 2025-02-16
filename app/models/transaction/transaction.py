@@ -21,12 +21,19 @@ class Transaction(Base):
     user_id: Mapped[UUID] = mapped_column(DB_UUID, nullable=False, index=True)
 
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
-    currency: Mapped[CurrencyType] = mapped_column(Enum(CurrencyType,
-                                                        native_enum=False,
-                                                        validate_strings=True,
-                                                        values_callable=lambda x: [i.value for i in x]),
-                                                   nullable=False, index=True)
+    transaction_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
+    transaction_currency: Mapped[CurrencyType] = mapped_column(Enum(CurrencyType,
+                                                                    native_enum=False,
+                                                                    validate_strings=True,
+                                                                    values_callable=lambda x: [i.value for i in x]),
+                                                               nullable=False, index=True)
+    original_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    original_currency: Mapped[CurrencyType] = mapped_column(Enum(CurrencyType,
+                                                                 native_enum=False,
+                                                                 validate_strings=True,
+                                                                 values_callable=lambda x: [i.value for i in x]),
+                                                            nullable=False, index=True)
+
     transaction_type: Mapped[TransactionType] = mapped_column(Enum(TransactionType,
                                                                    native_enum=False,
                                                                    validate_strings=True,
@@ -41,15 +48,20 @@ class Transaction(Base):
                                                      server_default=EntityStatusType.ACTIVE.value,
                                                      index=True)
 
-    comment: Mapped[str | None] = mapped_column(String(256), nullable=True, index=True)
 
-    from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
-    to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
+    from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
+    to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
 
     category_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Category.id), nullable=True, index=True)
     location_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=True)
-    category: Mapped[Category | None] = relationship(Category, lazy='selectin')
-    location: Mapped[Location | None] = relationship(Location, lazy='selectin')
+
+    comment: Mapped[str | None] = mapped_column(String(256), nullable=True, index=True)
+
+    from_account: Mapped[Account | None] = relationship(Account, foreign_keys=[from_account_id], lazy='selectin')
+    to_account: Mapped[Account | None] = relationship(Account, foreign_keys=[to_account_id], lazy='selectin')
+
+    category: Mapped[Category | None] = relationship(Category, foreign_keys=[category_id], lazy='selectin')
+    location: Mapped[Location | None] = relationship(Location, foreign_keys=[location_id], lazy='selectin')
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(),

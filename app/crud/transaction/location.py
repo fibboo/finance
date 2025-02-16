@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
 from app.models.transaction.location import Location
-from app.schemas.transaction.location import LocationCreate, LocationUpdate, LocationRequest
+from app.schemas.transaction.location import LocationCreateRequest, LocationUpdate, LocationRequest
 
 
-class CRUDLocation(CRUDBase[Location, LocationCreate, LocationUpdate]):
+class CRUDLocation(CRUDBase[Location, LocationCreateRequest, LocationUpdate]):
     async def get_locations(self, db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
         query = (select(self.model)
                  .where(self.model.user_id == user_id)
@@ -21,10 +21,6 @@ class CRUDLocation(CRUDBase[Location, LocationCreate, LocationUpdate]):
         if request.search_term is not None:
             query = query.where(or_(self.model.name.ilike(f'%{request.search_term}%'),
                                     self.model.description.ilike(f'%{request.search_term}%')))
-
-        if len(request.statuses) > 0:
-            statuses = [s.value for s in request.statuses]
-            query = query.where(self.model.status.in_(statuses))
 
         paginated_expenses = await paginate(db, query, request)
         return paginated_expenses

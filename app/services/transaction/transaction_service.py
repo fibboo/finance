@@ -9,52 +9,74 @@ from app.configs.logging_settings import get_logger
 from app.crud.transaction.transaction import transaction_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.not_implemented_501 import NotImplementedException
-from app.models.transaction.transaction import Transaction as ExpenseModel
+from app.models.transaction.transaction import Transaction as TransactionModel
 from app.schemas.base import CurrencyType, EntityStatusType
-from app.schemas.transaction.transaction import Transaction, TransactionCreate, TransactionRequest, TransactionUpdate
+from app.schemas.transaction.account import Account, AccountType
+from app.schemas.transaction.transaction import (IncomeRequest, SpendRequest, Transaction, TransactionCreate,
+                                                 TransactionRequest, TransactionType, TransactionUpdate,
+                                                 TransferRequest)
+from app.services.transaction import account_service
 from app.services.user import user_service
+from app.utils.decorators import update_balances
 
 logger = get_logger(__name__)
 
 
-def _get_currency_amount(expense_amount: Decimal,
-                         expense_currency: CurrencyType,
-                         base_currency: CurrencyType) -> Decimal:
-    match expense_currency:
-        case CurrencyType.USD:
-            return expense_amount
-        case CurrencyType.GEL:
-            return round(expense_amount / Decimal('2.6'), 2)
-        case CurrencyType.TRY:
-            return round(expense_amount / Decimal('30'), 2)
-        case CurrencyType.RUB:
-            return round(expense_amount / Decimal('95'), 2)
-        case _:
-            raise NotImplementedException(log_message=f'Currency {expense_currency} is not supported.', logger=logger)
-
-
-async def spend(db: AsyncSession, expense_create: TransactionCreate, user_id: UUID) -> Transaction:
-    base_currency: CurrencyType = await user_service.get_user_base_currency(db=db, user_id=user_id)
-    amount: Decimal = _get_currency_amount(expense_amount=expense_create.amount,
-                                           expense_currency=expense_create.currency,
-                                           base_currency=base_currency)
-    obj_in: ExpenseModel = ExpenseModel(**expense_create.model_dump(),
-                                        amount=amount,
-                                        user_id=user_id,
-                                        status=EntityStatusType.ACTIVE)
+async def _create_transaction(db: AsyncSession, transaction_data: TransactionCreate) -> Transaction:
     try:
-        expense_db: ExpenseModel = await transaction_crud.create(db=db, obj_in=obj_in)
+        transaction_db: TransactionModel = await transaction_crud.create(db=db, obj_in=transaction_data)
 
     except IntegrityError as exc:
-        raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
+        raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)
 
-    expense: Transaction = Transaction.model_validate(expense_db)
-    return expense
+    transaction: Transaction = Transaction.model_validate(transaction_db)
+    return transaction
+
+
+@update_balances
+async def income(db: AsyncSession, income_data: IncomeRequest, user_id: UUID) -> Transaction:
+    to_account: Account = await account_service.search_account(db=db,
+                                                               user_id=user_id,
+                                                               account_type=AccountType.INCOME,
+                                                               currency=income_data.transaction_currency)
+
+    transaction_data: TransactionCreate = TransactionCreate(**income_data.model_dump(),
+                                                            user_id=user_id,
+                                                            transaction_amount=income_data.original_amount,
+                                                            transaction_currency=income_data.original_currency,
+                                                            transaction_type=TransactionType.INCOME,
+                                                            to_account_id=to_account.id)
+    transaction: Transaction = await _create_transaction(db=db, transaction_data=transaction_data)
+    return transaction
+
+
+@update_balances
+async def spend(db: AsyncSession, spend_data: SpendRequest, user_id: UUID) -> Transaction:
+    from_account: Account = await account_service.search_account(db=db,
+                                                                 user_id=user_id,
+                                                                 account_type=AccountType.CHECKING,
+                                                                 currency=spend_data.transaction_currency)
+
+    transaction_data: TransactionCreate = TransactionCreate(**spend_data.model_dump(),
+                                                            user_id=user_id,
+                                                            transaction_type=TransactionType.EXPENSE,
+                                                            from_account_id=from_account.id)
+    transaction: Transaction = await _create_transaction(db=db, transaction_data=transaction_data)
+
+    return transaction
+
+
+@update_balances
+async def transfer(db: AsyncSession, transfer_data: TransferRequest, user_id: UUID) -> Transaction:
+    transaction_data: TransactionCreate = TransactionCreate(**transfer_data.model_dump(),
+                                                            user_id=user_id,
+                                                            transaction_type=TransactionType.TRANSFER)
+    transaction: Transaction = await _create_transaction(db=db, transaction_data=transaction_data)
+    return transaction
 
 
 async def get_expenses(db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
-    expenses_db: Page[ExpenseModel] = await transaction_crud.get_expenses(db=db, request=request, user_id=user_id)
+    expenses_db: Page[ExpenseModel] = await transaction_crud.get_transactions(db=db, request=request, user_id=user_id)
     expenses = Page[Transaction].model_validate(expenses_db)
     return expenses
 
@@ -70,13 +92,13 @@ async def get_expense_by_id(db: AsyncSession, transaction_id: UUID, user_id: UUI
     return expense
 
 
-async def update_expense(db: AsyncSession, transaction_id: UUID, transaction_update: TransactionUpdate,
+async def update_expense(db: AsyncSession, transaction_id: UUID, update_data: TransactionUpdate,
                          user_id: UUID) -> Transaction:
     base_currency: CurrencyType = await user_service.get_user_base_currency(db=db, user_id=user_id)
-    amount: Decimal = _get_currency_amount(expense_amount=transaction_update.amount,
-                                           expense_currency=transaction_update.currency,
+    amount: Decimal = _get_currency_amount(expense_amount=update_data.transaction_amount,
+                                           expense_currency=update_data.transaction_currency,
                                            base_currency=base_currency)
-    expense_update_model: ExpenseModel = ExpenseModel(**transaction_update.model_dump(),
+    expense_update_model: ExpenseModel = ExpenseModel(**update_data.model_dump(),
                                                       amount=amount,
                                                       user_id=user_id,
                                                       status=EntityStatusType.ACTIVE)
