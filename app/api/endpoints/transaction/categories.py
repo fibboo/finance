@@ -38,19 +38,12 @@ async def get_category_by_id(category_id: UUID,
 
 
 @router.put('/{category_id}')
-async def update_expense_category(category_id: UUID,
-                                  category_update: CategoryUpdate,
-                                  user_id: UUID = Depends(get_user_id),
-                                  db: AsyncSession = Depends(get_db_transaction)) -> Category:
+async def update_category(category_id: UUID,
+                          category_update: CategoryUpdate,
+                          user_id: UUID = Depends(get_user_id),
+                          db: AsyncSession = Depends(get_db_transaction)) -> Category:
     category: Category = await category_service.update_category(db=db,
                                                                 category_id=category_id,
                                                                 category_update=category_update,
                                                                 user_id=user_id)
     return category
-
-
-@router.delete('/{category_id}', status_code=200)
-async def delete_category(category_id: UUID,
-                          user_id: UUID = Depends(get_user_id),
-                          db: AsyncSession = Depends(get_db_transaction)) -> None:
-    await category_service.delete_category(db=db, category_id=category_id, user_id=user_id)

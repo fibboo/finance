@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.crud.expense.location import location_crud
+from app.crud.transaction.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.transaction.location import Location as LocationModel
@@ -58,17 +58,3 @@ async def update_location(db: AsyncSession, location_id: UUID, request: Location
 
     location: Location = Location.model_validate(location_db)
     return location
-
-
-async def delete_location(db: AsyncSession, location_id: UUID, user_id: UUID) -> None:
-    delete_update_data = {'status': EntityStatusType.DELETED}
-    try:
-        location_db: LocationModel | None = await location_crud.update(db=db,
-                                                                       id=location_id,
-                                                                       obj_in=delete_update_data,
-                                                                       user_id=user_id)
-    except IntegrityError as exc:
-        raise IntegrityException(entity=LocationModel, exception=exc, logger=logger)
-
-    if location_db is None:
-        raise EntityNotFound(entity=LocationModel, search_params={'id': location_id, 'user_id': user_id}, logger=logger)

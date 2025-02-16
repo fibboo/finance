@@ -1,19 +1,19 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionTransaction
 
 from app.api.deps import get_db, get_db_transaction, get_user_id
-from app.schemas.transaction.account import Account, AccountCreate
+from app.schemas.transaction.account import Account, AccountCreateRequest
 from app.services.transaction import account_service
 
 router = APIRouter()
 
 
 @router.post('')
-async def create_account(account_create: AccountCreate,
+async def create_account(account_create: AccountCreateRequest,
                          user_id: UUID = Depends(get_user_id),
-                         db: AsyncSession = Depends(get_db_transaction)) -> Account:
+                         db: AsyncSessionTransaction = Depends(get_db_transaction)) -> Account:
     account: Account = await account_service.create_account(db=db, account_create=account_create, user_id=user_id)
     return account
 
@@ -31,10 +31,3 @@ async def get_account(account_id: UUID,
                       db: AsyncSession = Depends(get_db)) -> Account:
     account: Account = await account_service.get_account(db=db, account_id=account_id, user_id=user_id)
     return account
-
-
-@router.delete('/{account_id}')
-async def delete_account(account_id: UUID,
-                         user_id: UUID = Depends(get_user_id),
-                         db: AsyncSession = Depends(get_db)) -> None:
-    await account_service.delete_account(db=db, account_id=account_id, user_id=user_id)

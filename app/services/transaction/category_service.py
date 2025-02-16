@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.crud.expense.category import category_crud
+from app.crud.transaction.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.transaction.category import Category as CategoryModel
@@ -60,17 +60,3 @@ async def update_category(db: AsyncSession, category_id: UUID, category_update: 
 
     category: Category = Category.model_validate(category_db)
     return category
-
-
-async def delete_category(db: AsyncSession, category_id: UUID, user_id: UUID) -> None:
-    delete_update_data = {'status': EntityStatusType.DELETED}
-    try:
-        category_db: CategoryModel | None = await category_crud.update(db=db,
-                                                                       id=category_id,
-                                                                       obj_in=delete_update_data,
-                                                                       user_id=user_id)
-    except IntegrityError as exc:
-        raise IntegrityException(entity=CategoryModel, exception=exc, logger=logger)
-
-    if category_db is None:
-        raise EntityNotFound(entity=CategoryModel, search_params={'id': category_id, 'user_id': user_id}, logger=logger)

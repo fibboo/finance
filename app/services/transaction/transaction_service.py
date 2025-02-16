@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.crud.expense.expense import expense_crud
+from app.crud.transaction.transaction import transaction_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.not_implemented_501 import NotImplementedException
@@ -44,7 +44,7 @@ async def spend(db: AsyncSession, expense_create: TransactionCreate, user_id: UU
                                         user_id=user_id,
                                         status=EntityStatusType.ACTIVE)
     try:
-        expense_db: ExpenseModel = await expense_crud.create(db=db, obj_in=obj_in)
+        expense_db: ExpenseModel = await transaction_crud.create(db=db, obj_in=obj_in)
 
     except IntegrityError as exc:
         raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
@@ -54,22 +54,24 @@ async def spend(db: AsyncSession, expense_create: TransactionCreate, user_id: UU
 
 
 async def get_expenses(db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
-    expenses_db: Page[ExpenseModel] = await expense_crud.get_expenses(db=db, request=request, user_id=user_id)
+    expenses_db: Page[ExpenseModel] = await transaction_crud.get_expenses(db=db, request=request, user_id=user_id)
     expenses = Page[Transaction].model_validate(expenses_db)
     return expenses
 
 
 async def get_expense_by_id(db: AsyncSession, transaction_id: UUID, user_id: UUID) -> Transaction:
-    expense_db: ExpenseModel | None = await expense_crud.get_or_none(db=db, id=transaction_id, user_id=user_id)
+    expense_db: ExpenseModel | None = await transaction_crud.get_or_none(db=db, id=transaction_id, user_id=user_id)
 
     if expense_db is None:
-        raise EntityNotFound(entity=ExpenseModel, search_params={'id': transaction_id, 'user_id': user_id}, logger=logger)
+        raise EntityNotFound(entity=ExpenseModel, search_params={'id': transaction_id, 'user_id': user_id},
+                             logger=logger)
 
     expense: Transaction = Transaction.model_validate(expense_db)
     return expense
 
 
-async def update_expense(db: AsyncSession, transaction_id: UUID, transaction_update: TransactionUpdate, user_id: UUID) -> Transaction:
+async def update_expense(db: AsyncSession, transaction_id: UUID, transaction_update: TransactionUpdate,
+                         user_id: UUID) -> Transaction:
     base_currency: CurrencyType = await user_service.get_user_base_currency(db=db, user_id=user_id)
     amount: Decimal = _get_currency_amount(expense_amount=transaction_update.amount,
                                            expense_currency=transaction_update.currency,
@@ -79,15 +81,16 @@ async def update_expense(db: AsyncSession, transaction_id: UUID, transaction_upd
                                                       user_id=user_id,
                                                       status=EntityStatusType.ACTIVE)
     try:
-        expense_db: ExpenseModel | None = await expense_crud.update(db=db,
-                                                                    id=transaction_id,
-                                                                    obj_in=expense_update_model,
-                                                                    user_id=user_id)
+        expense_db: ExpenseModel | None = await transaction_crud.update(db=db,
+                                                                        id=transaction_id,
+                                                                        obj_in=expense_update_model,
+                                                                        user_id=user_id)
     except IntegrityError as exc:
         raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
 
     if expense_db is None:
-        raise EntityNotFound(entity=ExpenseModel, search_params={'id': transaction_id, 'user_id': user_id}, logger=logger)
+        raise EntityNotFound(entity=ExpenseModel, search_params={'id': transaction_id, 'user_id': user_id},
+                             logger=logger)
 
     expense: Transaction = Transaction.model_validate(expense_db)
     return expense
@@ -97,12 +100,13 @@ async def delete_expense(db: AsyncSession, transaction_id: UUID, user_id: UUID) 
     delete_update_data = {'status': EntityStatusType.DELETED}
 
     try:
-        expense_db: ExpenseModel | None = await expense_crud.update(db=db,
-                                                                    id=transaction_id,
-                                                                    obj_in=delete_update_data,
-                                                                    user_id=user_id)
+        expense_db: ExpenseModel | None = await transaction_crud.update(db=db,
+                                                                        id=transaction_id,
+                                                                        obj_in=delete_update_data,
+                                                                        user_id=user_id)
     except IntegrityError as exc:
         raise IntegrityException(entity=ExpenseModel, exception=exc, logger=logger)
 
     if expense_db is None:
-        raise EntityNotFound(entity=ExpenseModel, search_params={'id': transaction_id, 'user_id': user_id}, logger=logger)
+        raise EntityNotFound(entity=ExpenseModel, search_params={'id': transaction_id, 'user_id': user_id},
+                             logger=logger)

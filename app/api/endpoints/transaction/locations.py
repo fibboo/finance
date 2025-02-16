@@ -45,10 +45,3 @@ async def update_location(location_id: UUID,
                                                                 request=body,
                                                                 user_id=user_id)
     return location
-
-
-@router.delete('/{location_id}', status_code=200)
-async def delete_location(location_id: UUID,
-                          user_id: UUID = Depends(get_user_id),
-                          db: AsyncSession = Depends(get_db_transaction)) -> None:
-    await location_service.delete_location(db=db, location_id=location_id, user_id=user_id)

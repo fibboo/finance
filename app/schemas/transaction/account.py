@@ -19,11 +19,14 @@ class AccountBase(BaseModel):
     base_currency_rate: Decimal
 
 
-class AccountCreate(AccountBase):
-    user_id: UUID
+class AccountCreateRequest(AccountBase):
     amount: Decimal = Decimal(0)
     currency: CurrencyType
     account_type: AccountType
+
+
+class AccountCreate(AccountCreateRequest):
+    user_id: UUID
 
 
 class AccountUpdate(AccountBase):
