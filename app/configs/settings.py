@@ -13,8 +13,10 @@ class Settings(BaseSettings):
     environment: EnvironmentType = EnvironmentType.LOCAL
     session_expire_seconds: int = 60 * 60 * 24 * 7
 
+    max_accounts_per_user: int = 10
 
-base_settings = Settings()
+
+settings = Settings()
 
 
 class DatabaseSettings(BaseSettings):

@@ -2,18 +2,18 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import asc, desc, select
+from sqlalchemy import asc, desc, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
 from app.models.transaction.transaction import Transaction
-from app.schemas.transaction.transaction import (TransactionRequest, OrderDirectionType, OrderFieldType, TransactionCreate,
-                                                 TransactionUpdate)
+from app.schemas.transaction.transaction import (OrderDirectionType, OrderFieldType, TransactionCreate,
+                                                 TransactionRequest, TransactionUpdate)
 
 
 class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate]):
     async def get_transactions(self, db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
-        query = select(self.model).where(self.model.user_id == user_id)
+        query: Select = select(self.model).where(self.model.user_id == user_id)
 
         if request.amount_from is not None:
             query = query.where(self.model.transaction_amount >= request.amount_from)
@@ -21,14 +21,8 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         if request.amount_to is not None:
             query = query.where(self.model.transaction_amount <= request.amount_to)
 
-        if request.original_amount_from is not None:
-            query = query.where(self.model.original_amount >= request.original_amount_from)
-
-        if request.original_amount_to is not None:
-            query = query.where(self.model.original_amount <= request.original_amount_to)
-
         if len(request.currencies) > 0:
-            currencies = [c for c in request.currencies]
+            currencies = [c.value for c in request.currencies]
             query = query.where(self.model.transaction_currency.in_(currencies))
 
         if request.date_from is not None:
@@ -42,6 +36,10 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
 
         if len(request.location_ids) > 0:
             query = query.where(self.model.location_id.in_(request.location_ids))
+
+        if len(request.transaction_types) > 0:
+            transaction_types = [t.value for t in request.transaction_types]
+            query = query.where(self.model.transaction_type.in_(transaction_types))
 
         if len(request.statuses) > 0:
             statuses = [s.value for s in request.statuses]

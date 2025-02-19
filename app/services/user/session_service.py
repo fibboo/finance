@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.configs.settings import base_settings
+from app.configs.settings import settings
 from app.crud.user.session import user_session_crud
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.user.session import UserSession as UserSessionModel
@@ -18,7 +18,7 @@ async def create_session(db: AsyncSession,
                          user_id: UUID,
                          provider: ProviderType,
                          session_auth: SessionAuth) -> UserSession:
-    expires_at: datetime = datetime.now() + timedelta(seconds=base_settings.session_expire_seconds)
+    expires_at: datetime = datetime.now() + timedelta(seconds=settings.session_expire_seconds)
     session_create: UserSessionCreate = UserSessionCreate(user_id=user_id,
                                                           expires_at=expires_at,
                                                           provider=provider,

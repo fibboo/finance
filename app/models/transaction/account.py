@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, func, Numeric, String, text, UniqueConstraint
+from sqlalchemy import DateTime, Enum, func, Numeric, String, text
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,8 +13,6 @@ from app.schemas.transaction.account import AccountType
 
 class Account(Base):
     __tablename__ = 'accounts'
-    __table_args__ = (UniqueConstraint('user_id', 'currency', 'account_type',
-                                       name='account_unique_user_id_currency_account_type'),)
 
     id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
     user_id: Mapped[UUID] = mapped_column(DB_UUID, nullable=False, index=True)

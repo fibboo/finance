@@ -40,16 +40,20 @@ async def transfer(transfer_data: TransferRequest,
 async def get_transactions(request: TransactionRequest,
                            user_id: UUID = Depends(get_user_id),
                            db: AsyncSession = Depends(get_db)) -> Page[Transaction]:
-    expanse: Page[Transaction] = await transaction_service.get_expenses(db=db, request=request, user_id=user_id)
-    return expanse
+    transactions: Page[Transaction] = await transaction_service.get_transactions(db=db,
+                                                                                 request=request,
+                                                                                 user_id=user_id)
+    return transactions
 
 
 @router.get('/{transaction_id}')
 async def get_transaction_by_id(transaction_id: UUID,
                                 user_id: UUID = Depends(get_user_id),
                                 db: AsyncSession = Depends(get_db)) -> Transaction:
-    expanse: Transaction = await transaction_service.get_expense_by_id(db=db, transaction_id=transaction_id, user_id=user_id)
-    return expanse
+    transaction: Transaction = await transaction_service.get_transaction_by_id(db=db,
+                                                                               transaction_id=transaction_id,
+                                                                               user_id=user_id)
+    return transaction
 
 
 @router.put('/{transaction_id}')
@@ -57,11 +61,11 @@ async def update_transaction(transaction_id: UUID,
                              update_data: TransactionUpdate,
                              user_id: UUID = Depends(get_user_id),
                              db: AsyncSession = Depends(get_db_transaction)) -> Transaction:
-    expanse: Transaction = await transaction_service.update_expense(db=db,
-                                                                    transaction_id=transaction_id,
-                                                                    update_data=update_data,
-                                                                    user_id=user_id)
-    return expanse
+    transaction: Transaction = await transaction_service.update_transaction(db=db,
+                                                                            transaction_id=transaction_id,
+                                                                            update_data=update_data,
+                                                                            user_id=user_id)
+    return transaction
 
 
 @router.delete('/{transaction_id}', status_code=200)

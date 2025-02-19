@@ -6,7 +6,7 @@ from datetime import datetime
 from urllib import parse
 
 from app.configs.logging_settings import get_logger
-from app.configs.settings import base_settings, telegram_settings
+from app.configs.settings import settings, telegram_settings
 from app.exceptions.unauthorized_401 import InvalidAuthData
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import AuthUser, SessionAuth
@@ -60,7 +60,7 @@ class AuthTelegramClient(AuthClient):
 
         session_auth = SessionAuth(access_token=telegram_hash,
                                    token_type='telegramHash',
-                                   expires_in=base_settings.session_expire_seconds,
+                                   expires_in=settings.session_expire_seconds,
                                    scope='write-message+auth',
                                    user_identifier=telegram_id)
 

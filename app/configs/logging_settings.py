@@ -2,7 +2,7 @@ import logging
 import sys
 from enum import Enum
 
-from app.configs.settings import base_settings, EnvironmentType
+from app.configs.settings import settings, EnvironmentType
 
 FORMATTER = logging.Formatter(fmt='%(levelname)s: %(asctime)s %(name)s: %(message)s',
                               datefmt='%Y-%m-%d %H:%M:%S')
@@ -25,7 +25,7 @@ def get_console_handler() -> logging.StreamHandler:
 
 def get_logger(logger_name) -> logging.Logger:
     logger: logging.Logger = logging.getLogger(logger_name)
-    if base_settings.environment != EnvironmentType.PROD:
+    if settings.environment != EnvironmentType.PROD:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)

@@ -286,7 +286,7 @@ async def test_get_expense_by_id(db_fixture: AsyncSession):
     expense_db: ExpenseModel = await expense_crud.create(db=db_fixture, obj_in=expense_create, commit=True)
 
     # When
-    expense: Transaction = await expense_service.get_expense_by_id(db=db_fixture, transaction_id=expense_db.id, user_id=user_id)
+    expense: Transaction = await expense_service.get_transaction_by_id(db=db_fixture, transaction_id=expense_db.id, user_id=user_id)
 
     # Then
     assert expense is not None
@@ -319,7 +319,7 @@ async def test_get_expense_by_id_not_found(db_fixture: AsyncSession):
 
     # When
     with pytest.raises(EntityNotFound) as exc:
-        await expense_service.get_expense_by_id(db=db_fixture, transaction_id=expense_id, user_id=user_id)
+        await expense_service.get_transaction_by_id(db=db_fixture, transaction_id=expense_id, user_id=user_id)
 
     # Then
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
@@ -373,8 +373,8 @@ async def test_update_expense(db_fixture: AsyncSession, db: AsyncSession):
                                        location_id=expense_db.location_id)
 
     # When
-    updated_expense: Transaction = await expense_service.update_expense(db=db, transaction_id=expense_db.id,
-                                                                        update_data=expense_update, user_id=user_id)
+    updated_expense: Transaction = await expense_service.update_transaction(db=db, transaction_id=expense_db.id,
+                                                                            update_data=expense_update, user_id=user_id)
     await db.commit()
 
     # Then
@@ -446,12 +446,12 @@ async def test_update_expense_not_found(db_fixture: AsyncSession):
 
     # When
     with pytest.raises(EntityNotFound) as exc_not_found:
-        await expense_service.update_expense(db=db_fixture, transaction_id=expense_db.id, update_data=expense_update,
-                                             user_id=fake_user_id)
+        await expense_service.update_transaction(db=db_fixture, transaction_id=expense_db.id, update_data=expense_update,
+                                                 user_id=fake_user_id)
 
     with pytest.raises(IntegrityException) as exc_integrity:
-        await expense_service.update_expense(db=db_fixture, transaction_id=expense_db.id,
-                                             update_data=expense_update_inegrity, user_id=user_id)
+        await expense_service.update_transaction(db=db_fixture, transaction_id=expense_db.id,
+                                                 update_data=expense_update_inegrity, user_id=user_id)
 
     # Then
     assert exc_not_found.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND

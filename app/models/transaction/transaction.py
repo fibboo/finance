@@ -48,7 +48,6 @@ class Transaction(Base):
                                                      server_default=EntityStatusType.ACTIVE.value,
                                                      index=True)
 
-
     from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
     to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
 

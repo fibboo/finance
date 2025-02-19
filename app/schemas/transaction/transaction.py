@@ -10,6 +10,7 @@ from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.transaction.account import Account
 from app.schemas.transaction.category import Category
 from app.schemas.transaction.location import Location
+from app.utils.utils import make_hashable
 
 
 class TransactionType(str, Enum):
@@ -27,6 +28,7 @@ class IncomeRequest(TransactionBase):
     original_amount: condecimal(gt=Decimal('0'))
     original_currency: CurrencyType
     from_account_id: UUID
+    to_account_id: UUID
 
 
 class SpendRequest(TransactionBase):
@@ -34,7 +36,9 @@ class SpendRequest(TransactionBase):
     transaction_currency: CurrencyType
     original_amount: condecimal(gt=Decimal('0'))
     original_currency: CurrencyType
-    
+
+    from_account_id: UUID
+
     category_id: UUID
     location_id: UUID
 
@@ -44,19 +48,19 @@ class TransferRequest(TransactionBase):
     transaction_currency: CurrencyType
     original_amount: condecimal(gt=Decimal('0'))
     original_currency: CurrencyType
-    
+
     from_account_id: UUID
     to_account_id: UUID
 
 
 class TransactionCreate(TransactionBase):
     user_id: UUID
-    
+
     transaction_amount: condecimal(gt=Decimal('0'))
     transaction_currency: CurrencyType
     original_amount: condecimal(gt=Decimal('0'))
     original_currency: CurrencyType
-    
+
     transaction_type: TransactionType
 
     category_id: UUID | None = None
@@ -83,10 +87,17 @@ class TransactionCreate(TransactionBase):
 
 
 class TransactionUpdate(TransactionBase):
+    transaction_amount: condecimal(gt=Decimal('0'))
+    transaction_currency: CurrencyType
+    original_amount: condecimal(gt=Decimal('0'))
+    original_currency: CurrencyType
+
     transaction_type: TransactionType
+
     category_id: UUID | None = None
     location_id: UUID | None = None
-    from_account_id: UUID
+
+    from_account_id: UUID | None = None
     to_account_id: UUID | None = None
 
 
@@ -137,16 +148,10 @@ class TransactionRequest(Params):
 
     category_ids: list[UUID] = []
     location_ids: list[UUID] = []
+    transaction_types: list[TransactionType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 
     def __hash__(self):
-        return hash((self.page,
-                     self.size,
-                     ''.join([f'{order.field}|{order.ordering}' for order in self.orders]),
-                     self.amount_from,
-                     ''.join(map(str, self.currencies)),
-                     self.date_from,
-                     self.date_to,
-                     ''.join(map(str, self.category_ids)),
-                     ''.join(map(str, self.location_ids)),
-                     ''.join(map(str, self.statuses))))
+        data = self.model_dump()
+        hashable_items = tuple(sorted((key, type(value), make_hashable(value)) for key, value in data.items()))
+        return hash(hashable_items)

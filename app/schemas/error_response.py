@@ -13,6 +13,7 @@ class ErrorCodeType(str, Enum):
     INVALID_AUTH_DATA = 'INVALID_AUTH_DATA'
 
     ENVIRONMENT_MISMATCH = 'ENVIRONMENT_MISMATCH'
+    MAX_ACCOUNTS_PER_USER = 'MAX_ACCOUNTS_PER_USER'
 
 
 class ErrorStatusType(int, Enum):
