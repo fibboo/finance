@@ -39,3 +39,12 @@ class MaxAccountsReached(ForbiddenException):
                          logger=logger,
                          log_level=LogLevelType.INFO,
                          error_code=ErrorCodeType.MAX_ACCOUNTS_PER_USER)
+
+
+class AccountDeletionForbidden(ForbiddenException):
+    def __init__(self, account_id: UUID, logger: logging.Logger):
+        super().__init__(title='Account deletion forbidden',
+                         log_message=f'Account `{account_id}` can not be deleted. Account balance is not 0',
+                         logger=logger,
+                         log_level=LogLevelType.INFO,
+                         error_code=ErrorCodeType.ACCOUNT_DELETION_FORBIDDEN)

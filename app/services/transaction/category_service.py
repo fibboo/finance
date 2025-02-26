@@ -46,8 +46,8 @@ async def get_category_by_id(db: AsyncSession, category_id: UUID, user_id: UUID)
 async def update_category(db: AsyncSession, category_id: UUID, update_data: CategoryUpdate, user_id: UUID) -> Category:
     try:
         category_db: CategoryModel | None = await category_crud.update(db=db,
-                                                                       id=category_id,
                                                                        obj_in=update_data,
+                                                                       id=category_id,
                                                                        user_id=user_id)
     except IntegrityError as exc:
         raise IntegrityException(entity=CategoryModel, exception=exc, logger=logger)

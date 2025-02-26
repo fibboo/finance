@@ -1,5 +1,4 @@
 from typing import Any, Generic, Type, TypeVar
-from uuid import UUID
 
 from pydantic import BaseModel
 from sqlalchemy import select, Select, update, Update
@@ -79,16 +78,18 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
 
     async def update(self,
                      db: AsyncSession,
-                     id: Any,  # noqa: A002
                      obj_in: UpdateSchema | dict[str, Any],
-                     user_id: UUID | None = None,
                      flush: bool | None = True,
-                     commit: bool | None = False) -> Model | None:
+                     commit: bool | None = False,
+                     **kwargs) -> Model | None:
         obj_data = obj_in
         if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump(exclude_unset=True)
 
-        query: Update = update(self.model).filter_by(id=id, user_id=user_id).values(obj_data).returning(self.model)
+        query: Update = (update(self.model)
+                         .where(*[getattr(self.model, k) == v for k, v in kwargs.items()])
+                         .values(obj_data)
+                         .returning(self.model))
         db_obj: Model | None = await db.scalar(query)
 
         if flush:

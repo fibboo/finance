@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, constr
 
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyType, EntityStatusType
 
 
 class AccountType(str, Enum):
@@ -41,5 +41,6 @@ class Account(AccountBase):
     currency: CurrencyType
     base_currency_rate: Decimal
     account_type: AccountType
+    status: EntityStatusType
 
     model_config = ConfigDict(from_attributes=True)

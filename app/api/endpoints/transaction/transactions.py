@@ -72,4 +72,4 @@ async def update_transaction(transaction_id: UUID,
 async def delete_transaction(transaction_id: UUID,
                              user_id: UUID = Depends(get_user_id),
                              db: AsyncSession = Depends(get_db_transaction)) -> None:
-    await transaction_service.delete_expense(db=db, transaction_id=transaction_id, user_id=user_id)
+    await transaction_service.delete_transaction(db=db, transaction_id=transaction_id, user_id=user_id)

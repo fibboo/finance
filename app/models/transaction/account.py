@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.transaction.account import AccountType
 
 
@@ -32,6 +32,13 @@ class Account(Base):
                                                            validate_strings=True,
                                                            values_callable=lambda x: [i.value for i in x]),
                                                       nullable=False)
+    status: Mapped[EntityStatusType] = mapped_column(Enum(EntityStatusType,
+                                                          native_enum=False,
+                                                          validate_strings=True,
+                                                          values_callable=lambda x: [i.value for i in x]),
+                                                     nullable=False,
+                                                     server_default=EntityStatusType.ACTIVE.value,
+                                                     index=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(),
