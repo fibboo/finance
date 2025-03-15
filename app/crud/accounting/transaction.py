@@ -6,13 +6,13 @@ from sqlalchemy import asc, desc, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
-from app.models.transaction.transaction import Transaction
-from app.schemas.transaction.transaction import (OrderDirectionType, OrderFieldType, TransactionCreate,
-                                                 TransactionRequest, TransactionUpdate)
+from app.models.accounting.transaction import Transaction
+from app.schemas.accounting.transaction import (OrderDirectionType, OrderFieldType, TransactionCreate,
+                                                TransactionCreateRequest, TransactionUpdate)
 
 
 class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate]):
-    async def get_transactions(self, db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
+    async def get_transactions(self, db: AsyncSession, request: TransactionCreateRequest, user_id: UUID) -> Page[Transaction]:
         query: Select = select(self.model).where(self.model.user_id == user_id)
 
         if request.amount_from is not None:

@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_user_id, get_db_transaction
-from app.schemas.transaction.category import Category, CategoryCreate, CategoryUpdate, CategoryRequest
-from app.services.transaction import category_service
+from app.api.deps import get_db, get_user_id
+from app.schemas.accounting.category import Category, CategoryCreate, CategoryRequest, CategoryUpdate
+from app.services.accounting import category_service
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post('')
 async def create_category(create_data: CategoryCreate,
                           user_id: UUID = Depends(get_user_id),
-                          db: AsyncSession = Depends(get_db_transaction)) -> Category:
+                          db: AsyncSession = Depends(get_db)) -> Category:
     category: Category = await category_service.create_category(db=db,
                                                                 create_data=create_data,
                                                                 user_id=user_id)
@@ -43,7 +43,7 @@ async def get_category_by_id(category_id: UUID,
 async def update_category(category_id: UUID,
                           update_data: CategoryUpdate,
                           user_id: UUID = Depends(get_user_id),
-                          db: AsyncSession = Depends(get_db_transaction)) -> Category:
+                          db: AsyncSession = Depends(get_db)) -> Category:
     category: Category = await category_service.update_category(db=db,
                                                                 category_id=category_id,
                                                                 update_data=update_data,

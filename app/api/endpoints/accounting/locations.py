@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_db_transaction, get_user_id
-from app.schemas.transaction.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
-from app.services.transaction import location_service
+from app.api.deps import get_db, get_user_id
+from app.schemas.accounting.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
+from app.services.accounting import location_service
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post('')
 async def create_location(create_data: LocationCreateRequest,
                           user_id: UUID = Depends(get_user_id),
-                          db: AsyncSession = Depends(get_db_transaction)) -> Location:
+                          db: AsyncSession = Depends(get_db)) -> Location:
     location: Location = await location_service.create_location(db=db, create_data=create_data, user_id=user_id)
     return location
 
@@ -39,7 +39,7 @@ async def get_location_by_id(location_id: UUID,
 async def update_location(location_id: UUID,
                           update_data: LocationUpdate,
                           user_id: UUID = Depends(get_user_id),
-                          db: AsyncSession = Depends(get_db_transaction)) -> Location:
+                          db: AsyncSession = Depends(get_db)) -> Location:
     location: Location = await location_service.update_location(db=db,
                                                                 location_id=location_id,
                                                                 update_data=update_data,

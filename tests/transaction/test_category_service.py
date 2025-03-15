@@ -5,14 +5,14 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import LogLevelType
-from app.crud.transaction.category import category_crud
+from app.crud.accounting.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.transaction.category import Category as CategoryModel
+from app.models.accounting.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
-from app.schemas.transaction.category import Category, CategoryCreate, CategoryRequest, CategoryType, CategoryUpdate
-from app.services.transaction import category_service
+from app.schemas.accounting.category import Category, CategoryCreate, CategoryRequest, CategoryType, CategoryUpdate
+from app.services.accounting import category_service
 
 
 @pytest.mark.asyncio

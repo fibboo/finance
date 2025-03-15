@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel
 
 
-def make_hashable(value: Any):
+def make_hashable(value: Any) -> tuple:
     if isinstance(value, dict):
         return tuple(sorted((k, make_hashable(v)) for k, v in value.items()))
     elif isinstance(value, (list, tuple)):

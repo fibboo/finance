@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 from app.schemas.base import CurrencyType, EntityStatusType
-from app.schemas.transaction.account import AccountType
+from app.schemas.accounting.account import AccountType
 
 
 class Account(Base):

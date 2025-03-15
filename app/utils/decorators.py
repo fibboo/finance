@@ -2,10 +2,10 @@ from functools import wraps
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.transaction.account import account_crud
+from app.crud.accounting.account import account_crud
 from app.schemas.base import EntityStatusType
-from app.schemas.transaction.account import Account
-from app.schemas.transaction.transaction import Transaction
+from app.schemas.accounting.account import Account
+from app.schemas.accounting.transaction import Transaction
 
 
 def update_balances(func):

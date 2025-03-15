@@ -5,12 +5,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.crud.transaction.location import location_crud
+from app.crud.accounting.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.transaction.location import Location as LocationModel
-from app.schemas.transaction.location import (Location, LocationCreate, LocationCreateRequest, LocationRequest,
-                                              LocationUpdate)
+from app.models.accounting.location import Location as LocationModel
+from app.schemas.accounting.location import (Location, LocationCreate, LocationCreateRequest, LocationRequest,
+                                             LocationUpdate)
 
 logger = get_logger(__name__)
 

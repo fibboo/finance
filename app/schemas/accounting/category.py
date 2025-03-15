@@ -5,6 +5,8 @@ from uuid import UUID
 from fastapi_pagination import Params
 from pydantic import BaseModel, ConfigDict, constr, Field
 
+from app.utils import utils
+
 
 class CategoryType(str, Enum):
     GENERAL = 'GENERAL'
@@ -42,8 +44,6 @@ class CategoryRequest(Params):
     types: list[CategoryType] = []
 
     def __hash__(self):
-        return hash((self.page,
-                     self.size,
-                     self.search_term,
-                     ''.join(map(str, self.types)),
-                     ''.join(map(str, self.statuses))))
+        data = self.model_dump()
+        hashable_items: tuple = utils.make_hashable(data)
+        return hash(hashable_items)

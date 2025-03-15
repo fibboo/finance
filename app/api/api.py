@@ -1,15 +1,21 @@
 from fastapi import APIRouter
 
-from app.api.endpoints.transaction import account, categories, locations, transactions
+from app.api.endpoints.accounting import account, categories, locations, transactions
 from app.api.endpoints.user import auth
 
 api_router = APIRouter()
 
-# Transactions
-api_router.include_router(account.router, prefix='/accounts', tags=['Account'])
-api_router.include_router(categories.router, prefix='/categories', tags=['Category'])
-api_router.include_router(locations.router, prefix='/locations', tags=['Location'])
-api_router.include_router(transactions.router, prefix='/transactions', tags=['Transaction'])
+# Accounting
+accounting_router = APIRouter(prefix='/accounting')
+accounting_router.include_router(account.router, prefix='/accounts', tags=['Account'])
+accounting_router.include_router(categories.router, prefix='/categories', tags=['Category'])
+accounting_router.include_router(locations.router, prefix='/locations', tags=['Location'])
+accounting_router.include_router(transactions.router, prefix='/transactions', tags=['Transaction'])
+
+api_router.include_router(accounting_router)
 
 # User
-api_router.include_router(auth.router, prefix='/user/auth', tags=['Auth'])
+user_router = APIRouter(prefix='/user')
+user_router.include_router(auth.router, prefix='/auth', tags=['Auth'])
+
+api_router.include_router(user_router)

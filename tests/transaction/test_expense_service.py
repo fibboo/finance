@@ -13,15 +13,15 @@ from app.crud.expense.location import location_crud
 from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.transaction.category import Category as CategoryModel
-from app.models.transaction.transaction import Transaction as ExpenseModel
-from app.models.transaction.location import Location as LocationModel
+from app.models.accounting.category import Category as CategoryModel
+from app.models.accounting.transaction import Transaction as ExpenseModel
+from app.models.accounting.location import Location as LocationModel
 from app.models.user.user import User
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
-from app.schemas.transaction.category import CategoryType
-from app.schemas.transaction.transaction import (Transaction, TransactionCreate, TransactionRequest, TransactionUpdate, Order,
-                                                 OrderDirectionType, OrderFieldType)
+from app.schemas.accounting.category import CategoryType
+from app.schemas.accounting.transaction import (Transaction, TransactionCreate, TransactionCreateRequest, TransactionUpdate, Order,
+                                                OrderDirectionType, OrderFieldType)
 from app.schemas.user.external_user import ProviderType
 from app.services.expense import expense_service
 
@@ -161,15 +161,15 @@ async def test_get_expense_with_all_fields_filled(db_fixture: AsyncSession):
     # Given
     user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture)
 
-    request = TransactionRequest(page=1,
-                                 size=3,
-                                 orders=[Order(field=OrderFieldType.TRANSACTION_DATE, ordering=OrderDirectionType.DESC),
+    request = TransactionCreateRequest(page=1,
+                                       size=3,
+                                       orders=[Order(field=OrderFieldType.TRANSACTION_DATE, ordering=OrderDirectionType.DESC),
                                      Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC)],
-                                 date_from=current_date - timedelta(days=3),
-                                 date_to=current_date - timedelta(days=1),
-                                 category_ids=category_ids[1:4],
-                                 place_ids=place_ids[1:4],
-                                 statuses=[EntityStatusType.ACTIVE])
+                                       date_from=current_date - timedelta(days=3),
+                                       date_to=current_date - timedelta(days=1),
+                                       category_ids=category_ids[1:4],
+                                       place_ids=place_ids[1:4],
+                                       statuses=[EntityStatusType.ACTIVE])
 
     # When
     expenses: Page[Transaction] = await expense_service.get_transactions(db=db_fixture, request=request, user_id=user_id)
@@ -206,7 +206,7 @@ async def test_get_expense_with_all_fields_empty(db_fixture: AsyncSession):
     user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture=db_fixture,
                                                                                                   expenses=True)
 
-    request = TransactionRequest()
+    request = TransactionCreateRequest()
 
     # When
     expenses: Page[Transaction] = await expense_service.get_transactions(db=db_fixture, request=request, user_id=user_id)
@@ -243,7 +243,7 @@ async def test_get_expense_with_and_no_expenses(db_fixture: AsyncSession):
     user_id, category_ids, place_ids, current_date = await _create_categories_places_and_expenses(db_fixture=db_fixture,
                                                                                                   expenses=False)
 
-    request = TransactionRequest()
+    request = TransactionCreateRequest()
 
     # When
     expenses: Page[Transaction] = await expense_service.get_transactions(db=db_fixture, request=request, user_id=user_id)

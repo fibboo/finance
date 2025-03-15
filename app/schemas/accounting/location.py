@@ -3,6 +3,8 @@ from uuid import UUID
 from fastapi_pagination import Params
 from pydantic import BaseModel, ConfigDict, constr, Field
 
+from app.utils import utils
+
 
 class LocationBase(BaseModel):
     name: constr(min_length=3, max_length=64)
@@ -35,7 +37,6 @@ class LocationRequest(Params):
     search_term: str | None = None
 
     def __hash__(self):
-        return hash((self.page,
-                     self.size,
-                     self.search_term,
-                     ''.join(map(str, self.statuses))))
+        data = self.model_dump()
+        hashable_items: tuple = utils.make_hashable(data)
+        return hash(hashable_items)

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import AsyncGenerator
 from uuid import UUID
 
 from fastapi import Depends, Header
@@ -14,7 +13,7 @@ from app.services.user import session_service
 logger = get_logger(__name__)
 
 
-async def get_db() -> AsyncGenerator[AsyncSession]:
+async def get_db() -> AsyncSession:
     session = SessionLocal()
     try:
         yield session
@@ -22,16 +21,6 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
     finally:
         await session.commit()
         await session.close()
-
-
-async def get_db_transaction() -> AsyncGenerator[AsyncSession]:
-    async with SessionLocal.begin() as session:
-        try:
-            yield session
-
-        finally:
-            await session.commit()
-            await session.close()
 
 
 async def get_user_id(x_auth_token: UUID = Header(...),

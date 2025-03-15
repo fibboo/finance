@@ -6,11 +6,11 @@ from uuid import UUID
 from fastapi_pagination import Params
 from pydantic import BaseModel, condecimal, ConfigDict, constr, Field, model_validator
 
+from app.schemas.accounting.account import Account
+from app.schemas.accounting.category import Category
+from app.schemas.accounting.location import Location
 from app.schemas.base import CurrencyType, EntityStatusType
-from app.schemas.transaction.account import Account
-from app.schemas.transaction.category import Category
-from app.schemas.transaction.location import Location
-from app.utils.utils import make_hashable
+from app.utils import utils
 
 
 class TransactionType(str, Enum):
@@ -31,7 +31,7 @@ class IncomeRequest(TransactionBase):
     to_account_id: UUID
 
 
-class SpendRequest(TransactionBase):
+class ExpenseRequest(TransactionBase):
     transaction_amount: condecimal(gt=Decimal('0'))
     transaction_currency: CurrencyType
     original_amount: condecimal(gt=Decimal('0'))
@@ -51,6 +51,9 @@ class TransferRequest(TransactionBase):
 
     from_account_id: UUID
     to_account_id: UUID
+
+
+TransactionCreateRequest = IncomeRequest | ExpenseRequest | TransferRequest
 
 
 class TransactionCreate(TransactionBase):
@@ -141,7 +144,6 @@ class TransactionRequest(Params):
 
     amount_from: condecimal(ge=Decimal('0')) | None = None
     amount_to: condecimal(gt=Decimal('0')) | None = None
-    currencies: list[CurrencyType] | None = []
 
     date_from: datetime | None = datetime.now() - timedelta(days=90)
     date_to: datetime | None = datetime.now()
@@ -153,5 +155,5 @@ class TransactionRequest(Params):
 
     def __hash__(self):
         data = self.model_dump()
-        hashable_items = tuple(sorted((key, type(value), make_hashable(value)) for key, value in data.items()))
+        hashable_items: tuple = utils.make_hashable(data)
         return hash(hashable_items)

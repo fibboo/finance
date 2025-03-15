@@ -5,18 +5,17 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.crud.transaction.category import category_crud
+from app.crud.accounting.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.transaction.category import Category as CategoryModel
-from app.schemas.transaction.category import Category, CategoryCreate, CategoryRequest, CategoryUpdate
+from app.models.accounting.category import Category as CategoryModel
+from app.schemas.accounting.category import Category, CategoryCreate, CategoryRequest, CategoryUpdate
 
 logger = get_logger(__name__)
 
 
 async def create_category(db: AsyncSession, create_data: CategoryCreate, user_id: UUID) -> Category:
-    obj_in: CategoryModel = CategoryModel(**create_data.model_dump(),
-                                          user_id=user_id)
+    obj_in: CategoryModel = CategoryModel(**create_data.model_dump(), user_id=user_id)
     try:
         expense_db: CategoryModel = await category_crud.create(db=db, obj_in=obj_in)
 

@@ -7,11 +7,11 @@ from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
-from app.models.transaction.account import Account
-from app.models.transaction.category import Category
-from app.models.transaction.location import Location
+from app.models.accounting.account import Account
+from app.models.accounting.category import Category
+from app.models.accounting.location import Location
 from app.schemas.base import CurrencyType, EntityStatusType
-from app.schemas.transaction.transaction import TransactionType
+from app.schemas.accounting.transaction import TransactionType
 
 
 class Transaction(Base):
@@ -26,13 +26,13 @@ class Transaction(Base):
                                                                     native_enum=False,
                                                                     validate_strings=True,
                                                                     values_callable=lambda x: [i.value for i in x]),
-                                                               nullable=False, index=True)
+                                                               nullable=False)
     original_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
     original_currency: Mapped[CurrencyType] = mapped_column(Enum(CurrencyType,
                                                                  native_enum=False,
                                                                  validate_strings=True,
                                                                  values_callable=lambda x: [i.value for i in x]),
-                                                            nullable=False, index=True)
+                                                            nullable=False)
 
     transaction_type: Mapped[TransactionType] = mapped_column(Enum(TransactionType,
                                                                    native_enum=False,
@@ -52,9 +52,9 @@ class Transaction(Base):
     to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
 
     category_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Category.id), nullable=True, index=True)
-    location_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=True)
+    location_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=True, index=True)
 
-    comment: Mapped[str | None] = mapped_column(String(256), nullable=True, index=True)
+    comment: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
     from_account: Mapped[Account | None] = relationship(Account, foreign_keys=[from_account_id], lazy='selectin')
     to_account: Mapped[Account | None] = relationship(Account, foreign_keys=[to_account_id], lazy='selectin')

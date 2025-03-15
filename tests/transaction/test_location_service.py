@@ -5,14 +5,14 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import LogLevelType
-from app.crud.transaction.location import location_crud
+from app.crud.accounting.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.transaction.location import Location as LocationModel
+from app.models.accounting.location import Location as LocationModel
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
-from app.schemas.transaction.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
-from app.services.transaction import location_service
+from app.schemas.accounting.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
+from app.services.accounting import location_service
 
 
 @pytest.mark.asyncio

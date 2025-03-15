@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
-from app.schemas.transaction.category import CategoryType
+from app.schemas.accounting.category import CategoryType
 
 
 class Category(Base):

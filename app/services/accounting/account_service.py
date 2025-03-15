@@ -6,13 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
-from app.crud.transaction.account import account_crud
+from app.crud.accounting.account import account_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import AccountDeletionForbidden, MaxAccountsReached
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.transaction.account import Account as AccountModel
+from app.models.accounting.account import Account as AccountModel
 from app.schemas.base import EntityStatusType
-from app.schemas.transaction.account import Account, AccountCreate, AccountCreateRequest, AccountUpdate
+from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountUpdate
 
 logger = get_logger(__name__)
 
@@ -62,7 +62,7 @@ async def update_account(db: AsyncSession, account_id: UUID, update_data: Accoun
                                                                 id=account_id,
                                                                 user_id=user_id,
                                                                 status=EntityStatusType.ACTIVE)
-    if account_db is None or account_db.status == EntityStatusType.DELETED:
+    if account_db is None:
         raise EntityNotFound(entity=AccountModel, search_params={'id': account_id, 'user_id': user_id}, logger=logger)
 
     account: Account = Account.model_validate(account_db)
@@ -73,7 +73,8 @@ async def delete_account(db: AsyncSession, account_id: UUID, user_id: UUID) -> A
     account_db: AccountModel | None = await account_crud.get(db=db,
                                                              id=account_id,
                                                              user_id=user_id,
-                                                             status=EntityStatusType.ACTIVE)
+                                                             status=EntityStatusType.ACTIVE,
+                                                             with_for_update=True)
     if account_db is None:
         raise EntityNotFound(entity=AccountModel, search_params={'id': account_id}, logger=logger)
 
