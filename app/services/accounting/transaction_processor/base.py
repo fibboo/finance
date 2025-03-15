@@ -44,6 +44,9 @@ class TransactionProcessor(ABC, Generic[T]):
     def _prepare_transaction(self) -> TransactionCreate:
         pass
 
+    def _validate_accounts_currency(self, transaction_db: TransactionModel):
+        raise NotImplementedException(log_message='Transaction currency validation is not implemented', logger=logger)
+
     @update_balances
     async def create(self) -> Transaction:
         transaction_data: TransactionCreate = self._prepare_transaction()
@@ -52,6 +55,8 @@ class TransactionProcessor(ABC, Generic[T]):
 
         except IntegrityError as exc:
             raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)
+
+        self._validate_accounts_currency(transaction_db=transaction_db)
 
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction

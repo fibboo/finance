@@ -89,21 +89,6 @@ class TransactionCreate(TransactionBase):
         return self
 
 
-class TransactionUpdate(TransactionBase):
-    transaction_amount: condecimal(gt=Decimal('0'))
-    transaction_currency: CurrencyType
-    original_amount: condecimal(gt=Decimal('0'))
-    original_currency: CurrencyType
-
-    transaction_type: TransactionType
-
-    category_id: UUID | None = None
-    location_id: UUID | None = None
-
-    from_account_id: UUID | None = None
-    to_account_id: UUID | None = None
-
-
 class Transaction(TransactionCreate):
     id: UUID  # noqa: A003
     status: EntityStatusType

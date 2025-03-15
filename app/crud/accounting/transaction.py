@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from fastapi_pagination import Page
@@ -5,14 +6,21 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import asc, desc, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.base import CRUDBase
+from app.configs.logging_settings import get_logger
+from app.crud.base import CRUDBase, Model, UpdateSchema
+from app.exceptions.not_implemented_501 import NotImplementedException
 from app.models.accounting.transaction import Transaction
 from app.schemas.accounting.transaction import (OrderDirectionType, OrderFieldType, TransactionCreate,
-                                                TransactionCreateRequest, TransactionUpdate)
+                                                TransactionCreateRequest)
+
+logger = get_logger(__name__)
 
 
-class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate]):
-    async def get_transactions(self, db: AsyncSession, request: TransactionCreateRequest, user_id: UUID) -> Page[Transaction]:
+class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate]):
+    async def get_transactions(self,
+                               db: AsyncSession,
+                               request: TransactionCreateRequest,
+                               user_id: UUID) -> Page[Transaction]:
         query: Select = select(self.model).where(self.model.user_id == user_id)
 
         if request.amount_from is not None:
@@ -56,6 +64,14 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
 
         paginated_expenses = await paginate(db, query, request)
         return paginated_expenses
+
+    async def update(self,
+                     db: AsyncSession,
+                     obj_in: UpdateSchema | dict[str, Any],
+                     flush: bool | None = True,
+                     commit: bool | None = False,
+                     **kwargs) -> Model | None:
+        raise NotImplementedException(log_message='Transaction update crud is not implemented.', logger=logger)
 
 
 transaction_crud = CRUDTransaction(Transaction)

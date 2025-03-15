@@ -14,12 +14,11 @@ def update_balances(func):
         transaction: Transaction = func(*args, **kwargs)
         db: AsyncSession = kwargs['db']
 
+        to_account: Account = transaction.to_account
+        from_account: Account = transaction.from_account
         if transaction.status == EntityStatusType.DELETED:
             to_account: Account = transaction.from_account
             from_account: Account = transaction.to_account
-        else:
-            to_account: Account = transaction.to_account
-            from_account: Account = transaction.from_account
 
         await account_crud.update(db=db,
                                   id=to_account.id,

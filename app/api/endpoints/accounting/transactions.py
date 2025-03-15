@@ -5,8 +5,7 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_db_transaction, get_user_id
-from app.schemas.accounting.transaction import (Transaction, TransactionCreateRequest, TransactionRequest,
-                                                TransactionUpdate)
+from app.schemas.accounting.transaction import Transaction, TransactionCreateRequest, TransactionRequest
 from app.services.accounting import transaction_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
@@ -41,18 +40,6 @@ async def get_transaction_by_id(transaction_id: UUID,
     transaction: Transaction = await transaction_service.get_transaction_by_id(db=db,
                                                                                transaction_id=transaction_id,
                                                                                user_id=user_id)
-    return transaction
-
-
-@router.put('/{transaction_id}')
-async def update_transaction(transaction_id: UUID,
-                             update_data: TransactionUpdate,
-                             user_id: UUID = Depends(get_user_id),
-                             db: AsyncSession = Depends(get_db_transaction)) -> Transaction:
-    transaction: Transaction = await transaction_service.update_transaction(db=db,
-                                                                            transaction_id=transaction_id,
-                                                                            update_data=update_data,
-                                                                            user_id=user_id)
     return transaction
 
 
