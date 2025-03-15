@@ -23,6 +23,16 @@ async def get_db() -> AsyncSession:
         await session.close()
 
 
+async def get_db_transaction() -> AsyncSession:
+    async with SessionLocal.begin() as session:
+        try:
+            yield session
+
+        finally:
+            await session.commit()
+            await session.close()
+
+
 async def get_user_id(x_auth_token: UUID = Header(...),
                       db: AsyncSession = Depends(get_db)) -> UUID:
     user_session: UserSession = await session_service.get_session_by_token(db=db, token=x_auth_token)
