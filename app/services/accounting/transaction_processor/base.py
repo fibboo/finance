@@ -9,6 +9,7 @@ from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_implemented_501 import NotImplementedException
+from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.transaction import (ExpenseRequest, IncomeRequest, Transaction, TransactionCreate,
                                                 TransactionCreateRequest, TransactionType, TransferRequest)
@@ -47,6 +48,10 @@ class TransactionProcessor(ABC, Generic[T]):
     @property
     @abstractmethod
     def _transaction_crud(self) -> CRUDBase:
+        pass
+
+    @abstractmethod
+    async def _validate_transaction(self, from_account: AccountModel | None, to_account: AccountModel | None) -> None:
         pass
 
     @abstractmethod

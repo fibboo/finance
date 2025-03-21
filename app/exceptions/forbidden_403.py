@@ -83,7 +83,7 @@ class AccountTypeMismatchException(ForbiddenException):
                  account_type: AccountType,
                  logger: logging.Logger):
         super().__init__(title='Account and transaction type mismatch',
-                         log_message=(f'Transaction typr {transaction_type} is not allowed for '
+                         log_message=(f'Transaction type {transaction_type} is not allowed for '
                                       f'account `{account_id}` with type {account_type}'),
                          logger=logger,
                          log_level=LogLevelType.ERROR,

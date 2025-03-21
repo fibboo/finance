@@ -24,10 +24,7 @@ class Expense(TransactionProcessor[ExpenseRequest]):
     def _transaction_crud(self) -> CRUDExpenseTransaction:
         return expense_transaction_crud
 
-    async def _prepare_transaction(self) -> TransactionCreate:
-        from_account: AccountModel | None = await account_crud.get(db=self.db,
-                                                                   id=self.data.from_account_id,
-                                                                   user_id=self.user_id)
+    async def _validate_transaction(self, from_account: AccountModel, to_account: AccountModel | None = None) -> None:
         if from_account is None:
             raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.from_account_id}, logger=logger)
 
@@ -45,6 +42,12 @@ class Expense(TransactionProcessor[ExpenseRequest]):
                                                transaction_type=self._transaction_type,
                                                account_type=from_account.account_type,
                                                logger=logger)
+
+    async def _prepare_transaction(self) -> TransactionCreate:
+        from_account: AccountModel | None = await account_crud.get(db=self.db,
+                                                                   id=self.data.from_account_id,
+                                                                   user_id=self.user_id)
+        await self._validate_transaction(from_account=from_account)
 
         base_currency_amount: Decimal = self.data.source_amount / from_account.base_currency_rate
         transaction_data: TransactionCreate = TransactionCreate(**self.data.model_dump(),
