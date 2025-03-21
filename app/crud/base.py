@@ -2,9 +2,7 @@ from typing import Any, Generic, Type, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import select, Select, update, Update
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.dml import ReturningInsert
 
 from app.models.base import Base
 
@@ -64,11 +62,10 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
                      commit: bool | None = False) -> Model:
         obj_data = obj_in
         if isinstance(obj_in, BaseModel):
-            obj_data = obj_in.model_dump()
+            obj_data = obj_in.model_dump(exclude_unset=True)
 
-        query: ReturningInsert = insert(self.model).values(obj_data).returning(self.model)
-        db_obj: Model = await db.scalar(query)
-
+        db_obj: Model = self.model(**obj_data)
+        db.add(db_obj)
         if flush:
             await db.flush()
         if commit:

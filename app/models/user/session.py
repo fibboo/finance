@@ -10,8 +10,8 @@ from app.models.user.user import User
 from app.schemas.user.external_user import ProviderType
 
 
-class UserSession(Base):
-    __tablename__ = 'session'
+class Session(Base):
+    __tablename__ = 'sessions'
 
     id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
     user_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=False)

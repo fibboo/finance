@@ -57,8 +57,12 @@ class Transaction(Base):
                                                  nullable=False)
 
     __mapper_args__ = {'polymorphic_on': transaction_type,
-                       'polymorphic_identity': None,
                        'polymorphic_load': 'joined'}
+
+    def __init__(self, *args, **kwargs):
+        if self.__class__ is Transaction:
+            raise TypeError('Cannot instantiate abstract class Transaction.')
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f'<{self.transaction_type} transaction (id={self.id}, base_currency_amount={self.base_currency_amount})>'
@@ -67,14 +71,14 @@ class Transaction(Base):
 class ExpenseTransaction(Transaction):
     __tablename__ = 'transactions_expense'
 
-    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
+    id: Mapped[UUID] = mapped_column(ForeignKey(Transaction.id), primary_key=True)  # noqa: A003
     from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
-    category_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Category.id), nullable=False, index=True)
-    location_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=False, index=True)
+    category_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Category.id), nullable=False, index=True)
+    location_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=False, index=True)
 
-    from_account: Mapped[Account | None] = relationship(Account, foreign_keys=[from_account_id], lazy='joined')
-    category: Mapped[Category | None] = relationship(Category, foreign_keys=[category_id], lazy='joined')
-    location: Mapped[Location | None] = relationship(Location, foreign_keys=[location_id], lazy='joined')
+    from_account: Mapped[Account] = relationship(Account, foreign_keys=[from_account_id], lazy='joined')
+    category: Mapped[Category] = relationship(Category, foreign_keys=[category_id], lazy='joined')
+    location: Mapped[Location] = relationship(Location, foreign_keys=[location_id], lazy='joined')
 
     __mapper_args__ = {'polymorphic_identity': TransactionType.EXPENSE.value}
 
@@ -86,7 +90,7 @@ class ExpenseTransaction(Transaction):
 class IncomeTransaction(Transaction):
     __tablename__ = 'transactions_income'
 
-    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
+    id: Mapped[UUID] = mapped_column(ForeignKey(Transaction.id), primary_key=True)  # noqa: A003
     income_source_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(IncomeSource.id), nullable=False, index=True)
     to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
 
@@ -103,7 +107,7 @@ class IncomeTransaction(Transaction):
 class TransferTransaction(Transaction):
     __tablename__ = 'transactions_transfer'
 
-    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
+    id: Mapped[UUID] = mapped_column(ForeignKey(Transaction.id), primary_key=True)  # noqa: A003
     from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
     to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
 

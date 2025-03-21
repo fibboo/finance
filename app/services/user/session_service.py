@@ -7,7 +7,7 @@ from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
 from app.crud.user.session import user_session_crud
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.user.session import UserSession as UserSessionModel
+from app.models.user.session import Session as UserSessionModel
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import SessionAuth, UserSession, UserSessionCreate
 

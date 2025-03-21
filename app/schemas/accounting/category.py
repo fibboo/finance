@@ -19,8 +19,12 @@ class CategoryBase(BaseModel):
     type: CategoryType  # noqa: A003
 
 
-class CategoryCreate(CategoryBase):
+class CategoryCreateRequest(CategoryBase):
     pass
+
+
+class CategoryCreate(CategoryCreateRequest):
+    user_id: UUID
 
 
 class CategoryUpdate(CategoryBase):

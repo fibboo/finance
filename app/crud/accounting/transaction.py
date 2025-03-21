@@ -5,7 +5,6 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import asc, desc, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import with_polymorphic
 
 from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase, Model, UpdateSchema
@@ -16,10 +15,8 @@ from app.schemas.accounting.transaction import (OrderDirectionType, OrderFieldTy
 
 logger = get_logger(__name__)
 
-TransactionModel = with_polymorphic(Transaction, [ExpenseTransaction, IncomeTransaction, TransferTransaction])
 
-
-class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionCreate]):
+class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate]):
     async def get_transactions(self,
                                db: AsyncSession,
                                request: TransactionRequest,
@@ -37,12 +34,6 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
 
         if request.date_to is not None:
             query = query.where(self.model.transaction_date <= request.date_to)
-
-        if len(request.category_ids) > 0:
-            query = query.where(self.model.category_id.in_(request.category_ids))
-
-        if len(request.location_ids) > 0:
-            query = query.where(self.model.location_id.in_(request.location_ids))
 
         if len(request.transaction_types) > 0:
             transaction_types = [t.value for t in request.transaction_types]
@@ -74,3 +65,24 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
 
 
 transaction_crud = CRUDTransaction(Transaction)
+
+
+class CRUDExpenseTransaction(CRUDBase[ExpenseTransaction, TransactionCreate, TransactionCreate]):
+    pass
+
+
+expense_transaction_crud = CRUDExpenseTransaction(ExpenseTransaction)
+
+
+class CRUDIncomeTransaction(CRUDBase[IncomeTransaction, TransactionCreate, TransactionCreate]):
+    pass
+
+
+income_transaction_crud = CRUDIncomeTransaction(IncomeTransaction)
+
+
+class CRUDTransferTransaction(CRUDBase[TransferTransaction, TransactionCreate, TransactionCreate]):
+    pass
+
+
+transfer_transaction_crud = CRUDTransferTransaction(TransferTransaction)

@@ -9,13 +9,14 @@ from app.crud.accounting.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.category import Category as CategoryModel
-from app.schemas.accounting.category import Category, CategoryCreate, CategoryRequest, CategoryUpdate
+from app.schemas.accounting.category import (Category, CategoryCreate, CategoryCreateRequest, CategoryRequest,
+                                             CategoryUpdate)
 
 logger = get_logger(__name__)
 
 
-async def create_category(db: AsyncSession, create_data: CategoryCreate, user_id: UUID) -> Category:
-    obj_in: CategoryModel = CategoryModel(**create_data.model_dump(), user_id=user_id)
+async def create_category(db: AsyncSession, create_data: CategoryCreateRequest, user_id: UUID) -> Category:
+    obj_in: CategoryCreate = CategoryCreate(**create_data.model_dump(), user_id=user_id)
     try:
         expense_db: CategoryModel = await category_crud.create(db=db, obj_in=obj_in)
 

@@ -10,5 +10,5 @@ class CurrencyType(str, Enum):
     USD = 'USD'
     RSD = 'RSD'
     GEL = 'GEL'
-    TRY = 'GEL'
+    TRY = 'TRY'
     RUB = 'RUB'

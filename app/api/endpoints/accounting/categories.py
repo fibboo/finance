@@ -5,14 +5,14 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_db_transaction, get_user_id
-from app.schemas.accounting.category import Category, CategoryCreate, CategoryRequest, CategoryUpdate
+from app.schemas.accounting.category import Category, CategoryCreateRequest, CategoryRequest, CategoryUpdate
 from app.services.accounting import category_service
 
 router = APIRouter()
 
 
 @router.post('')
-async def create_category(create_data: CategoryCreate,
+async def create_category(create_data: CategoryCreateRequest,
                           user_id: UUID = Depends(get_user_id),
                           db: AsyncSession = Depends(get_db_transaction)) -> Category:
     category: Category = await category_service.create_category(db=db,

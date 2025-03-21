@@ -11,7 +11,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.category import Category as CategoryModel
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
-from app.schemas.accounting.category import Category, CategoryCreate, CategoryRequest, CategoryType, CategoryUpdate
+from app.schemas.accounting.category import Category, CategoryCreateRequest, CategoryRequest, CategoryType, CategoryUpdate
 from app.services.accounting import category_service
 
 
@@ -19,8 +19,8 @@ from app.services.accounting import category_service
 async def test_create_category(db: AsyncSession):
     # Given
     user_id = uuid4()
-    category_create = CategoryCreate(name='Category 1',
-                                     type=CategoryType.GENERAL)
+    category_create = CategoryCreateRequest(name='Category 1',
+                                            type=CategoryType.GENERAL)
 
     # When
     category: Category = await category_service.create_category(db=db, create_data=category_create, user_id=user_id)
@@ -48,7 +48,7 @@ async def test_create_category_with_existing_name(db_fixture: AsyncSession):
                                           status=EntityStatusType.ACTIVE)
     await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
 
-    category_create = CategoryCreate(name='Category 1', type=CategoryType.GENERAL, )
+    category_create = CategoryCreateRequest(name='Category 1', type=CategoryType.GENERAL, )
 
     # When
     with pytest.raises(IntegrityException) as exc:

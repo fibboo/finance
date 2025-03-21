@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.user.session import user_session_crud
 from app.crud.user.user import user_crud
 from app.models.user.external_user import ExternalUser
-from app.models.user.session import UserSession
+from app.models.user.session import Session
 from app.models.user.user import User
 from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ProviderType
@@ -55,7 +55,7 @@ async def test_get_token(db_fixture: AsyncSession):
     assert user_db.registration_provider == ProviderType.TELEGRAM
     assert user_db.base_currency == CurrencyType.USD
 
-    user_session_db: UserSession | None = await user_session_crud.get_or_none(db=db_fixture, id=new_token)
+    user_session_db: Session | None = await user_session_crud.get_or_none(db=db_fixture, id=new_token)
 
     assert user_session_db is not None
     assert user_session_db.user_id == user_db.id

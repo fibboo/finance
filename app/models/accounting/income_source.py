@@ -10,7 +10,7 @@ from app.models.base import Base
 
 class IncomeSource(Base):
     __tablename__ = 'income_sources'
-    __table_args__ = (UniqueConstraint('user_id', 'name', name='location_unique_user_id_name'),)
+    __table_args__ = (UniqueConstraint('user_id', 'name', name='income_source_unique_user_id_name'),)
 
     id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
     user_id: Mapped[UUID] = mapped_column(DB_UUID, nullable=False, index=True)

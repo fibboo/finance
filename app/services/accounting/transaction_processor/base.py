@@ -6,12 +6,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.crud.accounting.transaction import transaction_crud
+from app.crud.base import CRUDBase
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_implemented_501 import NotImplementedException
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.transaction import (ExpenseRequest, IncomeRequest, Transaction, TransactionCreate,
-                                                TransactionCreateRequest, TransferRequest)
+                                                TransactionCreateRequest, TransactionType, TransferRequest)
 
 T = TypeVar('T', bound=TransactionCreateRequest)
 
@@ -39,6 +39,16 @@ class TransactionProcessor(ABC, Generic[T]):
         transaction_processor: TransactionProcessor = transaction_class(db=db, user_id=user_id, data=data)
         return transaction_processor
 
+    @property
+    @abstractmethod
+    def _transaction_type(self) -> TransactionType:
+        pass
+
+    @property
+    @abstractmethod
+    def _transaction_crud(self) -> CRUDBase:
+        pass
+
     @abstractmethod
     async def _prepare_transaction(self) -> TransactionCreate:
         pass
@@ -50,7 +60,7 @@ class TransactionProcessor(ABC, Generic[T]):
     async def create(self) -> Transaction:
         transaction_data: TransactionCreate = await self._prepare_transaction()
         try:
-            transaction_db: TransactionModel = await transaction_crud.create(db=self.db, obj_in=transaction_data)
+            transaction_db: TransactionModel = await self._transaction_crud.create(db=self.db, obj_in=transaction_data)
 
         except IntegrityError as exc:
             raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)

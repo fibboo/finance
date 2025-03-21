@@ -7,11 +7,11 @@ api_router = APIRouter()
 
 # Accounting
 accounting_router = APIRouter(prefix='/accounting')
-accounting_router.include_router(account.router, prefix='/accounts', tags=['Account'])
-accounting_router.include_router(categories.router, prefix='/categories', tags=['Category'])
-accounting_router.include_router(income_sources.router, prefix='/income_sources', tags=['Income Source'])
-accounting_router.include_router(locations.router, prefix='/locations', tags=['Location'])
-accounting_router.include_router(transactions.router, prefix='/transactions', tags=['Transaction'])
+accounting_router.include_router(account.router, prefix='/accounts', tags=['Accounts'])
+accounting_router.include_router(categories.router, prefix='/categories', tags=['Categories'])
+accounting_router.include_router(income_sources.router, prefix='/income_sources', tags=['Income Sources'])
+accounting_router.include_router(locations.router, prefix='/locations', tags=['Locations'])
+accounting_router.include_router(transactions.router, prefix='/transactions', tags=['Transactions'])
 
 api_router.include_router(accounting_router)
 

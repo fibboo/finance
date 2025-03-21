@@ -81,7 +81,7 @@ class TransactionCreate(TransactionBase):
 class Transaction(TransactionCreate):
     id: UUID  # noqa: A003
     status: EntityStatusType
-    
+
     income_source: IncomeSource | None = None
     from_account: Account | None = None
     to_account: Account | None = None
@@ -123,8 +123,6 @@ class TransactionRequest(Params):
     date_from: datetime | None = datetime.now() - timedelta(days=90)
     date_to: datetime | None = datetime.now()
 
-    category_ids: list[UUID] = []
-    location_ids: list[UUID] = []
     transaction_types: list[TransactionType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 

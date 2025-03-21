@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
 from app.models.accounting.category import Category
-from app.schemas.accounting.category import CategoryCreate, CategoryRequest, CategoryUpdate
+from app.schemas.accounting.category import CategoryCreateRequest, CategoryRequest, CategoryUpdate
 
 
-class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
+class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
     async def get_categories(self, db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
         query = (select(self.model)
                  .where(self.model.user_id == user_id)

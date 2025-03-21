@@ -4,6 +4,8 @@ from uuid import UUID
 from app.configs.logging_settings import LogLevelType
 from app.configs.settings import EnvironmentType, settings
 from app.exceptions.base import AppBaseException
+from app.schemas.accounting.account import AccountType
+from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 
@@ -60,15 +62,29 @@ class NoAccountBaseCurrencyRate(ForbiddenException):
                          error_code=ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE)
 
 
-class CurrencyMismatch(ForbiddenException):
+class CurrencyMismatchException(ForbiddenException):
     def __init__(self,
-                 currency: CurrencyType,
                  account_id: UUID,
+                 transaction_currency: CurrencyType,
                  account_currency: CurrencyType,
                  logger: logging.Logger):
         super().__init__(title='Account and transaction currency mismatch',
-                         log_message=(f'Transaction currency {currency} differs '
+                         log_message=(f'Transaction currency {transaction_currency} differs '
                                       f'from account `{account_id}` currency {account_currency}'),
                          logger=logger,
                          log_level=LogLevelType.ERROR,
                          error_code=ErrorCodeType.CURRENCY_MISMATCH)
+
+
+class AccountTypeMismatchException(ForbiddenException):
+    def __init__(self,
+                 account_id: UUID,
+                 transaction_type: TransactionType,
+                 account_type: AccountType,
+                 logger: logging.Logger):
+        super().__init__(title='Account and transaction type mismatch',
+                         log_message=(f'Transaction typr {transaction_type} is not allowed for '
+                                      f'account `{account_id}` with type {account_type}'),
+                         logger=logger,
+                         log_level=LogLevelType.ERROR,
+                         error_code=ErrorCodeType.ACCOUNT_TYPE_MISMATCH)
