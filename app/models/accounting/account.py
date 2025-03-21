@@ -7,8 +7,8 @@ from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
-from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.accounting.account import AccountType
+from app.schemas.base import CurrencyType, EntityStatusType
 
 
 class Account(Base):
@@ -43,3 +43,6 @@ class Account(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(),
                                                  nullable=False)
+
+    def __repr__(self):
+        return f'<Account (id={self.id}, name={self.name}, balance={self.balance})>'

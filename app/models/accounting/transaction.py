@@ -6,12 +6,13 @@ from sqlalchemy import Date, DateTime, Enum, ForeignKey, func, Numeric, String, 
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
 from app.models.accounting.account import Account
 from app.models.accounting.category import Category
+from app.models.accounting.income_source import IncomeSource
 from app.models.accounting.location import Location
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.models.base import Base
 from app.schemas.accounting.transaction import TransactionType
+from app.schemas.base import CurrencyType, EntityStatusType
 
 
 class Transaction(Base):
@@ -33,6 +34,7 @@ class Transaction(Base):
                                                                  validate_strings=True,
                                                                  values_callable=lambda x: [i.value for i in x]),
                                                             nullable=False)
+    base_currency_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
 
     transaction_type: Mapped[TransactionType] = mapped_column(Enum(TransactionType,
                                                                    native_enum=False,
@@ -47,21 +49,68 @@ class Transaction(Base):
                                                      nullable=False,
                                                      server_default=EntityStatusType.ACTIVE.value,
                                                      index=True)
-
-    from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
-    to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
-
-    category_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Category.id), nullable=True, index=True)
-    location_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=True, index=True)
-
     comment: Mapped[str | None] = mapped_column(String(256), nullable=True)
-
-    from_account: Mapped[Account | None] = relationship(Account, foreign_keys=[from_account_id], lazy='selectin')
-    to_account: Mapped[Account | None] = relationship(Account, foreign_keys=[to_account_id], lazy='selectin')
-
-    category: Mapped[Category | None] = relationship(Category, foreign_keys=[category_id], lazy='selectin')
-    location: Mapped[Location | None] = relationship(Location, foreign_keys=[location_id], lazy='selectin')
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(),
                                                  nullable=False)
+
+    __mapper_args__ = {'polymorphic_on': transaction_type,
+                       'polymorphic_identity': None,
+                       'polymorphic_load': 'joined'}
+
+    def __repr__(self):
+        return f'<{self.transaction_type} transaction (id={self.id}, base_currency_amount={self.base_currency_amount})>'
+
+
+class ExpenseTransaction(Transaction):
+    __tablename__ = 'transactions_expense'
+
+    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
+    from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
+    category_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Category.id), nullable=False, index=True)
+    location_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=False, index=True)
+
+    from_account: Mapped[Account | None] = relationship(Account, foreign_keys=[from_account_id], lazy='joined')
+    category: Mapped[Category | None] = relationship(Category, foreign_keys=[category_id], lazy='joined')
+    location: Mapped[Location | None] = relationship(Location, foreign_keys=[location_id], lazy='joined')
+
+    __mapper_args__ = {'polymorphic_identity': TransactionType.EXPENSE.value}
+
+    def __repr__(self):
+        return (f'<Expense transaction (id={self.id}, base_currency_amount={self.base_currency_amount}), '
+                f'category={self.category}, location={self.location})>')
+
+
+class IncomeTransaction(Transaction):
+    __tablename__ = 'transactions_income'
+
+    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
+    income_source_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(IncomeSource.id), nullable=False, index=True)
+    to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
+
+    income_source: Mapped[IncomeSource] = relationship(IncomeSource, foreign_keys=[income_source_id], lazy='joined')
+    to_account: Mapped[Account] = relationship(Account, foreign_keys=[to_account_id], lazy='joined')
+
+    __mapper_args__ = {'polymorphic_identity': TransactionType.INCOME.value}
+
+    def __repr__(self):
+        return (f'Income transaction (id={self.id}, base_currency_amount={self.base_currency_amount}), '
+                f'income_source={self.income_source}')
+
+
+class TransferTransaction(Transaction):
+    __tablename__ = 'transactions_transfer'
+
+    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
+    from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
+    to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
+
+    from_account: Mapped[Account] = relationship(Account, foreign_keys=[from_account_id], lazy='joined')
+    to_account: Mapped[Account] = relationship(Account, foreign_keys=[to_account_id], lazy='joined')
+
+    __mapper_args__ = {'polymorphic_identity': TransactionType.TRANSFER.value}
+
+    def __repr__(self):
+        return (f'Transfer transaction (id={self.id}, base_currency_amount={self.base_currency_amount}), '
+                f'from_account={self.from_account}, to_account={self.to_account})')

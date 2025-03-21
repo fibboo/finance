@@ -29,8 +29,8 @@ async def create_location(db: AsyncSession, create_data: LocationCreateRequest, 
 
 async def get_locations(db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
     locations_db: Page[LocationModel] = await location_crud.get_locations(db=db, request=request, user_id=user_id)
-    categories: Page[Location] = Page[Location].model_validate(locations_db)
-    return categories
+    locations: Page[Location] = Page[Location].model_validate(locations_db)
+    return locations
 
 
 async def get_location_by_id(db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:

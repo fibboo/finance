@@ -23,11 +23,11 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
                                user_id: UUID) -> Page[Transaction]:
         query: Select = select(self.model).where(self.model.user_id == user_id)
 
-        if request.amount_from is not None:
-            query = query.where(self.model.transaction_amount >= request.amount_from)
+        if request.base_currency_amount_from is not None:
+            query = query.where(self.model.base_currency_amount >= request.base_currency_amount_from)
 
-        if request.amount_to is not None:
-            query = query.where(self.model.transaction_amount <= request.amount_to)
+        if request.base_currency_amount_to is not None:
+            query = query.where(self.model.base_currency_amount <= request.base_currency_amount_to)
 
         if len(request.currencies) > 0:
             currencies = [c.value for c in request.currencies]

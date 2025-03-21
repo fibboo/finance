@@ -1,5 +1,6 @@
 from app.models.accounting.account import *
 from app.models.accounting.category import *
+from app.models.accounting.income_source import *
 from app.models.accounting.location import *
 from app.models.accounting.transaction import *
 from app.models.base import Base

@@ -14,21 +14,14 @@ from app.utils import utils
 
 
 class TransactionType(str, Enum):
-    INCOME = 'INCOME'
     EXPENSE = 'EXPENSE'
+    INCOME = 'INCOME'
     TRANSFER = 'TRANSFER'
 
 
 class TransactionBase(BaseModel):
     transaction_date: date
     comment: constr(min_length=3, max_length=256) | None = None
-
-
-class IncomeRequest(TransactionBase):
-    original_amount: condecimal(gt=Decimal('0'))
-    original_currency: CurrencyType
-    from_account_id: UUID
-    to_account_id: UUID
 
 
 class ExpenseRequest(TransactionBase):
@@ -41,6 +34,30 @@ class ExpenseRequest(TransactionBase):
 
     category_id: UUID
     location_id: UUID
+
+
+class IncomeBaseCurrencyRequest(TransactionBase):
+    transaction_amount: condecimal(gt=Decimal('0'))
+    transaction_currency: CurrencyType
+    to_account_id: UUID
+
+
+class IncomeOtherCurrencyRequest(TransactionBase):
+    transaction_amount: condecimal(gt=Decimal('0'))
+    transaction_currency: CurrencyType
+    original_amount: condecimal(gt=Decimal('0'))
+    original_currency: CurrencyType
+    to_account_id: UUID
+
+
+class TransferRequest(TransactionBase):
+    transaction_amount: condecimal(gt=Decimal('0'))
+    transaction_currency: CurrencyType
+    original_amount: condecimal(gt=Decimal('0'))
+    original_currency: CurrencyType
+
+    from_account_id: UUID
+    to_account_id: UUID
 
 
 class TransferRequest(TransactionBase):
@@ -63,6 +80,7 @@ class TransactionCreate(TransactionBase):
     transaction_currency: CurrencyType
     original_amount: condecimal(gt=Decimal('0'))
     original_currency: CurrencyType
+    base_currency_amount: condecimal(gt=Decimal('0'))
 
     transaction_type: TransactionType
 
@@ -127,8 +145,8 @@ class TransactionRequest(Params):
     orders: list[Order] = [Order(field=OrderFieldType.TRANSACTION_DATE, ordering=OrderDirectionType.DESC),
                            Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC)]
 
-    amount_from: condecimal(ge=Decimal('0')) | None = None
-    amount_to: condecimal(gt=Decimal('0')) | None = None
+    base_currency_amount_from: condecimal(ge=Decimal('0')) | None = None
+    base_currency_amount_to: condecimal(gt=Decimal('0')) | None = None
 
     date_from: datetime | None = datetime.now() - timedelta(days=90)
     date_to: datetime | None = datetime.now()
