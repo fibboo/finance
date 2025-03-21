@@ -300,9 +300,9 @@ async def test_get_expense_by_id(db_fixture: AsyncSession):
     assert expense.id == expense_db.id
     assert expense.user_id == expense_db.user_id
     assert expense.transaction_date == expense_db.transaction_date
-    assert expense.transaction_amount == expense_db.transaction_amount
-    assert expense.transaction_amount == expense_db.original_amount
-    assert expense.transaction_currency == expense_db.transaction_currency
+    assert expense.transaction_amount == expense_db.source_amount
+    assert expense.transaction_amount == expense_db.destination_amount
+    assert expense.transaction_currency == expense_db.source_currency
     assert expense.comment == expense_db.comment
     assert expense.category.id == expense_db.category.id
     assert expense.category.user_id == expense_db.category.user_id
@@ -390,11 +390,11 @@ async def test_update_expense(db_fixture: AsyncSession, db: AsyncSession):
     assert updated_expense.user_id == expense_db.user_id
     assert updated_expense.transaction_date == expense_update.transaction_date
     assert updated_expense.transaction_amount == expense_service._get_currency_amount(
-        expense_amount=expense_update.transaction_amount,
-        expense_currency=expense_update.transaction_currency,
+        expense_amount=expense_update.source_amount,
+        expense_currency=expense_update.source_currency,
         base_currency=CurrencyType.USD)
-    assert updated_expense.transaction_amount == expense_update.transaction_amount
-    assert updated_expense.transaction_currency == expense_update.transaction_currency
+    assert updated_expense.transaction_amount == expense_update.source_amount
+    assert updated_expense.transaction_currency == expense_update.source_currency
     assert updated_expense.comment == expense_update.comment
     assert updated_expense.category.id == expense_db.category_id
     assert updated_expense.location.id == expense_db.location_id

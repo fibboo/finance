@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import count
 
 from app.crud.base import CRUDBase
-from app.models import Account
+from app.models.accounting.account import Account
 from app.schemas.accounting.account import AccountCreate, AccountUpdate
 
 

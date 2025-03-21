@@ -5,21 +5,24 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import asc, desc, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import with_polymorphic
 
 from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase, Model, UpdateSchema
 from app.exceptions.not_implemented_501 import NotImplementedException
-from app.models.accounting.transaction import Transaction
+from app.models.accounting.transaction import ExpenseTransaction, IncomeTransaction, Transaction, TransferTransaction
 from app.schemas.accounting.transaction import (OrderDirectionType, OrderFieldType, TransactionCreate,
-                                                TransactionCreateRequest)
+                                                TransactionRequest)
 
 logger = get_logger(__name__)
 
+TransactionModel = with_polymorphic(Transaction, [ExpenseTransaction, IncomeTransaction, TransferTransaction])
 
-class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate]):
+
+class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionCreate]):
     async def get_transactions(self,
                                db: AsyncSession,
-                               request: TransactionCreateRequest,
+                               request: TransactionRequest,
                                user_id: UUID) -> Page[Transaction]:
         query: Select = select(self.model).where(self.model.user_id == user_id)
 
@@ -28,10 +31,6 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
 
         if request.base_currency_amount_to is not None:
             query = query.where(self.model.base_currency_amount <= request.base_currency_amount_to)
-
-        if len(request.currencies) > 0:
-            currencies = [c.value for c in request.currencies]
-            query = query.where(self.model.transaction_currency.in_(currencies))
 
         if request.date_from is not None:
             query = query.where(self.model.transaction_date >= request.date_from)
@@ -55,7 +54,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
 
         order_fields_map = {OrderFieldType.CREATED_AT: self.model.created_at,
                             OrderFieldType.TRANSACTION_DATE: self.model.transaction_date,
-                            OrderFieldType.AMOUNT: self.model.transaction_amount}
+                            OrderFieldType.AMOUNT: self.model.base_currency_amount}
         for order in request.orders:
             func_ordering = desc if order.ordering == OrderDirectionType.DESC else asc
             query = query.order_by(func_ordering(order_fields_map[order.field]))

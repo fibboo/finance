@@ -22,19 +22,20 @@ class Transaction(Base):
     user_id: Mapped[UUID] = mapped_column(DB_UUID, nullable=False, index=True)
 
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    transaction_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
-    transaction_currency: Mapped[CurrencyType] = mapped_column(Enum(CurrencyType,
+    base_currency_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
+
+    source_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
+    source_currency: Mapped[CurrencyType] = mapped_column(Enum(CurrencyType,
+                                                               native_enum=False,
+                                                               validate_strings=True,
+                                                               values_callable=lambda x: [i.value for i in x]),
+                                                          nullable=False)
+    destination_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    destination_currency: Mapped[CurrencyType] = mapped_column(Enum(CurrencyType,
                                                                     native_enum=False,
                                                                     validate_strings=True,
                                                                     values_callable=lambda x: [i.value for i in x]),
                                                                nullable=False)
-    original_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
-    original_currency: Mapped[CurrencyType] = mapped_column(Enum(CurrencyType,
-                                                                 native_enum=False,
-                                                                 validate_strings=True,
-                                                                 values_callable=lambda x: [i.value for i in x]),
-                                                            nullable=False)
-    base_currency_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
 
     transaction_type: Mapped[TransactionType] = mapped_column(Enum(TransactionType,
                                                                    native_enum=False,

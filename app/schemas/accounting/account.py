@@ -17,7 +17,6 @@ class AccountType(str, Enum):
 class AccountBase(BaseModel):
     name: constr(min_length=3, max_length=64)
     description: constr(min_length=3, max_length=4096) | None = None
-    base_currency_rate: Decimal
 
 
 class AccountCreateRequest(AccountBase):

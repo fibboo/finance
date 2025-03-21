@@ -8,6 +8,7 @@ from pydantic import BaseModel, condecimal, ConfigDict, constr, Field, model_val
 
 from app.schemas.accounting.account import Account
 from app.schemas.accounting.category import Category
+from app.schemas.accounting.income_source import IncomeSource
 from app.schemas.accounting.location import Location
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.utils import utils
@@ -22,64 +23,33 @@ class TransactionType(str, Enum):
 class TransactionBase(BaseModel):
     transaction_date: date
     comment: constr(min_length=3, max_length=256) | None = None
+    source_amount: condecimal(gt=Decimal('0'))
+    source_currency: CurrencyType
+    destination_amount: condecimal(gt=Decimal('0'))
+    destination_currency: CurrencyType
 
 
 class ExpenseRequest(TransactionBase):
-    transaction_amount: condecimal(gt=Decimal('0'))
-    transaction_currency: CurrencyType
-    original_amount: condecimal(gt=Decimal('0'))
-    original_currency: CurrencyType
-
     from_account_id: UUID
-
     category_id: UUID
     location_id: UUID
 
 
-class IncomeBaseCurrencyRequest(TransactionBase):
-    transaction_amount: condecimal(gt=Decimal('0'))
-    transaction_currency: CurrencyType
-    to_account_id: UUID
-
-
-class IncomeOtherCurrencyRequest(TransactionBase):
-    transaction_amount: condecimal(gt=Decimal('0'))
-    transaction_currency: CurrencyType
-    original_amount: condecimal(gt=Decimal('0'))
-    original_currency: CurrencyType
+class IncomeRequest(TransactionBase):
+    income_source_id: UUID
     to_account_id: UUID
 
 
 class TransferRequest(TransactionBase):
-    transaction_amount: condecimal(gt=Decimal('0'))
-    transaction_currency: CurrencyType
-    original_amount: condecimal(gt=Decimal('0'))
-    original_currency: CurrencyType
-
     from_account_id: UUID
     to_account_id: UUID
 
 
-class TransferRequest(TransactionBase):
-    transaction_amount: condecimal(gt=Decimal('0'))
-    transaction_currency: CurrencyType
-    original_amount: condecimal(gt=Decimal('0'))
-    original_currency: CurrencyType
-
-    from_account_id: UUID
-    to_account_id: UUID
-
-
-TransactionCreateRequest = IncomeRequest | ExpenseRequest | TransferRequest
+TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest
 
 
 class TransactionCreate(TransactionBase):
     user_id: UUID
-
-    transaction_amount: condecimal(gt=Decimal('0'))
-    transaction_currency: CurrencyType
-    original_amount: condecimal(gt=Decimal('0'))
-    original_currency: CurrencyType
     base_currency_amount: condecimal(gt=Decimal('0'))
 
     transaction_type: TransactionType
@@ -87,6 +57,7 @@ class TransactionCreate(TransactionBase):
     category_id: UUID | None = None
     location_id: UUID | None = None
 
+    income_source_id: UUID | None = None
     from_account_id: UUID | None = None
     to_account_id: UUID | None = None
 
@@ -110,7 +81,8 @@ class TransactionCreate(TransactionBase):
 class Transaction(TransactionCreate):
     id: UUID  # noqa: A003
     status: EntityStatusType
-
+    
+    income_source: IncomeSource | None = None
     from_account: Account | None = None
     to_account: Account | None = None
 
@@ -126,7 +98,7 @@ class Transaction(TransactionCreate):
 class OrderFieldType(str, Enum):
     CREATED_AT = 'created_at'
     TRANSACTION_DATE = 'transaction_date'
-    AMOUNT = 'amount'
+    AMOUNT = 'base_currency_amount'
 
 
 class OrderDirectionType(str, Enum):

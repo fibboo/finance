@@ -9,7 +9,6 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.transaction import Transaction, TransactionCreateRequest
 from app.schemas.base import EntityStatusType
-from app.utils.decorators import update_balances
 
 logger = get_logger(__name__)
 

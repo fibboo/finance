@@ -12,7 +12,6 @@ from app.exceptions.not_implemented_501 import NotImplementedException
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.transaction import (ExpenseRequest, IncomeRequest, Transaction, TransactionCreate,
                                                 TransactionCreateRequest, TransferRequest)
-from app.utils.decorators import update_balances
 
 T = TypeVar('T', bound=TransactionCreateRequest)
 
@@ -41,22 +40,22 @@ class TransactionProcessor(ABC, Generic[T]):
         return transaction_processor
 
     @abstractmethod
-    def _prepare_transaction(self) -> TransactionCreate:
+    async def _prepare_transaction(self) -> TransactionCreate:
         pass
 
-    def _validate_accounts_currency(self, transaction_db: TransactionModel):
-        raise NotImplementedException(log_message='Transaction currency validation is not implemented', logger=logger)
+    @abstractmethod
+    async def _update_accounts(self, transaction_db: TransactionModel):
+        pass
 
-    @update_balances
     async def create(self) -> Transaction:
-        transaction_data: TransactionCreate = self._prepare_transaction()
+        transaction_data: TransactionCreate = await self._prepare_transaction()
         try:
             transaction_db: TransactionModel = await transaction_crud.create(db=self.db, obj_in=transaction_data)
 
         except IntegrityError as exc:
             raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)
 
-        self._validate_accounts_currency(transaction_db=transaction_db)
+        await self._update_accounts(transaction_db=transaction_db)
 
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction

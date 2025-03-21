@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
-from app.models import Base
+from app.models.base import Base
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 
 

@@ -6,7 +6,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
-from app.models import IncomeSource
+from app.models.accounting.transaction import IncomeSource
 from app.schemas.accounting.income_source import IncomeSourceCreateRequest, IncomeSourceRequest, IncomeSourceUpdate
 
 
