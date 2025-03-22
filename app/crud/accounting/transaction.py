@@ -68,21 +68,39 @@ transaction_crud = CRUDTransaction(Transaction)
 
 
 class CRUDExpenseTransaction(CRUDBase[ExpenseTransaction, TransactionCreate, TransactionCreate]):
-    pass
+    async def update(self,
+                     db: AsyncSession,
+                     obj_in: UpdateSchema | dict[str, Any],
+                     flush: bool | None = True,
+                     commit: bool | None = False,
+                     **kwargs) -> Model | None:
+        raise NotImplementedException(log_message='Transaction update crud is not implemented.', logger=logger)
 
 
 expense_transaction_crud = CRUDExpenseTransaction(ExpenseTransaction)
 
 
 class CRUDIncomeTransaction(CRUDBase[IncomeTransaction, TransactionCreate, TransactionCreate]):
-    pass
+    async def update(self,
+                     db: AsyncSession,
+                     obj_in: UpdateSchema | dict[str, Any],
+                     flush: bool | None = True,
+                     commit: bool | None = False,
+                     **kwargs) -> Model | None:
+        raise NotImplementedException(log_message='Transaction update crud is not implemented.', logger=logger)
 
 
 income_transaction_crud = CRUDIncomeTransaction(IncomeTransaction)
 
 
 class CRUDTransferTransaction(CRUDBase[TransferTransaction, TransactionCreate, TransactionCreate]):
-    pass
+    async def update(self,
+                     db: AsyncSession,
+                     obj_in: UpdateSchema | dict[str, Any],
+                     flush: bool | None = True,
+                     commit: bool | None = False,
+                     **kwargs) -> Model | None:
+        raise NotImplementedException(log_message='Transaction update crud is not implemented.', logger=logger)
 
 
 transfer_transaction_crud = CRUDTransferTransaction(TransferTransaction)

@@ -24,30 +24,32 @@ class Expense(TransactionProcessor[ExpenseRequest]):
     def _transaction_crud(self) -> CRUDExpenseTransaction:
         return expense_transaction_crud
 
-    async def _validate_transaction(self, from_account: AccountModel, to_account: AccountModel | None = None) -> None:
-        if from_account is None:
+    async def _validate_transaction(self,
+                                    from_account_db: AccountModel,
+                                    to_account_db: AccountModel | None = None) -> None:
+        if from_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.from_account_id}, logger=logger)
 
-        if from_account.base_currency_rate == 0:
-            raise NoAccountBaseCurrencyRate(account_id=from_account.id, logger=logger)
+        if from_account_db.base_currency_rate == 0:
+            raise NoAccountBaseCurrencyRate(account_id=from_account_db.id, logger=logger)
 
-        if from_account.currency != self.data.source_currency:
-            raise CurrencyMismatchException(account_id=from_account.id,
+        if from_account_db.currency != self.data.source_currency:
+            raise CurrencyMismatchException(account_id=from_account_db.id,
                                             transaction_currency=self.data.source_currency,
-                                            account_currency=from_account.currency,
+                                            account_currency=from_account_db.currency,
                                             logger=logger)
 
-        if from_account.account_type != AccountType.CHECKING:
-            raise AccountTypeMismatchException(account_id=from_account.id,
+        if from_account_db.account_type != AccountType.CHECKING:
+            raise AccountTypeMismatchException(account_id=from_account_db.id,
                                                transaction_type=self._transaction_type,
-                                               account_type=from_account.account_type,
+                                               account_type=from_account_db.account_type,
                                                logger=logger)
 
     async def _prepare_transaction(self) -> TransactionCreate:
         from_account: AccountModel | None = await account_crud.get(db=self.db,
                                                                    id=self.data.from_account_id,
                                                                    user_id=self.user_id)
-        await self._validate_transaction(from_account=from_account)
+        await self._validate_transaction(from_account_db=from_account)
 
         base_currency_amount: Decimal = self.data.source_amount / from_account.base_currency_rate
         transaction_data: TransactionCreate = TransactionCreate(**self.data.model_dump(),

@@ -51,7 +51,9 @@ class TransactionProcessor(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def _validate_transaction(self, from_account: AccountModel | None, to_account: AccountModel | None) -> None:
+    async def _validate_transaction(self,
+                                    from_account_db: AccountModel | None,
+                                    to_account_db: AccountModel | None) -> None:
         pass
 
     @abstractmethod
