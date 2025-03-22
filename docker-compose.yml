@@ -4,7 +4,7 @@ services:
     image: postgres:15
     command: [ "postgres", "-c", "log_statement=all" ]
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
     environment:
@@ -19,12 +19,12 @@ services:
     depends_on:
       - postgres
     ports:
-      - 8000:8000
+      - "8000:8000"
     volumes:
       - .:/app
-#    environment:
-#      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/fibboo_finance
-#      - TELEGRAM_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/finance
+      - TELEGRAM_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
 
     command: uvicorn app.main:app --host 0.0.0.0 --reload
 

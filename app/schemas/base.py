@@ -8,6 +8,7 @@ class EntityStatusType(str, Enum):
 
 class CurrencyType(str, Enum):
     USD = 'USD'
+    EUR = 'EUR'
     RSD = 'RSD'
     GEL = 'GEL'
     TRY = 'TRY'

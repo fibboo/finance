@@ -22,7 +22,7 @@ class AuthTelegramClient(AuthClient):
 
     @property
     def auth_link(self) -> str:
-        return telegram_settings.client_id
+        return telegram_settings.bot_name
 
     @staticmethod
     def _check_telegram_authorization(auth_data: dict[str, str]) -> bool:
