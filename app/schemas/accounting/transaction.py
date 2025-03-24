@@ -4,7 +4,7 @@ from enum import Enum
 from uuid import UUID
 
 from fastapi_pagination import Params
-from pydantic import BaseModel, condecimal, ConfigDict, constr, Field, model_validator
+from pydantic import BaseModel, condecimal, ConfigDict, constr, Field, field_validator, model_validator
 
 from app.schemas.accounting.account import Account
 from app.schemas.accounting.category import Category
@@ -36,8 +36,16 @@ class ExpenseRequest(TransactionBase):
 
 
 class IncomeRequest(TransactionBase):
+    income_period: date
     income_source_id: UUID
     to_account_id: UUID
+
+    @field_validator('income_period')
+    def validate_income_period(cls, income_period: date):
+        if income_period.day != 1:
+            income_period = income_period.replace(day=1)
+
+        return income_period
 
 
 class TransferRequest(TransactionBase):
@@ -58,7 +66,9 @@ class TransactionCreate(TransactionBase):
     category_id: UUID | None = None
     location_id: UUID | None = None
 
+    income_period: date | None = None
     income_source_id: UUID | None = None
+
     from_account_id: UUID | None = None
     to_account_id: UUID | None = None
 

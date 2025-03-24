@@ -46,7 +46,8 @@ async def test_create_income_base_currency_ok(db_fixture: AsyncSession):
                                                       destination_amount=Decimal('1'),
                                                       destination_currency=CurrencyType.USD,
                                                       to_account_id=account_db.id,
-                                                      income_source_id=income_source_db.id)
+                                                      income_source_id=income_source_db.id,
+                                                      income_period=date(2025, 1, 18))
 
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
@@ -78,6 +79,7 @@ async def test_create_income_base_currency_ok(db_fixture: AsyncSession):
     assert transaction.location_id is None
     assert transaction.location is None
 
+    assert transaction.income_period == income_create_data.income_period.replace(day=1)
     assert transaction.income_source_id == income_source_db.id
     assert transaction.income_source is not None
 
@@ -108,7 +110,8 @@ async def test_create_income_other_currency_ok(db_fixture: AsyncSession):
                                                       destination_amount=Decimal('1000'),
                                                       destination_currency=CurrencyType.EUR,
                                                       to_account_id=account_db.id,
-                                                      income_source_id=income_source_db.id)
+                                                      income_source_id=income_source_db.id,
+                                                      income_period=date(2025, 1, 1))
 
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
@@ -162,12 +165,13 @@ async def test_create_income_other_currency_2_transactions_ok(db_fixture: AsyncS
                                                                           obj_in=income_source_create_data, commit=True)
 
     income_create_data_1: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
-                                                      source_amount=Decimal('1050'),
-                                                      source_currency=CurrencyType.USD,
-                                                      destination_amount=Decimal('1000'),
-                                                      destination_currency=CurrencyType.EUR,
-                                                      to_account_id=account_db.id,
-                                                      income_source_id=income_source_db.id)
+                                                        source_amount=Decimal('1050'),
+                                                        source_currency=CurrencyType.USD,
+                                                        destination_amount=Decimal('1000'),
+                                                        destination_currency=CurrencyType.EUR,
+                                                        to_account_id=account_db.id,
+                                                        income_source_id=income_source_db.id,
+                                                        income_period=date(2025, 1, 1))
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
                                                                                user_id=user_db.id,
                                                                                data=income_create_data_1)
@@ -182,7 +186,8 @@ async def test_create_income_other_currency_2_transactions_ok(db_fixture: AsyncS
                                                         destination_amount=Decimal('1000'),
                                                         destination_currency=CurrencyType.EUR,
                                                         to_account_id=account_db.id,
-                                                        income_source_id=income_source_db.id)
+                                                        income_source_id=income_source_db.id,
+                                                        income_period=date(2025, 2, 1))
 
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,

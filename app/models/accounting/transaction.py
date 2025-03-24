@@ -103,6 +103,7 @@ class IncomeTransaction(Transaction):
     __tablename__ = 'transactions_income'
 
     id: Mapped[UUID] = mapped_column(ForeignKey(Transaction.id), primary_key=True)  # noqa: A003
+    income_period: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     income_source_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(IncomeSource.id), nullable=False, index=True)
     to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
 
