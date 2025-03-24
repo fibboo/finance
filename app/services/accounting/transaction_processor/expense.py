@@ -25,13 +25,13 @@ class Expense(TransactionProcessor[ExpenseRequest]):
         return expense_transaction_crud
 
     async def _validate_transaction(self,
-                                    from_account_db: AccountModel,
+                                    from_account_db: AccountModel | None,
                                     to_account_db: AccountModel | None = None) -> None:
         if from_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.from_account_id}, logger=logger)
 
         if from_account_db.base_currency_rate == 0:
-            raise NoAccountBaseCurrencyRate(account_id=from_account_db.id, logger=logger)
+            raise NoAccountBaseCurrencyRate(account_ids=[from_account_db.id], logger=logger)
 
         if from_account_db.currency != self.data.source_currency:
             raise CurrencyMismatchException(account_id=from_account_db.id,

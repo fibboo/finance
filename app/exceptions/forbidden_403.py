@@ -54,9 +54,9 @@ class AccountDeletionForbidden(ForbiddenException):
 
 
 class NoAccountBaseCurrencyRate(ForbiddenException):
-    def __init__(self, account_id: UUID, logger: logging.Logger):
-        super().__init__(title='Account has no base currency rate',
-                         log_message=f'Account `{account_id}` has no base currency rate. Try to make first deposit',
+    def __init__(self, account_ids: list[UUID], logger: logging.Logger):
+        super().__init__(title='Accounts has no base currency rate',
+                         log_message=f'Accounts {account_ids} have no base currency rate. Try to make first deposit',
                          logger=logger,
                          log_level=LogLevelType.ERROR,
                          error_code=ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE)

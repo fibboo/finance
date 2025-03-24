@@ -24,7 +24,7 @@ class Income(TransactionProcessor[IncomeRequest]):
         return income_transaction_crud
 
     async def _validate_transaction(self,
-                                    to_account_db: AccountModel,
+                                    to_account_db: AccountModel | None,
                                     from_account_db: AccountModel | None = None) -> None:
         if to_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.to_account_id}, logger=logger)
@@ -54,17 +54,17 @@ class Income(TransactionProcessor[IncomeRequest]):
         return transaction_data
 
     async def _update_accounts(self, transaction_db: IncomeTransactionModel):
-        to_account: AccountModel = transaction_db.to_account
-        new_balance: Decimal = to_account.balance + transaction_db.destination_amount
-        if to_account.base_currency_rate == 0:
+        to_account_db: AccountModel = transaction_db.to_account
+        new_balance: Decimal = to_account_db.balance + transaction_db.destination_amount
+        if to_account_db.base_currency_rate == 0:
             new_base_rate: Decimal = transaction_db.destination_amount / transaction_db.source_amount
         else:
-            current_base_balance: Decimal = to_account.balance / to_account.base_currency_rate
+            current_base_balance: Decimal = to_account_db.balance / to_account_db.base_currency_rate
             new_base_balance: Decimal = current_base_balance + transaction_db.base_currency_amount
             new_base_rate: Decimal = new_balance / new_base_balance
 
-        new_balance = new_balance.quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
-        new_base_rate = new_base_rate.quantize(Decimal('0.0001'), rounding=ROUND_HALF_EVEN)
+        new_balance: Decimal = new_balance.quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+        new_base_rate: Decimal = new_base_rate.quantize(Decimal('0.0001'), rounding=ROUND_HALF_EVEN)
         await account_crud.update(db=self.db,
                                   id=transaction_db.to_account_id,
                                   obj_in={'balance': new_balance, 'base_currency_rate': new_base_rate})

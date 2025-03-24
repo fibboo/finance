@@ -71,6 +71,7 @@ async def test_create_income_base_currency_ok(db_fixture: AsyncSession):
     assert transaction.to_account is not None
     assert transaction.to_account.balance == Decimal('1') != account_balance_before
     assert transaction.to_account.base_currency_rate == Decimal('1') != base_currency_rate_before
+    assert transaction.to_account.currency == income_create_data.destination_currency
 
     assert transaction.category_id is None
     assert transaction.category is None

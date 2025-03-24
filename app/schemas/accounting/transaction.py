@@ -23,9 +23,9 @@ class TransactionType(str, Enum):
 class TransactionBase(BaseModel):
     transaction_date: date
     comment: constr(min_length=3, max_length=256) | None = None
-    source_amount: condecimal(gt=Decimal('0'))
+    source_amount: condecimal(gt=Decimal('0'), decimal_places=2)
     source_currency: CurrencyType
-    destination_amount: condecimal(gt=Decimal('0'))
+    destination_amount: condecimal(gt=Decimal('0'), decimal_places=2)
     destination_currency: CurrencyType
 
 
@@ -41,6 +41,7 @@ class IncomeRequest(TransactionBase):
 
 
 class TransferRequest(TransactionBase):
+    destination_amount: condecimal(gt=Decimal('0'), decimal_places=2) | None = None
     from_account_id: UUID
     to_account_id: UUID
 
@@ -50,7 +51,7 @@ TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest
 
 class TransactionCreate(TransactionBase):
     user_id: UUID
-    base_currency_amount: condecimal(gt=Decimal('0'))
+    base_currency_amount: condecimal(gt=Decimal('0'), decimal_places=2)
 
     transaction_type: TransactionType
 
@@ -117,8 +118,8 @@ class TransactionRequest(Params):
     orders: list[Order] = [Order(field=OrderFieldType.TRANSACTION_DATE, ordering=OrderDirectionType.DESC),
                            Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC)]
 
-    base_currency_amount_from: condecimal(ge=Decimal('0')) | None = None
-    base_currency_amount_to: condecimal(gt=Decimal('0')) | None = None
+    base_currency_amount_from: condecimal(ge=Decimal('0'), decimal_places=2) | None = None
+    base_currency_amount_to: condecimal(gt=Decimal('0'), decimal_places=2) | None = None
 
     date_from: datetime | None = datetime.now() - timedelta(days=90)
     date_to: datetime | None = datetime.now()
