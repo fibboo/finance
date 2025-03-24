@@ -3,8 +3,7 @@ from decimal import Decimal, ROUND_HALF_EVEN
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDIncomeTransaction, income_transaction_crud
-from app.exceptions.forbidden_403 import AccountTypeMismatchException, CurrencyMismatchException
-from app.exceptions.not_fount_404 import EntityNotFound
+from app.exceptions.forbidden_403 import AccountTypeMismatchException
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import IncomeTransaction as IncomeTransactionModel
 from app.schemas.accounting.account import AccountType
@@ -23,17 +22,11 @@ class Income(TransactionProcessor[IncomeRequest]):
     def _transaction_crud(self) -> type[CRUDIncomeTransaction]:
         return income_transaction_crud
 
-    async def _validate_transaction(self,
-                                    to_account_db: AccountModel | None,
-                                    from_account_db: AccountModel | None = None) -> None:
-        if to_account_db is None:
-            raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.to_account_id}, logger=logger)
+    async def _validate_transaction_from_account(self, from_account_db: AccountModel | None) -> None:
+        pass
 
-        if to_account_db.currency != self.data.destination_currency:
-            raise CurrencyMismatchException(account_id=to_account_db.id,
-                                            transaction_currency=self.data.source_currency,
-                                            account_currency=to_account_db.currency,
-                                            logger=logger)
+    async def _validate_transaction_to_account(self, to_account_db: AccountModel | None) -> None:
+        await super()._validate_transaction_to_account(to_account_db=to_account_db)
 
         if to_account_db.account_type != AccountType.INCOME:
             raise AccountTypeMismatchException(account_id=to_account_db.id,
@@ -42,10 +35,10 @@ class Income(TransactionProcessor[IncomeRequest]):
                                                logger=logger)
 
     async def _prepare_transaction(self) -> TransactionCreate:
-        to_account_db: AccountModel = await account_crud.get(db=self.db,
-                                                             id=self.data.to_account_id,
-                                                             user_id=self.user_id)
-        await self._validate_transaction(to_account_db=to_account_db)
+        to_account_db: AccountModel | None = await account_crud.get_or_none(db=self.db,
+                                                                            id=self.data.to_account_id,
+                                                                            user_id=self.user_id)
+        await self._validate_transaction_to_account(to_account_db=to_account_db)
 
         transaction_data: TransactionCreate = TransactionCreate(**self.data.model_dump(),
                                                                 user_id=self.user_id,

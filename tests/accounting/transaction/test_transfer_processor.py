@@ -5,13 +5,17 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.user.user import user_crud
+from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
+from app.exceptions.unprocessable_422 import UnprocessableException
 from app.models.accounting.account import Account as AccountModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountCreate, AccountType
 from app.schemas.accounting.transaction import Transaction, TransactionType, TransferRequest
 from app.schemas.base import CurrencyType
+from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
 from app.services.accounting.transaction_processor.base import TransactionProcessor
@@ -50,11 +54,10 @@ async def test_create_transfer_base_to_base_ok(db_fixture: AsyncSession):
                                                             from_account_id=account_from_db.id,
                                                             to_account_id=account_to_db.id,
                                                             comment='test')
-
-    # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
                                                                                user_id=user_db.id,
                                                                                data=transfer_create_data)
+    # Act
     transaction: Transaction = await transaction_processor.create()
     await db_fixture.commit()
 
@@ -122,11 +125,10 @@ async def test_create_transfer_base_to_other_ok(db_fixture: AsyncSession):
                                                             from_account_id=account_from_db.id,
                                                             to_account_id=account_to_db.id,
                                                             comment='test')
-
-    # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
                                                                                user_id=user_db.id,
                                                                                data=transfer_create_data)
+    # Act
     transaction: Transaction = await transaction_processor.create()
     await db_fixture.commit()
 
@@ -194,11 +196,10 @@ async def test_create_transfer_other_to_base_ok(db_fixture: AsyncSession):
                                                             from_account_id=account_from_db.id,
                                                             to_account_id=account_to_db.id,
                                                             comment='test')
-
-    # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
                                                                                user_id=user_db.id,
                                                                                data=transfer_create_data)
+    # Act
     transaction: Transaction = await transaction_processor.create()
     await db_fixture.commit()
 
@@ -268,11 +269,10 @@ async def test_create_transfer_other_to_other_ok(db_fixture: AsyncSession):
                                                             from_account_id=account_from_db.id,
                                                             to_account_id=account_to_db.id,
                                                             comment='test')
-
-    # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
                                                                                user_id=user_db.id,
                                                                                data=transfer_create_data)
+    # Act
     transaction: Transaction = await transaction_processor.create()
     await db_fixture.commit()
 
@@ -304,3 +304,97 @@ async def test_create_transfer_other_to_other_ok(db_fixture: AsyncSession):
 
     assert transaction.income_source_id is None
     assert transaction.income_source is None
+
+
+@pytest.mark.asyncio
+async def test_create_transfer_base_to_other_not_destination_amount(db_fixture: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db_fixture, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {'user_id': user_db.id,
+                                      'name': 'Income USD',
+                                      'currency': CurrencyType.USD,
+                                      'account_type': AccountType.INCOME,
+                                      'base_currency_rate': Decimal('1')}
+    account_from_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_from_create_data,
+                                                              commit=True)
+
+    account_to_create_data: AccountCreate = AccountCreate(user_id=user_db.id,
+                                                          name='Checking EUR',
+                                                          currency=CurrencyType.EUR,
+                                                          account_type=AccountType.CHECKING)
+    account_to_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_to_create_data, commit=True)
+
+    transfer_create_data: TransferRequest = TransferRequest(transaction_date=date(2025, 2, 10),
+                                                            source_amount=Decimal('1'),
+                                                            source_currency=CurrencyType.USD,
+                                                            destination_currency=CurrencyType.EUR,
+                                                            from_account_id=account_from_db.id,
+                                                            to_account_id=account_to_db.id,
+                                                            comment='test')
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+                                                                               user_id=user_db.id,
+                                                                               data=transfer_create_data)
+    # Act
+    with pytest.raises(UnprocessableException) as exc:
+        await transaction_processor.create()
+
+    # Assert
+    assert exc.value.status_code == ErrorStatusType.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc.value.title == 'Unprocessable entity'
+    assert exc.value.message == ('If destination_currency differs from user base currency, '
+                                 'destination_amount must be specified')
+    assert exc.value.log_message == exc.value.message
+    assert exc.value.logger is not None
+    assert exc.value.log_level == LogLevelType.WARNING
+    assert exc.value.error_code is None
+
+
+@pytest.mark.asyncio
+async def test_create_transfer_other_to_other_not_base_rate(db_fixture: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db_fixture, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {'user_id': user_db.id,
+                                      'name': 'Income RSD',
+                                      'currency': CurrencyType.RSD,
+                                      'account_type': AccountType.INCOME,
+                                      'base_currency_rate': Decimal('117')}
+    account_from_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_from_create_data,
+                                                              commit=True)
+
+    account_to_create_data: AccountCreate = AccountCreate(user_id=user_db.id,
+                                                          name='Checking EUR',
+                                                          currency=CurrencyType.EUR,
+                                                          account_type=AccountType.CHECKING)
+    account_to_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_to_create_data, commit=True)
+
+    transfer_create_data: TransferRequest = TransferRequest(transaction_date=date(2025, 2, 10),
+                                                            source_amount=Decimal('1'),
+                                                            source_currency=CurrencyType.RSD,
+                                                            destination_currency=CurrencyType.EUR,
+                                                            destination_amount=Decimal('117'),
+                                                            from_account_id=account_from_db.id,
+                                                            to_account_id=account_to_db.id,
+                                                            comment='test')
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+                                                                               user_id=user_db.id,
+                                                                               data=transfer_create_data)
+    # Act
+    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
+        await transaction_processor.create()
+
+    # Assert
+    assert exc.value.status_code == ErrorStatusType.HTTP_403_FORBIDDEN
+    assert exc.value.title == 'Accounts has no base currency rate'
+    assert exc.value.message == f'Account {account_to_db.id} has no base currency rate. Try to make first deposit'
+    assert exc.value.log_message == exc.value.message
+    assert exc.value.logger is not None
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE

@@ -4,8 +4,7 @@ from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDTransferTransaction, transfer_transaction_crud
 from app.crud.user.user import user_crud
-from app.exceptions.forbidden_403 import CurrencyMismatchException, NoAccountBaseCurrencyRate
-from app.exceptions.not_fount_404 import EntityNotFound
+from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
 from app.exceptions.unprocessable_422 import UnprocessableException
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import TransferTransaction as TransferTransactionModel
@@ -28,27 +27,15 @@ class Transfer(TransactionProcessor[TransferRequest]):
     def _transaction_crud(self) -> type[CRUDTransferTransaction]:
         return transfer_transaction_crud
 
+    async def _validate_transaction_from_account(self, from_account_db: AccountModel | None) -> None:
+        await super()._validate_transaction_from_account(from_account_db=from_account_db)
+
+    async def _validate_transaction_to_account(self, to_account_db: AccountModel | None) -> None:
+        await super()._validate_transaction_to_account(to_account_db=to_account_db)
+
     async def _validate_transaction(self, to_account_db: AccountModel, from_account_db: AccountModel) -> None:
-        if from_account_db is None:
-            raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.from_account_id}, logger=logger)
-
-        if to_account_db is None:
-            raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.to_account_id}, logger=logger)
-
-        if from_account_db.base_currency_rate == 0:
-            raise NoAccountBaseCurrencyRate(account_ids=[from_account_db.id], logger=logger)
-
-        if from_account_db.currency != self.data.source_currency:
-            raise CurrencyMismatchException(account_id=from_account_db.id,
-                                            transaction_currency=self.data.source_currency,
-                                            account_currency=from_account_db.currency,
-                                            logger=logger)
-
-        if to_account_db.currency != self.data.destination_currency:
-            raise CurrencyMismatchException(account_id=to_account_db.id,
-                                            transaction_currency=self.data.source_currency,
-                                            account_currency=to_account_db.currency,
-                                            logger=logger)
+        await self._validate_transaction_from_account(from_account_db=from_account_db)
+        await self._validate_transaction_to_account(to_account_db=to_account_db)
 
         user_db: UserModel = await user_crud.get(db=self.db, id=self.user_id)
         self._base_currency: CurrencyType = user_db.base_currency
@@ -58,13 +45,13 @@ class Transfer(TransactionProcessor[TransferRequest]):
                                          logger=logger)
 
         if self.data.source_currency != self._base_currency and self.data.destination_currency != self._base_currency:
-            if from_account_db.base_currency_rate == 0 or to_account_db.base_currency_rate == 0:
-                raise NoAccountBaseCurrencyRate(account_ids=[from_account_db.id, to_account_db.id], logger=logger)
+            if to_account_db.base_currency_rate == 0:
+                raise NoAccountBaseCurrencyRate(account_id=to_account_db.id, logger=logger)
 
     async def _prepare_transaction(self) -> TransactionCreate:
-        from_account_db: AccountModel | None = await account_crud.get(db=self.db,
-                                                                      id=self.data.from_account_id,
-                                                                      user_id=self.user_id)
+        from_account_db: AccountModel | None = await account_crud.get_or_none(db=self.db,
+                                                                              id=self.data.from_account_id,
+                                                                              user_id=self.user_id)
         to_account_db: AccountModel | None = await account_crud.get(db=self.db,
                                                                     id=self.data.to_account_id,
                                                                     user_id=self.user_id)
