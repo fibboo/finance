@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.configs.settings import settings
@@ -13,7 +14,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.account import Account, AccountCreateRequest, AccountType, AccountUpdate
 from app.schemas.base import CurrencyType, EntityStatusType
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import account_service
 
 
@@ -57,7 +58,7 @@ async def test_create_account_existing_name(db_fixture: AsyncSession):
         await account_service.create_account(db=db_fixture, create_data=create_data, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_message == (f'Account integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
@@ -90,7 +91,7 @@ async def test_create_account_max_limit(db_fixture: AsyncSession, monkeypatch):
         await account_service.create_account(db=db_fixture, user_id=user_id, create_data=create_data)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_403_FORBIDDEN
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.title == 'Max accounts per user'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_message == (f'Max number of accounts ({settings.max_accounts_per_user}) '
@@ -171,7 +172,7 @@ async def test_get_account_not_found(db_fixture: AsyncSession):
         await account_service.get_account(db=db_fixture, account_id=account_id, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': account_id, 'user_id': user_id}
     assert exc.value.log_message == f'{AccountModel.__name__} not found by {search_params}'
@@ -225,7 +226,7 @@ async def test_update_account_not_found(db_fixture: AsyncSession):
                                              update_data=update_data)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': account_id, 'user_id': user_id}
     assert exc.value.log_message == f'{AccountModel.__name__} not found by {search_params}'
@@ -259,7 +260,7 @@ async def test_update_account_double(db_fixture: AsyncSession):
                                              update_data=update_data)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_message == (f'Account integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
@@ -307,7 +308,7 @@ async def test_delete_account_not_found(db_fixture: AsyncSession):
         await account_service.delete_account(db=db_fixture, account_id=account_id, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': account_id, 'user_id': user_id}
     assert exc.value.log_message == f'{AccountModel.__name__} not found by {search_params}'
@@ -333,7 +334,7 @@ async def test_delete_account_balance_not_zero(db_fixture: AsyncSession):
         await account_service.delete_account(db=db_fixture, account_id=account_db.id, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_403_FORBIDDEN
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.title == 'Account deletion forbidden'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_message == f'Account `{account_db.id}` can not be deleted. Account balance is not 0'

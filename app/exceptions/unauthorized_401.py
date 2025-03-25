@@ -1,9 +1,11 @@
 import logging
 from uuid import UUID
 
+from starlette import status
+
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 
 
 class UnauthorizedException(AppBaseException):
@@ -13,7 +15,7 @@ class UnauthorizedException(AppBaseException):
                  logger: logging.Logger,
                  log_level: LogLevelType,
                  error_code: ErrorCodeType | None = None):
-        super().__init__(status_code=ErrorStatusType.HTTP_401_UNAUTHORIZED,
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED,
                          title=title,
                          log_message=log_message,
                          logger=logger,

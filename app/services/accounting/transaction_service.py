@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.not_fount_404 import EntityNotFound
+from app.exceptions.not_implemented_501 import NotImplementedException
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.transaction import Transaction, TransactionCreateRequest
 from app.schemas.base import EntityStatusType
@@ -35,8 +36,9 @@ async def get_transaction_by_id(db: AsyncSession, transaction_id: UUID, user_id:
     return transaction
 
 
-# @update_balances
 async def delete_transaction(db: AsyncSession, transaction_id: UUID, user_id: UUID) -> Transaction:
+    raise NotImplementedException(log_message='Transaction delete is not implemented yet', logger=logger)
+
     delete_update_data = {'status': EntityStatusType.DELETED}
     transaction_db: TransactionModel | None = await transaction_crud.update(db=db,
                                                                             obj_in=delete_update_data,

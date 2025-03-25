@@ -4,6 +4,7 @@ from decimal import Decimal
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
@@ -15,7 +16,7 @@ from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountCreate, AccountType
 from app.schemas.accounting.transaction import Transaction, TransactionType, TransferRequest
 from app.schemas.base import CurrencyType
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
 from app.services.accounting.transaction_processor.base import TransactionProcessor
@@ -343,7 +344,7 @@ async def test_create_transfer_base_to_other_not_destination_amount(db_fixture: 
         await transaction_processor.create()
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert exc.value.title == 'Unprocessable entity'
     assert exc.value.message == ('If destination_currency differs from user base currency, '
                                  'destination_amount must be specified')
@@ -391,7 +392,7 @@ async def test_create_transfer_other_to_other_not_base_rate(db_fixture: AsyncSes
         await transaction_processor.create()
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_403_FORBIDDEN
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.title == 'Accounts has no base currency rate'
     assert exc.value.message == f'Account {account_to_db.id} has no base currency rate. Try to make first deposit'
     assert exc.value.log_message == exc.value.message

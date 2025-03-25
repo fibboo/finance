@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
@@ -20,7 +21,7 @@ from app.schemas.accounting.account import AccountCreate, AccountType
 from app.schemas.accounting.income_source import IncomeSourceCreate
 from app.schemas.accounting.transaction import IncomeRequest, Transaction, TransactionType
 from app.schemas.base import CurrencyType
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -239,7 +240,7 @@ async def test_create_income_account_not_found(db_fixture: AsyncSession):
         await transaction_processor.create()
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     assert exc.value.message == f"Account not found by {{'id': UUID('{to_account_id}')}}"
     assert exc.value.log_message == exc.value.message
@@ -279,7 +280,7 @@ async def test_create_income_currency_mismatch(db_fixture: AsyncSession):
         await transaction_processor.create()
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_403_FORBIDDEN
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.title == 'Account and transaction currency mismatch'
     assert exc.value.message == (f'Transaction currency {income_create_data.destination_currency} differs '
                                  f'from account `{account_db.id}` currency {account_db.currency}')
@@ -319,7 +320,7 @@ async def test_create_income_account_type_mismatch(db_fixture: AsyncSession):
         await transaction_processor.create()
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_403_FORBIDDEN
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.title == 'Account and transaction type mismatch'
     assert exc.value.message == (f'Transaction type {TransactionType.INCOME} is not allowed for '
                                  f'account `{account_db.id}` with type {account_db.account_type}')
@@ -359,7 +360,7 @@ async def test_create_income_integrity_error(db_fixture: AsyncSession):
         await transaction_processor.create()
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == (f'Transaction integrity error: DETAIL:  Key (income_source_id)='
                                  f'({income_source_id}) is not present in table "income_sources".')

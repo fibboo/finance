@@ -3,13 +3,14 @@ from uuid import uuid4
 import pytest
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.location import Location as LocationModel
 from app.schemas.accounting.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import location_service
 
 
@@ -47,7 +48,7 @@ async def test_create_location_with_existing_name(db: AsyncSession):
         await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_message == (f'Location integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
@@ -133,7 +134,7 @@ async def test_get_location_not_found(db: AsyncSession):
         await location_service.get_location(db=db, location_id=location_id, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': location_id, 'user_id': user_id}
     assert exc.value.log_message == f'{LocationModel.__name__} not found by {search_params}'
@@ -184,7 +185,7 @@ async def test_update_location_not_found(db_fixture: AsyncSession):
                                                update_data=location_update, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': location_id, 'user_id': user_id}
     assert exc.value.log_message == f'{LocationModel.__name__} not found by {search_params}'
@@ -212,7 +213,7 @@ async def test_update_location_double(db_fixture: AsyncSession):
                                                update_data=location_update, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_message == (f'Location integrity error: DETAIL:  Key (user_id, name)=({user_id}, '

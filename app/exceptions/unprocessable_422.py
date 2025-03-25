@@ -1,8 +1,10 @@
 import logging
 
+from starlette import status
+
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 
 
 class UnprocessableException(AppBaseException):
@@ -12,7 +14,7 @@ class UnprocessableException(AppBaseException):
                  log_level: LogLevelType = LogLevelType.WARNING,
                  title: str = 'Unprocessable entity',
                  error_code: ErrorCodeType | None = None):
-        super().__init__(status_code=ErrorStatusType.HTTP_422_UNPROCESSABLE_ENTITY,
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                          title=title,
                          log_message=log_message,
                          logger=logger,

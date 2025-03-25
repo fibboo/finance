@@ -23,9 +23,13 @@ Tech Stack: Python, FastAPI, SQLAlchemy 2, Pydantic 2, PostgreSQL, Alembic, Dock
    ```
 4. Start the project:
    ```bash
-   docker compose up
+   docker compose up -d
    ```
-5. Apply database migrations:
+5. Create the database:
+   ```bash
+   docker compose exec postgres psql -U user -d postgres -c "CREATE DATABASE finance;"
+   ```
+6. Apply database migrations:
    ```bash
    docker compose exec finance-backend alembic upgrade head
    ```
@@ -59,5 +63,3 @@ You can verify the functionality of the project by running the tests. There are 
    ```bash
    pytest
    ```
-
----

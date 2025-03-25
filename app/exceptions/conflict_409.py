@@ -1,11 +1,12 @@
 import logging
 
 from sqlalchemy.exc import IntegrityError
+from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
 from app.models.base import Base
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 
 
 class ConflictException(AppBaseException):
@@ -15,7 +16,7 @@ class ConflictException(AppBaseException):
                  error_code: ErrorCodeType,
                  logger: logging.Logger,
                  log_level: LogLevelType):
-        super().__init__(status_code=ErrorStatusType.HTTP_409_CONFLICT,
+        super().__init__(status_code=status.HTTP_409_CONFLICT,
                          title=title,
                          log_message=log_message,
                          logger=logger,

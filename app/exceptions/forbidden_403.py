@@ -1,13 +1,15 @@
 import logging
 from uuid import UUID
 
+from starlette import status
+
 from app.configs.logging_settings import LogLevelType
 from app.configs.settings import EnvironmentType, settings
 from app.exceptions.base import AppBaseException
 from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import CurrencyType
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 
 
 class ForbiddenException(AppBaseException):
@@ -17,7 +19,7 @@ class ForbiddenException(AppBaseException):
                  logger: logging.Logger,
                  log_level: LogLevelType,
                  error_code: ErrorCodeType | None = None):
-        super().__init__(status_code=ErrorStatusType.HTTP_403_FORBIDDEN,
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN,
                          title=title,
                          log_message=log_message,
                          logger=logger,

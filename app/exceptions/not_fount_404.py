@@ -1,10 +1,12 @@
 import logging
 from typing import Any
 
+from starlette import status
+
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
 from app.models.base import Base
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 
 
 class NotFoundException(AppBaseException):
@@ -14,7 +16,7 @@ class NotFoundException(AppBaseException):
                  logger: logging.Logger,
                  log_level: LogLevelType,
                  error_code: ErrorCodeType | None = None):
-        super().__init__(status_code=ErrorStatusType.HTTP_404_NOT_FOUND,
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND,
                          title=title,
                          log_message=log_message,
                          logger=logger,

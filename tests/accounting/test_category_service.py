@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.conflict_409 import IntegrityException
@@ -10,7 +11,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.category import Category as CategoryModel
 from app.schemas.accounting.category import (Category, CategoryCreateRequest, CategoryRequest, CategoryType,
                                              CategoryUpdate)
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
+from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import category_service
 
 
@@ -48,7 +49,7 @@ async def test_create_category_with_existing_name(db_fixture: AsyncSession):
         await category_service.create_category(db=db_fixture, create_data=create_data, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_message == (f'Category integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
@@ -146,7 +147,7 @@ async def test_get_category_not_found(db_fixture: AsyncSession):
         await category_service.get_category(db=db_fixture, category_id=category_id, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': category_id, 'user_id': user_id}
     assert exc.value.log_message == f'{CategoryModel.__name__} not found by {search_params}'
@@ -200,7 +201,7 @@ async def test_update_category_not_found(db_fixture: AsyncSession):
                                                update_data=category_update, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': category_id, 'user_id': user_id}
     assert exc.value.log_message == f'{CategoryModel.__name__} not found by {search_params}'
@@ -232,7 +233,7 @@ async def test_update_category_double(db_fixture: AsyncSession):
                                                update_data=category_update, user_id=user_id)
 
     # Assert
-    assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_message == (f'Category integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
