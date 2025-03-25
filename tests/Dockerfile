@@ -20,6 +20,7 @@ COPY app app
 COPY tests tests
 COPY db_migration db_migration
 COPY alembic.ini alembic.ini
+COPY pytest.ini pytest.ini
 
 RUN useradd test && chown -R test:test /app
 USER test

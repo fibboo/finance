@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class EnvironmentType(str, Enum):
@@ -33,8 +33,7 @@ class TelegramSettings(BaseSettings):
     token: str = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
     bot_name: str = 'bot_name'
 
-    class Config:
-        env_prefix = 'telegram_'
+    model_config = SettingsConfigDict(env_prefix='telegram_')
 
 
 telegram_settings = TelegramSettings()

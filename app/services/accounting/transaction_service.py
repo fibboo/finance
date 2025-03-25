@@ -35,7 +35,7 @@ async def get_transaction_by_id(db: AsyncSession, transaction_id: UUID, user_id:
     return transaction
 
 
-@update_balances
+# @update_balances
 async def delete_transaction(db: AsyncSession, transaction_id: UUID, user_id: UUID) -> Transaction:
     delete_update_data = {'status': EntityStatusType.DELETED}
     transaction_db: TransactionModel | None = await transaction_crud.update(db=db,
