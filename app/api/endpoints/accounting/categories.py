@@ -35,7 +35,7 @@ async def get_categories(request: CategoryRequest,
 async def get_category_by_id(category_id: UUID,
                              user_id: UUID = Depends(get_user_id),
                              db: AsyncSession = Depends(get_db)) -> Category:
-    category: Category = await category_service.get_category_by_id(db=db, category_id=category_id, user_id=user_id)
+    category: Category = await category_service.get_category(db=db, category_id=category_id, user_id=user_id)
     return category
 
 

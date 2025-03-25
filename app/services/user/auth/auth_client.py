@@ -11,9 +11,10 @@ from app.crud.user.session import user_session_crud
 from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.models.user.external_user import ExternalUser as ExternalUserModel
-from app.models.user.session import User as UserModel, Session
+from app.models.user.session import Session as SessionModel
+from app.models.user.user import User as UserModel
 from app.schemas.user.external_user import ExternalUserCreate, ProviderType
-from app.schemas.user.session import AuthUser, SessionAuth
+from app.schemas.user.session import AuthUser, Session, SessionAuth
 from app.schemas.user.user import User, UserCreate
 from app.services.user import session_service
 
@@ -67,9 +68,9 @@ class AuthClient(ABC):
             user_db: UserModel = await self._create_user(db=db, auth_user=auth_user)
 
         user: User = User.model_validate(user_db)
-        user_session: Session | None = await user_session_crud.get_active_session(db=db,
-                                                                                  user_id=user.id,
-                                                                                  date=datetime.now())
+        user_session: SessionModel | None = await user_session_crud.get_active_session(db=db,
+                                                                                       user_id=user.id,
+                                                                                       date=datetime.now())
         if user_session is None:
             user_session: Session = await session_service.create_session(db=db,
                                                                          user_id=user.id,

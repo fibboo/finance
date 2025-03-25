@@ -5,178 +5,134 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import LogLevelType
-from app.crud.accounting.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.location import Location as LocationModel
-from app.schemas.base import EntityStatusType
-from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 from app.schemas.accounting.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
+from app.schemas.error_response import ErrorCodeType, ErrorStatusType
 from app.services.accounting import location_service
 
 
 @pytest.mark.asyncio
 async def test_create_location(db: AsyncSession):
-    # Given
+    # Arrange
     user_id = uuid4()
 
     location_create = LocationCreateRequest(name='Test place')
 
-    # When
+    # Act
     location: Location = await location_service.create_location(db=db,
                                                                 create_data=location_create,
                                                                 user_id=user_id)
 
-    # Then
+    # Assert
     assert location is not None
     assert location.id is not None
     assert location.user_id == user_id
     assert location.name == location_create.name
     assert location.description == location_create.description
-    assert location.status == EntityStatusType.ACTIVE
-    assert location.created_at is not None
-    assert location.updated_at == location.created_at
+    assert location.coordinates is None
 
 
 @pytest.mark.asyncio
 async def test_create_location_with_existing_name(db: AsyncSession):
-    # Given
+    # Arrange
     user_id = uuid4()
 
     location_create = LocationCreateRequest(name='Test place', description='Test place description')
     await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
 
-    # When
+    # Act
     with pytest.raises(IntegrityException) as exc:
         await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
 
-    # Then
+    # Assert
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
-    assert exc.value.log_message == (f'Location integrity error: DETAIL:  Key (user_id, name, status)=({user_id}, '
-                                     f'{location_create.name}, ACTIVE) already exists.')
+    assert exc.value.log_message == (f'Location integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
+                                     f'{location_create.name}) already exists.')
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
 
 @pytest.mark.asyncio
-async def test_get_locations_with_all_fields_filled(db_fixture: AsyncSession):
-    # Given
+async def test_get_locations(db_fixture: AsyncSession):
+    # Arrange
     user_id = uuid4()
 
-    for i in range(5):
-        location_create = LocationModel(user_id=user_id, name=f'Test place {i}', status=EntityStatusType.ACTIVE)
-        await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
+    for i in range(3):
+        location_create = LocationCreateRequest(name=f'Location {i}')
+        await location_service.create_location(db=db_fixture, create_data=location_create, user_id=user_id)
+    await db_fixture.commit()
 
-    for i in range(5):
-        location_create = LocationModel(user_id=user_id, name=f'Test place {i}{i}', status=EntityStatusType.DELETED)
-        await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
+    request_all_p1 = LocationRequest(size=2, page=1)
+    request_all_p2 = LocationRequest(size=2, page=2)
+    request_search = LocationRequest(search_term='n 1')
+    request_not_found = LocationRequest(search_term='not found')
 
-    request = LocationRequest(search_term='Ace', statuses=[EntityStatusType.ACTIVE])
+    # Act
+    locations_all_p1: Page[Location] = await location_service.get_locations(db=db_fixture, request=request_all_p1,
+                                                                            user_id=user_id)
+    locations_all_p2: Page[Location] = await location_service.get_locations(db=db_fixture, request=request_all_p2,
+                                                                            user_id=user_id)
+    locations_search: Page[Location] = await location_service.get_locations(db=db_fixture, request=request_search,
+                                                                            user_id=user_id)
+    locations_not_found: Page[Location] = await location_service.get_locations(db=db_fixture,
+                                                                               request=request_not_found,
+                                                                               user_id=user_id)
 
-    # When
-    locations: Page[Location] = await location_service.get_locations(db=db_fixture, request=request, user_id=user_id)
+    # Assert
+    assert locations_all_p1.total == 3
+    assert len(locations_all_p1.items) == 2
+    assert locations_all_p1.items[0].name == 'Location 0'
+    assert locations_all_p1.items[1].name == 'Location 1'
 
-    # Then
-    assert locations.total == 5
-    for location in locations.items:
-        assert location.id is not None
-        assert location.user_id == user_id
-        assert request.search_term.lower() in location.name.lower()
-        assert location.status == EntityStatusType.ACTIVE
-        assert location.created_at is not None
-        assert location.updated_at is not None
+    assert locations_all_p2.total == 3
+    assert len(locations_all_p2.items) == 1
+    assert locations_all_p2.items[0].name == 'Location 2'
+
+    assert locations_search.total == 1
+    assert len(locations_search.items) == 1
+    assert locations_search.items[0].name == 'Location 1'
+
+    assert locations_not_found.total == 0
+    assert len(locations_not_found.items) == 0
 
 
 @pytest.mark.asyncio
-async def test_get_locations_with_all_fields_empty(db_fixture: AsyncSession):
-    # Given
+async def test_get_location(db_fixture: AsyncSession):
+    # Arrange
     user_id = uuid4()
-
-    for i in range(5):
-        location_create = LocationModel(user_id=user_id, name=f'Test place {i}', status=EntityStatusType.ACTIVE)
-        await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
-
-    for i in range(5):
-        location_create = LocationModel(user_id=user_id, name=f'Test place {i}{i}', status=EntityStatusType.DELETED)
-        await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
-
-    request = LocationRequest(statuses=[EntityStatusType.ACTIVE, EntityStatusType.DELETED])
-
-    # When
-    locations: Page[Location] = await location_service.get_locations(db=db_fixture, request=request, user_id=user_id)
-
-    # Then
-    assert locations.total == 10
-    for location in locations.items:
-        assert location.id is not None
-        assert location.user_id == user_id
-        assert location.name is not None
-        assert location.description is None
-        assert location.status in [EntityStatusType.ACTIVE, EntityStatusType.DELETED]
-        assert location.created_at is not None
-        assert location.updated_at is not None
-
-
-@pytest.mark.asyncio
-async def test_get_locations_nothing_found(db_fixture: AsyncSession):
-    # Given
-    user_id = uuid4()
-
-    for i in range(5):
-        location_create = LocationModel(user_id=user_id, name=f'Test place {i}', status=EntityStatusType.ACTIVE)
-        await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
-
-    for i in range(5):
-        location_create = LocationModel(user_id=user_id, name=f'Test place {i}{i}', status=EntityStatusType.DELETED)
-        await location_crud.create(db=db_fixture, obj_in=location_create, commit=True)
-
-    request = LocationRequest(search_term=f'nothing')
-
-    # When
-    locations: Page[Location] = await location_service.get_locations(db=db_fixture, request=request, user_id=user_id)
-
-    # Then
-    assert locations.total == 0
-
-
-@pytest.mark.asyncio
-async def test_get_location_by_id(db_fixture: AsyncSession):
-    # Given
-    user_id = uuid4()
-
     location_create = LocationCreateRequest(name='Test place', description='Test place description')
     location: Location = await location_service.create_location(db=db_fixture, create_data=location_create,
                                                                 user_id=user_id)
     await db_fixture.commit()
 
-    # When
-    found_location: Location = await location_service.get_location_by_id(db=db_fixture, location_id=location.id,
-                                                                         user_id=user_id)
+    # Act
+    found_location: Location = await location_service.get_location(db=db_fixture, location_id=location.id,
+                                                                   user_id=user_id)
 
-    # Then
+    # Assert
     assert found_location is not None
     assert found_location.id == location.id
     assert found_location.user_id == location.user_id
     assert found_location.name == location.name
     assert found_location.description == location.description
-    assert found_location.status == location.status
-    assert found_location.created_at == location.created_at
-    assert found_location.updated_at == location.updated_at
+    assert found_location.coordinates is None
 
 
 @pytest.mark.asyncio
-async def test_get_location_by_id_not_found(db: AsyncSession):
-    # Given
+async def test_get_location_not_found(db: AsyncSession):
+    # Arrange
     user_id = uuid4()
     location_id = uuid4()
 
-    # When
+    # Act
     with pytest.raises(EntityNotFound) as exc:
-        await location_service.get_location_by_id(db=db, location_id=location_id, user_id=user_id)
+        await location_service.get_location(db=db, location_id=location_id, user_id=user_id)
 
-    # Then
+    # Assert
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': location_id, 'user_id': user_id}
@@ -187,60 +143,50 @@ async def test_get_location_by_id_not_found(db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_update_location_correct_data(db_fixture: AsyncSession, db: AsyncSession):
-    # Given
+async def test_update_location_ok(db_fixture: AsyncSession, db: AsyncSession):
+    # Arrange
     user_id = uuid4()
 
-    location_create_model = LocationModel(user_id=user_id,
-                                          name=f'Location',
-                                          description=f'Location description',
-                                          status=EntityStatusType.ACTIVE)
-    location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create_model, commit=True)
+    location_create = LocationCreateRequest(name='Test place', description='Test place description')
+    created_location: Location = await location_service.create_location(db=db_fixture, create_data=location_create,
+                                                                        user_id=user_id)
+    await db_fixture.commit()
 
     location_update = LocationUpdate(name='Location updated',
                                      description='Location description updated')
 
-    # When
-    location: Location = await location_service.update_location(db=db, location_id=location_db.id,
+    # Act
+    location: Location = await location_service.update_location(db=db, location_id=created_location.id,
                                                                 update_data=location_update, user_id=user_id)
     await db.commit()
 
-    # Then
+    # Assert
     assert location is not None
-    assert location.id == location_db.id
-    assert location.user_id == location_db.user_id
+    assert location.id == created_location.id
+    assert location.user_id == created_location.user_id
     assert location.name == location_update.name
     assert location.description == location_update.description
-    assert location.status == location_db.status
-    assert location.created_at == location_db.created_at
-    assert location.updated_at != location_db.updated_at
+    assert location.coordinates is None
 
 
 @pytest.mark.asyncio
 async def test_update_location_not_found(db_fixture: AsyncSession):
-    # Given
+    # Arrange
     user_id = uuid4()
-    wrong_user_id = uuid4()
     location_id = uuid4()
-
-    location_create_model = LocationModel(user_id=user_id,
-                                          name=f'Location 1',
-                                          description=f'Location description',
-                                          status=EntityStatusType.ACTIVE)
-    await location_crud.create(db=db_fixture, obj_in=location_create_model, commit=True)
 
     location_update = LocationUpdate(name='Location updated',
                                      description='Location description updated')
 
-    # When
+    # Act
     with pytest.raises(EntityNotFound) as exc:
         await location_service.update_location(db=db_fixture, location_id=location_id,
-                                               update_data=location_update, user_id=wrong_user_id)
+                                               update_data=location_update, user_id=user_id)
 
-    # Then
+    # Assert
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
-    search_params = {'id': location_id, 'user_id': wrong_user_id}
+    search_params = {'id': location_id, 'user_id': user_id}
     assert exc.value.log_message == f'{LocationModel.__name__} not found by {search_params}'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_level == LogLevelType.ERROR
@@ -249,74 +195,27 @@ async def test_update_location_not_found(db_fixture: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_update_location_double(db_fixture: AsyncSession):
-    # Given
+    # Arrange
     user_id = uuid4()
-    location_create_model = LocationModel(user_id=user_id,
-                                          name=f'Location 1',
-                                          description=f'Location description 2',
-                                          status=EntityStatusType.ACTIVE)
-    await location_crud.create(db=db_fixture, obj_in=location_create_model, commit=True)
+    location_create_1 = LocationCreateRequest(name='Location 1')
+    created_location_1: Location = await location_service.create_location(db=db_fixture, create_data=location_create_1,
+                                                                          user_id=user_id)
+    location_create_2 = LocationCreateRequest(name='Location 2')
+    await location_service.create_location(db=db_fixture, create_data=location_create_2, user_id=user_id)
+    await db_fixture.commit()
 
-    location_create_model = LocationModel(user_id=user_id,
-                                          name=f'Location 2',
-                                          description=f'Location description 2',
-                                          status=EntityStatusType.ACTIVE)
-    location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create_model, commit=True)
+    location_update = LocationUpdate(name='Location 2', description='Location description updated')
 
-    location_update = LocationUpdate(name='Location 1',
-                                     description='Location description updated')
-
-    # When
+    # Act
     with pytest.raises(IntegrityException) as exc:
-        await location_service.update_location(db=db_fixture, location_id=location_db.id,
+        await location_service.update_location(db=db_fixture, location_id=created_location_1.id,
                                                update_data=location_update, user_id=user_id)
 
-    # Then
+    # Assert
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
-    assert exc.value.log_message == (f'Location integrity error: DETAIL:  Key (user_id, name, status)=({user_id}, '
-                                     f'{location_update.name}, ACTIVE) already exists.')
+    assert exc.value.log_message == (f'Location integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
+                                     f'{location_update.name}) already exists.')
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
-
-
-@pytest.mark.asyncio
-async def test_delete_location(db_fixture: AsyncSession):
-    # Given
-    user_id = uuid4()
-
-    location_create_model = LocationModel(user_id=user_id,
-                                          name=f'Location 2',
-                                          description=f'Location description 2',
-                                          status=EntityStatusType.ACTIVE)
-    location_db: LocationModel = await location_crud.create(db=db_fixture, obj_in=location_create_model, commit=True)
-
-    # When
-    await location_service.delete_location(db=db_fixture, location_id=location_db.id, user_id=user_id)
-    await db_fixture.commit()
-
-    # Then
-    locations_db: list[Location] = await location_crud.get_batch(db=db_fixture, user_id=user_id)
-    assert len(locations_db) == 1
-    assert locations_db[0].status == EntityStatusType.DELETED
-
-
-@pytest.mark.asyncio
-async def test_delete_location_not_found(db_fixture: AsyncSession):
-    # Given
-    fake_user_id = uuid4()
-    fake_location_id = uuid4()
-
-    # When
-    with pytest.raises(EntityNotFound) as exc:
-        await location_service.delete_location(db=db_fixture, location_id=fake_location_id, user_id=fake_user_id)
-
-    # Then
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
-    assert exc.value.title == 'Entity not found'
-    search_params = {'id': fake_location_id, 'user_id': fake_user_id}
-    assert exc.value.log_message == f'{LocationModel.__name__} not found by {search_params}'
-    assert exc.value.message == exc.value.log_message
-    assert exc.value.log_level == LogLevelType.ERROR
-    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND

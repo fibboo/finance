@@ -10,12 +10,12 @@ from app.models.user.user import User
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import UserSessionCreate
 from app.schemas.user.user import UserCreate
-from app.services.user.session_service import revoke_session
+from app.services.user import session_service
 
 
 @pytest.mark.asyncio
 async def test_revoke_session(db_fixture: AsyncSession):
-    # Given
+    # Arrange
     user_create = UserCreate(username='test', registration_provider=ProviderType.TELEGRAM)
     user_db: User = await user_crud.create(db=db_fixture, obj_in=user_create, commit=True)
     user_session_create = UserSessionCreate(user_id=user_db.id,
@@ -24,11 +24,11 @@ async def test_revoke_session(db_fixture: AsyncSession):
     user_session_db: Session = await user_session_crud.create(db=db_fixture, obj_in=user_session_create,
                                                               commit=True)
 
-    # When
-    await revoke_session(db=db_fixture, token=user_session_db.id)
+    # Act
+    await session_service.revoke_session(db=db_fixture, token=user_session_db.id)
     await db_fixture.commit()
 
-    # Then
+    # Assert
     user_session_revoked: Session | None = await user_session_crud.get_or_none(db=db_fixture,
                                                                                id=user_session_db.id)
 

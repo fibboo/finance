@@ -11,8 +11,8 @@ from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import AccountDeletionForbidden, MaxAccountsReached
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
-from app.schemas.base import EntityStatusType
 from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountUpdate
+from app.schemas.base import EntityStatusType
 
 logger = get_logger(__name__)
 
@@ -50,18 +50,22 @@ async def get_account(db: AsyncSession, account_id: UUID, user_id: UUID) -> Acco
                                                                      user_id=user_id,
                                                                      status=EntityStatusType.ACTIVE)
     if account_db is None:
-        raise EntityNotFound(entity=AccountModel, search_params={'id': account_id}, logger=logger)
+        raise EntityNotFound(entity=AccountModel, search_params={'id': account_id, 'user_id': user_id}, logger=logger)
 
     account: Account = Account.model_validate(account_db)
     return account
 
 
 async def update_account(db: AsyncSession, account_id: UUID, update_data: AccountUpdate, user_id: UUID) -> Account:
-    account_db: AccountModel | None = await account_crud.update(db=db,
-                                                                obj_in=update_data,
-                                                                id=account_id,
-                                                                user_id=user_id,
-                                                                status=EntityStatusType.ACTIVE)
+    try:
+        account_db: AccountModel | None = await account_crud.update(db=db,
+                                                                    obj_in=update_data,
+                                                                    id=account_id,
+                                                                    user_id=user_id,
+                                                                    status=EntityStatusType.ACTIVE)
+    except IntegrityError as exc:
+        raise IntegrityException(entity=AccountModel, exception=exc, logger=logger)
+
     if account_db is None:
         raise EntityNotFound(entity=AccountModel, search_params={'id': account_id, 'user_id': user_id}, logger=logger)
 
@@ -70,13 +74,13 @@ async def update_account(db: AsyncSession, account_id: UUID, update_data: Accoun
 
 
 async def delete_account(db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
-    account_db: AccountModel | None = await account_crud.get(db=db,
-                                                             id=account_id,
-                                                             user_id=user_id,
-                                                             status=EntityStatusType.ACTIVE,
-                                                             with_for_update=True)
+    account_db: AccountModel | None = await account_crud.get_or_none(db=db,
+                                                                     id=account_id,
+                                                                     user_id=user_id,
+                                                                     status=EntityStatusType.ACTIVE,
+                                                                     with_for_update=True)
     if account_db is None:
-        raise EntityNotFound(entity=AccountModel, search_params={'id': account_id}, logger=logger)
+        raise EntityNotFound(entity=AccountModel, search_params={'id': account_id, 'user_id': user_id}, logger=logger)
 
     if account_db.balance != 0:
         raise AccountDeletionForbidden(account_id=account_id, logger=logger)

@@ -2,8 +2,9 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
+from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, ConfigDict, constr, Field
+from pydantic import BaseModel, ConfigDict, constr
 
 from app.utils import utils
 
@@ -41,10 +42,10 @@ class Category(CategoryBase):
 
 
 class CategoryRequest(Params):
-    page: int = Field(1, ge=1, description='Page number')
-    size: int = Field(20, ge=1, le=100, description='Page size')
+    page: int = Query(1, ge=1, description='Page number')
+    size: int = Query(20, ge=1, le=100, description='Page size')
 
-    search_term: str | None = None
+    search_term: constr(min_length=3) | None = None
     types: list[CategoryType] = []
 
     def __hash__(self):

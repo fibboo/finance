@@ -3,6 +3,7 @@ import base64
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.configs.settings import telegram_settings
 from app.crud.user.session import user_session_crud
 from app.crud.user.user import user_crud
 from app.models.user.external_user import ExternalUser
@@ -20,7 +21,7 @@ def test_get_auth_provider_link():
     provider: ProviderType = telegram_auth.provider
 
     # Then
-    assert auth_link == 'fake_telegram_client_id'
+    assert auth_link == telegram_settings.bot_name
     assert provider == ProviderType.TELEGRAM
 
 
@@ -34,10 +35,10 @@ async def test_get_token(db_fixture: AsyncSession):
     first_name = 'Sten'
     username = 'stenbot'
     auth_date = 1630578901
-    hash = 'ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96'
+    hash_ = 'ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96'
 
     code = (f'{url}?id={telegram_id}&first_name={first_name}&username={username}'
-            f'&auth_date={auth_date}&hash={hash}').encode('utf-8')
+            f'&auth_date={auth_date}&hash={hash_}').encode('utf-8')
 
     auth_code = base64.b64encode(code).decode('utf-8')
 

@@ -48,7 +48,7 @@ class UserSessionUpdate(UserSessionBase):
     pass
 
 
-class UserSession(UserSessionBase):
+class Session(UserSessionBase):
     id: UUID  # noqa: A003
     user: User
 

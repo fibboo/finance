@@ -33,7 +33,7 @@ async def get_categories(db: AsyncSession, request: CategoryRequest, user_id: UU
     return categories
 
 
-async def get_category_by_id(db: AsyncSession, category_id: UUID, user_id: UUID) -> Category:
+async def get_category(db: AsyncSession, category_id: UUID, user_id: UUID) -> Category:
     category_db: CategoryModel | None = await category_crud.get_or_none(db=db, id=category_id, user_id=user_id)
 
     if category_db is None:

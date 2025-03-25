@@ -33,7 +33,7 @@ async def get_locations(db: AsyncSession, request: LocationRequest, user_id: UUI
     return locations
 
 
-async def get_location_by_id(db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
+async def get_location(db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
     location_db: LocationModel | None = await location_crud.get_or_none(db=db, id=location_id, user_id=user_id)
 
     if location_db is None:

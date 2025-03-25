@@ -31,7 +31,7 @@ async def get_locations(request: LocationRequest,
 async def get_location_by_id(location_id: UUID,
                              user_id: UUID = Depends(get_user_id),
                              db: AsyncSession = Depends(get_db)) -> Location:
-    location: Location = await location_service.get_location_by_id(db=db, location_id=location_id, user_id=user_id)
+    location: Location = await location_service.get_location(db=db, location_id=location_id, user_id=user_id)
     return location
 
 

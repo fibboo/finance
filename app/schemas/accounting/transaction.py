@@ -3,8 +3,9 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
+from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, condecimal, ConfigDict, constr, Field, field_validator, model_validator
+from pydantic import BaseModel, condecimal, ConfigDict, constr, field_validator, model_validator
 
 from app.schemas.accounting.account import Account
 from app.schemas.accounting.category import Category
@@ -123,8 +124,8 @@ class Order(BaseModel):
 
 
 class TransactionRequest(Params):
-    page: int = Field(1, ge=1, description='Page number')
-    size: int = Field(20, ge=1, le=100, description='Page size')
+    page: int = Query(1, ge=1, description='Page number')
+    size: int = Query(20, ge=1, le=100, description='Page size')
     orders: list[Order] = [Order(field=OrderFieldType.TRANSACTION_DATE, ordering=OrderDirectionType.DESC),
                            Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC)]
 

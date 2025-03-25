@@ -1,234 +1,151 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import LogLevelType
-from app.crud.accounting.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.category import Category as CategoryModel
-from app.schemas.base import EntityStatusType
+from app.schemas.accounting.category import (Category, CategoryCreateRequest, CategoryRequest, CategoryType,
+                                             CategoryUpdate)
 from app.schemas.error_response import ErrorCodeType, ErrorStatusType
-from app.schemas.accounting.category import Category, CategoryCreateRequest, CategoryRequest, CategoryType, CategoryUpdate
 from app.services.accounting import category_service
 
 
 @pytest.mark.asyncio
-async def test_create_category(db: AsyncSession):
-    # Given
-    user_id = uuid4()
-    category_create = CategoryCreateRequest(name='Category 1',
-                                            type=CategoryType.GENERAL)
+async def test_create_category_ok(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name='Category 1', type=CategoryType.GENERAL)
 
-    # When
-    category: Category = await category_service.create_category(db=db, create_data=category_create, user_id=user_id)
+    # Act
+    category: Category = await category_service.create_category(db=db, create_data=create_data, user_id=user_id)
     await db.commit()
 
-    # Then
+    # Assert
     assert category is not None
     assert category.id is not None
     assert category.user_id == user_id
-    assert category.name == category_create.name
-    assert category.description == category_create.description
-    assert category.type == category_create.type
-    assert category.status == EntityStatusType.ACTIVE
+    assert category.name == create_data.name
+    assert category.description == create_data.description
+    assert category.type == create_data.type
     assert category.created_at is not None
     assert category.updated_at is not None
 
 
 @pytest.mark.asyncio
 async def test_create_category_with_existing_name(db_fixture: AsyncSession):
-    # Given
-    user_id = uuid4()
-    category_create_model = CategoryModel(user_id=user_id,
-                                          name='Category 1',
-                                          type=CategoryType.GENERAL,
-                                          status=EntityStatusType.ACTIVE)
-    await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name='Category 1', type=CategoryType.GENERAL)
+    await category_service.create_category(db=db_fixture, create_data=create_data, user_id=user_id)
+    await db_fixture.commit()
 
-    category_create = CategoryCreateRequest(name='Category 1', type=CategoryType.GENERAL, )
-
-    # When
+    # Act
     with pytest.raises(IntegrityException) as exc:
-        await category_service.create_category(db=db_fixture, create_data=category_create, user_id=user_id)
+        await category_service.create_category(db=db_fixture, create_data=create_data, user_id=user_id)
 
-    # Then
+    # Assert
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
-    assert exc.value.log_message == (f'Category integrity error: DETAIL:  Key (user_id, name, status)=({user_id}, '
-                                     f'{category_create_model.name}, ACTIVE) already exists.')
+    assert exc.value.log_message == (f'Category integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
+                                     f'{create_data.name}) already exists.')
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
 
 @pytest.mark.asyncio
-async def test_search_categories_with_all_fields_filled(db_fixture: AsyncSession):
-    # Given
+async def test_get_categories(db_fixture: AsyncSession):
+    # Arrange
     user_id = uuid4()
-    for i in range(5):
-        category_create_model = CategoryModel(user_id=user_id,
-                                              name=f'Category {i}',
-                                              description=f'Category description {i}',
-                                              type=CategoryType.GENERAL,
-                                              status=EntityStatusType.ACTIVE)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    for i in range(3):
+        category_type = CategoryType.GENERAL if i % 2 == 0 else CategoryType.TARGET
+        create_data: CategoryCreateRequest = CategoryCreateRequest(name=f'Category {i}', type=category_type)
+        await category_service.create_category(db=db_fixture, create_data=create_data, user_id=user_id)
+    await db_fixture.commit()
 
-        category_create_model = CategoryModel(user_id=user_id,
-                                              name=f'Category {i}{i}',
-                                              description=f'Category description {i}{i}',
-                                              type=CategoryType.TARGET,
-                                              status=EntityStatusType.DELETED)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    request_all_p1 = CategoryRequest(size=2, page=1)
+    request_all_p2 = CategoryRequest(size=2, page=2)
+    request_search = CategoryRequest(search_term='y 1')
+    request_type = CategoryRequest(types=[CategoryType.GENERAL])
+    request_not_found = CategoryRequest(search_term='not found')
 
-        category_create_model = CategoryModel(user_id=uuid4(),
-                                              name=f'Category {i}{i}{i}',
-                                              description=f'Category description {i}{i}{i}',
-                                              type=CategoryType.GENERAL,
-                                              status=EntityStatusType.ACTIVE)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    # Act
+    categories_all_p1: Page[Category] = await category_service.get_categories(db=db_fixture, request=request_all_p1,
+                                                                              user_id=user_id)
+    categories_all_p2: Page[Category] = await category_service.get_categories(db=db_fixture, request=request_all_p2,
+                                                                              user_id=user_id)
+    categories_search: Page[Category] = await category_service.get_categories(db=db_fixture, request=request_search,
+                                                                              user_id=user_id)
+    categories_type: Page[Category] = await category_service.get_categories(db=db_fixture, request=request_type,
+                                                                            user_id=user_id)
+    categories_not_found: Page[Category] = await category_service.get_categories(db=db_fixture,
+                                                                                 request=request_not_found,
+                                                                                 user_id=user_id)
 
-    request = CategoryRequest(search_term='Cat', types=[CategoryType.GENERAL], statuses=[EntityStatusType.ACTIVE])
+    # Assert
+    assert categories_all_p1.total == 3
+    assert len(categories_all_p1.items) == 2
+    assert categories_all_p1.items[0].name == 'Category 0'
+    assert categories_all_p1.items[1].name == 'Category 1'
 
-    # When
-    categories: Page[Category] = await category_service.get_categories(db=db_fixture, request=request,
-                                                                       user_id=user_id)
+    assert categories_all_p2.total == 3
+    assert len(categories_all_p2.items) == 1
+    assert categories_all_p2.items[0].name == 'Category 2'
 
-    # Then
-    assert categories.total == 5
-    for category in categories.items:
-        assert category.id is not None
-        assert category.user_id == user_id
-        assert category.name.startswith('Category')
-        assert category.description.startswith('Category description')
-        assert category.type == CategoryType.GENERAL
-        assert category.status == EntityStatusType.ACTIVE
-        assert category.created_at is not None
-        assert category.updated_at is not None
+    assert categories_search.total == 1
+    assert len(categories_search.items) == 1
+    assert categories_search.items[0].name == 'Category 1'
+
+    assert categories_type.total == 2
+    assert len(categories_type.items) == 2
+    assert categories_type.items[0].name == 'Category 0'
+    assert categories_type.items[0].type == request_type.types[0]
+    assert categories_type.items[1].name == 'Category 2'
+    assert categories_type.items[1].type == request_type.types[0]
+
+    assert categories_not_found.total == 0
+    assert len(categories_not_found.items) == 0
 
 
 @pytest.mark.asyncio
-async def test_search_categories_with_all_fields_empty(db_fixture: AsyncSession):
-    # Given
+async def test_get_category_ok(db_fixture: AsyncSession):
+    # Arrange
     user_id = uuid4()
-    for i in range(5):
-        category_create_model = CategoryModel(user_id=user_id,
-                                              name=f'Category {i}',
-                                              description=f'Category description {i}',
-                                              type=CategoryType.GENERAL,
-                                              status=EntityStatusType.ACTIVE)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name='Category 1', type=CategoryType.GENERAL)
+    category_created: Category = await category_service.create_category(db=db_fixture, create_data=create_data,
+                                                                        user_id=user_id)
+    await db_fixture.commit()
 
-        category_create_model = CategoryModel(user_id=user_id,
-                                              name=f'Category {i}{i}',
-                                              description=f'Category description {i}{i}',
-                                              type=CategoryType.TARGET,
-                                              status=EntityStatusType.DELETED)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    # Act
+    category: Category = await category_service.get_category(db=db_fixture, category_id=category_created.id,
+                                                             user_id=user_id)
 
-        category_create_model = CategoryModel(user_id=uuid4(),
-                                              name=f'Category {i}{i}{i}',
-                                              description=f'Category description {i}{i}{i}',
-                                              type=CategoryType.GENERAL,
-                                              status=EntityStatusType.ACTIVE)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
-
-    request = CategoryRequest(statuses=[EntityStatusType.ACTIVE, EntityStatusType.DELETED])
-
-    # When
-    categories: Page[Category] = await category_service.get_categories(db=db_fixture, request=request,
-                                                                       user_id=user_id)
-
-    # Then
-    assert categories.total == 10
-    for category in categories.items:
-        assert category.id is not None
-        assert category.user_id == user_id
-        assert category.name.startswith('Category')
-        assert category.description.startswith('Category description')
-        assert category.type in [CategoryType.GENERAL, CategoryType.TARGET]
-        assert category.status in [EntityStatusType.ACTIVE, EntityStatusType.DELETED]
-        assert category.created_at is not None
-        assert category.updated_at is not None
-
-
-@pytest.mark.asyncio
-async def test_search_categories_nothing_found(db_fixture: AsyncSession):
-    # Given
-    user_id = uuid4()
-    for i in range(5):
-        category_create_model = CategoryModel(user_id=user_id,
-                                              name=f'Category {i}',
-                                              description=f'Category description {i}',
-                                              type=CategoryType.GENERAL,
-                                              status=EntityStatusType.ACTIVE)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
-
-        category_create_model = CategoryModel(user_id=user_id,
-                                              name=f'Category {i}{i}',
-                                              description=f'Category description {i}{i}',
-                                              type=CategoryType.TARGET,
-                                              status=EntityStatusType.DELETED)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
-
-        category_create_model = CategoryModel(user_id=uuid4(),
-                                              name=f'Category {i}{i}{i}',
-                                              description=f'Category description {i}{i}{i}',
-                                              type=CategoryType.GENERAL,
-                                              status=EntityStatusType.ACTIVE)
-        await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
-
-    request = CategoryRequest(search_term='nothing')
-
-    # When
-    categories: Page[Category] = await category_service.get_categories(db=db_fixture, request=request,
-                                                                       user_id=user_id)
-
-    # Then
-    assert categories.total == 0
-
-
-@pytest.mark.asyncio
-async def test_get_category_by_id_correct_data(db_fixture: AsyncSession):
-    # Given
-    user_id = uuid4()
-
-    category_create_model = CategoryModel(user_id=user_id,
-                                          name=f'Category',
-                                          description=f'Category description',
-                                          type=CategoryType.GENERAL,
-                                          status=EntityStatusType.ACTIVE)
-    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
-
-    # When
-    category: Category = await category_service.get_category_by_id(db=db_fixture, category_id=category_db.id,
-                                                                   user_id=user_id)
-
-    # Then
+    # Assert
     assert category is not None
-    assert category.id == category_db.id
-    assert category.user_id == category_db.user_id
-    assert category.name == category_db.name
-    assert category.description == category_db.description
-    assert category.type == category_db.type
-    assert category.status == category_db.status
-    assert category.created_at == category_db.created_at
-    assert category.updated_at == category_db.updated_at
+    assert category.id == category_created.id
+    assert category.user_id == category_created.user_id
+    assert category.name == category_created.name
+    assert category.description == category_created.description
+    assert category.type == category_created.type
+    assert category.created_at == category_created.created_at
+    assert category.updated_at == category_created.updated_at
 
 
 @pytest.mark.asyncio
-async def test_get_category_by_id_incorrect_data(db_fixture: AsyncSession):
-    # Given
+async def test_get_category_not_found(db_fixture: AsyncSession):
+    # Arrange
     user_id = uuid4()
     category_id = uuid4()
 
-    # When
+    # Act
     with pytest.raises(EntityNotFound) as exc:
-        await category_service.get_category_by_id(db=db_fixture, category_id=category_id, user_id=user_id)
+        await category_service.get_category(db=db_fixture, category_id=category_id, user_id=user_id)
 
-    # Then
+    # Assert
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
     search_params = {'id': category_id, 'user_id': user_id}
@@ -239,65 +156,53 @@ async def test_get_category_by_id_incorrect_data(db_fixture: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_update_category_correct_data(db_fixture: AsyncSession, db: AsyncSession):
-    # Given
+async def test_update_category_ok(db_fixture: AsyncSession, db: AsyncSession):
+    # Arrange
     user_id = uuid4()
-
-    category_create_model = CategoryModel(user_id=user_id,
-                                          name=f'Category',
-                                          description=f'Category description',
-                                          type=CategoryType.GENERAL,
-                                          status=EntityStatusType.ACTIVE)
-    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name='Category 1', type=CategoryType.GENERAL)
+    category_created: Category = await category_service.create_category(db=db_fixture, create_data=create_data,
+                                                                        user_id=user_id)
+    await db_fixture.commit()
 
     category_update = CategoryUpdate(name='Category updated',
                                      description='Category description updated',
-                                     type=category_db.type)
+                                     type=category_created.type)
 
-    # When
-    category: Category = await category_service.update_category(db=db, category_id=category_db.id,
+    # Act
+    category: Category = await category_service.update_category(db=db, category_id=category_created.id,
                                                                 update_data=category_update, user_id=user_id)
     await db.commit()
 
-    # Then
+    # Assert
     assert category is not None
-    assert category.id == category_db.id
-    assert category.user_id == category_db.user_id
+    assert category.id == category_created.id
+    assert category.user_id == category_created.user_id
     assert category.name == category_update.name
     assert category.description == category_update.description
-    assert category.type == category_db.type
-    assert category.status == category_db.status
-    assert category.created_at == category_db.created_at
-    assert category.updated_at != category_db.updated_at
+    assert category.type == category_created.type
+    assert category.created_at == category_created.created_at
+    assert category.updated_at != category_created.updated_at
 
 
 @pytest.mark.asyncio
 async def test_update_category_not_found(db_fixture: AsyncSession):
-    # Given
+    # Arrange
     user_id = uuid4()
-    wrong_user_id = uuid4()
     category_id = uuid4()
-
-    category_create_model = CategoryModel(user_id=user_id,
-                                          name=f'Category 1',
-                                          description=f'Category description',
-                                          type=CategoryType.GENERAL,
-                                          status=EntityStatusType.ACTIVE)
-    await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
 
     category_update = CategoryUpdate(name='Category updated',
                                      description='Category description updated',
                                      type=CategoryType.GENERAL)
 
-    # When
+    # Act
     with pytest.raises(EntityNotFound) as exc:
         await category_service.update_category(db=db_fixture, category_id=category_id,
-                                               update_data=category_update, user_id=wrong_user_id)
+                                               update_data=category_update, user_id=user_id)
 
-    # Then
+    # Assert
     assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
     assert exc.value.title == 'Entity not found'
-    search_params = {'id': category_id, 'user_id': wrong_user_id}
+    search_params = {'id': category_id, 'user_id': user_id}
     assert exc.value.log_message == f'{CategoryModel.__name__} not found by {search_params}'
     assert exc.value.message == exc.value.log_message
     assert exc.value.log_level == LogLevelType.ERROR
@@ -306,78 +211,31 @@ async def test_update_category_not_found(db_fixture: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_update_category_double(db_fixture: AsyncSession):
-    # Given
+    # Arrange
     user_id = uuid4()
-    category_create_model = CategoryModel(user_id=user_id,
-                                          name=f'Category 1',
-                                          description=f'Category description 2',
-                                          type=CategoryType.GENERAL,
-                                          status=EntityStatusType.ACTIVE)
-    await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    create_data_1: CategoryCreateRequest = CategoryCreateRequest(name='Category 1', type=CategoryType.GENERAL)
+    category_created_1: Category = await category_service.create_category(db=db_fixture, create_data=create_data_1,
+                                                                          user_id=user_id)
 
-    category_create_model = CategoryModel(user_id=user_id,
-                                          name=f'Category 2',
-                                          description=f'Category description 2',
-                                          type=CategoryType.GENERAL,
-                                          status=EntityStatusType.ACTIVE)
-    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
+    create_data_2: CategoryCreateRequest = CategoryCreateRequest(name='Category 2', type=CategoryType.GENERAL)
+    await category_service.create_category(db=db_fixture, create_data=create_data_2,
+                                           user_id=user_id)
+    await db_fixture.commit()
 
-    category_update = CategoryUpdate(name='Category 1',
-                                     description='Category description updated',
-                                     type=category_db.type)
+    category_update: CategoryUpdate = CategoryUpdate(name='Category 2',
+                                                     description='Category description updated',
+                                                     type=category_created_1.type)
 
-    # When
+    # Act
     with pytest.raises(IntegrityException) as exc:
-        await category_service.update_category(db=db_fixture, category_id=category_db.id,
+        await category_service.update_category(db=db_fixture, category_id=category_created_1.id,
                                                update_data=category_update, user_id=user_id)
 
-    # Then
+    # Assert
     assert exc.value.status_code == ErrorStatusType.HTTP_409_CONFLICT
     assert exc.value.title == 'Entity integrity error'
     assert exc.value.message == exc.value.log_message
-    assert exc.value.log_message == (f'Category integrity error: DETAIL:  Key (user_id, name, status)=({user_id}, '
-                                     f'{category_update.name}, ACTIVE) already exists.')
+    assert exc.value.log_message == (f'Category integrity error: DETAIL:  Key (user_id, name)=({user_id}, '
+                                     f'{category_update.name}) already exists.')
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
-
-
-@pytest.mark.asyncio
-async def test_delete_category(db_fixture: AsyncSession):
-    # Given
-    user_id = uuid4()
-
-    category_create_model = CategoryModel(user_id=user_id,
-                                          name=f'Category 2',
-                                          description=f'Category description 2',
-                                          type=CategoryType.GENERAL,
-                                          status=EntityStatusType.ACTIVE)
-    category_db: CategoryModel = await category_crud.create(db=db_fixture, obj_in=category_create_model, commit=True)
-
-    # When
-    await category_service.delete_category(db=db_fixture, category_id=category_db.id, user_id=user_id)
-    await db_fixture.commit()
-
-    # Then
-    categories_db: list[CategoryModel] = await category_crud.get_batch(db=db_fixture, user_id=user_id)
-    assert len(categories_db) == 1
-    assert categories_db[0].status == EntityStatusType.DELETED
-
-
-@pytest.mark.asyncio
-async def test_delete_category_not_found(db_fixture: AsyncSession):
-    # Given
-    fake_user_id = uuid4()
-    fake_category_id = uuid4()
-
-    # When
-    with pytest.raises(EntityNotFound) as exc:
-        await category_service.delete_category(db=db_fixture, category_id=fake_category_id, user_id=fake_user_id)
-
-    # Then
-    assert exc.value.status_code == ErrorStatusType.HTTP_404_NOT_FOUND
-    assert exc.value.title == 'Entity not found'
-    search_params = {'id': fake_category_id, 'user_id': fake_user_id}
-    assert exc.value.log_message == f'{CategoryModel.__name__} not found by {search_params}'
-    assert exc.value.message == exc.value.log_message
-    assert exc.value.log_level == LogLevelType.ERROR
-    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
