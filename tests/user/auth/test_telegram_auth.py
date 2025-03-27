@@ -26,7 +26,7 @@ def test_get_auth_provider_link():
 
 
 @pytest.mark.asyncio
-async def test_get_token(db_fixture: AsyncSession):
+async def test_get_token(db: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
 
@@ -43,11 +43,11 @@ async def test_get_token(db_fixture: AsyncSession):
     auth_code = base64.b64encode(code).decode('utf-8')
 
     # When
-    new_token = await telegram_auth.get_token(db=db_fixture, auth_code=auth_code)
-    await db_fixture.commit()
+    new_token = await telegram_auth.get_token(db=db, auth_code=auth_code)
+    await db.commit()
 
     # Then
-    user_db: User | None = await user_crud.get_user_by_external_id(db=db_fixture,
+    user_db: User | None = await user_crud.get_user_by_external_id(db=db,
                                                                    external_id=telegram_id,
                                                                    provider=ProviderType.TELEGRAM)
     assert user_db is not None
@@ -56,7 +56,7 @@ async def test_get_token(db_fixture: AsyncSession):
     assert user_db.registration_provider == ProviderType.TELEGRAM
     assert user_db.base_currency == CurrencyType.USD
 
-    user_session_db: Session | None = await user_session_crud.get_or_none(db=db_fixture, id=new_token)
+    user_session_db: Session | None = await user_session_crud.get_or_none(db=db, id=new_token)
 
     assert user_session_db is not None
     assert user_session_db.user_id == user_db.id

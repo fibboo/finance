@@ -23,7 +23,7 @@ async def create_income_source(create_data: IncomeSourceCreateRequest,
 
 
 @router.get('')
-async def get_income_sources(request: IncomeSourceRequest,
+async def get_income_sources(request: IncomeSourceRequest = Depends(),
                              user_id: UUID = Depends(get_user_id),
                              db: AsyncSession = Depends(get_db)) -> Page[IncomeSource]:
     income_sources: Page[IncomeSource] = await income_service.get_income_sources(db=db,

@@ -42,7 +42,7 @@ async def create_transaction(create_data: TransactionCreateRequest,
 
 
 @router.get('')
-async def get_transactions(request: TransactionRequest,
+async def get_transactions(request: TransactionRequest = Depends(),
                            user_id: UUID = Depends(get_user_id),
                            db: AsyncSession = Depends(get_db)) -> Page[Transaction]:
     transactions: Page[Transaction] = await transaction_service.get_transactions(db=db,

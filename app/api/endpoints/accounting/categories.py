@@ -22,7 +22,7 @@ async def create_category(create_data: CategoryCreateRequest,
 
 
 @router.get('')
-async def get_categories(request: CategoryRequest,
+async def get_categories(request: CategoryRequest = Depends(),
                          user_id: UUID = Depends(get_user_id),
                          db: AsyncSession = Depends(get_db)) -> Page[Category]:
     categories: Page[Category] = await category_service.get_categories(db=db,

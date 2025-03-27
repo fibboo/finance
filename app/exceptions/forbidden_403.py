@@ -14,13 +14,13 @@ from app.schemas.error_response import ErrorCodeType
 
 class ForbiddenException(AppBaseException):
     def __init__(self,
-                 title: str,
+                 message: str,
                  log_message: str,
                  logger: logging.Logger,
                  log_level: LogLevelType,
                  error_code: ErrorCodeType | None = None):
         super().__init__(status_code=status.HTTP_403_FORBIDDEN,
-                         title=title,
+                         message=message,
                          log_message=log_message,
                          logger=logger,
                          log_level=log_level,
@@ -29,7 +29,7 @@ class ForbiddenException(AppBaseException):
 
 class EnvironmentMismatch(ForbiddenException):
     def __init__(self, required_env: EnvironmentType, logger: logging.Logger):
-        super().__init__(title='Environment mismatch',
+        super().__init__(message='Environment mismatch',
                          log_message=f'For this action {required_env} environment required',
                          logger=logger,
                          log_level=LogLevelType.ERROR,
@@ -38,7 +38,7 @@ class EnvironmentMismatch(ForbiddenException):
 
 class MaxAccountsReached(ForbiddenException):
     def __init__(self, user_id: UUID, logger: logging.Logger):
-        super().__init__(title='Max accounts per user',
+        super().__init__(message='Max accounts per user',
                          log_message=f'Max number of accounts ({settings.max_accounts_per_user}) '
                                      f'reached for user_id `{user_id}`',
                          logger=logger,
@@ -48,7 +48,7 @@ class MaxAccountsReached(ForbiddenException):
 
 class AccountDeletionForbidden(ForbiddenException):
     def __init__(self, account_id: UUID, logger: logging.Logger):
-        super().__init__(title='Account deletion forbidden',
+        super().__init__(message='Account deletion forbidden',
                          log_message=f'Account `{account_id}` can not be deleted. Account balance is not 0',
                          logger=logger,
                          log_level=LogLevelType.ERROR,
@@ -57,7 +57,7 @@ class AccountDeletionForbidden(ForbiddenException):
 
 class NoAccountBaseCurrencyRate(ForbiddenException):
     def __init__(self, account_id: UUID, logger: logging.Logger):
-        super().__init__(title='Accounts has no base currency rate',
+        super().__init__(message='Accounts has no base currency rate',
                          log_message=f'Account {account_id} has no base currency rate. Try to make first deposit',
                          logger=logger,
                          log_level=LogLevelType.ERROR,
@@ -70,7 +70,7 @@ class CurrencyMismatchException(ForbiddenException):
                  transaction_currency: CurrencyType,
                  account_currency: CurrencyType,
                  logger: logging.Logger):
-        super().__init__(title='Account and transaction currency mismatch',
+        super().__init__(message='Account and transaction currency mismatch',
                          log_message=(f'Transaction currency {transaction_currency} differs '
                                       f'from account `{account_id}` currency {account_currency}'),
                          logger=logger,
@@ -84,7 +84,7 @@ class AccountTypeMismatchException(ForbiddenException):
                  transaction_type: TransactionType,
                  account_type: AccountType,
                  logger: logging.Logger):
-        super().__init__(title='Account and transaction type mismatch',
+        super().__init__(message='Account and transaction type mismatch',
                          log_message=(f'Transaction type {transaction_type} is not allowed for '
                                       f'account `{account_id}` with type {account_type}'),
                          logger=logger,

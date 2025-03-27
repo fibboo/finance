@@ -12,10 +12,10 @@ class UnprocessableException(AppBaseException):
                  log_message: str,
                  logger: logging.Logger,
                  log_level: LogLevelType = LogLevelType.WARNING,
-                 title: str = 'Unprocessable entity',
+                 message: str = 'Unprocessable entity',
                  error_code: ErrorCodeType | None = None):
         super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                         title=title,
+                         message=message,
                          log_message=log_message,
                          logger=logger,
                          log_level=log_level,

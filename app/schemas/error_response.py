@@ -21,11 +21,6 @@ class ErrorCodeType(str, Enum):
     ACCOUNT_TYPE_MISMATCH = 'ACCOUNT_TYPE_MISMATCH'
 
 
-class Error(BaseModel):
-    title: str
-    message: str
-
-
 class ErrorResponse(BaseModel):
-    error: Error
+    message: str
     error_code: ErrorCodeType | None = None

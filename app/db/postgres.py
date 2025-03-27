@@ -7,4 +7,4 @@ engine = create_async_engine(database_settings.database_url,
                              pool_size=5,
                              max_overflow=50)
 
-SessionLocal = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
+session_maker = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)

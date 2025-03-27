@@ -26,19 +26,19 @@ from app.services.accounting.transaction_processor.base import TransactionProces
 
 
 @pytest.mark.asyncio
-async def test_create_income_base_currency_ok(db_fixture: AsyncSession):
+async def test_create_income_base_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     account_create_data: AccountCreate = AccountCreate(user_id=user_id,
                                                        name='Income USD',
                                                        currency=CurrencyType.USD,
                                                        account_type=AccountType.INCOME)
-    account_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_create_data, commit=True)
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
     base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
 
     income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
-    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db_fixture,
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
                                                                           obj_in=income_source_create_data, commit=True)
 
     income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
@@ -49,13 +49,12 @@ async def test_create_income_base_currency_ok(db_fixture: AsyncSession):
                                                       to_account_id=account_db.id,
                                                       income_source_id=income_source_db.id,
                                                       income_period=date(2025, 1, 18))
-
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+    # Act
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
                                                                                data=income_create_data)
-    # Act
     transaction: Transaction = await transaction_processor.create()
-    await db_fixture.commit()
+    await db_transaction.commit()
 
     # Assert
     assert transaction.transaction_type == TransactionType.INCOME
@@ -84,21 +83,24 @@ async def test_create_income_base_currency_ok(db_fixture: AsyncSession):
     assert transaction.income_source_id == income_source_db.id
     assert transaction.income_source is not None
 
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 1
+
 
 @pytest.mark.asyncio
-async def test_create_income_other_currency_ok(db_fixture: AsyncSession):
+async def test_create_income_other_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     account_create_data: AccountCreate = AccountCreate(user_id=user_id,
                                                        name='Income EUR',
                                                        currency=CurrencyType.EUR,
                                                        account_type=AccountType.INCOME)
-    account_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_create_data, commit=True)
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
     base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
 
     income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
-    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db_fixture,
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
                                                                           obj_in=income_source_create_data, commit=True)
 
     income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
@@ -110,12 +112,12 @@ async def test_create_income_other_currency_ok(db_fixture: AsyncSession):
                                                       income_source_id=income_source_db.id,
                                                       income_period=date(2025, 1, 1))
 
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+    # Act
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
                                                                                data=income_create_data)
-    # Act
     transaction: Transaction = await transaction_processor.create()
-    await db_fixture.commit()
+    await db_transaction.commit()
 
     # Assert
     assert transaction.transaction_type == TransactionType.INCOME
@@ -142,19 +144,22 @@ async def test_create_income_other_currency_ok(db_fixture: AsyncSession):
     assert transaction.income_source_id == income_source_db.id
     assert transaction.income_source is not None
 
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 1
+
 
 @pytest.mark.asyncio
-async def test_create_income_other_currency_2_transactions_ok(db_fixture: AsyncSession):
+async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     account_create_data: AccountCreate = AccountCreate(user_id=user_id,
                                                        name='Income EUR',
                                                        currency=CurrencyType.EUR,
                                                        account_type=AccountType.INCOME)
-    account_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_create_data, commit=True)
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
     income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
-    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db_fixture,
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
                                                                           obj_in=income_source_create_data, commit=True)
 
     income_create_data_1: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
@@ -165,13 +170,13 @@ async def test_create_income_other_currency_2_transactions_ok(db_fixture: AsyncS
                                                         to_account_id=account_db.id,
                                                         income_source_id=income_source_db.id,
                                                         income_period=date(2025, 1, 1))
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
                                                                                user_id=user_id,
                                                                                data=income_create_data_1)
     transaction_1: Transaction = await transaction_processor.create()
     account_balance_before: Decimal = copy(transaction_1.to_account.balance)
     base_currency_rate_before: Decimal = copy(transaction_1.to_account.base_currency_rate)
-    await db_fixture.commit()
+    await db.commit()
 
     income_create_data_2: IncomeRequest = IncomeRequest(transaction_date=date(2025, 3, 10),
                                                         source_amount=Decimal('1100'),
@@ -182,12 +187,12 @@ async def test_create_income_other_currency_2_transactions_ok(db_fixture: AsyncS
                                                         income_source_id=income_source_db.id,
                                                         income_period=date(2025, 2, 1))
 
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+    # Act
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
                                                                                data=income_create_data_2)
-    # Act
     transaction: Transaction = await transaction_processor.create()
-    await db_fixture.commit()
+    await db_transaction.commit()
 
     # Assert
     assert transaction.transaction_type == TransactionType.INCOME
@@ -214,13 +219,16 @@ async def test_create_income_other_currency_2_transactions_ok(db_fixture: AsyncS
     assert transaction.income_source_id == income_source_db.id
     assert transaction.income_source is not None
 
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 2
+
 
 @pytest.mark.asyncio
-async def test_create_income_account_not_found(db_fixture: AsyncSession):
+async def test_create_income_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
-    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db_fixture,
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
                                                                           obj_in=income_source_create_data, commit=True)
     to_account_id: UUID = uuid4()
     income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
@@ -232,35 +240,40 @@ async def test_create_income_account_not_found(db_fixture: AsyncSession):
                                                       income_source_id=income_source_db.id,
                                                       income_period=date(2025, 1, 18))
 
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+    # Act
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
                                                                                data=income_create_data)
-    # Act
     with pytest.raises(EntityNotFound) as exc:
         await transaction_processor.create()
+        await db_transaction.commit()
 
     # Assert
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
-    assert exc.value.title == 'Entity not found'
-    assert exc.value.message == f"Account not found by {{'id': UUID('{to_account_id}')}}"
-    assert exc.value.log_message == exc.value.message
+    assert exc.value.message == 'Entity not found'
+    assert exc.value.log_message == f"Account not found by {{'id': UUID('{to_account_id}')}}"
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 0
+
 
 @pytest.mark.asyncio
-async def test_create_income_currency_mismatch(db_fixture: AsyncSession):
+async def test_create_income_currency_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     account_create_data: AccountCreate = AccountCreate(user_id=user_id,
                                                        name='Income USD',
                                                        currency=CurrencyType.USD,
                                                        account_type=AccountType.INCOME)
-    account_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_create_data, commit=True)
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    account_balance_before: Decimal = copy(account_db.balance)
+    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
 
     income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
-    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db_fixture,
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
                                                                           obj_in=income_source_create_data, commit=True)
 
     income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
@@ -272,36 +285,44 @@ async def test_create_income_currency_mismatch(db_fixture: AsyncSession):
                                                       income_source_id=income_source_db.id,
                                                       income_period=date(2025, 1, 18))
 
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+    # Act
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
                                                                                data=income_create_data)
-    # Act
     with pytest.raises(CurrencyMismatchException) as exc:
         await transaction_processor.create()
+        await db_transaction.commit()
 
     # Assert
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
-    assert exc.value.title == 'Account and transaction currency mismatch'
-    assert exc.value.message == (f'Transaction currency {income_create_data.destination_currency} differs '
-                                 f'from account `{account_db.id}` currency {account_db.currency}')
-    assert exc.value.log_message == exc.value.message
+    assert exc.value.message == 'Account and transaction currency mismatch'
+    assert exc.value.log_message == (f'Transaction currency {income_create_data.destination_currency} differs '
+                                     f'from account `{account_db.id}` currency {account_db.currency}')
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.CURRENCY_MISMATCH
 
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == account_balance_before
+    assert account_db_after.base_currency_rate == base_currency_rate_before
+
 
 @pytest.mark.asyncio
-async def test_create_income_account_type_mismatch(db_fixture: AsyncSession):
+async def test_create_income_account_type_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     account_create_data: AccountCreate = AccountCreate(user_id=user_id,
                                                        name='Income USD',
                                                        currency=CurrencyType.USD,
                                                        account_type=AccountType.CHECKING)
-    account_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_create_data, commit=True)
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    account_balance_before: Decimal = copy(account_db.balance)
+    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
 
     income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
-    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db_fixture,
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
                                                                           obj_in=income_source_create_data, commit=True)
 
     income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
@@ -312,36 +333,41 @@ async def test_create_income_account_type_mismatch(db_fixture: AsyncSession):
                                                       to_account_id=account_db.id,
                                                       income_source_id=income_source_db.id,
                                                       income_period=date(2025, 1, 18))
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+    # Act
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
                                                                                data=income_create_data)
-    # Act
     with pytest.raises(AccountTypeMismatchException) as exc:
         await transaction_processor.create()
+        await db_transaction.commit()
 
     # Assert
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
-    assert exc.value.title == 'Account and transaction type mismatch'
-    assert exc.value.message == (f'Transaction type {TransactionType.INCOME} is not allowed for '
-                                 f'account `{account_db.id}` with type {account_db.account_type}')
-    assert exc.value.log_message == exc.value.message
+    assert exc.value.message == 'Account and transaction type mismatch'
+    assert exc.value.log_message == (f'Transaction type {TransactionType.INCOME} is not allowed for '
+                                     f'account `{account_db.id}` with type {account_db.account_type}')
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.ACCOUNT_TYPE_MISMATCH
 
-    transactions: list[TransactionModel] = (await db_fixture.execute(select(TransactionModel))).scalars().all()
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == account_balance_before
+    assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
 @pytest.mark.asyncio
-async def test_create_income_integrity_error(db_fixture: AsyncSession):
+async def test_create_income_integrity_error(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     account_create_data: AccountCreate = AccountCreate(user_id=user_id,
                                                        name='Income USD',
                                                        currency=CurrencyType.USD,
                                                        account_type=AccountType.INCOME)
-    account_db: AccountModel = await account_crud.create(db=db_fixture, obj_in=account_create_data, commit=True)
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    account_balance_before: Decimal = copy(account_db.balance)
+    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
 
     income_source_id: UUID = uuid4()
     income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
@@ -352,19 +378,25 @@ async def test_create_income_integrity_error(db_fixture: AsyncSession):
                                                       to_account_id=account_db.id,
                                                       income_source_id=income_source_id,
                                                       income_period=date(2025, 1, 18))
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_fixture,
+    # Act
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
                                                                                data=income_create_data)
-    # Act
     with pytest.raises(IntegrityException) as exc:
         await transaction_processor.create()
+        await db_transaction.commit()
 
     # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
-    assert exc.value.title == 'Entity integrity error'
-    assert exc.value.message == (f'Transaction integrity error: DETAIL:  Key (income_source_id)='
-                                 f'({income_source_id}) is not present in table "income_sources".')
-    assert exc.value.log_message == exc.value.message
+    assert exc.value.message == 'Entity integrity error'
+    assert exc.value.log_message == (f'Transaction integrity error: DETAIL:  Key (income_source_id)='
+                                     f'({income_source_id}) is not present in table "income_sources".')
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
+
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == account_balance_before
+    assert account_db_after.base_currency_rate == base_currency_rate_before

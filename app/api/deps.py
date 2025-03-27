@@ -5,7 +5,7 @@ from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.db.postgres import SessionLocal
+from app.db.postgres import session_maker
 from app.exceptions.unauthorized_401 import SessionExpiredException
 from app.schemas.user.session import Session
 from app.services.user import session_service
@@ -14,9 +14,9 @@ logger = get_logger(__name__)
 
 
 async def get_db() -> AsyncSession:
-    session = SessionLocal()
     try:
-        yield session
+        async with session_maker() as session:
+            yield session
 
     finally:
         await session.commit()
@@ -24,13 +24,13 @@ async def get_db() -> AsyncSession:
 
 
 async def get_db_transaction() -> AsyncSession:
-    async with SessionLocal.begin() as session:
-        try:
+    try:
+        async with session_maker.begin() as session:
             yield session
 
-        finally:
-            await session.commit()
-            await session.close()
+    finally:
+        await session.commit()
+        await session.close()
 
 
 async def get_user_id(x_auth_token: UUID = Header(...),

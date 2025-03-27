@@ -61,5 +61,5 @@ You can verify the functionality of the project by running the tests. There are 
 2. **Locally (if you have Python installed)**:
    Ensure your virtual environment is activated, then run:
    ```bash
-   pytest
+   pytest -n auto
    ```

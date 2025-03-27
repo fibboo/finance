@@ -20,7 +20,7 @@ async def create_location(create_data: LocationCreateRequest,
 
 
 @router.get('')
-async def get_locations(request: LocationRequest,
+async def get_locations(request: LocationRequest = Depends(),
                         user_id: UUID = Depends(get_user_id),
                         db: AsyncSession = Depends(get_db)) -> Page[Location]:
     locations: Page[Location] = await location_service.get_locations(db=db, request=request, user_id=user_id)

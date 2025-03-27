@@ -12,25 +12,27 @@ async def engine(postgresql):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    yield engine
-
-
-@pytest_asyncio.fixture
-async def db_fixture(engine):
-    SessionLocalPytest = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
-    session = SessionLocalPytest()
-
-    yield session
-
-    await session.close()
+    return engine
 
 
 @pytest_asyncio.fixture
 async def db(engine):
-    SessionLocalPytest = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
+    session_maker = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
 
     try:
-        async with SessionLocalPytest.begin() as session:
+        async with session_maker() as session:
+            yield session
+
+    finally:
+        await session.commit()
+        await session.close()
+
+
+@pytest_asyncio.fixture
+async def db_transaction(engine):
+    session_maker = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
+    try:
+        async with session_maker.begin() as session:
             yield session
     finally:
         await session.commit()
