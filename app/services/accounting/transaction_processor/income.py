@@ -1,13 +1,10 @@
-from decimal import Decimal, ROUND_HALF_EVEN
-
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDIncomeTransaction, income_transaction_crud
 from app.exceptions.forbidden_403 import AccountTypeMismatchException
 from app.models.accounting.account import Account as AccountModel
-from app.models.accounting.transaction import IncomeTransaction as IncomeTransactionModel
 from app.schemas.accounting.account import AccountType
-from app.schemas.accounting.transaction import IncomeRequest, TransactionCreate, TransactionType
+from app.schemas.accounting.transaction import IncomeRequest, Transaction, TransactionCreate, TransactionType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(__name__)
@@ -46,18 +43,5 @@ class Income(TransactionProcessor[IncomeRequest]):
                                                                 transaction_type=TransactionType.INCOME)
         return transaction_data
 
-    async def _update_accounts(self, transaction_db: IncomeTransactionModel):
-        to_account_db: AccountModel = transaction_db.to_account
-        new_balance: Decimal = to_account_db.balance + transaction_db.destination_amount
-        if to_account_db.base_currency_rate == 0:
-            new_base_rate: Decimal = transaction_db.destination_amount / transaction_db.source_amount
-        else:
-            current_base_balance: Decimal = to_account_db.balance / to_account_db.base_currency_rate
-            new_base_balance: Decimal = current_base_balance + transaction_db.base_currency_amount
-            new_base_rate: Decimal = new_balance / new_base_balance
-
-        new_balance: Decimal = new_balance.quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
-        new_base_rate: Decimal = new_base_rate.quantize(Decimal('0.0001'), rounding=ROUND_HALF_EVEN)
-        await account_crud.update(db=self.db,
-                                  id=transaction_db.to_account_id,
-                                  obj_in={'balance': new_balance, 'base_currency_rate': new_base_rate})
+    async def _update_from_account(self, transaction_db: Transaction, is_delete: bool = False) -> None:
+        pass

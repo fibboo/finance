@@ -1,14 +1,17 @@
+from decimal import Decimal, ROUND_HALF_EVEN
 from uuid import UUID
 
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
+from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.not_implemented_501 import NotImplementedException
+from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.transaction import Transaction, TransactionCreateRequest
+from app.schemas.accounting.transaction import Transaction, TransactionCreateRequest, TransactionType
 from app.schemas.base import EntityStatusType
 
 logger = get_logger(__name__)
@@ -37,7 +40,7 @@ async def get_transaction_by_id(db: AsyncSession, transaction_id: UUID, user_id:
 
 
 async def delete_transaction(db: AsyncSession, transaction_id: UUID, user_id: UUID) -> Transaction:
-    raise NotImplementedException(log_message='Transaction delete is not implemented yet', logger=logger)
+    raise NotImplementedException(log_message='delete_transaction not implemented yet', logger=logger)
 
     delete_update_data = {'status': EntityStatusType.DELETED}
     transaction_db: TransactionModel | None = await transaction_crud.update(db=db,
@@ -49,6 +52,8 @@ async def delete_transaction(db: AsyncSession, transaction_id: UUID, user_id: UU
         raise EntityNotFound(entity=TransactionModel,
                              search_params={'id': transaction_id, 'user_id': user_id},
                              logger=logger)
+
+    await _update_accounts_after_delete_transaction(db=db, transaction_db=transaction_db)
 
     expense: Transaction = Transaction.model_validate(transaction_db)
     return expense

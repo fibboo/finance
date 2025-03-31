@@ -25,8 +25,8 @@ class Transaction(Base):
     destination_currency — receiving currency
     base_currency_amount — amount in the user base currency
 
-    For income: source_* refers to the incoming amount in the original currency, destination_* refers to the credited amount in the receiving account
     For expenses: source_* refers to the amount withdrawn from the account, destination_* refers to the amount in the seller's/recipient's currency
+    For income: source_* refers to the incoming amount in the original currency, destination_* refers to the credited amount in the receiving account
     For transfers: source_* refers to the withdrawal from one account, destination_* refers to the deposit to another account
     """
 

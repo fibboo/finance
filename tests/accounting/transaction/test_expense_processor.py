@@ -12,6 +12,7 @@ from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.category import category_crud
 from app.crud.accounting.location import location_crud
+from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import (AccountTypeMismatchException, CurrencyMismatchException,
                                           NoAccountBaseCurrencyRate)
@@ -26,13 +27,20 @@ from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionType
 from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
+from app.schemas.user.external_user import ProviderType
+from app.schemas.user.user import User as UserModel, UserCreate
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
 @pytest.mark.asyncio
 async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_id: UUID = uuid4()
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
     account_create_data: dict = {'user_id': user_id,
                                  'name': 'Checking USD',
                                  'currency': CurrencyType.USD,
@@ -98,7 +106,12 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
 @pytest.mark.asyncio
 async def test_create_expense_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_id: UUID = uuid4()
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
     category_create_data: CategoryCreate = CategoryCreate(user_id=user_id,
                                                           name='Food',
                                                           type=CategoryType.GENERAL)
@@ -140,7 +153,12 @@ async def test_create_expense_account_not_found(db: AsyncSession, db_transaction
 @pytest.mark.asyncio
 async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_id: UUID = uuid4()
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
     account_create_data: AccountCreate = AccountCreate(user_id=user_id,
                                                        name='Income USD',
                                                        currency=CurrencyType.USD,
@@ -192,7 +210,12 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
 @pytest.mark.asyncio
 async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_id: UUID = uuid4()
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
     account_create_data: dict = {'user_id': user_id,
                                  'name': 'Checking USD',
                                  'currency': CurrencyType.USD,
@@ -246,7 +269,12 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
 @pytest.mark.asyncio
 async def test_create_expense_account_type_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_id: UUID = uuid4()
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
     account_create_data: dict = {'user_id': user_id,
                                  'name': 'Checking USD',
                                  'currency': CurrencyType.USD,
@@ -300,7 +328,12 @@ async def test_create_expense_account_type_mismatch(db: AsyncSession, db_transac
 @pytest.mark.asyncio
 async def test_create_expense_integrity_error(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_id: UUID = uuid4()
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
     account_create_data: dict = {'user_id': user_id,
                                  'name': 'Checking USD',
                                  'currency': CurrencyType.USD,

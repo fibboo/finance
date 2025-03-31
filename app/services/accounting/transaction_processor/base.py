@@ -1,4 +1,6 @@
+import asyncio
 from abc import ABC, abstractmethod
+from decimal import Decimal, ROUND_HALF_EVEN
 from typing import Generic, TypeVar
 from uuid import UUID
 
@@ -6,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
+from app.crud.accounting.account import account_crud
 from app.crud.base import CRUDBase
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import CurrencyMismatchException, NoAccountBaseCurrencyRate
@@ -15,6 +18,8 @@ from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.transaction import (ExpenseRequest, IncomeRequest, Transaction, TransactionCreate,
                                                 TransactionCreateRequest, TransactionType, TransferRequest)
+from app.schemas.base import CurrencyType
+from app.services.user import user_service
 
 T = TypeVar('T', bound=TransactionCreateRequest)
 
@@ -26,6 +31,7 @@ class TransactionProcessor(ABC, Generic[T]):
         self.db: AsyncSession = db
         self.data: T = data
         self.user_id: UUID = user_id
+        self.base_currency: CurrencyType | None = None
 
     @classmethod
     def factory(cls, db: AsyncSession, user_id: UUID, data: TransactionCreateRequest) -> 'TransactionProcessor':
@@ -52,7 +58,6 @@ class TransactionProcessor(ABC, Generic[T]):
     def _transaction_crud(self) -> CRUDBase:
         pass
 
-    @abstractmethod
     async def _validate_transaction_from_account(self, from_account_db: AccountModel | None) -> None:
         if from_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.from_account_id}, logger=logger)
@@ -66,7 +71,6 @@ class TransactionProcessor(ABC, Generic[T]):
                                             account_currency=from_account_db.currency,
                                             logger=logger)
 
-    @abstractmethod
     async def _validate_transaction_to_account(self, to_account_db: AccountModel | None) -> None:
         if to_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={'id': self.data.to_account_id}, logger=logger)
@@ -81,11 +85,37 @@ class TransactionProcessor(ABC, Generic[T]):
     async def _prepare_transaction(self) -> TransactionCreate:
         pass
 
-    @abstractmethod
-    async def _update_accounts(self, transaction_db: TransactionModel):
-        pass
+    async def _update_from_account(self, transaction_db: TransactionModel, is_delete: bool = False) -> None:
+        delta = transaction_db.source_amount if is_delete else -transaction_db.source_amount
+        new_balance: Decimal = transaction_db.from_account.balance + delta
+        await account_crud.update(db=self.db,
+                                  id=transaction_db.from_account_id,
+                                  obj_in={'balance': new_balance})
+
+    async def _update_to_account(self, transaction_db: TransactionModel, is_delete: bool = False) -> None:
+        delta = -transaction_db.destination_amount if is_delete else transaction_db.destination_amount
+        new_balance: Decimal = transaction_db.to_account.balance + delta
+        if new_balance == 0:
+            new_base_rate: Decimal = Decimal('0')
+        elif transaction_db.to_account.currency == self.base_currency:
+            new_base_rate: Decimal = Decimal('1')
+        elif transaction_db.to_account.base_currency_rate == 0:
+            new_base_rate: Decimal = transaction_db.destination_amount / transaction_db.source_amount
+        else:
+            current_base_balance: Decimal = transaction_db.to_account.balance / transaction_db.to_account.base_currency_rate
+            delta = -transaction_db.base_currency_amount if is_delete else transaction_db.base_currency_amount
+            new_base_balance: Decimal = current_base_balance + delta
+            new_base_rate: Decimal = new_balance / new_base_balance
+
+        new_balance: Decimal = new_balance.quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+        new_base_rate: Decimal = new_base_rate.quantize(Decimal('0.0001'), rounding=ROUND_HALF_EVEN)
+        await account_crud.update(db=self.db,
+                                  id=transaction_db.to_account_id,
+                                  obj_in={'balance': new_balance, 'base_currency_rate': new_base_rate})
 
     async def create(self) -> Transaction:
+        self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
+
         transaction_data: TransactionCreate = await self._prepare_transaction()
         try:
             transaction_db: TransactionModel = await self._transaction_crud.create(db=self.db, obj_in=transaction_data)
@@ -93,7 +123,8 @@ class TransactionProcessor(ABC, Generic[T]):
         except IntegrityError as exc:
             raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)
 
-        await self._update_accounts(transaction_db=transaction_db)
+        await self._update_from_account(transaction_db=transaction_db)
+        await self._update_to_account(transaction_db=transaction_db)
 
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction

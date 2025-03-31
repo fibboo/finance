@@ -27,10 +27,10 @@ async def create_transaction(create_data: TransactionCreateRequest,
     - `base_currency_amount` — Amount in the user's base currency
 
     **Context-specific behavior:**
-    - **Income:** `source_*` refers to the incoming amount in **the base currency**.
-    `destination_*` refers to the credited amount in **the receiving account**.
     - **Expenses:** `source_*` refers to the amount **withdrawn from the account**.
     `destination_*` refers to the amount in **the seller's currency**.
+    - **Income:** `source_*` refers to the incoming amount in **the base currency**.
+    `destination_*` refers to the credited amount in **the receiving account**.
     - **Transfers:** `source_*` refers to **the withdrawal from one account**.
     `destination_*` refers to the deposit to **another account**.
     """

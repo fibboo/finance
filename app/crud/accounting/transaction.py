@@ -5,6 +5,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import asc, desc, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import with_polymorphic
 
 from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase, Model, UpdateSchema
@@ -66,8 +67,10 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
 
 transaction_crud = CRUDTransaction(Transaction)
 
+Expense = with_polymorphic(Transaction, [ExpenseTransaction])
 
-class CRUDExpenseTransaction(CRUDBase[ExpenseTransaction, TransactionCreate, TransactionCreate]):
+
+class CRUDExpenseTransaction(CRUDBase[Expense, TransactionCreate, TransactionCreate]):
     async def update(self,
                      db: AsyncSession,
                      obj_in: UpdateSchema | dict[str, Any],
@@ -79,8 +82,10 @@ class CRUDExpenseTransaction(CRUDBase[ExpenseTransaction, TransactionCreate, Tra
 
 expense_transaction_crud = CRUDExpenseTransaction(ExpenseTransaction)
 
+Income = with_polymorphic(Transaction, [IncomeTransaction])
 
-class CRUDIncomeTransaction(CRUDBase[IncomeTransaction, TransactionCreate, TransactionCreate]):
+
+class CRUDIncomeTransaction(CRUDBase[Income, TransactionCreate, TransactionCreate]):
     async def update(self,
                      db: AsyncSession,
                      obj_in: UpdateSchema | dict[str, Any],
@@ -92,8 +97,10 @@ class CRUDIncomeTransaction(CRUDBase[IncomeTransaction, TransactionCreate, Trans
 
 income_transaction_crud = CRUDIncomeTransaction(IncomeTransaction)
 
+Transfer = with_polymorphic(Transaction, [TransferTransaction])
 
-class CRUDTransferTransaction(CRUDBase[TransferTransaction, TransactionCreate, TransactionCreate]):
+
+class CRUDTransferTransaction(CRUDBase[Transfer, TransactionCreate, TransactionCreate]):
     async def update(self,
                      db: AsyncSession,
                      obj_in: UpdateSchema | dict[str, Any],

@@ -5,9 +5,8 @@ from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDExpenseTransaction, expense_transaction_crud
 from app.exceptions.forbidden_403 import AccountTypeMismatchException
 from app.models.accounting.account import Account as AccountModel
-from app.models.accounting.transaction import ExpenseTransaction as ExpenseTransactionModel
 from app.schemas.accounting.account import AccountType
-from app.schemas.accounting.transaction import ExpenseRequest, TransactionCreate, TransactionType
+from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionCreate, TransactionType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(__name__)
@@ -47,8 +46,5 @@ class Expense(TransactionProcessor[ExpenseRequest]):
                                                                 transaction_type=self._transaction_type)
         return transaction_data
 
-    async def _update_accounts(self, transaction_db: ExpenseTransactionModel) -> None:
-        balance: Decimal = transaction_db.from_account.balance - transaction_db.source_amount
-        await account_crud.update(db=self.db,
-                                  id=transaction_db.from_account_id,
-                                  obj_in={'balance': balance})
+    async def _update_to_account(self, transaction_db: Transaction, is_delete: bool = False) -> None:
+        pass
