@@ -48,10 +48,10 @@ async def update_location(db: AsyncSession,
                           update_data: LocationUpdate,
                           user_id: UUID) -> Location:
     try:
-        location_db: LocationModel | None = await location_crud.update(db=db,
-                                                                       obj_in=update_data,
-                                                                       id=location_id,
-                                                                       user_id=user_id)
+        location_db: LocationModel | None = await location_crud.update_orm(db=db,
+                                                                           obj_in=update_data,
+                                                                           id=location_id,
+                                                                           user_id=user_id)
     except IntegrityError as exc:
         raise IntegrityException(entity=LocationModel, exception=exc, logger=logger)
 

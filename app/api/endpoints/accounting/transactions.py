@@ -61,8 +61,11 @@ async def get_transaction_by_id(transaction_id: UUID,
     return transaction
 
 
-@router.delete('/{transaction_id}', status_code=200)
+@router.delete('/{transaction_id}')
 async def delete_transaction(transaction_id: UUID,
                              user_id: UUID = Depends(get_user_id),
-                             db: AsyncSession = Depends(get_db_transaction)) -> None:
-    await transaction_service.delete_transaction(db=db, transaction_id=transaction_id, user_id=user_id)
+                             db: AsyncSession = Depends(get_db_transaction)) -> Transaction:
+    transaction: Transaction = await transaction_service.delete_transaction(db=db,
+                                                                            transaction_id=transaction_id,
+                                                                            user_id=user_id)
+    return transaction

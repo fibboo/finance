@@ -1,5 +1,6 @@
 from typing import Any, Generic, Type, TypeVar
 
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,12 +74,12 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def update(self,
-                     db: AsyncSession,
-                     obj_in: UpdateSchema | dict[str, Any],
-                     flush: bool | None = True,
-                     commit: bool | None = False,
-                     **kwargs) -> Model | None:
+    async def update_orm(self,
+                         db: AsyncSession,
+                         obj_in: UpdateSchema | dict[str, Any],
+                         flush: bool | None = True,
+                         commit: bool | None = False,
+                         **kwargs) -> Model | None:
         obj_data = obj_in
         if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump(exclude_unset=True)
@@ -93,4 +94,27 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
             await db.flush()
         if commit:
             await db.commit()
+        return db_obj
+
+    async def update_api(self,
+                         db: AsyncSession,
+                         db_obj: Model,
+                         obj_in: UpdateSchema | dict[str, Any],
+                         flush: bool | None = True,
+                         commit: bool | None = False) -> Model:
+        obj_data: dict[str, Any] = jsonable_encoder(db_obj)
+        update_data: dict[str, Any] = obj_in
+        if isinstance(obj_in, BaseModel):
+            update_data = obj_in.model_dump(exclude_unset=True)
+
+        for field in obj_data:
+            if field in update_data:
+                setattr(db_obj, field, update_data[field])
+
+        db.add(db_obj)
+        if flush:
+            await db.flush()
+        if commit:
+            await db.commit()
+        await db.refresh(db_obj)
         return db_obj

@@ -58,11 +58,11 @@ async def get_account(db: AsyncSession, account_id: UUID, user_id: UUID) -> Acco
 
 async def update_account(db: AsyncSession, account_id: UUID, update_data: AccountUpdate, user_id: UUID) -> Account:
     try:
-        account_db: AccountModel | None = await account_crud.update(db=db,
-                                                                    obj_in=update_data,
-                                                                    id=account_id,
-                                                                    user_id=user_id,
-                                                                    status=EntityStatusType.ACTIVE)
+        account_db: AccountModel | None = await account_crud.update_orm(db=db,
+                                                                        obj_in=update_data,
+                                                                        id=account_id,
+                                                                        user_id=user_id,
+                                                                        status=EntityStatusType.ACTIVE)
     except IntegrityError as exc:
         raise IntegrityException(entity=AccountModel, exception=exc, logger=logger)
 
@@ -86,10 +86,10 @@ async def delete_account(db: AsyncSession, account_id: UUID, user_id: UUID) -> A
         raise AccountDeletionForbidden(account_id=account_id, logger=logger)
 
     obj_in: dict = {'status': EntityStatusType.DELETED.value}
-    account_db: AccountModel = await account_crud.update(db=db,
-                                                         obj_in=obj_in,
-                                                         id=account_id,
-                                                         user_id=user_id,
-                                                         status=EntityStatusType.ACTIVE)
+    account_db: AccountModel = await account_crud.update_orm(db=db,
+                                                             obj_in=obj_in,
+                                                             id=account_id,
+                                                             user_id=user_id,
+                                                             status=EntityStatusType.ACTIVE)
     account: Account = Account.model_validate(account_db)
     return account

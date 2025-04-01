@@ -55,10 +55,10 @@ async def update_income_source(db: AsyncSession,
                                update_data: IncomeSourceUpdate,
                                user_id: UUID) -> IncomeSource:
     try:
-        income_source_db: IncomeSourceModel | None = await income_source_crud.update(db=db,
-                                                                                     obj_in=update_data,
-                                                                                     id=income_source_id,
-                                                                                     user_id=user_id)
+        income_source_db: IncomeSourceModel | None = await income_source_crud.update_orm(db=db,
+                                                                                         obj_in=update_data,
+                                                                                         id=income_source_id,
+                                                                                         user_id=user_id)
     except IntegrityError as exc:
         raise IntegrityException(entity=IncomeSourceModel, exception=exc, logger=logger)
 

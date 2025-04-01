@@ -25,10 +25,11 @@ from app.schemas.accounting.account import AccountCreate, AccountType
 from app.schemas.accounting.category import CategoryCreate, CategoryType
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionType
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import User as UserModel, UserCreate
+from app.services.accounting import transaction_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -378,3 +379,87 @@ async def test_create_expense_integrity_error(db: AsyncSession, db_transaction: 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == account_balance_before
     assert account_db_after.base_currency_rate == base_currency_rate_before
+
+
+@pytest.mark.asyncio
+async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {'user_id': user_id,
+                                 'name': 'Checking USD',
+                                 'currency': CurrencyType.USD,
+                                 'account_type': AccountType.CHECKING,
+                                 'base_currency_rate': Decimal('1')}
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id,
+                                                          name='Food',
+                                                          type=CategoryType.GENERAL)
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id,
+                                                          name='Some shop')
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(transaction_date=date(2025, 2, 10),
+                                                         source_amount=Decimal('1'),
+                                                         source_currency=CurrencyType.USD,
+                                                         destination_amount=Decimal('111'),
+                                                         destination_currency=CurrencyType.RSD,
+                                                         from_account_id=account_db.id,
+                                                         category_id=category_db.id,
+                                                         location_id=location_db.id)
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
+                                                                               user_id=user_id,
+                                                                               transaction_type=expense_create_data.transaction_type)
+    transaction_before: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db.commit()
+    await db.close()
+
+    # Act
+    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
+                                                                            transaction_id=transaction_before.id,
+                                                                            user_id=user_id)
+    await db_transaction.commit()
+    await db_transaction.close()
+
+    # Assert
+    assert transaction.status == EntityStatusType.DELETED != transaction_before.status
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 1
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal('0')
+    assert account_db_after.base_currency_rate == Decimal('1')
+
+
+@pytest.mark.asyncio
+async def test_delete_not_found(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    transaction_id: UUID = uuid4()
+    user_id: UUID = uuid4()
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_service.delete_transaction(db=db_transaction,
+                                                     transaction_id=transaction_id,
+                                                     user_id=user_id)
+        await db_transaction.commit()
+        await db_transaction.close()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.message == 'Entity not found'
+    assert exc.value.log_message == f"Transaction not found by {{'id': UUID('{transaction_id}'), 'user_id': UUID('{user_id}')}}"
+    assert exc.value.logger is not None
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
