@@ -59,8 +59,8 @@ async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction:
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_db.id,
-                                                                               data=transfer_create_data)
-    transaction: Transaction = await transaction_processor.create()
+                                                                               transaction_type=transfer_create_data.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
 
     # Assert
@@ -132,8 +132,8 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_db.id,
-                                                                               data=transfer_create_data)
-    transaction: Transaction = await transaction_processor.create()
+                                                                               transaction_type=transfer_create_data.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
 
     # Assert
@@ -206,8 +206,8 @@ async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_db.id,
-                                                                               data=transfer_create_data)
-    transaction: Transaction = await transaction_processor.create()
+                                                                               transaction_type=transfer_create_data.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
 
     # Assert
@@ -282,8 +282,8 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_db.id,
-                                                                               data=transfer_create_data)
-    transaction: Transaction = await transaction_processor.create()
+                                                                               transaction_type=transfer_create_data.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
 
     # Assert
@@ -354,9 +354,9 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_db.id,
-                                                                               data=transfer_create_data)
+                                                                               transaction_type=transfer_create_data.transaction_type)
     with pytest.raises(UnprocessableException) as exc:
-        await transaction_processor.create()
+        await transaction_processor.create(data=transfer_create_data)
         await db_transaction.commit()
 
     # Assert
@@ -414,9 +414,9 @@ async def test_create_transfer_other_to_other_not_base_rate(db: AsyncSession, db
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_db.id,
-                                                                               data=transfer_create_data)
+                                                                               transaction_type=transfer_create_data.transaction_type)
     with pytest.raises(NoAccountBaseCurrencyRate) as exc:
-        await transaction_processor.create()
+        await transaction_processor.create(data=transfer_create_data)
         await db_transaction.commit()
 
     # Assert

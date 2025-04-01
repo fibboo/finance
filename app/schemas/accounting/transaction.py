@@ -28,20 +28,37 @@ class TransactionBase(BaseModel):
     source_currency: CurrencyType
     destination_amount: condecimal(gt=Decimal('0'), decimal_places=2)
     destination_currency: CurrencyType
+    transaction_type: TransactionType
 
 
 class ExpenseRequest(TransactionBase):
+    transaction_type: TransactionType = TransactionType.EXPENSE
     from_account_id: UUID
     category_id: UUID
     location_id: UUID
 
+    @field_validator('transaction_type', mode='after')
+    def validate_transaction_type(cls, transaction_type: TransactionType):
+        if transaction_type != TransactionType.EXPENSE:
+            raise ValueError(f'transaction_type should be {TransactionType.EXPENSE} for expense transactions')
+
+        return transaction_type
+
 
 class IncomeRequest(TransactionBase):
+    transaction_type: TransactionType = TransactionType.INCOME
     income_period: date
     income_source_id: UUID
     to_account_id: UUID
 
-    @field_validator('income_period')
+    @field_validator('transaction_type', mode='after')
+    def validate_transaction_type(cls, transaction_type: TransactionType):
+        if transaction_type != TransactionType.INCOME:
+            raise ValueError(f'transaction_type should be {TransactionType.INCOME} for income transactions')
+
+        return transaction_type
+
+    @field_validator('income_period', mode='after')
     def validate_income_period(cls, income_period: date):
         if income_period.day != 1:
             income_period = income_period.replace(day=1)
@@ -50,9 +67,17 @@ class IncomeRequest(TransactionBase):
 
 
 class TransferRequest(TransactionBase):
+    transaction_type: TransactionType = TransactionType.TRANSFER
     destination_amount: condecimal(gt=Decimal('0'), decimal_places=2) | None = None
     from_account_id: UUID
     to_account_id: UUID
+
+    @field_validator('transaction_type', mode='after')
+    def validate_transaction_type(cls, transaction_type: TransactionType):
+        if transaction_type != TransactionType.TRANSFER:
+            raise ValueError(f'transaction_type should be {TransactionType.TRANSFER} for transfer transactions')
+
+        return transaction_type
 
 
 TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest
@@ -61,8 +86,6 @@ TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest
 class TransactionCreate(TransactionBase):
     user_id: UUID
     base_currency_amount: condecimal(gt=Decimal('0'), decimal_places=2)
-
-    transaction_type: TransactionType
 
     category_id: UUID | None = None
     location_id: UUID | None = None

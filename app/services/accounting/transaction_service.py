@@ -1,17 +1,14 @@
-from decimal import Decimal, ROUND_HALF_EVEN
 from uuid import UUID
 
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.not_implemented_501 import NotImplementedException
-from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.transaction import Transaction, TransactionCreateRequest, TransactionType
+from app.schemas.accounting.transaction import Transaction, TransactionCreateRequest
 from app.schemas.base import EntityStatusType
 
 logger = get_logger(__name__)

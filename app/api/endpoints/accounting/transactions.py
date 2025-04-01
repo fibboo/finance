@@ -36,8 +36,8 @@ async def create_transaction(create_data: TransactionCreateRequest,
     """
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
                                                                                user_id=user_id,
-                                                                               data=create_data)
-    transaction: Transaction = await transaction_processor.create()
+                                                                               transaction_type=create_data.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=create_data)
     return transaction
 
 

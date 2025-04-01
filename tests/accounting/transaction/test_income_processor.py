@@ -61,8 +61,8 @@ async def test_create_income_base_currency_ok(db: AsyncSession, db_transaction: 
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
-                                                                               data=income_create_data)
-    transaction: Transaction = await transaction_processor.create()
+                                                                               transaction_type=income_create_data.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=income_create_data)
     await db_transaction.commit()
 
     # Assert
@@ -129,8 +129,8 @@ async def test_create_income_other_currency_ok(db: AsyncSession, db_transaction:
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
-                                                                               data=income_create_data)
-    transaction: Transaction = await transaction_processor.create()
+                                                                               transaction_type=income_create_data.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=income_create_data)
     await db_transaction.commit()
 
     # Assert
@@ -191,8 +191,8 @@ async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, 
                                                         income_period=date(2025, 1, 1))
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
                                                                                user_id=user_id,
-                                                                               data=income_create_data_1)
-    transaction_1: Transaction = await transaction_processor.create()
+                                                                               transaction_type=income_create_data_1.transaction_type,)
+    transaction_1: Transaction = await transaction_processor.create(data=income_create_data_1)
     account_balance_before: Decimal = copy(transaction_1.to_account.balance)
     base_currency_rate_before: Decimal = copy(transaction_1.to_account.base_currency_rate)
     await db.commit()
@@ -209,8 +209,8 @@ async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, 
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
-                                                                               data=income_create_data_2)
-    transaction: Transaction = await transaction_processor.create()
+                                                                               transaction_type=income_create_data_2.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=income_create_data_2)
     await db_transaction.commit()
 
     # Assert
@@ -267,9 +267,9 @@ async def test_create_income_account_not_found(db: AsyncSession, db_transaction:
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
-                                                                               data=income_create_data)
+                                                                               transaction_type=income_create_data.transaction_type)
     with pytest.raises(EntityNotFound) as exc:
-        await transaction_processor.create()
+        await transaction_processor.create(data=income_create_data)
         await db_transaction.commit()
 
     # Assert
@@ -317,9 +317,9 @@ async def test_create_income_currency_mismatch(db: AsyncSession, db_transaction:
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
-                                                                               data=income_create_data)
+                                                                               transaction_type=income_create_data.transaction_type)
     with pytest.raises(CurrencyMismatchException) as exc:
-        await transaction_processor.create()
+        await transaction_processor.create(data=income_create_data)
         await db_transaction.commit()
 
     # Assert
@@ -370,9 +370,9 @@ async def test_create_income_account_type_mismatch(db: AsyncSession, db_transact
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
-                                                                               data=income_create_data)
+                                                                               transaction_type=income_create_data.transaction_type)
     with pytest.raises(AccountTypeMismatchException) as exc:
-        await transaction_processor.create()
+        await transaction_processor.create(data=income_create_data)
         await db_transaction.commit()
 
     # Assert
@@ -420,9 +420,9 @@ async def test_create_income_integrity_error(db: AsyncSession, db_transaction: A
     # Act
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
                                                                                user_id=user_id,
-                                                                               data=income_create_data)
+                                                                               transaction_type=income_create_data.transaction_type)
     with pytest.raises(IntegrityException) as exc:
-        await transaction_processor.create()
+        await transaction_processor.create(data=income_create_data)
         await db_transaction.commit()
 
     # Assert
