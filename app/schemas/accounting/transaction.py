@@ -155,8 +155,8 @@ class TransactionRequest(Params):
     base_currency_amount_from: condecimal(ge=Decimal('0'), decimal_places=2) | None = None
     base_currency_amount_to: condecimal(gt=Decimal('0'), decimal_places=2) | None = None
 
-    date_from: datetime | None = datetime.now() - timedelta(days=90)
-    date_to: datetime | None = datetime.now()
+    date_from: date = (datetime.now() - timedelta(days=90)).date()
+    date_to: date = datetime.now().date()
 
     transaction_types: list[TransactionType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]

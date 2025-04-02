@@ -7,14 +7,14 @@ from app.configs.logging_settings import get_logger
 from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.transaction import Transaction, TransactionCreateRequest
+from app.schemas.accounting.transaction import Transaction, TransactionRequest
 from app.schemas.base import EntityStatusType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(__name__)
 
 
-async def get_transactions(db: AsyncSession, request: TransactionCreateRequest, user_id: UUID) -> Page[Transaction]:
+async def get_transactions(db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
     transactions_db: Page[TransactionModel] = await transaction_crud.get_transactions(db=db,
                                                                                       request=request,
                                                                                       user_id=user_id)

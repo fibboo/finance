@@ -69,7 +69,7 @@ class Transaction(Base):
                                                  nullable=False)
 
     __mapper_args__ = {'polymorphic_on': transaction_type,
-                       'polymorphic_load': 'joined'}
+                       'polymorphic_load': 'selectin'}
 
     def __init__(self, *args, **kwargs):
         if self.__class__ is Transaction:
@@ -88,9 +88,9 @@ class ExpenseTransaction(Transaction):
     category_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Category.id), nullable=False, index=True)
     location_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=False, index=True)
 
-    from_account: Mapped[Account] = relationship(Account, foreign_keys=[from_account_id], lazy='joined')
-    category: Mapped[Category] = relationship(Category, foreign_keys=[category_id], lazy='joined')
-    location: Mapped[Location] = relationship(Location, foreign_keys=[location_id], lazy='joined')
+    from_account: Mapped[Account] = relationship(Account, foreign_keys=[from_account_id], lazy='selectin')
+    category: Mapped[Category] = relationship(Category, foreign_keys=[category_id], lazy='selectin')
+    location: Mapped[Location] = relationship(Location, foreign_keys=[location_id], lazy='selectin')
 
     __mapper_args__ = {'polymorphic_identity': TransactionType.EXPENSE.value}
 
@@ -107,8 +107,8 @@ class IncomeTransaction(Transaction):
     income_source_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(IncomeSource.id), nullable=False, index=True)
     to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
 
-    income_source: Mapped[IncomeSource] = relationship(IncomeSource, foreign_keys=[income_source_id], lazy='joined')
-    to_account: Mapped[Account] = relationship(Account, foreign_keys=[to_account_id], lazy='joined')
+    income_source: Mapped[IncomeSource] = relationship(IncomeSource, foreign_keys=[income_source_id], lazy='selectin')
+    to_account: Mapped[Account] = relationship(Account, foreign_keys=[to_account_id], lazy='selectin')
 
     __mapper_args__ = {'polymorphic_identity': TransactionType.INCOME.value}
 
@@ -124,8 +124,8 @@ class TransferTransaction(Transaction):
     from_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
     to_account_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=False, index=True)
 
-    from_account: Mapped[Account] = relationship(Account, foreign_keys=[from_account_id], lazy='joined')
-    to_account: Mapped[Account] = relationship(Account, foreign_keys=[to_account_id], lazy='joined')
+    from_account: Mapped[Account] = relationship(Account, foreign_keys=[from_account_id], lazy='selectin')
+    to_account: Mapped[Account] = relationship(Account, foreign_keys=[to_account_id], lazy='selectin')
 
     __mapper_args__ = {'polymorphic_identity': TransactionType.TRANSFER.value}
 
