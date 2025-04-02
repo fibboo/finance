@@ -85,15 +85,15 @@ class TransactionProcessor(ABC, Generic[T]):
     async def _prepare_transaction(self, data: T) -> TransactionCreate:
         pass
 
-    async def _update_from_account(self, transaction_db: TransactionModel, is_delete: bool = False) -> None:
-        delta = transaction_db.source_amount if is_delete else -transaction_db.source_amount
+    async def _update_from_account(self, transaction_db: TransactionModel) -> None:
+        delta = transaction_db.source_amount if transaction_db.status == EntityStatusType.DELETED else -transaction_db.source_amount
         new_balance: Decimal = transaction_db.from_account.balance + delta
         await account_crud.update_orm(db=self.db,
                                       id=transaction_db.from_account_id,
                                       obj_in={'balance': new_balance})
 
-    async def _update_to_account(self, transaction_db: TransactionModel, is_delete: bool = False) -> None:
-        delta = -transaction_db.destination_amount if is_delete else transaction_db.destination_amount
+    async def _update_to_account(self, transaction_db: TransactionModel) -> None:
+        delta = -transaction_db.destination_amount if transaction_db.status == EntityStatusType.DELETED else transaction_db.destination_amount
         new_balance: Decimal = transaction_db.to_account.balance + delta
         if new_balance == 0:
             new_base_rate: Decimal = Decimal('0')
@@ -103,7 +103,7 @@ class TransactionProcessor(ABC, Generic[T]):
             new_base_rate: Decimal = transaction_db.destination_amount / transaction_db.source_amount
         else:
             current_base_balance: Decimal = transaction_db.to_account.balance / transaction_db.to_account.base_currency_rate
-            delta = -transaction_db.base_currency_amount if is_delete else transaction_db.base_currency_amount
+            delta = -transaction_db.base_currency_amount if transaction_db.status == EntityStatusType.DELETED else transaction_db.base_currency_amount
             new_base_balance: Decimal = current_base_balance + delta
             new_base_rate: Decimal = new_balance / new_base_balance
 
@@ -135,8 +135,8 @@ class TransactionProcessor(ABC, Generic[T]):
                                                                                    db_obj=transaction_db,
                                                                                    obj_in=delete_update_data)
 
-        await self._update_from_account(transaction_db=transaction_db, is_delete=True)
-        await self._update_to_account(transaction_db=transaction_db, is_delete=True)
+        await self._update_from_account(transaction_db=transaction_db)
+        await self._update_to_account(transaction_db=transaction_db)
 
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction

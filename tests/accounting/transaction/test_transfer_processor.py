@@ -17,10 +17,11 @@ from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountCreate, AccountType
 from app.schemas.accounting.transaction import Transaction, TransactionType, TransferRequest
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
+from app.services.accounting import transaction_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -435,3 +436,68 @@ async def test_create_transfer_other_to_other_not_base_rate(db: AsyncSession, db
     account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_to.balance == account_to_balance_before
     assert account_to.base_currency_rate == base_currency_to_rate_before
+
+
+@pytest.mark.asyncio
+async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {'user_id': user_db.id,
+                                      'name': 'Income EUR',
+                                      'currency': CurrencyType.EUR,
+                                      'account_type': AccountType.INCOME,
+                                      'balance': Decimal('100'),
+                                      'base_currency_rate': Decimal('0.9524')}
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+    account_from_balance_before: Decimal = copy(account_from_db.balance)
+    base_currency_from_rate_before: Decimal = copy(account_from_db.base_currency_rate)
+
+    account_to_create_data: dict = {'user_id': user_db.id,
+                                    'name': 'Expense RSD',
+                                    'currency': CurrencyType.RSD,
+                                    'account_type': AccountType.CHECKING,
+                                    'balance': Decimal('11100'),
+                                    'base_currency_rate': Decimal('111.0000')}
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+    account_to_balance_before: Decimal = copy(account_to_db.balance)
+    base_currency_to_rate_before: Decimal = copy(account_to_db.base_currency_rate)
+
+    transfer_create_data: TransferRequest = TransferRequest(transaction_date=date(2025, 2, 10),
+                                                            source_amount=Decimal('100'),
+                                                            source_currency=CurrencyType.EUR,
+                                                            destination_currency=CurrencyType.RSD,
+                                                            destination_amount=Decimal('11700'),
+                                                            from_account_id=account_from_db.id,
+                                                            to_account_id=account_to_db.id,
+                                                            comment='test')
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
+                                                                               user_id=user_db.id,
+                                                                               transaction_type=transfer_create_data.transaction_type)
+    transaction_before: Transaction = await transaction_processor.create(data=transfer_create_data)
+    await db.commit()
+    await db.close()
+
+    # Act
+    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
+                                                                            transaction_id=transaction_before.id,
+                                                                            user_id=user_db.id)
+    await db_transaction.commit()
+    await db_transaction.close()
+
+    # Assert
+    assert transaction.status == EntityStatusType.DELETED != transaction_before.status
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 1
+
+    account_db_from_after: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_db_from_after.balance == Decimal('100') == account_from_balance_before
+    assert account_db_from_after.base_currency_rate == Decimal('0.9524') == base_currency_from_rate_before
+
+    account_db_to_after: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_db_to_after.balance == Decimal('11100') == account_to_balance_before
+    assert account_db_to_after.base_currency_rate == Decimal('111.0000') == base_currency_to_rate_before

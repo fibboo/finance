@@ -22,10 +22,11 @@ from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountCreate, AccountType
 from app.schemas.accounting.income_source import IncomeSourceCreate
 from app.schemas.accounting.transaction import IncomeRequest, Transaction, TransactionType
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
+from app.services.accounting import transaction_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -439,3 +440,163 @@ async def test_create_income_integrity_error(db: AsyncSession, db_transaction: A
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == account_balance_before
     assert account_db_after.base_currency_rate == base_currency_rate_before
+
+
+@pytest.mark.asyncio
+async def test_delete_base_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: AccountCreate = AccountCreate(user_id=user_id,
+                                                       name='Income USD',
+                                                       currency=CurrencyType.USD,
+                                                       account_type=AccountType.INCOME)
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
+                                                                          obj_in=income_source_create_data, commit=True)
+
+    income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
+                                                      source_amount=Decimal('1'),
+                                                      source_currency=CurrencyType.USD,
+                                                      destination_amount=Decimal('1'),
+                                                      destination_currency=CurrencyType.USD,
+                                                      to_account_id=account_db.id,
+                                                      income_source_id=income_source_db.id,
+                                                      income_period=date(2025, 1, 18))
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
+                                                                               user_id=user_id,
+                                                                               transaction_type=income_create_data.transaction_type)
+    transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
+    await db.commit()
+    await db.close()
+
+    # Act
+    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
+                                                                            transaction_id=transaction_before.id,
+                                                                            user_id=user_id)
+    await db_transaction.commit()
+    await db_transaction.close()
+
+    # Assert
+    assert transaction.status == EntityStatusType.DELETED != transaction_before.status
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 1
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal('0')
+    assert account_db_after.base_currency_rate == Decimal('0')
+
+
+@pytest.mark.asyncio
+async def test_delete_other_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: AccountCreate = AccountCreate(user_id=user_id,
+                                                       name='Income EUR',
+                                                       currency=CurrencyType.EUR,
+                                                       account_type=AccountType.INCOME)
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
+                                                                          obj_in=income_source_create_data, commit=True)
+
+    income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
+                                                      source_amount=Decimal('1050'),
+                                                      source_currency=CurrencyType.USD,
+                                                      destination_amount=Decimal('1000'),
+                                                      destination_currency=CurrencyType.EUR,
+                                                      to_account_id=account_db.id,
+                                                      income_source_id=income_source_db.id,
+                                                      income_period=date(2025, 1, 1))
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
+                                                                               user_id=user_id,
+                                                                               transaction_type=income_create_data.transaction_type)
+    transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
+    await db.commit()
+    await db.close()
+
+    # Act
+    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
+                                                                            transaction_id=transaction_before.id,
+                                                                            user_id=user_id)
+    await db_transaction.commit()
+    await db_transaction.close()
+
+    # Assert
+    assert transaction.status == EntityStatusType.DELETED != transaction_before.status
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 1
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal('0')
+    assert account_db_after.base_currency_rate == Decimal('0')
+
+
+@pytest.mark.asyncio
+async def test_delete_other_currency_2_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {'user_id': user_id,
+                                 'name': 'Income EUR',
+                                 'currency': CurrencyType.EUR,
+                                 'account_type': AccountType.INCOME,
+                                 'balance': Decimal('100'),
+                                 'base_currency_rate': Decimal('0.9526')}
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    account_balance_before: Decimal = copy(account_db.balance)
+    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
+
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name='Best Job')
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
+                                                                          obj_in=income_source_create_data, commit=True)
+
+    income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
+                                                      source_amount=Decimal('1050'),
+                                                      source_currency=CurrencyType.USD,
+                                                      destination_amount=Decimal('1000'),
+                                                      destination_currency=CurrencyType.EUR,
+                                                      to_account_id=account_db.id,
+                                                      income_source_id=income_source_db.id,
+                                                      income_period=date(2025, 1, 1))
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
+                                                                               user_id=user_id,
+                                                                               transaction_type=income_create_data.transaction_type)
+    transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
+    await db.commit()
+    await db.close()
+
+    # Act
+    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
+                                                                            transaction_id=transaction_before.id,
+                                                                            user_id=user_id)
+    await db_transaction.commit()
+    await db_transaction.close()
+
+    # Assert
+    assert transaction.status == EntityStatusType.DELETED != transaction_before.status
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 1
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal('100') == account_balance_before
+    assert account_db_after.base_currency_rate == Decimal('0.9526') == base_currency_rate_before
