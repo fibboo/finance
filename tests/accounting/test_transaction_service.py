@@ -1,20 +1,24 @@
 from datetime import date
 from decimal import Decimal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
+from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.category import category_crud
 from app.crud.accounting.income_source import income_source_crud
 from app.crud.accounting.location import location_crud
 from app.crud.user.user import user_crud
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.category import Category as CategoryModel
 from app.models.accounting.income_source import IncomeSource as IncomeSourceModel
 from app.models.accounting.location import Location as LocationModel
+from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.category import CategoryCreate, CategoryType
@@ -23,6 +27,7 @@ from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import (ExpenseRequest, IncomeRequest, Transaction, TransactionRequest,
                                                 TransactionType, TransferRequest)
 from app.schemas.base import CurrencyType
+from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
 from app.services.accounting import transaction_service
@@ -226,3 +231,112 @@ async def test_get_transactions(db: AsyncSession):
     assert transactions_transaction_type.total == 1
     assert len(transactions_transaction_type.items) == 1
     assert transactions_transaction_type.items[0].transaction_type == TransactionType.TRANSFER
+
+
+@pytest.mark.asyncio
+async def test_get_transaction_ok(db: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test 1',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    account_create_data: dict = {'user_id': user_db.id,
+                                 'name': 'Income EUR',
+                                 'currency': CurrencyType.EUR,
+                                 'account_type': AccountType.INCOME,
+                                 'balance': Decimal('100'),
+                                 'base_currency_rate': Decimal('0.9526')}
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_db.id, name='Best Job')
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
+                                                                          obj_in=income_source_create_data, commit=True)
+    income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
+                                                      source_amount=Decimal('105'),
+                                                      source_currency=CurrencyType.USD,
+                                                      destination_amount=Decimal('100'),
+                                                      destination_currency=CurrencyType.EUR,
+                                                      to_account_id=account_db.id,
+                                                      income_source_id=income_source_db.id,
+                                                      income_period=date(2025, 1, 1))
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
+                                                                               user_id=user_db.id,
+                                                                               transaction_type=income_create_data.transaction_type)
+    transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
+    await db.commit()
+
+    # Act
+    transaction: Transaction = await transaction_service.get_transaction(db=db,
+                                                                         transaction_id=transaction_before.id,
+                                                                         user_id=user_db.id)
+
+    # Assert
+    assert transaction.id == transaction_before.id
+
+
+@pytest.mark.asyncio
+async def test_get_transaction_not_found(db: AsyncSession):
+    # Arrange
+    transaction_id: UUID = uuid4()
+    user_id: UUID = uuid4()
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_service.get_transaction(db=db,
+                                                  transaction_id=transaction_id,
+                                                  user_id=user_id)
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.message == 'Entity not found'
+    search_params = {'id': transaction_id, 'user_id': user_id}
+    assert exc.value.log_message == f'{TransactionModel.__name__} not found by {search_params}'
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username='test 1',
+                                              registration_provider=ProviderType.TELEGRAM,
+                                              base_currency=CurrencyType.USD)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    account_create_data: dict = {'user_id': user_db.id,
+                                 'name': 'Income EUR',
+                                 'currency': CurrencyType.EUR,
+                                 'account_type': AccountType.INCOME,
+                                 'balance': Decimal('100'),
+                                 'base_currency_rate': Decimal('0.9526')}
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_db.id, name='Best Job')
+    income_source_db: IncomeSourceModel = await income_source_crud.create(db=db,
+                                                                          obj_in=income_source_create_data, commit=True)
+    income_create_data: IncomeRequest = IncomeRequest(transaction_date=date(2025, 2, 10),
+                                                      source_amount=Decimal('105'),
+                                                      source_currency=CurrencyType.USD,
+                                                      destination_amount=Decimal('100'),
+                                                      destination_currency=CurrencyType.EUR,
+                                                      to_account_id=account_db.id,
+                                                      income_source_id=income_source_db.id,
+                                                      income_period=date(2025, 1, 1))
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
+                                                                               user_id=user_db.id,
+                                                                               transaction_type=income_create_data.transaction_type)
+    transaction: Transaction = await transaction_processor.create(data=income_create_data)
+    await db.commit()
+
+    wrong_user_id: UUID = uuid4()
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_service.get_transaction(db=db,
+                                                  transaction_id=transaction.id,
+                                                  user_id=wrong_user_id)
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.message == 'Entity not found'
+    search_params = {'id': transaction.id, 'user_id': wrong_user_id}
+    assert exc.value.log_message == f'{TransactionModel.__name__} not found by {search_params}'
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND

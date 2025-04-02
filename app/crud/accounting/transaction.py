@@ -18,19 +18,23 @@ TransactionModel = with_polymorphic(Transaction, [ExpenseTransaction, IncomeTran
 
 
 class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionCreate]):
+    def _get_polymorphic_query(self, query: Select) -> Select:
+        query: Select = query.options(selectinload(TransactionModel.ExpenseTransaction.from_account),
+                                      selectinload(TransactionModel.ExpenseTransaction.category),
+                                      selectinload(TransactionModel.ExpenseTransaction.location),
+                                      selectinload(TransactionModel.IncomeTransaction.to_account),
+                                      selectinload(TransactionModel.IncomeTransaction.income_source),
+                                      selectinload(TransactionModel.TransferTransaction.from_account),
+                                      selectinload(TransactionModel.TransferTransaction.to_account))
+        return query
+
     async def get_transactions(self,
                                db: AsyncSession,
                                request: TransactionRequest,
                                user_id: UUID) -> Page[Transaction]:
 
-        query: Select = (select(TransactionModel).where(TransactionModel.user_id == user_id)
-                         .options(selectinload(TransactionModel.ExpenseTransaction.from_account),
-                                  selectinload(TransactionModel.ExpenseTransaction.category),
-                                  selectinload(TransactionModel.ExpenseTransaction.location),
-                                  selectinload(TransactionModel.IncomeTransaction.to_account),
-                                  selectinload(TransactionModel.IncomeTransaction.income_source),
-                                  selectinload(TransactionModel.TransferTransaction.from_account),
-                                  selectinload(TransactionModel.TransferTransaction.to_account)))
+        query: Select = select(TransactionModel).where(TransactionModel.user_id == user_id)
+        query = self._get_polymorphic_query(query)
 
         if request.base_currency_amount_from is not None:
             query = query.where(TransactionModel.base_currency_amount >= request.base_currency_amount_from)
@@ -63,6 +67,15 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
 
         paginated_expenses = await paginate(db, query, request)
         return paginated_expenses
+
+    def _build_get_query(self, with_for_update: bool = False, **kwargs) -> Select:
+        query: Select = select(TransactionModel).where(*[getattr(TransactionModel, k) == v for k, v in kwargs.items()])
+        query = self._get_polymorphic_query(query)
+
+        if with_for_update:
+            query = query.with_for_update()
+
+        return query
 
 
 transaction_crud = CRUDTransaction(Transaction)

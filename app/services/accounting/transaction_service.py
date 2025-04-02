@@ -22,7 +22,7 @@ async def get_transactions(db: AsyncSession, request: TransactionRequest, user_i
     return transactions
 
 
-async def get_transaction_by_id(db: AsyncSession, transaction_id: UUID, user_id: UUID) -> Transaction:
+async def get_transaction(db: AsyncSession, transaction_id: UUID, user_id: UUID) -> Transaction:
     transaction_db: TransactionModel | None = await transaction_crud.get_or_none(db=db,
                                                                                  id=transaction_id,
                                                                                  user_id=user_id)
@@ -40,8 +40,7 @@ async def delete_transaction(db: AsyncSession, transaction_id: UUID, user_id: UU
     transaction_db: TransactionModel | None = await transaction_crud.get_or_none(db=db,
                                                                                  id=transaction_id,
                                                                                  user_id=user_id,
-                                                                                 status=EntityStatusType.ACTIVE,
-                                                                                 with_for_update=True)
+                                                                                 status=EntityStatusType.ACTIVE)
     if transaction_db is None:
         raise EntityNotFound(entity=TransactionModel,
                              search_params={'id': transaction_id, 'user_id': user_id},

@@ -52,12 +52,12 @@ async def get_transactions(request: TransactionRequest = Depends(),
 
 
 @router.get('/{transaction_id}')
-async def get_transaction_by_id(transaction_id: UUID,
-                                user_id: UUID = Depends(get_user_id),
-                                db: AsyncSession = Depends(get_db)) -> Transaction:
-    transaction: Transaction = await transaction_service.get_transaction_by_id(db=db,
-                                                                               transaction_id=transaction_id,
-                                                                               user_id=user_id)
+async def get_transaction(transaction_id: UUID,
+                          user_id: UUID = Depends(get_user_id),
+                          db: AsyncSession = Depends(get_db)) -> Transaction:
+    transaction: Transaction = await transaction_service.get_transaction(db=db,
+                                                                         transaction_id=transaction_id,
+                                                                         user_id=user_id)
     return transaction
 
 
