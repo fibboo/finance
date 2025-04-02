@@ -26,7 +26,6 @@ from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
-from app.services.accounting import transaction_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -192,7 +191,7 @@ async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, 
                                                         income_period=date(2025, 1, 1))
     transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
                                                                                user_id=user_id,
-                                                                               transaction_type=income_create_data_1.transaction_type,)
+                                                                               transaction_type=income_create_data_1.transaction_type, )
     transaction_1: Transaction = await transaction_processor.create(data=income_create_data_1)
     account_balance_before: Decimal = copy(transaction_1.to_account.balance)
     base_currency_rate_before: Decimal = copy(transaction_1.to_account.base_currency_rate)
@@ -477,9 +476,10 @@ async def test_delete_base_currency_ok(db: AsyncSession, db_transaction: AsyncSe
     await db.close()
 
     # Act
-    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
-                                                                            transaction_id=transaction_before.id,
-                                                                            user_id=user_id)
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
+                                                                               user_id=user_id,
+                                                                               transaction_type=TransactionType.INCOME)
+    transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)
     await db_transaction.commit()
     await db_transaction.close()
 
@@ -529,9 +529,10 @@ async def test_delete_other_currency_ok(db: AsyncSession, db_transaction: AsyncS
     await db.close()
 
     # Act
-    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
-                                                                            transaction_id=transaction_before.id,
-                                                                            user_id=user_id)
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
+                                                                               user_id=user_id,
+                                                                               transaction_type=TransactionType.INCOME)
+    transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)
     await db_transaction.commit()
     await db_transaction.close()
 
@@ -585,9 +586,10 @@ async def test_delete_other_currency_2_ok(db: AsyncSession, db_transaction: Asyn
     await db.close()
 
     # Act
-    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
-                                                                            transaction_id=transaction_before.id,
-                                                                            user_id=user_id)
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
+                                                                               user_id=user_id,
+                                                                               transaction_type=TransactionType.INCOME)
+    transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)
     await db_transaction.commit()
     await db_transaction.close()
 

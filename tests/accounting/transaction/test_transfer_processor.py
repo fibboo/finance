@@ -21,7 +21,6 @@ from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
-from app.services.accounting import transaction_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -482,9 +481,10 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
     await db.close()
 
     # Act
-    transaction: Transaction = await transaction_service.delete_transaction(db=db_transaction,
-                                                                            transaction_id=transaction_before.id,
-                                                                            user_id=user_db.id)
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db_transaction,
+                                                                               user_id=user_db.id,
+                                                                               transaction_type=TransactionType.TRANSFER)
+    transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)
     await db_transaction.commit()
     await db_transaction.close()
 

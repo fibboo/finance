@@ -31,7 +31,7 @@ Tech Stack: Python, FastAPI, SQLAlchemy 2, Pydantic 2, PostgreSQL, Alembic, Dock
    ```
 6. Apply database migrations:
    ```bash
-   docker compose exec finance-backend alembic upgrade head
+   docker compose exec backend alembic upgrade head
    ```
    
 Once all steps are completed, your project will be available at:  
@@ -55,7 +55,7 @@ You can verify the functionality of the project by running the tests. There are 
 
 1. **Inside the Docker container** (service should be running):
    ```bash
-   docker compose exec finance-backend pytest -n auto
+   docker compose exec backend pytest -n auto
    ```
 
 2. **Locally (if you have Python installed)**:

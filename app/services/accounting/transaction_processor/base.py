@@ -129,7 +129,17 @@ class TransactionProcessor(ABC, Generic[T]):
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction
 
-    async def delete(self, transaction_db: TransactionModel) -> Transaction:
+    async def delete(self, transaction_id: UUID) -> Transaction:
+        transaction_db: TransactionModel | None = await self._transaction_crud.get_or_none(db=self.db,
+                                                                                           id=transaction_id,
+                                                                                           user_id=self.user_id,
+                                                                                           status=EntityStatusType.ACTIVE,
+                                                                                           with_for_update=True)
+        if transaction_db is None:
+            raise EntityNotFound(entity=TransactionModel,
+                                 search_params={'id': transaction_id, 'user_id': self.user_id},
+                                 logger=logger)
+
         delete_update_data = {'status': EntityStatusType.DELETED}
         transaction_db: TransactionModel = await self._transaction_crud.update_api(db=self.db,
                                                                                    db_obj=transaction_db,

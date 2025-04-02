@@ -1,4 +1,4 @@
-FROM python:3.11.9-bullseye
+FROM python:3.11.9-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

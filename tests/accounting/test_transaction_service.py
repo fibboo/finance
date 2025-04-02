@@ -102,7 +102,10 @@ async def test_get_transactions(db: AsyncSession):
                                                                                    transaction_type=expense_create_data.transaction_type)
         transaction: Transaction = await transaction_processor.create(data=expense_create_data)
         if i == 1:
-            await transaction_service.delete_transaction(db=db, transaction_id=transaction.id, user_id=user_id)
+            transaction_processor: TransactionProcessor = TransactionProcessor.factory(db=db,
+                                                                                       user_id=user_id,
+                                                                                       transaction_type=TransactionType.EXPENSE)
+            await transaction_processor.delete(transaction_id=transaction.id)
 
     account_create_data: dict = {'user_id': user_id,
                                  'name': 'Income EUR',
