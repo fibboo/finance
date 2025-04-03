@@ -9,7 +9,7 @@ from app.configs.logging_settings import get_logger
 from app.configs.settings import settings, telegram_settings
 from app.exceptions.unauthorized_401 import InvalidAuthData
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.session import AuthUser, SessionAuth
+from app.schemas.user.session import AuthData
 from app.services.user.auth.auth_client import AuthClient
 
 logger = get_logger(__name__)
@@ -41,7 +41,7 @@ class AuthTelegramClient(AuthClient):
 
         return telegram_hash == sign
 
-    def get_session_auth(self, auth_code: str) -> tuple[SessionAuth, AuthUser]:
+    def get_session_auth(self, auth_code: str) -> AuthData:
         decoded_token = base64.b64decode(auth_code).decode('utf-8')
 
         parse_result: dict = parse.parse_qs(parse.urlsplit(decoded_token).query)
@@ -58,15 +58,13 @@ class AuthTelegramClient(AuthClient):
         if not self._check_telegram_authorization(auth_data=parse_result):
             raise InvalidAuthData('Error while checking sign information from telegram', logger=logger)
 
-        session_auth = SessionAuth(access_token=telegram_hash,
-                                   token_type='telegramHash',
-                                   expires_in=settings.session_expire_seconds,
-                                   scope='write-message+auth',
-                                   user_identifier=telegram_id)
+        auth_data: AuthData = AuthData(access_token=telegram_hash,
+                                       token_type='telegramHash',
+                                       expires_in=settings.session_expire_seconds,
+                                       scope='write-message+auth',
+                                       user_identifier=telegram_id,
+                                       external_id=telegram_id,
+                                       username=username,
+                                       provider=self.provider)
 
-        auth_user = AuthUser(external_id=telegram_id,
-                             username=username,
-                             provider=self.provider,
-                             is_notify=True)
-
-        return session_auth, auth_user
+        return auth_data

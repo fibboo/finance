@@ -11,8 +11,8 @@ from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import AccountDeletionForbidden, MaxAccountsReached
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
-from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountUpdate
-from app.schemas.base import EntityStatusType
+from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountType, AccountUpdate
+from app.schemas.base import CurrencyType, EntityStatusType
 
 logger = get_logger(__name__)
 
@@ -33,6 +33,16 @@ async def create_account(db: AsyncSession,
 
     account: Account = Account.model_validate(account_db)
     return account
+
+
+async def create_standard_accounts(db: AsyncSession, user_id: UUID, base_currency: CurrencyType) -> None:
+    create_data: list[AccountCreate] = []
+    for account_type in AccountType:
+        create_data.append(AccountCreate(name=f'{account_type.value.title()} {base_currency.value}',
+                                         currency=base_currency,
+                                         account_type=account_type,
+                                         user_id=user_id))
+    await account_crud.create_batch(db=db, objs_in=create_data)
 
 
 async def get_accounts(db: AsyncSession, user_id: UUID) -> list[Account]:

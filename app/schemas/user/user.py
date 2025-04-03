@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     username: constr(min_length=3, max_length=64)
     avatar: constr(min_length=3, max_length=2560) | None = None
     registration_provider: ProviderType
-    base_currency: CurrencyType | None = CurrencyType.USD
+    base_currency: CurrencyType
 
 
 class UserCreate(UserBase):

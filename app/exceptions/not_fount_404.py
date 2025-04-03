@@ -25,7 +25,7 @@ class NotFoundException(AppBaseException):
 
 
 class EntityNotFound(NotFoundException):
-    def __init__(self,
+    def __init__(self, *,
                  entity: type[Base],
                  search_params: dict[str, Any],
                  logger: logging.Logger,

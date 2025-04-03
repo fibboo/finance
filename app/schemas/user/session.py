@@ -1,23 +1,20 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import User
 
 
-class SessionAuth(BaseModel):
+class AuthData(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
     refresh_token: str | None = None
     scope: str
     user_identifier: str | None = None
-    email: EmailStr | None = None
 
-
-class AuthUser(BaseModel):
     provider: ProviderType
     external_id: str
     username: str

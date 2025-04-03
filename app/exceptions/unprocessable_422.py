@@ -8,7 +8,7 @@ from app.schemas.error_response import ErrorCodeType
 
 
 class UnprocessableException(AppBaseException):
-    def __init__(self,
+    def __init__(self, *,
                  log_message: str,
                  logger: logging.Logger,
                  log_level: LogLevelType = LogLevelType.WARNING,

@@ -1,6 +1,7 @@
 from enum import Enum
 
 from pydantic import BaseModel
+from starlette import status
 
 
 class ErrorCodeType(str, Enum):
@@ -24,3 +25,11 @@ class ErrorCodeType(str, Enum):
 class ErrorResponse(BaseModel):
     message: str
     error_code: ErrorCodeType | None = None
+
+
+responses = {
+    status.HTTP_418_IM_A_TEAPOT: {
+        'description': 'Custom errors with possible codes: 400, 401, 403, 404, 409, 501',
+        'model': ErrorResponse
+    }
+}

@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import Depends, Header
@@ -7,8 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.configs.logging_settings import get_logger
 from app.db.postgres import session_maker
 from app.exceptions.unauthorized_401 import SessionExpiredException
-from app.schemas.user.session import Session
-from app.services.user import session_service
+from app.models.user.session import Session as SessionModel
 
 logger = get_logger(__name__)
 
@@ -34,12 +32,12 @@ async def get_db_transaction() -> AsyncSession:
 
 
 async def get_user_id(x_auth_token: UUID = Header(...),
-                      db: AsyncSession = Depends(get_db)) -> UUID:
-    user_session: Session = await session_service.get_session_by_token(db=db, token=x_auth_token)
-    if user_session.expires_at < datetime.now():
+                      db: AsyncSession = Depends(get_db), session_crud=None) -> UUID:
+    session_db: SessionModel | None = await session_crud.get_active_session(db=db, session_id=x_auth_token)
+    if session_db is None:
         raise SessionExpiredException(token=x_auth_token, logger=logger)
 
-    return user_session.user_id
+    return session_db.user_id
 
 
 def get_token(x_auth_token: UUID = Header(...)) -> UUID:

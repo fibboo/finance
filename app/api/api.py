@@ -2,8 +2,9 @@ from fastapi import APIRouter
 
 from app.api.endpoints.accounting import account, categories, income_sources, locations, transactions
 from app.api.endpoints.user import auth
+from app.schemas.error_response import responses
 
-api_router = APIRouter()
+api_router = APIRouter(responses=responses)
 
 # Accounting
 accounting_router = APIRouter(prefix='/accounting')

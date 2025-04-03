@@ -25,7 +25,7 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
 
         self.model = model
 
-    def _build_get_query(self, with_for_update: bool = False, **kwargs) -> Select:
+    def _build_get_query(self, *, with_for_update: bool = False, **kwargs) -> Select:
         query: Select = select(self.model).where(*[getattr(self.model, k) == v for k, v in kwargs.items()])
 
         if with_for_update:
@@ -33,30 +33,30 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
 
         return query
 
-    async def get(self, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model:
+    async def get(self, *, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model:
         query: Select = self._build_get_query(with_for_update=with_for_update, **kwargs)
         result: Model = (await db.execute(query)).unique().scalar_one()
         return result
 
-    async def get_or_none(self, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model | None:
+    async def get_or_none(self, *, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model | None:
         query: Select = self._build_get_query(with_for_update=with_for_update, **kwargs)
 
         result: Model | None = (await db.execute(query)).unique().scalar_one_or_none()
         return result
 
-    async def last_or_none(self, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model | None:
+    async def last_or_none(self, *, db: AsyncSession, with_for_update: bool | None = False, **kwargs) -> Model | None:
         query: Select = self._build_get_query(with_for_update=with_for_update, **kwargs)
         query: Select = query.order_by(self.model.created_at.desc())
 
         result: Model | None = (await db.execute(query)).unique().scalars().first()
         return result
 
-    async def get_batch(self, db: AsyncSession, skip: int = 0, limit: int = 100, **kwargs) -> list[Model]:
+    async def get_batch(self, *, db: AsyncSession, skip: int = 0, limit: int = 100, **kwargs) -> list[Model]:
         query: Select = self._build_get_query(**kwargs).offset(skip).limit(limit)
         result: list[Model] = (await db.execute(query)).unique().scalars().all()
         return result
 
-    async def create(self,
+    async def create(self, *,
                      db: AsyncSession,
                      obj_in: CreateSchema | dict[str, Any],
                      flush: bool | None = True,
@@ -74,7 +74,30 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def update_orm(self,
+    async def create_batch(self, *,
+                           db: AsyncSession,
+                           objs_in: list[CreateSchema] | list[dict[str, Any]],
+                           flush: bool | None = True,
+                           commit: bool | None = False) -> list[Model]:
+        objs_data: list[dict[str, Any]] = []
+        for obj_in in objs_in:
+            obj_data = obj_in
+            if isinstance(obj_in, BaseModel):
+                obj_data = obj_in.model_dump(exclude_unset=True)
+            objs_data.append(obj_data)
+
+        db_objs: list[Model] = [self.model(**obj_data) for obj_data in objs_data]
+        db.add_all(db_objs)
+        if flush:
+            await db.flush()
+        if commit:
+            await db.commit()
+        for db_obj in db_objs:
+            await db.refresh(db_obj)
+
+        return db_objs
+
+    async def update_orm(self, *,
                          db: AsyncSession,
                          obj_in: UpdateSchema | dict[str, Any],
                          flush: bool | None = True,
@@ -96,7 +119,7 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
             await db.commit()
         return db_obj
 
-    async def update_api(self,
+    async def update_api(self, *,
                          db: AsyncSession,
                          db_obj: Model,
                          obj_in: UpdateSchema | dict[str, Any],
