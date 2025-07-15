@@ -41,7 +41,7 @@ def test_hash_inequality():
 def test_hash_after_mutation():
     req = TransactionRequest(page=2, size=30)
     initial_hash = hash(req)
-    # Модифицируем список orders
+    # Modify the orders list
     req.orders.append(Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC))
     new_hash = hash(req)
     assert initial_hash != new_hash
