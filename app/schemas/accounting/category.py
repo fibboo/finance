@@ -50,5 +50,5 @@ class CategoryRequest(Params):
 
     def __hash__(self):
         data = self.model_dump()
-        hashable_items: tuple = utils.make_hashable(data)
+        hashable_items: tuple = utils.make_hashable(value=data)
         return hash(hashable_items)

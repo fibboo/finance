@@ -12,6 +12,7 @@ from app.schemas.error_response import ErrorCodeType
 class NotFoundException(AppBaseException):
     def __init__(
         self,
+        *,
         message: str,
         log_message: str,
         logger: logging.Logger,

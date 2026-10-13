@@ -19,6 +19,7 @@ router = APIRouter()
 
 @router.post("")
 async def create_transaction(
+    *,
     create_data: TransactionCreateRequest,
     user_id: UUID = Depends(get_user_id),
     db: AsyncSession = Depends(get_db_transaction),
@@ -50,7 +51,7 @@ async def create_transaction(
 
 @router.get("")
 async def get_transactions(
-    request: TransactionRequest = Depends(), user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *, request: TransactionRequest = Depends(), user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
 ) -> Page[Transaction]:
     transactions: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request, user_id=user_id
@@ -60,7 +61,7 @@ async def get_transactions(
 
 @router.get("/{transaction_id}")
 async def get_transaction(
-    transaction_id: UUID, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *, transaction_id: UUID, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
 ) -> Transaction:
     transaction: Transaction = await transaction_service.get_transaction(
         db=db, transaction_id=transaction_id, user_id=user_id
@@ -70,6 +71,7 @@ async def get_transaction(
 
 @router.delete("/{transaction_id}")
 async def delete_transaction(
+    *,
     transaction_id: UUID,
     transaction_type: TransactionType,
     user_id: UUID = Depends(get_user_id),

@@ -7,6 +7,7 @@ from app.schemas.error_response import ErrorCodeType
 class AppBaseException(Exception):
     def __init__(
         self,
+        *,
         status_code: int,
         message: str,
         log_message: str,

@@ -21,17 +21,17 @@ from app.services.user import user_service
 
 T = TypeVar("T", bound=TransactionCreateRequest)
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
 class TransactionProcessor(ABC, Generic[T]):
-    def __init__(self, db: AsyncSession, user_id: UUID):
+    def __init__(self, *, db: AsyncSession, user_id: UUID):
         self.db: AsyncSession = db
         self.user_id: UUID = user_id
         self.base_currency: CurrencyType | None = None
 
     @classmethod
-    def factory(cls, db: AsyncSession, user_id: UUID, transaction_type: TransactionType) -> "TransactionProcessor":
+    def factory(cls, *, db: AsyncSession, user_id: UUID, transaction_type: TransactionType) -> "TransactionProcessor":
         from app.services.accounting.transaction_processor.expense import Expense
         from app.services.accounting.transaction_processor.income import Income
         from app.services.accounting.transaction_processor.transfer import Transfer
@@ -60,7 +60,7 @@ class TransactionProcessor(ABC, Generic[T]):
     def _transaction_crud(self) -> CRUDBase:
         pass
 
-    async def _validate_transaction_from_account(self, data: T, from_account_db: AccountModel | None) -> None:
+    async def _validate_transaction_from_account(self, *, data: T, from_account_db: AccountModel | None) -> None:
         if from_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={"id": data.from_account_id}, logger=logger)
 
@@ -75,7 +75,7 @@ class TransactionProcessor(ABC, Generic[T]):
                 logger=logger,
             )
 
-    async def _validate_transaction_to_account(self, data: T, to_account_db: AccountModel | None) -> None:
+    async def _validate_transaction_to_account(self, *, data: T, to_account_db: AccountModel | None) -> None:
         if to_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={"id": data.to_account_id}, logger=logger)
 
@@ -88,10 +88,10 @@ class TransactionProcessor(ABC, Generic[T]):
             )
 
     @abstractmethod
-    async def _prepare_transaction(self, data: T) -> TransactionCreate:
+    async def _prepare_transaction(self, *, data: T) -> TransactionCreate:
         pass
 
-    async def _update_from_account(self, transaction_db: TransactionModel) -> None:
+    async def _update_from_account(self, *, transaction_db: TransactionModel) -> None:
         delta = (
             transaction_db.source_amount
             if transaction_db.status == EntityStatusType.DELETED
@@ -100,7 +100,7 @@ class TransactionProcessor(ABC, Generic[T]):
         new_balance: Decimal = transaction_db.from_account.balance + delta
         await account_crud.update_orm(db=self.db, id=transaction_db.from_account_id, obj_in={"balance": new_balance})
 
-    async def _update_to_account(self, transaction_db: TransactionModel) -> None:
+    async def _update_to_account(self, *, transaction_db: TransactionModel) -> None:
         delta = (
             -transaction_db.destination_amount
             if transaction_db.status == EntityStatusType.DELETED
@@ -133,7 +133,7 @@ class TransactionProcessor(ABC, Generic[T]):
             obj_in={"balance": new_balance, "base_currency_rate": new_base_rate},
         )
 
-    async def create(self, data: T) -> Transaction:
+    async def create(self, *, data: T) -> Transaction:
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
 
         transaction_data: TransactionCreate = await self._prepare_transaction(data=data)
@@ -149,7 +149,7 @@ class TransactionProcessor(ABC, Generic[T]):
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction
 
-    async def delete(self, transaction_id: UUID) -> Transaction:
+    async def delete(self, *, transaction_id: UUID) -> Transaction:
         transaction_db: TransactionModel | None = await self._transaction_crud.get_or_none(
             db=self.db, id=transaction_id, user_id=self.user_id, status=EntityStatusType.ACTIVE, with_for_update=True
         )

@@ -10,10 +10,10 @@ from app.models.user.session import Session as SessionModel
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import AuthData, Session, UserSessionCreate
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
-async def create_session(db: AsyncSession, user_id: UUID, provider: ProviderType, auth_data: AuthData) -> Session:
+async def create_session(*, db: AsyncSession, user_id: UUID, provider: ProviderType, auth_data: AuthData) -> Session:
     expires_at: datetime = datetime.now() + timedelta(seconds=settings.session_expire_seconds)
     session_create: UserSessionCreate = UserSessionCreate(
         user_id=user_id,
@@ -31,5 +31,5 @@ async def create_session(db: AsyncSession, user_id: UUID, provider: ProviderType
     return session
 
 
-async def revoke_session(db: AsyncSession, token: UUID) -> None:
+async def revoke_session(*, db: AsyncSession, token: UUID) -> None:
     await user_session_crud.revoke(db=db, id=token)

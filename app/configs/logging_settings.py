@@ -22,13 +22,12 @@ def get_console_handler() -> logging.StreamHandler:
     return console_handler
 
 
-def get_logger(logger_name) -> logging.Logger:
+def get_logger(*, logger_name) -> logging.Logger:
     logger: logging.Logger = logging.getLogger(logger_name)
     if settings.environment != EnvironmentType.PROD:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
     logger.addHandler(get_console_handler())
-    # with this pattern, it's rarely necessary to propagate the error up to parent
     logger.propagate = False
     return logger

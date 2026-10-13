@@ -8,7 +8,7 @@ from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import AuthData
 from app.services.user.auth.auth_client import AuthClient
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
 class AuthTestClient(AuthClient):
@@ -26,7 +26,7 @@ class AuthTestClient(AuthClient):
 
         return "test"
 
-    def get_session_auth(self, auth_code: str) -> AuthData:
+    def get_session_auth(self, *, auth_code: str) -> AuthData:
         if settings.environment != EnvironmentType.LOCAL:
             raise EnvironmentMismatch(required_env=EnvironmentType.LOCAL, logger=logger)
 

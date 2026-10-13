@@ -11,7 +11,7 @@ from app.schemas.accounting.location import LocationCreateRequest, LocationReque
 
 
 class CRUDLocation(CRUDBase[Location, LocationCreateRequest, LocationUpdate]):
-    async def get_locations(self, db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
+    async def get_locations(self, *, db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
         query = (
             select(self.model)
             .where(self.model.user_id == user_id)
@@ -32,4 +32,4 @@ class CRUDLocation(CRUDBase[Location, LocationCreateRequest, LocationUpdate]):
         return paginated_expenses
 
 
-location_crud = CRUDLocation(Location)
+location_crud = CRUDLocation(model=Location)

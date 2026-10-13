@@ -13,16 +13,7 @@ UpdateSchema = TypeVar("UpdateSchema", bound=BaseModel)
 
 
 class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
-    def __init__(self, model: Type[Model]):
-        """
-        CRUD object with default methods to Create, Read, Update, Delete (CRUD).
-
-        **Parameters**
-
-        * `model`: A SQLAlchemy model class
-        * `schema`: A Pydantic model (schema) class
-        """
-
+    def __init__(self, *, model: Type[Model]):
         self.model = model
 
     def _build_get_query(self, *, with_for_update: bool = False, **kwargs) -> Select:

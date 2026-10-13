@@ -11,6 +11,7 @@ from app.schemas.error_response import ErrorCodeType
 class UnauthorizedException(AppBaseException):
     def __init__(
         self,
+        *,
         message: str,
         log_message: str,
         logger: logging.Logger,
@@ -28,7 +29,7 @@ class UnauthorizedException(AppBaseException):
 
 
 class SessionExpiredException(UnauthorizedException):
-    def __init__(self, token: UUID, logger: logging.Logger):
+    def __init__(self, *, token: UUID, logger: logging.Logger):
         super().__init__(
             message="Session expired",
             log_message=f"Session with token `{token}` expired",
@@ -39,7 +40,7 @@ class SessionExpiredException(UnauthorizedException):
 
 
 class InvalidAuthData(UnauthorizedException):
-    def __init__(self, log_message: str, logger: logging.Logger):
+    def __init__(self, *, log_message: str, logger: logging.Logger):
         super().__init__(
             message="Invalid auth data",
             log_message=log_message,

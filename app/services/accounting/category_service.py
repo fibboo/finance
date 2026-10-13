@@ -17,10 +17,10 @@ from app.schemas.accounting.category import (
     CategoryUpdate,
 )
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
-async def create_category(db: AsyncSession, create_data: CategoryCreateRequest, user_id: UUID) -> Category:
+async def create_category(*, db: AsyncSession, create_data: CategoryCreateRequest, user_id: UUID) -> Category:
     obj_in: CategoryCreate = CategoryCreate(**create_data.model_dump(), user_id=user_id)
     try:
         expense_db: CategoryModel = await category_crud.create(db=db, obj_in=obj_in)
@@ -32,13 +32,13 @@ async def create_category(db: AsyncSession, create_data: CategoryCreateRequest, 
     return category
 
 
-async def get_categories(db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
+async def get_categories(*, db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
     categories_db: Page[CategoryModel] = await category_crud.get_categories(db=db, request=request, user_id=user_id)
     categories: Page[Category] = Page[Category].model_validate(categories_db)
     return categories
 
 
-async def get_category(db: AsyncSession, category_id: UUID, user_id: UUID) -> Category:
+async def get_category(*, db: AsyncSession, category_id: UUID, user_id: UUID) -> Category:
     category_db: CategoryModel | None = await category_crud.get_or_none(db=db, id=category_id, user_id=user_id)
 
     if category_db is None:
@@ -48,7 +48,9 @@ async def get_category(db: AsyncSession, category_id: UUID, user_id: UUID) -> Ca
     return category
 
 
-async def update_category(db: AsyncSession, category_id: UUID, update_data: CategoryUpdate, user_id: UUID) -> Category:
+async def update_category(
+    *, db: AsyncSession, category_id: UUID, update_data: CategoryUpdate, user_id: UUID
+) -> Category:
     try:
         category_db: CategoryModel | None = await category_crud.update_orm(
             db=db, obj_in=update_data, id=category_id, user_id=user_id

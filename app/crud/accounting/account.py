@@ -10,10 +10,10 @@ from app.schemas.accounting.account import AccountCreate, AccountUpdate
 
 
 class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
-    async def count(self, db: AsyncSession, user_id: UUID) -> int:
+    async def count(self, *, db: AsyncSession, user_id: UUID) -> int:
         query: Select = select(count(self.model.id)).where(self.model.user_id == user_id)
         result: int = (await db.execute(query)).scalar()
         return result
 
 
-account_crud = CRUDAccount(Account)
+account_crud = CRUDAccount(model=Account)

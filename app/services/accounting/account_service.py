@@ -14,10 +14,10 @@ from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountType, AccountUpdate
 from app.schemas.base import CurrencyType, EntityStatusType
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
-async def create_account(db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID) -> Account:
+async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID) -> Account:
     user_accounts_count: int = await account_crud.count(db=db, user_id=user_id)
     if user_accounts_count >= settings.max_accounts_per_user:
         raise MaxAccountsReached(user_id=user_id, logger=logger)
@@ -33,7 +33,7 @@ async def create_account(db: AsyncSession, create_data: AccountCreateRequest, us
     return account
 
 
-async def create_standard_accounts(db: AsyncSession, user_id: UUID, base_currency: CurrencyType) -> None:
+async def create_standard_accounts(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyType) -> None:
     create_data: list[AccountCreate] = []
     for account_type in AccountType:
         create_data.append(
@@ -47,7 +47,7 @@ async def create_standard_accounts(db: AsyncSession, user_id: UUID, base_currenc
     await account_crud.create_batch(db=db, objs_in=create_data)
 
 
-async def get_accounts(db: AsyncSession, user_id: UUID) -> list[Account]:
+async def get_accounts(*, db: AsyncSession, user_id: UUID) -> list[Account]:
     accounts_db: list[AccountModel] = await account_crud.get_batch(
         db=db, user_id=user_id, status=EntityStatusType.ACTIVE
     )
@@ -56,7 +56,7 @@ async def get_accounts(db: AsyncSession, user_id: UUID) -> list[Account]:
     return accounts
 
 
-async def get_account(db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
+async def get_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
     account_db: AccountModel | None = await account_crud.get_or_none(
         db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE
     )
@@ -67,7 +67,7 @@ async def get_account(db: AsyncSession, account_id: UUID, user_id: UUID) -> Acco
     return account
 
 
-async def update_account(db: AsyncSession, account_id: UUID, update_data: AccountUpdate, user_id: UUID) -> Account:
+async def update_account(*, db: AsyncSession, account_id: UUID, update_data: AccountUpdate, user_id: UUID) -> Account:
     try:
         account_db: AccountModel | None = await account_crud.update_orm(
             db=db, obj_in=update_data, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE
@@ -82,7 +82,7 @@ async def update_account(db: AsyncSession, account_id: UUID, update_data: Accoun
     return account
 
 
-async def delete_account(db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
+async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
     account_db: AccountModel | None = await account_crud.get_or_none(
         db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE, with_for_update=True
     )

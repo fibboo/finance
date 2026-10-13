@@ -18,6 +18,7 @@ router = APIRouter()
 
 @router.post("")
 async def create_income_source(
+    *,
     create_data: IncomeSourceCreateRequest,
     user_id: UUID = Depends(get_user_id),
     db: AsyncSession = Depends(get_db_transaction),
@@ -30,7 +31,10 @@ async def create_income_source(
 
 @router.get("")
 async def get_income_sources(
-    request: IncomeSourceRequest = Depends(), user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *,
+    request: IncomeSourceRequest = Depends(),
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
 ) -> Page[IncomeSource]:
     income_sources: Page[IncomeSource] = await income_service.get_income_sources(
         db=db, request=request, user_id=user_id
@@ -40,7 +44,7 @@ async def get_income_sources(
 
 @router.get("/{income_source_id}")
 async def get_income_source(
-    income_source_id: UUID, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *, income_source_id: UUID, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
 ) -> IncomeSource:
     income_source: IncomeSource = await income_service.get_income_source(
         db=db, income_source_id=income_source_id, user_id=user_id
@@ -50,6 +54,7 @@ async def get_income_source(
 
 @router.put("/{income_source_id}")
 async def update_income_source(
+    *,
     income_source_id: UUID,
     update_data: IncomeSourceUpdate,
     user_id: UUID = Depends(get_user_id),
