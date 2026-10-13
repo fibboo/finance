@@ -11,19 +11,24 @@ from app.schemas.accounting.income_source import IncomeSourceCreateRequest, Inco
 
 
 class CRUDIncomeSource(CRUDBase[IncomeSource, IncomeSourceCreateRequest, IncomeSourceUpdate]):
-    async def get_income_sources(self,
-                                 db: AsyncSession,
-                                 request: IncomeSourceRequest,
-                                 user_id: UUID) -> Page[IncomeSource]:
-        query = (select(self.model)
-                 .where(self.model.user_id == user_id)
-                 .order_by(self.model.name)
-                 .order_by(self.model.id)
-                 .limit(20))
+    async def get_income_sources(
+        self, db: AsyncSession, request: IncomeSourceRequest, user_id: UUID
+    ) -> Page[IncomeSource]:
+        query = (
+            select(self.model)
+            .where(self.model.user_id == user_id)
+            .order_by(self.model.name)
+            .order_by(self.model.id)
+            .limit(20)
+        )
 
         if request.search_term is not None:
-            query = query.where(or_(self.model.name.ilike(f'%{request.search_term}%'),
-                                    self.model.description.ilike(f'%{request.search_term}%')))
+            query = query.where(
+                or_(
+                    self.model.name.ilike(f"%{request.search_term}%"),
+                    self.model.description.ilike(f"%{request.search_term}%"),
+                )
+            )
 
         paginated_income_sources = await paginate(db, query, request)
         return paginated_income_sources

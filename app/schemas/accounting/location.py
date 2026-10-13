@@ -32,8 +32,8 @@ class Location(LocationCreate):
 
 
 class LocationRequest(Params):
-    page: int = Query(1, ge=1, description='Page number')
-    size: int = Query(20, ge=1, le=100, description='Page size')
+    page: int = Query(1, ge=1, description="Page number")
+    size: int = Query(20, ge=1, le=100, description="Page size")
 
     search_term: constr(min_length=3) | None = None
 

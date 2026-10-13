@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 app = FastAPI(title=settings.app_title)
 
 log_level = logging.INFO if settings.environment == EnvironmentType.PROD else logging.DEBUG
-logging.getLogger('uvicorn.access').setLevel(log_level)
+logging.getLogger("uvicorn.access").setLevel(log_level)
 
 app.include_router(api_router)
 
@@ -22,15 +22,14 @@ app.include_router(api_router)
 @app.exception_handler(AppBaseException)
 async def app_exception_handler(_: Request, exc: AppBaseException):
     exc.logger.log(level=exc.log_level, msg=exc.log_message)
-    content = ErrorResponse(message=exc.message,
-                            error_code=exc.error_code)
+    content = ErrorResponse(message=exc.message, error_code=exc.error_code)
 
-    return JSONResponse(status_code=exc.status_code,
-                        content=content.model_dump())
+    return JSONResponse(status_code=exc.status_code, content=content.model_dump())
 
 
 # Root routes
 
-@app.get('/')
+
+@app.get("/")
 async def main():
-    return 'The entry for the API'
+    return "The entry for the API"

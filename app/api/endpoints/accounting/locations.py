@@ -11,37 +11,40 @@ from app.services.accounting import location_service
 router = APIRouter()
 
 
-@router.post('')
-async def create_location(create_data: LocationCreateRequest,
-                          user_id: UUID = Depends(get_user_id),
-                          db: AsyncSession = Depends(get_db_transaction)) -> Location:
+@router.post("")
+async def create_location(
+    create_data: LocationCreateRequest,
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db_transaction),
+) -> Location:
     location: Location = await location_service.create_location(db=db, create_data=create_data, user_id=user_id)
     return location
 
 
-@router.get('')
-async def get_locations(request: LocationRequest = Depends(),
-                        user_id: UUID = Depends(get_user_id),
-                        db: AsyncSession = Depends(get_db)) -> Page[Location]:
+@router.get("")
+async def get_locations(
+    request: LocationRequest = Depends(), user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+) -> Page[Location]:
     locations: Page[Location] = await location_service.get_locations(db=db, request=request, user_id=user_id)
     return locations
 
 
-@router.get('/{location_id}')
-async def get_location_by_id(location_id: UUID,
-                             user_id: UUID = Depends(get_user_id),
-                             db: AsyncSession = Depends(get_db)) -> Location:
+@router.get("/{location_id}")
+async def get_location_by_id(
+    location_id: UUID, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+) -> Location:
     location: Location = await location_service.get_location(db=db, location_id=location_id, user_id=user_id)
     return location
 
 
-@router.put('/{location_id}')
-async def update_location(location_id: UUID,
-                          update_data: LocationUpdate,
-                          user_id: UUID = Depends(get_user_id),
-                          db: AsyncSession = Depends(get_db_transaction)) -> Location:
-    location: Location = await location_service.update_location(db=db,
-                                                                location_id=location_id,
-                                                                update_data=update_data,
-                                                                user_id=user_id)
+@router.put("/{location_id}")
+async def update_location(
+    location_id: UUID,
+    update_data: LocationUpdate,
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db_transaction),
+) -> Location:
+    location: Location = await location_service.update_location(
+        db=db, location_id=location_id, update_data=update_data, user_id=user_id
+    )
     return location

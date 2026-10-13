@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import Base
 
-Model = TypeVar('Model', bound=Base)
-CreateSchema = TypeVar('CreateSchema', bound=BaseModel)
-UpdateSchema = TypeVar('UpdateSchema', bound=BaseModel)
+Model = TypeVar("Model", bound=Base)
+CreateSchema = TypeVar("CreateSchema", bound=BaseModel)
+UpdateSchema = TypeVar("UpdateSchema", bound=BaseModel)
 
 
 class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
@@ -56,11 +56,14 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
         result: list[Model] = (await db.execute(query)).unique().scalars().all()
         return result
 
-    async def create(self, *,
-                     db: AsyncSession,
-                     obj_in: CreateSchema | dict[str, Any],
-                     flush: bool | None = True,
-                     commit: bool | None = False) -> Model:
+    async def create(
+        self,
+        *,
+        db: AsyncSession,
+        obj_in: CreateSchema | dict[str, Any],
+        flush: bool | None = True,
+        commit: bool | None = False,
+    ) -> Model:
         obj_data = obj_in
         if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump(exclude_unset=True)
@@ -74,11 +77,14 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def create_batch(self, *,
-                           db: AsyncSession,
-                           objs_in: list[CreateSchema] | list[dict[str, Any]],
-                           flush: bool | None = True,
-                           commit: bool | None = False) -> list[Model]:
+    async def create_batch(
+        self,
+        *,
+        db: AsyncSession,
+        objs_in: list[CreateSchema] | list[dict[str, Any]],
+        flush: bool | None = True,
+        commit: bool | None = False,
+    ) -> list[Model]:
         objs_data: list[dict[str, Any]] = []
         for obj_in in objs_in:
             obj_data = obj_in
@@ -97,20 +103,25 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
 
         return db_objs
 
-    async def update_orm(self, *,
-                         db: AsyncSession,
-                         obj_in: UpdateSchema | dict[str, Any],
-                         flush: bool | None = True,
-                         commit: bool | None = False,
-                         **kwargs) -> Model | None:
+    async def update_orm(
+        self,
+        *,
+        db: AsyncSession,
+        obj_in: UpdateSchema | dict[str, Any],
+        flush: bool | None = True,
+        commit: bool | None = False,
+        **kwargs,
+    ) -> Model | None:
         obj_data = obj_in
         if isinstance(obj_in, BaseModel):
             obj_data = obj_in.model_dump(exclude_unset=True)
 
-        query: Update = (update(self.model)
-                         .where(*[getattr(self.model, k) == v for k, v in kwargs.items()])
-                         .values(obj_data)
-                         .returning(self.model))
+        query: Update = (
+            update(self.model)
+            .where(*[getattr(self.model, k) == v for k, v in kwargs.items()])
+            .values(obj_data)
+            .returning(self.model)
+        )
         db_obj: Model | None = await db.scalar(query)
 
         if flush:
@@ -119,12 +130,15 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
             await db.commit()
         return db_obj
 
-    async def update_api(self, *,
-                         db: AsyncSession,
-                         db_obj: Model,
-                         obj_in: UpdateSchema | dict[str, Any],
-                         flush: bool | None = True,
-                         commit: bool | None = False) -> Model:
+    async def update_api(
+        self,
+        *,
+        db: AsyncSession,
+        db_obj: Model,
+        obj_in: UpdateSchema | dict[str, Any],
+        flush: bool | None = True,
+        commit: bool | None = False,
+    ) -> Model:
         obj_data: dict[str, Any] = jsonable_encoder(db_obj)
         update_data: dict[str, Any] = obj_in
         if isinstance(obj_in, BaseModel):

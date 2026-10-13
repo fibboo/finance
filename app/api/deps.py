@@ -31,8 +31,7 @@ async def get_db_transaction() -> AsyncSession:
         await session.close()
 
 
-async def get_user_id(x_auth_token: UUID = Header(...),
-                      db: AsyncSession = Depends(get_db), session_crud=None) -> UUID:
+async def get_user_id(x_auth_token: UUID = Header(...), db: AsyncSession = Depends(get_db), session_crud=None) -> UUID:
     session_db: SessionModel | None = await session_crud.get_active_session(db=db, session_id=x_auth_token)
     if session_db is None:
         raise SessionExpiredException(token=x_auth_token, logger=logger)

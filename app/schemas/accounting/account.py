@@ -8,10 +8,10 @@ from app.schemas.base import CurrencyType, EntityStatusType
 
 
 class AccountType(str, Enum):
-    CHECKING = 'CHECKING'
-    RESERVE = 'RESERVE'
-    PORTFOLIO = 'PORTFOLIO'
-    INCOME = 'INCOME'
+    CHECKING = "CHECKING"
+    RESERVE = "RESERVE"
+    PORTFOLIO = "PORTFOLIO"
+    INCOME = "INCOME"
 
 
 class AccountBase(BaseModel):

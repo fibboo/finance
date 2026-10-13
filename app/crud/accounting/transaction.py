@@ -9,8 +9,7 @@ from sqlalchemy.orm import selectinload, with_polymorphic
 from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase
 from app.models.accounting.transaction import ExpenseTransaction, IncomeTransaction, Transaction, TransferTransaction
-from app.schemas.accounting.transaction import (OrderDirectionType, OrderFieldType, TransactionCreate,
-                                                TransactionRequest)
+from app.schemas.accounting.transaction import OrderDirectionType, OrderFieldType, TransactionCreate, TransactionRequest
 
 logger = get_logger(__name__)
 
@@ -19,19 +18,18 @@ TransactionModel = with_polymorphic(Transaction, [ExpenseTransaction, IncomeTran
 
 class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionCreate]):
     def _get_polymorphic_query(self, query: Select) -> Select:
-        query: Select = query.options(selectinload(TransactionModel.ExpenseTransaction.from_account),
-                                      selectinload(TransactionModel.ExpenseTransaction.category),
-                                      selectinload(TransactionModel.ExpenseTransaction.location),
-                                      selectinload(TransactionModel.IncomeTransaction.to_account),
-                                      selectinload(TransactionModel.IncomeTransaction.income_source),
-                                      selectinload(TransactionModel.TransferTransaction.from_account),
-                                      selectinload(TransactionModel.TransferTransaction.to_account))
+        query: Select = query.options(
+            selectinload(TransactionModel.ExpenseTransaction.from_account),
+            selectinload(TransactionModel.ExpenseTransaction.category),
+            selectinload(TransactionModel.ExpenseTransaction.location),
+            selectinload(TransactionModel.IncomeTransaction.to_account),
+            selectinload(TransactionModel.IncomeTransaction.income_source),
+            selectinload(TransactionModel.TransferTransaction.from_account),
+            selectinload(TransactionModel.TransferTransaction.to_account),
+        )
         return query
 
-    async def get_transactions(self,
-                               db: AsyncSession,
-                               request: TransactionRequest,
-                               user_id: UUID) -> Page[Transaction]:
+    async def get_transactions(self, db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
 
         query: Select = select(TransactionModel).where(TransactionModel.user_id == user_id)
         query = self._get_polymorphic_query(query)
@@ -56,9 +54,11 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
             statuses = [s.value for s in request.statuses]
             query = query.where(TransactionModel.status.in_(statuses))
 
-        order_fields_map = {OrderFieldType.CREATED_AT: TransactionModel.created_at,
-                            OrderFieldType.TRANSACTION_DATE: TransactionModel.transaction_date,
-                            OrderFieldType.AMOUNT: TransactionModel.base_currency_amount}
+        order_fields_map = {
+            OrderFieldType.CREATED_AT: TransactionModel.created_at,
+            OrderFieldType.TRANSACTION_DATE: TransactionModel.transaction_date,
+            OrderFieldType.AMOUNT: TransactionModel.base_currency_amount,
+        }
         for order in request.orders:
             func_ordering = desc if order.ordering == OrderDirectionType.DESC else asc
             query = query.order_by(func_ordering(order_fields_map[order.field]))

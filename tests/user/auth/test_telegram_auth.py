@@ -40,17 +40,18 @@ async def test_register_new_user_ok(db: AsyncSession, db_transaction: AsyncSessi
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
 
-    url = 'https://fibboo-finance.com/login-success'
-    telegram_id = '1111111111'
-    first_name = 'Sten'
-    username = 'stenbot'
+    url = "https://fibboo-finance.com/login-success"
+    telegram_id = "1111111111"
+    first_name = "Sten"
+    username = "stenbot"
     auth_date = 1630578901
-    hash_ = 'ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96'
+    hash_ = "ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96"
 
-    code = (f'{url}?id={telegram_id}&first_name={first_name}&username={username}'
-            f'&auth_date={auth_date}&hash={hash_}').encode('utf-8')
+    code = (
+        f"{url}?id={telegram_id}&first_name={first_name}&username={username}" f"&auth_date={auth_date}&hash={hash_}"
+    ).encode("utf-8")
 
-    auth_code = base64.b64encode(code).decode('utf-8')
+    auth_code = base64.b64encode(code).decode("utf-8")
 
     base_currency: CurrencyType = CurrencyType.EUR
 
@@ -59,9 +60,9 @@ async def test_register_new_user_ok(db: AsyncSession, db_transaction: AsyncSessi
     await db_transaction.commit()
 
     # Then
-    user_db: UserModel | None = await user_crud.get_user_by_external_id(db=db,
-                                                                        external_id=telegram_id,
-                                                                        provider=ProviderType.TELEGRAM)
+    user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id=telegram_id, provider=ProviderType.TELEGRAM
+    )
     assert user_db is not None
     assert user_db.username == username
     assert user_db.avatar is None
@@ -73,8 +74,8 @@ async def test_register_new_user_ok(db: AsyncSession, db_transaction: AsyncSessi
     assert user_session_db.user_id == user_db.id
     assert user_session_db.id == new_token
     assert user_session_db.provider == ProviderType.TELEGRAM
-    assert user_session_db.scope == 'write-message+auth'
-    assert user_session_db.token_type == 'telegramHash'
+    assert user_session_db.scope == "write-message+auth"
+    assert user_session_db.token_type == "telegramHash"
 
     assert len(user_db.external_users) == 1
     telegram_user_db: ExternalUserModel = user_db.external_users[0]
@@ -98,17 +99,18 @@ async def test_register_user_exists_ok(db: AsyncSession, db_transaction: AsyncSe
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
 
-    url = 'https://fibboo-finance.com/login-success'
-    telegram_id = '1111111111'
-    first_name = 'Sten'
-    username = 'stenbot'
+    url = "https://fibboo-finance.com/login-success"
+    telegram_id = "1111111111"
+    first_name = "Sten"
+    username = "stenbot"
     auth_date = 1630578901
-    hash_ = 'ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96'
+    hash_ = "ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96"
 
-    code = (f'{url}?id={telegram_id}&first_name={first_name}&username={username}'
-            f'&auth_date={auth_date}&hash={hash_}').encode('utf-8')
+    code = (
+        f"{url}?id={telegram_id}&first_name={first_name}&username={username}" f"&auth_date={auth_date}&hash={hash_}"
+    ).encode("utf-8")
 
-    auth_code = base64.b64encode(code).decode('utf-8')
+    auth_code = base64.b64encode(code).decode("utf-8")
 
     base_currency_before: CurrencyType = CurrencyType.EUR
     await telegram_auth.register(db=db, auth_code=auth_code, base_currency=base_currency_before)
@@ -121,9 +123,9 @@ async def test_register_user_exists_ok(db: AsyncSession, db_transaction: AsyncSe
     await db_transaction.commit()
 
     # Then
-    user_db: UserModel | None = await user_crud.get_user_by_external_id(db=db,
-                                                                        external_id=telegram_id,
-                                                                        provider=ProviderType.TELEGRAM)
+    user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id=telegram_id, provider=ProviderType.TELEGRAM
+    )
     assert user_db is not None
     assert user_db.username == username
     assert user_db.avatar is None
@@ -155,17 +157,18 @@ async def test_register_login_ok(db: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
 
-    url = 'https://fibboo-finance.com/login-success'
-    telegram_id = '1111111111'
-    first_name = 'Sten'
-    username = 'stenbot'
+    url = "https://fibboo-finance.com/login-success"
+    telegram_id = "1111111111"
+    first_name = "Sten"
+    username = "stenbot"
     auth_date = 1630578901
-    hash_ = 'ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96'
+    hash_ = "ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96"
 
-    code = (f'{url}?id={telegram_id}&first_name={first_name}&username={username}'
-            f'&auth_date={auth_date}&hash={hash_}').encode('utf-8')
+    code = (
+        f"{url}?id={telegram_id}&first_name={first_name}&username={username}" f"&auth_date={auth_date}&hash={hash_}"
+    ).encode("utf-8")
 
-    auth_code = base64.b64encode(code).decode('utf-8')
+    auth_code = base64.b64encode(code).decode("utf-8")
 
     base_currency: CurrencyType = CurrencyType.EUR
     await telegram_auth.register(db=db, auth_code=auth_code, base_currency=base_currency)
@@ -175,9 +178,9 @@ async def test_register_login_ok(db: AsyncSession):
     await telegram_auth.login(db=db, auth_code=auth_code)
 
     # Then
-    user_db: UserModel | None = await user_crud.get_user_by_external_id(db=db,
-                                                                        external_id=telegram_id,
-                                                                        provider=ProviderType.TELEGRAM)
+    user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id=telegram_id, provider=ProviderType.TELEGRAM
+    )
     assert user_db is not None
     assert len(user_db.external_users) == 1
 
@@ -190,24 +193,25 @@ async def test_register_login_no_active_session_ok(db: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
 
-    url = 'https://fibboo-finance.com/login-success'
-    telegram_id = '1111111111'
-    first_name = 'Sten'
-    username = 'stenbot'
+    url = "https://fibboo-finance.com/login-success"
+    telegram_id = "1111111111"
+    first_name = "Sten"
+    username = "stenbot"
     auth_date = 1630578901
-    hash_ = 'ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96'
+    hash_ = "ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96"
 
-    code = (f'{url}?id={telegram_id}&first_name={first_name}&username={username}'
-            f'&auth_date={auth_date}&hash={hash_}').encode('utf-8')
+    code = (
+        f"{url}?id={telegram_id}&first_name={first_name}&username={username}" f"&auth_date={auth_date}&hash={hash_}"
+    ).encode("utf-8")
 
-    auth_code = base64.b64encode(code).decode('utf-8')
+    auth_code = base64.b64encode(code).decode("utf-8")
 
     base_currency: CurrencyType = CurrencyType.EUR
     await telegram_auth.register(db=db, auth_code=auth_code, base_currency=base_currency)
 
-    user_db: UserModel | None = await user_crud.get_user_by_external_id(db=db,
-                                                                        external_id=telegram_id,
-                                                                        provider=ProviderType.TELEGRAM)
+    user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id=telegram_id, provider=ProviderType.TELEGRAM
+    )
     session_db: SessionModel = await user_session_crud.get(db=db, user_id=user_db.id)
     session_db.expires_at = session_db.expires_at - timedelta(days=99)
     db.add(session_db)
@@ -217,9 +221,9 @@ async def test_register_login_no_active_session_ok(db: AsyncSession):
     await telegram_auth.login(db=db, auth_code=auth_code)
 
     # Then
-    user_db: UserModel | None = await user_crud.get_user_by_external_id(db=db,
-                                                                        external_id=telegram_id,
-                                                                        provider=ProviderType.TELEGRAM)
+    user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id=telegram_id, provider=ProviderType.TELEGRAM
+    )
     assert user_db is not None
     assert len(user_db.external_users) == 1
 
@@ -232,17 +236,18 @@ async def test_register_login_user_not_found(db: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
 
-    url = 'https://fibboo-finance.com/login-success'
-    telegram_id = '1111111111'
-    first_name = 'Sten'
-    username = 'stenbot'
+    url = "https://fibboo-finance.com/login-success"
+    telegram_id = "1111111111"
+    first_name = "Sten"
+    username = "stenbot"
     auth_date = 1630578901
-    hash_ = 'ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96'
+    hash_ = "ef088ba1ae2cc2118b478381f961e94a67bb6ac6363e5f77d54baef273e70a96"
 
-    code = (f'{url}?id={telegram_id}&first_name={first_name}&username={username}'
-            f'&auth_date={auth_date}&hash={hash_}').encode('utf-8')
+    code = (
+        f"{url}?id={telegram_id}&first_name={first_name}&username={username}" f"&auth_date={auth_date}&hash={hash_}"
+    ).encode("utf-8")
 
-    auth_code = base64.b64encode(code).decode('utf-8')
+    auth_code = base64.b64encode(code).decode("utf-8")
 
     # When
     with pytest.raises(EntityNotFound) as exc:
@@ -250,9 +255,9 @@ async def test_register_login_user_not_found(db: AsyncSession):
 
     # Assert
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
-    assert exc.value.message == 'Entity not found'
-    search_params = {'external_id': telegram_id, 'provider': ProviderType.TELEGRAM.value}
-    assert exc.value.log_message == f'{UserModel.__name__} not found by {search_params}'
+    assert exc.value.message == "Entity not found"
+    search_params = {"external_id": telegram_id, "provider": ProviderType.TELEGRAM.value}
+    assert exc.value.log_message == f"{UserModel.__name__} not found by {search_params}"
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
