@@ -20,6 +20,7 @@
 ## General Coding
 
 - No comments in code. Names must explain intent.
+- Exception: a route handler's docstring stays, because FastAPI shows it as the endpoint description in Swagger and Redoc. It is API documentation for the people who call the API, not a comment on the code.
 - Exception: tests may use `# arrange`, `# act` and `# assert` section comments. `# act / assert` is the one combined form, for when the act and the assert are a single statement (such as a `pytest.raises` block). Case does not matter: `# Arrange` and `# arrange` are the same marker, and existing markers are never rewritten from one case to the other.
 - A test may also carry a short comment above a group of setup lines or assertions, saying what the group checks or where its values come from. A test's steps are data rather than named code. Keep such a comment when the test is moved or rewritten.
 - Don't modify code unrelated to the current task.

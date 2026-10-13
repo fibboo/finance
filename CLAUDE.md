@@ -30,7 +30,7 @@ Tech stack: Python 3.11, FastAPI, SQLAlchemy 2 (async, asyncpg), Pydantic 2, pyd
 
 A **module** is a directory that ships as its own container. It owns a `Dockerfile`, a `requirements/` folder or `package.json`, its tests, and a service entry in `docker-compose.yml`. The scoping rules for tests and the PR size limit both depend on this boundary. Adding a module, such as the frontend, follows the `add-module` skill (`.claude/skills/add-module/SKILL.md`).
 
-- **backend (repository root)**: the FastAPI API. Code is in `app/`, tests in `tests/`, migrations in `db_migration/` (configured by `alembic.ini`). Its compose service is `backend`, served on port 8000.
+- **backend (repository root)**: the FastAPI API. Code is in `app/`, tests in `tests/`, migrations in `db_migration/` (configured by `alembic.ini`). Its compose service is `backend`, served on port 8000. Details: `.claude/rules/modules/backend.md`
 - **frontend/**: planned, not yet present.
 
 ### Backend layout
