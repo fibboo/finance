@@ -1,4 +1,3 @@
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.user.user import user_crud
@@ -9,7 +8,6 @@ from app.schemas.user.user import UserCreate
 from app.services.user.user_service import get_user_base_currency
 
 
-@pytest.mark.asyncio
 async def test_get_user_base_currency(db: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(

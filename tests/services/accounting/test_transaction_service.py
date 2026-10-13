@@ -40,7 +40,6 @@ from app.services.accounting import transaction_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
-@pytest.mark.asyncio
 async def test_get_transactions(db: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -258,7 +257,6 @@ async def test_get_transactions(db: AsyncSession):
     assert transactions_transaction_type.items[0].transaction_type == TransactionType.TRANSFER
 
 
-@pytest.mark.asyncio
 async def test_get_transaction_ok(db: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -303,7 +301,6 @@ async def test_get_transaction_ok(db: AsyncSession):
     assert transaction.id == transaction_before.id
 
 
-@pytest.mark.asyncio
 async def test_get_transaction_not_found(db: AsyncSession):
     # Arrange
     transaction_id: UUID = uuid4()
@@ -322,7 +319,6 @@ async def test_get_transaction_not_found(db: AsyncSession):
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-@pytest.mark.asyncio
 async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(

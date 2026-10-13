@@ -21,7 +21,6 @@ from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import category_service
 
 
-@pytest.mark.asyncio
 async def test_create_category_ok(db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -44,7 +43,6 @@ async def test_create_category_ok(db_transaction: AsyncSession):
     assert category.updated_at is not None
 
 
-@pytest.mark.asyncio
 async def test_create_category_with_existing_name(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -70,7 +68,6 @@ async def test_create_category_with_existing_name(db: AsyncSession, db_transacti
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_get_categories(db: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -128,7 +125,6 @@ async def test_get_categories(db: AsyncSession):
     assert len(categories_not_found.items) == 0
 
 
-@pytest.mark.asyncio
 async def test_get_category_ok(db: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -150,7 +146,6 @@ async def test_get_category_ok(db: AsyncSession):
     assert category.updated_at == category_created.updated_at
 
 
-@pytest.mark.asyncio
 async def test_get_category_not_found(db: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -169,7 +164,6 @@ async def test_get_category_not_found(db: AsyncSession):
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-@pytest.mark.asyncio
 async def test_update_category_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -201,7 +195,6 @@ async def test_update_category_ok(db: AsyncSession, db_transaction: AsyncSession
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_update_category_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -230,7 +223,6 @@ async def test_update_category_not_found(db: AsyncSession, db_transaction: Async
     assert len(transactions) == 0
 
 
-@pytest.mark.asyncio
 async def test_update_category_double(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()

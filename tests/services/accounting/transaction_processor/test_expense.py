@@ -35,7 +35,6 @@ from app.schemas.user.user import User as UserModel, UserCreate
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
-@pytest.mark.asyncio
 async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -107,7 +106,6 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_create_expense_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -153,7 +151,6 @@ async def test_create_expense_account_not_found(db: AsyncSession, db_transaction
     assert len(transactions) == 0
 
 
-@pytest.mark.asyncio
 async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -208,7 +205,6 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
-@pytest.mark.asyncio
 async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -270,7 +266,6 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
-@pytest.mark.asyncio
 async def test_create_expense_account_type_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -332,7 +327,6 @@ async def test_create_expense_account_type_mismatch(db: AsyncSession, db_transac
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
-@pytest.mark.asyncio
 async def test_create_expense_integrity_error(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -392,7 +386,6 @@ async def test_create_expense_integrity_error(db: AsyncSession, db_transaction: 
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
-@pytest.mark.asyncio
 async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -452,7 +445,6 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     assert account_db_after.base_currency_rate == Decimal("1")
 
 
-@pytest.mark.asyncio
 async def test_delete_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     transaction_id: UUID = uuid4()

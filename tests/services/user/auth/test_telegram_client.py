@@ -35,7 +35,6 @@ def test_get_auth_provider_link():
     assert provider == ProviderType.TELEGRAM
 
 
-@pytest.mark.asyncio
 async def test_register_new_user_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
@@ -94,7 +93,6 @@ async def test_register_new_user_ok(db: AsyncSession, db_transaction: AsyncSessi
     assert set(current_account_types) == set(account_types)
 
 
-@pytest.mark.asyncio
 async def test_register_user_exists_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
@@ -152,7 +150,6 @@ async def test_register_user_exists_ok(db: AsyncSession, db_transaction: AsyncSe
     assert set(current_account_types) == set(account_types)
 
 
-@pytest.mark.asyncio
 async def test_register_login_ok(db: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
@@ -188,7 +185,6 @@ async def test_register_login_ok(db: AsyncSession):
     assert len(user_sessions_db) == 1
 
 
-@pytest.mark.asyncio
 async def test_register_login_no_active_session_ok(db: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()
@@ -231,7 +227,6 @@ async def test_register_login_no_active_session_ok(db: AsyncSession):
     assert len(user_sessions_db) == 2
 
 
-@pytest.mark.asyncio
 async def test_register_login_user_not_found(db: AsyncSession):
     # Given
     telegram_auth: AuthTelegramClient = AuthTelegramClient()

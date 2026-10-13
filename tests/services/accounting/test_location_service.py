@@ -15,7 +15,6 @@ from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import location_service
 
 
-@pytest.mark.asyncio
 async def test_create_location(db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -36,7 +35,6 @@ async def test_create_location(db_transaction: AsyncSession):
     assert location.coordinates is None
 
 
-@pytest.mark.asyncio
 async def test_create_location_with_existing_name(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -64,7 +62,6 @@ async def test_create_location_with_existing_name(db: AsyncSession, db_transacti
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_get_locations(db: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -111,7 +108,6 @@ async def test_get_locations(db: AsyncSession):
     assert len(locations_not_found.items) == 0
 
 
-@pytest.mark.asyncio
 async def test_get_location(db: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -131,7 +127,6 @@ async def test_get_location(db: AsyncSession):
     assert found_location.coordinates is None
 
 
-@pytest.mark.asyncio
 async def test_get_location_not_found(db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -150,7 +145,6 @@ async def test_get_location_not_found(db_transaction: AsyncSession):
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-@pytest.mark.asyncio
 async def test_update_location_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -181,7 +175,6 @@ async def test_update_location_ok(db: AsyncSession, db_transaction: AsyncSession
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_update_location_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -207,7 +200,6 @@ async def test_update_location_not_found(db: AsyncSession, db_transaction: Async
     assert len(transactions) == 0
 
 
-@pytest.mark.asyncio
 async def test_update_location_double(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()

@@ -29,7 +29,6 @@ from app.schemas.user.user import UserCreate
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
-@pytest.mark.asyncio
 async def test_create_income_base_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -98,7 +97,6 @@ async def test_create_income_base_currency_ok(db: AsyncSession, db_transaction: 
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_create_income_other_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -166,7 +164,6 @@ async def test_create_income_other_currency_ok(db: AsyncSession, db_transaction:
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -252,7 +249,6 @@ async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, 
     assert len(transactions) == 2
 
 
-@pytest.mark.asyncio
 async def test_create_income_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -297,7 +293,6 @@ async def test_create_income_account_not_found(db: AsyncSession, db_transaction:
     assert len(transactions) == 0
 
 
-@pytest.mark.asyncio
 async def test_create_income_currency_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -355,7 +350,6 @@ async def test_create_income_currency_mismatch(db: AsyncSession, db_transaction:
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
-@pytest.mark.asyncio
 async def test_create_income_account_type_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -412,7 +406,6 @@ async def test_create_income_account_type_mismatch(db: AsyncSession, db_transact
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
-@pytest.mark.asyncio
 async def test_create_income_integrity_error(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -465,7 +458,6 @@ async def test_create_income_integrity_error(db: AsyncSession, db_transaction: A
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
-@pytest.mark.asyncio
 async def test_delete_base_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -520,7 +512,6 @@ async def test_delete_base_currency_ok(db: AsyncSession, db_transaction: AsyncSe
     assert account_db_after.base_currency_rate == Decimal("0")
 
 
-@pytest.mark.asyncio
 async def test_delete_other_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -575,7 +566,6 @@ async def test_delete_other_currency_ok(db: AsyncSession, db_transaction: AsyncS
     assert account_db_after.base_currency_rate == Decimal("0")
 
 
-@pytest.mark.asyncio
 async def test_delete_other_currency_2_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(

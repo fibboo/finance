@@ -18,7 +18,6 @@ from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import account_service
 
 
-@pytest.mark.asyncio
 async def test_create_account_ok(db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -41,7 +40,6 @@ async def test_create_account_ok(db_transaction: AsyncSession):
     assert account.status == EntityStatusType.ACTIVE
 
 
-@pytest.mark.asyncio
 async def test_create_account_existing_name(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -69,7 +67,6 @@ async def test_create_account_existing_name(db: AsyncSession, db_transaction: As
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_create_account_max_limit(db: AsyncSession, db_transaction: AsyncSession, monkeypatch):
     # Arrange
     user_id: UUID = uuid4()
@@ -107,7 +104,6 @@ async def test_create_account_max_limit(db: AsyncSession, db_transaction: AsyncS
     assert len(transactions) == 2
 
 
-@pytest.mark.asyncio
 async def test_get_accounts(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -129,7 +125,6 @@ async def test_get_accounts(db: AsyncSession):
     assert len(accounts) == 5
 
 
-@pytest.mark.asyncio
 async def test_get_accounts_no_accounts(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -141,7 +136,6 @@ async def test_get_accounts_no_accounts(db: AsyncSession):
     assert len(accounts) == 0
 
 
-@pytest.mark.asyncio
 async def test_get_account_ok(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -168,7 +162,6 @@ async def test_get_account_ok(db: AsyncSession):
     assert account.status == account_created.status
 
 
-@pytest.mark.asyncio
 async def test_get_account_not_found(db: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -187,7 +180,6 @@ async def test_get_account_not_found(db: AsyncSession):
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-@pytest.mark.asyncio
 async def test_update_account_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -217,7 +209,6 @@ async def test_update_account_ok(db: AsyncSession, db_transaction: AsyncSession)
     assert account.status == account_created.status
 
 
-@pytest.mark.asyncio
 async def test_update_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
@@ -244,7 +235,6 @@ async def test_update_account_not_found(db: AsyncSession, db_transaction: AsyncS
     assert len(transactions) == 0
 
 
-@pytest.mark.asyncio
 async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
