@@ -10,18 +10,22 @@ class EnvironmentType(str, Enum):
 
 
 class Settings(BaseSettings):
-    environment: EnvironmentType = EnvironmentType.LOCAL
-    app_title: str = "Finance API"
+    environment: EnvironmentType
+    app_title: str
 
-    session_expire_seconds: int = 60 * 60 * 24 * 7
-    max_accounts_per_user: int = 10
+    session_expire_seconds: int
+    max_accounts_per_user: int
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()
 
 
 class DatabaseSettings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://user:password@localhost:5432/finance"
+    database_url: str
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     def db_sync_url(self):
         return self.database_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
@@ -31,10 +35,10 @@ database_settings = DatabaseSettings()
 
 
 class TelegramSettings(BaseSettings):
-    token: str = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-    bot_name: str = "bot_name"
+    token: str
+    bot_name: str
 
-    model_config = SettingsConfigDict(env_prefix="telegram_")
+    model_config = SettingsConfigDict(env_prefix="telegram_", env_file=".env", extra="ignore")
 
 
 telegram_settings = TelegramSettings()
