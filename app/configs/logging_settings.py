@@ -22,7 +22,7 @@ def get_console_handler() -> logging.StreamHandler:
     return console_handler
 
 
-def get_logger(*, logger_name) -> logging.Logger:
+def get_logger(*, logger_name: str) -> logging.Logger:
     logger: logging.Logger = logging.getLogger(logger_name)
     if settings.environment != EnvironmentType.PROD:
         logger.setLevel(logging.DEBUG)

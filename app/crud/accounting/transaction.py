@@ -17,7 +17,8 @@ TransactionModel = with_polymorphic(Transaction, [ExpenseTransaction, IncomeTran
 
 
 class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionCreate]):
-    def __get_polymorphic_query(self, *, query: Select) -> Select:
+    @staticmethod
+    def __get_polymorphic_query(*, query: Select) -> Select:
         query: Select = query.options(
             selectinload(TransactionModel.ExpenseTransaction.from_account),
             selectinload(TransactionModel.ExpenseTransaction.category),
