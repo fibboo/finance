@@ -7,4 +7,4 @@ class CRUDExternalUser(CRUDBase[ExternalUser, ExternalUserCreate, ExternalUserUp
     pass
 
 
-external_user_crud = CRUDExternalUser(ExternalUser)
+external_user_crud = CRUDExternalUser(model=ExternalUser)

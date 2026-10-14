@@ -2,10 +2,9 @@ import logging
 import sys
 from enum import Enum
 
-from app.configs.settings import settings, EnvironmentType
+from app.configs.settings import EnvironmentType, settings
 
-FORMATTER = logging.Formatter(fmt='%(levelname)s: %(asctime)s %(name)s: %(message)s',
-                              datefmt='%Y-%m-%d %H:%M:%S')
+FORMATTER = logging.Formatter(fmt="%(levelname)s: %(asctime)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 
 class LogLevelType(int, Enum):
@@ -23,13 +22,12 @@ def get_console_handler() -> logging.StreamHandler:
     return console_handler
 
 
-def get_logger(logger_name) -> logging.Logger:
+def get_logger(*, logger_name: str) -> logging.Logger:
     logger: logging.Logger = logging.getLogger(logger_name)
     if settings.environment != EnvironmentType.PROD:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
     logger.addHandler(get_console_handler())
-    # with this pattern, it's rarely necessary to propagate the error up to parent
     logger.propagate = False
     return logger

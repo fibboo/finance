@@ -10,8 +10,8 @@ from app.utils import utils
 
 
 class CategoryType(str, Enum):
-    GENERAL = 'GENERAL'
-    TARGET = 'TARGET'
+    GENERAL = "GENERAL"
+    TARGET = "TARGET"
 
 
 class CategoryBase(BaseModel):
@@ -42,13 +42,13 @@ class Category(CategoryBase):
 
 
 class CategoryRequest(Params):
-    page: int = Query(1, ge=1, description='Page number')
-    size: int = Query(20, ge=1, le=100, description='Page size')
+    page: int = Query(1, ge=1, description="Page number")
+    size: int = Query(20, ge=1, le=100, description="Page size")
 
     search_term: constr(min_length=3) | None = None
     types: list[CategoryType] = []
 
     def __hash__(self):
         data = self.model_dump()
-        hashable_items: tuple = utils.make_hashable(data)
+        hashable_items: tuple = utils.make_hashable(value=data)
         return hash(hashable_items)

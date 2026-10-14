@@ -31,12 +31,12 @@ class IncomeSource(IncomeSourceCreate):
 
 
 class IncomeSourceRequest(Params):
-    page: int = Query(1, ge=1, description='Page number')
-    size: int = Query(20, ge=1, le=100, description='Page size')
+    page: int = Query(1, ge=1, description="Page number")
+    size: int = Query(20, ge=1, le=100, description="Page size")
 
     search_term: str | None = None
 
     def __hash__(self):
         data = self.model_dump()
-        hashable_items: tuple = utils.make_hashable(data)
+        hashable_items: tuple = utils.make_hashable(value=data)
         return hash(hashable_items)

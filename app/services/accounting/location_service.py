@@ -9,15 +9,19 @@ from app.crud.accounting.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.location import Location as LocationModel
-from app.schemas.accounting.location import (Location, LocationCreate, LocationCreateRequest, LocationRequest,
-                                             LocationUpdate)
+from app.schemas.accounting.location import (
+    Location,
+    LocationCreate,
+    LocationCreateRequest,
+    LocationRequest,
+    LocationUpdate,
+)
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
-async def create_location(db: AsyncSession, create_data: LocationCreateRequest, user_id: UUID) -> Location:
-    obj_in: LocationCreate = LocationCreate(**create_data.model_dump(),
-                                            user_id=user_id)
+async def create_location(*, db: AsyncSession, create_data: LocationCreateRequest, user_id: UUID) -> Location:
+    obj_in: LocationCreate = LocationCreate(**create_data.model_dump(), user_id=user_id)
     try:
         expense_db: LocationModel = await location_crud.create(db=db, obj_in=obj_in)
     except IntegrityError as exc:
@@ -27,36 +31,34 @@ async def create_location(db: AsyncSession, create_data: LocationCreateRequest, 
     return expense
 
 
-async def get_locations(db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
+async def get_locations(*, db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
     locations_db: Page[LocationModel] = await location_crud.get_locations(db=db, request=request, user_id=user_id)
     locations: Page[Location] = Page[Location].model_validate(locations_db)
     return locations
 
 
-async def get_location(db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
+async def get_location(*, db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
     location_db: LocationModel | None = await location_crud.get_or_none(db=db, id=location_id, user_id=user_id)
 
     if location_db is None:
-        raise EntityNotFound(entity=LocationModel, search_params={'id': location_id, 'user_id': user_id}, logger=logger)
+        raise EntityNotFound(entity=LocationModel, search_params={"id": location_id, "user_id": user_id}, logger=logger)
 
     location: Location = Location.model_validate(location_db)
     return location
 
 
-async def update_location(db: AsyncSession,
-                          location_id: UUID,
-                          update_data: LocationUpdate,
-                          user_id: UUID) -> Location:
+async def update_location(
+    *, db: AsyncSession, location_id: UUID, update_data: LocationUpdate, user_id: UUID
+) -> Location:
     try:
-        location_db: LocationModel | None = await location_crud.update_orm(db=db,
-                                                                           obj_in=update_data,
-                                                                           id=location_id,
-                                                                           user_id=user_id)
+        location_db: LocationModel | None = await location_crud.update_orm(
+            db=db, obj_in=update_data, id=location_id, user_id=user_id
+        )
     except IntegrityError as exc:
         raise IntegrityException(entity=LocationModel, exception=exc, logger=logger)
 
     if location_db is None:
-        raise EntityNotFound(entity=LocationModel, search_params={'id': location_id, 'user_id': user_id}, logger=logger)
+        raise EntityNotFound(entity=LocationModel, search_params={"id": location_id, "user_id": user_id}, logger=logger)
 
     location: Location = Location.model_validate(location_db)
     return location
