@@ -86,6 +86,7 @@ docker compose exec backend alembic revision --autogenerate -m "<description>"
 
 - **Start every new issue on a fresh branch:** before any file edits, run `git fetch origin && git checkout -b <issue_number>-<issue_name> --no-track origin/main`. Never commit or edit files while on `main` or on a stale local branch.
 - **Branch naming:** `<issue_number>-<issue_name>`, with no `feature/` prefix (for example `22-port-claude-code-rules`).
+- **Move the issue to In Progress after pushing:** right after the first push of an issue branch, set the issue's Status on the `fibboo-finace` project to `In Progress`, unless it is already `In Progress` or `Done`. GitHub does not do this on its own. Find the issue's item id with `gh project item-list 3 --owner fibboo --format json -L 200`, then run `gh project item-edit --project-id PVT_kwHOABjdYM4AFY44 --id <item_id> --field-id PVTSSF_lAHOABjdYM4AFY44zgDGv5k --single-select-option-id 47fc9ee4`. A Container issue moves to `In Progress` with the first push of any of its sub-issues.
 - **Isolate process and prompt changes:** changes under `docs/` and `.claude/` go in a pull request of their own. They are never mixed into a product PR, unless the request explicitly says otherwise or the change is one piece of work with the code. `.claude/rules/modules/` is the one exception: it travels with the code it describes, like `CLAUDE.md` and `README.md`. See `.claude/rules/common.md` for this rule and for what counts toward the 500-line PR limit.
 - **First commit message:**
   ```
@@ -105,6 +106,10 @@ docker compose exec backend alembic revision --autogenerate -m "<description>"
   Brief description of changes made
   ```
   `Closes` is a GitHub closing keyword. It links the pull request to the issue and closes the issue when the PR merges into `main`. For an issue the PR only references and must not close, such as a parent or a sibling, write `Part of #<issue_number>` instead. A closing keyword applies to the issue reference right after it, so never put another issue number directly after one.
+
+## CI/CD
+
+`.github/workflows/tests.yml` runs on every pull request (any base branch) and on every push to `main`. On the free `ubuntu-latest` runner it builds `tests/Dockerfile` and runs `pytest -v -n auto` inside it. There is no deploy workflow.
 
 ## Issue Tracking
 
