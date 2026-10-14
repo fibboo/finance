@@ -24,7 +24,6 @@ from app.schemas.user.user import UserCreate
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
-@pytest.mark.asyncio
 async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -99,7 +98,6 @@ async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction:
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -176,7 +174,6 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -251,7 +248,6 @@ async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -332,7 +328,6 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
     assert len(transactions) == 1
 
 
-@pytest.mark.asyncio
 async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -395,7 +390,6 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
     assert account_to.base_currency_rate == base_currency_to_rate_before
 
 
-@pytest.mark.asyncio
 async def test_create_transfer_other_to_other_not_base_rate(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -457,7 +451,6 @@ async def test_create_transfer_other_to_other_not_base_rate(db: AsyncSession, db
     assert account_to.base_currency_rate == base_currency_to_rate_before
 
 
-@pytest.mark.asyncio
 async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(

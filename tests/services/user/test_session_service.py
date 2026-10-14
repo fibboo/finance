@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.user.session import user_session_crud
@@ -14,7 +13,6 @@ from app.schemas.user.user import UserCreate
 from app.services.user import session_service
 
 
-@pytest.mark.asyncio
 async def test_revoke_session_ok(db: AsyncSession):
     # Arrange
     user_create = UserCreate(
