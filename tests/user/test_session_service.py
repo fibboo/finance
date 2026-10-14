@@ -17,23 +17,21 @@ from app.services.user import session_service
 @pytest.mark.asyncio
 async def test_revoke_session_ok(db: AsyncSession):
     # Arrange
-    user_create = UserCreate(username='test',
-                             registration_provider=ProviderType.TELEGRAM,
-                             base_currency=CurrencyType.USD)
+    user_create = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
-    user_session_create = UserSessionCreate(user_id=user_db.id,
-                                            expires_at=datetime.now() + timedelta(days=7),
-                                            provider=ProviderType.TELEGRAM)
-    user_session_db: SessionModel = await user_session_crud.create(db=db, obj_in=user_session_create,
-                                                                   commit=True)
+    user_session_create = UserSessionCreate(
+        user_id=user_db.id, expires_at=datetime.now() + timedelta(days=7), provider=ProviderType.TELEGRAM
+    )
+    user_session_db: SessionModel = await user_session_crud.create(db=db, obj_in=user_session_create, commit=True)
 
     # Act
     await session_service.revoke_session(db=db, token=user_session_db.id)
     await db.commit()
 
     # Assert
-    user_session_revoked: SessionModel | None = await user_session_crud.get_or_none(db=db,
-                                                                                    id=user_session_db.id)
+    user_session_revoked: SessionModel | None = await user_session_crud.get_or_none(db=db, id=user_session_db.id)
 
     assert user_session_revoked.expires_at <= datetime.now()
     assert user_session_revoked.expires_at <= user_session_db.expires_at

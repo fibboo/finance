@@ -6,7 +6,7 @@ from app.models.base import Base
 
 @pytest_asyncio.fixture
 async def engine(postgresql):
-    connection = f'postgresql+asyncpg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
+    connection = f"postgresql+asyncpg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
     engine = create_async_engine(connection)
 
     async with engine.begin() as conn:

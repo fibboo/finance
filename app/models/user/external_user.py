@@ -11,14 +11,16 @@ from app.schemas.user.external_user import ProviderType
 
 
 class ExternalUser(Base):
-    __tablename__ = 'external_users'
+    __tablename__ = "external_users"
 
-    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text('gen_random_uuid()'))  # noqa: A003
+    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text("gen_random_uuid()"))  # noqa: A003
     user_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=False)
 
-    provider: Mapped[ProviderType] = mapped_column(Enum(ProviderType, native_enum=False, validate_strings=True,
-                                                        values_callable=lambda x: [i.value for i in x]),
-                                                   nullable=False, index=True)
+    provider: Mapped[ProviderType] = mapped_column(
+        Enum(ProviderType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
+        nullable=False,
+        index=True,
+    )
     external_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     username: Mapped[str] = mapped_column(String, nullable=False, index=True)
     first_name: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -28,5 +30,6 @@ class ExternalUser(Base):
     email: Mapped[str | None] = mapped_column(String, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(),
-                                                 nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+    )

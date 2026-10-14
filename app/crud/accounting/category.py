@@ -12,15 +12,21 @@ from app.schemas.accounting.category import CategoryCreateRequest, CategoryReque
 
 class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
     async def get_categories(self, db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
-        query = (select(self.model)
-                 .where(self.model.user_id == user_id)
-                 .order_by(self.model.name)
-                 .order_by(self.model.id)
-                 .limit(20))
+        query = (
+            select(self.model)
+            .where(self.model.user_id == user_id)
+            .order_by(self.model.name)
+            .order_by(self.model.id)
+            .limit(20)
+        )
 
         if request.search_term is not None:
-            query = query.where(or_(self.model.name.ilike(f'%{request.search_term}%'),
-                                    self.model.description.ilike(f'%{request.search_term}%')))
+            query = query.where(
+                or_(
+                    self.model.name.ilike(f"%{request.search_term}%"),
+                    self.model.description.ilike(f"%{request.search_term}%"),
+                )
+            )
 
         if len(request.types) > 0:
             types = [t.value for t in request.types]

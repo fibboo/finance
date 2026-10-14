@@ -9,8 +9,13 @@ from app.crud.accounting.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.category import Category as CategoryModel
-from app.schemas.accounting.category import (Category, CategoryCreate, CategoryCreateRequest, CategoryRequest,
-                                             CategoryUpdate)
+from app.schemas.accounting.category import (
+    Category,
+    CategoryCreate,
+    CategoryCreateRequest,
+    CategoryRequest,
+    CategoryUpdate,
+)
 
 logger = get_logger(__name__)
 
@@ -37,7 +42,7 @@ async def get_category(db: AsyncSession, category_id: UUID, user_id: UUID) -> Ca
     category_db: CategoryModel | None = await category_crud.get_or_none(db=db, id=category_id, user_id=user_id)
 
     if category_db is None:
-        raise EntityNotFound(entity=CategoryModel, search_params={'id': category_id, 'user_id': user_id}, logger=logger)
+        raise EntityNotFound(entity=CategoryModel, search_params={"id": category_id, "user_id": user_id}, logger=logger)
 
     category: Category = Category.model_validate(category_db)
     return category
@@ -45,15 +50,14 @@ async def get_category(db: AsyncSession, category_id: UUID, user_id: UUID) -> Ca
 
 async def update_category(db: AsyncSession, category_id: UUID, update_data: CategoryUpdate, user_id: UUID) -> Category:
     try:
-        category_db: CategoryModel | None = await category_crud.update_orm(db=db,
-                                                                           obj_in=update_data,
-                                                                           id=category_id,
-                                                                           user_id=user_id)
+        category_db: CategoryModel | None = await category_crud.update_orm(
+            db=db, obj_in=update_data, id=category_id, user_id=user_id
+        )
     except IntegrityError as exc:
         raise IntegrityException(entity=CategoryModel, exception=exc, logger=logger)
 
     if category_db is None:
-        raise EntityNotFound(entity=CategoryModel, search_params={'id': category_id, 'user_id': user_id}, logger=logger)
+        raise EntityNotFound(entity=CategoryModel, search_params={"id": category_id, "user_id": user_id}, logger=logger)
 
     category: Category = Category.model_validate(category_db)
     return category

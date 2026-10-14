@@ -1,0 +1,13 @@
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+include = '\.pyi?$'
+extend-exclude = '(^|/)(db_migration)(/|$)'
+
+
+[tool.isort]
+profile = "black"
+line_length = 120
+combine_as_imports = true
+force_alphabetical_sort_within_sections = true
+extend_skip = ["db_migration"]

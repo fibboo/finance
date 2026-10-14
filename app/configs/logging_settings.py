@@ -2,10 +2,9 @@ import logging
 import sys
 from enum import Enum
 
-from app.configs.settings import settings, EnvironmentType
+from app.configs.settings import EnvironmentType, settings
 
-FORMATTER = logging.Formatter(fmt='%(levelname)s: %(asctime)s %(name)s: %(message)s',
-                              datefmt='%Y-%m-%d %H:%M:%S')
+FORMATTER = logging.Formatter(fmt="%(levelname)s: %(asctime)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 
 class LogLevelType(int, Enum):
