@@ -4,6 +4,7 @@ from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
+from app.crud.user.session import user_session_crud
 from app.db.postgres import session_maker
 from app.exceptions.unauthorized_401 import SessionExpiredException
 from app.models.user.session import Session as SessionModel
@@ -31,10 +32,8 @@ async def get_db_transaction() -> AsyncSession:
         await session.close()
 
 
-async def get_user_id(
-    *, x_auth_token: UUID = Header(...), db: AsyncSession = Depends(get_db), session_crud=None
-) -> UUID:
-    session_db: SessionModel | None = await session_crud.get_active_session(db=db, session_id=x_auth_token)
+async def get_user_id(*, x_auth_token: UUID = Header(...), db: AsyncSession = Depends(get_db)) -> UUID:
+    session_db: SessionModel | None = await user_session_crud.get_active_session_by_id(db=db, session_id=x_auth_token)
     if session_db is None:
         raise SessionExpiredException(token=x_auth_token, logger=logger)
 
