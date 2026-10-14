@@ -44,7 +44,7 @@ class TransactionProcessor(ABC, Generic[T]):
         transaction_class: type[TransactionProcessor] | None = type_processor.get(transaction_type, None)
         if transaction_class is None:
             raise NotImplementedException(
-                log_message=f"Transaction {transaction_type.__name__} is not implemented", logger=logger
+                log_message=f"Transaction {transaction_type} is not implemented", logger=logger
             )
 
         transaction_processor: TransactionProcessor = transaction_class(db=db, user_id=user_id)
