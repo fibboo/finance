@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import select, Select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -12,6 +12,14 @@ from app.schemas.user.session import UserSessionCreate, UserSessionUpdate
 class CRUDUserSession(CRUDBase[Session, UserSessionCreate, UserSessionUpdate]):
     async def get_active_session(self, *, db: AsyncSession, user_id: UUID) -> Session | None:
         query = select(self.model).where(self.model.user_id == user_id).where(self.model.expires_at >= datetime.now())
+
+        session: Session | None = await db.scalar(query)
+        return session
+
+    async def get_active_session_by_id(self, *, db: AsyncSession, session_id: UUID) -> Session | None:
+        query: Select = (
+            select(self.model).where(self.model.id == session_id).where(self.model.expires_at >= datetime.now())
+        )
 
         session: Session | None = await db.scalar(query)
         return session
