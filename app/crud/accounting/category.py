@@ -11,7 +11,7 @@ from app.schemas.accounting.category import CategoryCreateRequest, CategoryReque
 
 
 class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
-    async def get_categories(self, db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
+    async def get_categories(self, *, db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
         query = (
             select(self.model)
             .where(self.model.user_id == user_id)
@@ -36,4 +36,4 @@ class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
         return paginated_expenses
 
 
-category_crud = CRUDCategory(Category)
+category_crud = CRUDCategory(model=Category)

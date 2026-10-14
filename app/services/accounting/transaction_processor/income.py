@@ -7,7 +7,7 @@ from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.transaction import IncomeRequest, Transaction, TransactionCreate, TransactionType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
 class Income(TransactionProcessor[IncomeRequest]):
@@ -20,11 +20,13 @@ class Income(TransactionProcessor[IncomeRequest]):
         return income_transaction_crud
 
     async def _validate_transaction_from_account(
-        self, data: IncomeRequest, from_account_db: AccountModel | None
+        self, *, data: IncomeRequest, from_account_db: AccountModel | None
     ) -> None:
         pass
 
-    async def _validate_transaction_to_account(self, data: IncomeRequest, to_account_db: AccountModel | None) -> None:
+    async def _validate_transaction_to_account(
+        self, *, data: IncomeRequest, to_account_db: AccountModel | None
+    ) -> None:
         await super()._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
         if to_account_db.account_type != AccountType.INCOME:
@@ -35,7 +37,7 @@ class Income(TransactionProcessor[IncomeRequest]):
                 logger=logger,
             )
 
-    async def _prepare_transaction(self, data: IncomeRequest) -> TransactionCreate:
+    async def _prepare_transaction(self, *, data: IncomeRequest) -> TransactionCreate:
         to_account_db: AccountModel | None = await account_crud.get_or_none(
             db=self.db, id=data.to_account_id, user_id=self.user_id
         )
@@ -46,5 +48,5 @@ class Income(TransactionProcessor[IncomeRequest]):
         )
         return transaction_data
 
-    async def _update_from_account(self, transaction_db: Transaction, is_delete: bool = False) -> None:
+    async def _update_from_account(self, *, transaction_db: Transaction, is_delete: bool = False) -> None:
         pass

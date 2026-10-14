@@ -11,13 +11,14 @@ from app.crud.base import CRUDBase
 from app.models.accounting.transaction import ExpenseTransaction, IncomeTransaction, Transaction, TransferTransaction
 from app.schemas.accounting.transaction import OrderDirectionType, OrderFieldType, TransactionCreate, TransactionRequest
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 TransactionModel = with_polymorphic(Transaction, [ExpenseTransaction, IncomeTransaction, TransferTransaction])
 
 
 class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionCreate]):
-    def _get_polymorphic_query(self, query: Select) -> Select:
+    @staticmethod
+    def __get_polymorphic_query(*, query: Select) -> Select:
         query: Select = query.options(
             selectinload(TransactionModel.ExpenseTransaction.from_account),
             selectinload(TransactionModel.ExpenseTransaction.category),
@@ -29,10 +30,12 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
         )
         return query
 
-    async def get_transactions(self, db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
+    async def get_transactions(
+        self, *, db: AsyncSession, request: TransactionRequest, user_id: UUID
+    ) -> Page[Transaction]:
 
         query: Select = select(TransactionModel).where(TransactionModel.user_id == user_id)
-        query = self._get_polymorphic_query(query)
+        query = self.__get_polymorphic_query(query=query)
 
         if request.base_currency_amount_from is not None:
             query = query.where(TransactionModel.base_currency_amount >= request.base_currency_amount_from)
@@ -68,9 +71,9 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
         paginated_expenses = await paginate(db, query, request)
         return paginated_expenses
 
-    def _build_get_query(self, with_for_update: bool = False, **kwargs) -> Select:
+    def _build_get_query(self, *, with_for_update: bool = False, **kwargs) -> Select:
         query: Select = select(TransactionModel).where(*[getattr(TransactionModel, k) == v for k, v in kwargs.items()])
-        query = self._get_polymorphic_query(query)
+        query = self.__get_polymorphic_query(query=query)
 
         if with_for_update:
             query = query.with_for_update()
@@ -78,7 +81,7 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
         return query
 
 
-transaction_crud = CRUDTransaction(Transaction)
+transaction_crud = CRUDTransaction(model=Transaction)
 
 Expense = with_polymorphic(Transaction, [ExpenseTransaction])
 
@@ -87,7 +90,7 @@ class CRUDExpenseTransaction(CRUDBase[Expense, TransactionCreate, TransactionCre
     pass
 
 
-expense_transaction_crud = CRUDExpenseTransaction(ExpenseTransaction)
+expense_transaction_crud = CRUDExpenseTransaction(model=ExpenseTransaction)
 
 Income = with_polymorphic(Transaction, [IncomeTransaction])
 
@@ -96,7 +99,7 @@ class CRUDIncomeTransaction(CRUDBase[Income, TransactionCreate, TransactionCreat
     pass
 
 
-income_transaction_crud = CRUDIncomeTransaction(IncomeTransaction)
+income_transaction_crud = CRUDIncomeTransaction(model=IncomeTransaction)
 
 Transfer = with_polymorphic(Transaction, [TransferTransaction])
 
@@ -105,4 +108,4 @@ class CRUDTransferTransaction(CRUDBase[Transfer, TransactionCreate, TransactionC
     pass
 
 
-transfer_transaction_crud = CRUDTransferTransaction(TransferTransaction)
+transfer_transaction_crud = CRUDTransferTransaction(model=TransferTransaction)

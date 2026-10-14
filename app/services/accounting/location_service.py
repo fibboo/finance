@@ -17,10 +17,10 @@ from app.schemas.accounting.location import (
     LocationUpdate,
 )
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
-async def create_location(db: AsyncSession, create_data: LocationCreateRequest, user_id: UUID) -> Location:
+async def create_location(*, db: AsyncSession, create_data: LocationCreateRequest, user_id: UUID) -> Location:
     obj_in: LocationCreate = LocationCreate(**create_data.model_dump(), user_id=user_id)
     try:
         expense_db: LocationModel = await location_crud.create(db=db, obj_in=obj_in)
@@ -31,13 +31,13 @@ async def create_location(db: AsyncSession, create_data: LocationCreateRequest, 
     return expense
 
 
-async def get_locations(db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
+async def get_locations(*, db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
     locations_db: Page[LocationModel] = await location_crud.get_locations(db=db, request=request, user_id=user_id)
     locations: Page[Location] = Page[Location].model_validate(locations_db)
     return locations
 
 
-async def get_location(db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
+async def get_location(*, db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
     location_db: LocationModel | None = await location_crud.get_or_none(db=db, id=location_id, user_id=user_id)
 
     if location_db is None:
@@ -47,7 +47,9 @@ async def get_location(db: AsyncSession, location_id: UUID, user_id: UUID) -> Lo
     return location
 
 
-async def update_location(db: AsyncSession, location_id: UUID, update_data: LocationUpdate, user_id: UUID) -> Location:
+async def update_location(
+    *, db: AsyncSession, location_id: UUID, update_data: LocationUpdate, user_id: UUID
+) -> Location:
     try:
         location_db: LocationModel | None = await location_crud.update_orm(
             db=db, obj_in=update_data, id=location_id, user_id=user_id

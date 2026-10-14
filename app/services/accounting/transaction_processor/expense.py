@@ -9,7 +9,7 @@ from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionCreate, TransactionType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
 class Expense(TransactionProcessor[ExpenseRequest]):
@@ -22,7 +22,7 @@ class Expense(TransactionProcessor[ExpenseRequest]):
         return expense_transaction_crud
 
     async def _validate_transaction_from_account(
-        self, data: ExpenseRequest, from_account_db: AccountModel | None
+        self, *, data: ExpenseRequest, from_account_db: AccountModel | None
     ) -> None:
         await super()._validate_transaction_from_account(data=data, from_account_db=from_account_db)
 
@@ -34,10 +34,12 @@ class Expense(TransactionProcessor[ExpenseRequest]):
                 logger=logger,
             )
 
-    async def _validate_transaction_to_account(self, data: ExpenseRequest, to_account_db: AccountModel | None) -> None:
+    async def _validate_transaction_to_account(
+        self, *, data: ExpenseRequest, to_account_db: AccountModel | None
+    ) -> None:
         pass
 
-    async def _prepare_transaction(self, data: ExpenseRequest) -> TransactionCreate:
+    async def _prepare_transaction(self, *, data: ExpenseRequest) -> TransactionCreate:
         from_account: AccountModel | None = await account_crud.get_or_none(
             db=self.db, id=data.from_account_id, user_id=self.user_id
         )
@@ -49,5 +51,5 @@ class Expense(TransactionProcessor[ExpenseRequest]):
         )
         return transaction_data
 
-    async def _update_to_account(self, transaction_db: Transaction, is_delete: bool = False) -> None:
+    async def _update_to_account(self, *, transaction_db: Transaction, is_delete: bool = False) -> None:
         pass

@@ -17,10 +17,12 @@ from app.schemas.accounting.income_source import (
     IncomeSourceUpdate,
 )
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
-async def create_income_source(db: AsyncSession, create_data: IncomeSourceCreateRequest, user_id: UUID) -> IncomeSource:
+async def create_income_source(
+    *, db: AsyncSession, create_data: IncomeSourceCreateRequest, user_id: UUID
+) -> IncomeSource:
     obj_in: IncomeSourceCreate = IncomeSourceCreate(**create_data.model_dump(), user_id=user_id)
     try:
         income_source_db: IncomeSourceModel = await income_source_crud.create(db=db, obj_in=obj_in)
@@ -31,7 +33,7 @@ async def create_income_source(db: AsyncSession, create_data: IncomeSourceCreate
     return income_source
 
 
-async def get_income_sources(db: AsyncSession, request: IncomeSourceRequest, user_id: UUID) -> Page[IncomeSource]:
+async def get_income_sources(*, db: AsyncSession, request: IncomeSourceRequest, user_id: UUID) -> Page[IncomeSource]:
     income_sources_db: Page[IncomeSourceModel] = await income_source_crud.get_income_sources(
         db=db, request=request, user_id=user_id
     )
@@ -39,7 +41,7 @@ async def get_income_sources(db: AsyncSession, request: IncomeSourceRequest, use
     return income_sources
 
 
-async def get_income_source(db: AsyncSession, income_source_id: UUID, user_id: UUID) -> IncomeSource:
+async def get_income_source(*, db: AsyncSession, income_source_id: UUID, user_id: UUID) -> IncomeSource:
     income_source_db: IncomeSourceModel | None = await income_source_crud.get_or_none(
         db=db, id=income_source_id, user_id=user_id
     )
@@ -53,7 +55,7 @@ async def get_income_source(db: AsyncSession, income_source_id: UUID, user_id: U
 
 
 async def update_income_source(
-    db: AsyncSession, income_source_id: UUID, update_data: IncomeSourceUpdate, user_id: UUID
+    *, db: AsyncSession, income_source_id: UUID, update_data: IncomeSourceUpdate, user_id: UUID
 ) -> IncomeSource:
     try:
         income_source_db: IncomeSourceModel | None = await income_source_crud.update_orm(

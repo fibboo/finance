@@ -12,7 +12,7 @@ from app.schemas.accounting.income_source import IncomeSourceCreateRequest, Inco
 
 class CRUDIncomeSource(CRUDBase[IncomeSource, IncomeSourceCreateRequest, IncomeSourceUpdate]):
     async def get_income_sources(
-        self, db: AsyncSession, request: IncomeSourceRequest, user_id: UUID
+        self, *, db: AsyncSession, request: IncomeSourceRequest, user_id: UUID
     ) -> Page[IncomeSource]:
         query = (
             select(self.model)
@@ -34,4 +34,4 @@ class CRUDIncomeSource(CRUDBase[IncomeSource, IncomeSourceCreateRequest, IncomeS
         return paginated_income_sources
 
 
-income_source_crud = CRUDIncomeSource(IncomeSource)
+income_source_crud = CRUDIncomeSource(model=IncomeSource)

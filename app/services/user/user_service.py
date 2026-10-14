@@ -16,7 +16,7 @@ from app.schemas.user.session import AuthData
 from app.schemas.user.user import UserCreate
 from app.services.accounting import account_service
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
 async def create_user(*, db: AsyncSession, auth_data: AuthData, base_currency: CurrencyType) -> UserModel:

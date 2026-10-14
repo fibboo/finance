@@ -10,7 +10,7 @@ from app.configs.settings import EnvironmentType, settings
 from app.exceptions.base import AppBaseException
 from app.schemas.error_response import ErrorResponse
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 app = FastAPI(title=settings.app_title)
 
 log_level = logging.INFO if settings.environment == EnvironmentType.PROD else logging.DEBUG
@@ -25,9 +25,6 @@ async def app_exception_handler(_: Request, exc: AppBaseException):
     content = ErrorResponse(message=exc.message, error_code=exc.error_code)
 
     return JSONResponse(status_code=exc.status_code, content=content.model_dump())
-
-
-# Root routes
 
 
 @app.get("/")

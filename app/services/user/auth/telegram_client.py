@@ -12,7 +12,7 @@ from app.schemas.user.external_user import ProviderType
 from app.schemas.user.session import AuthData
 from app.services.user.auth.auth_client import AuthClient
 
-logger = get_logger(__name__)
+logger = get_logger(logger_name=__name__)
 
 
 class AuthTelegramClient(AuthClient):
@@ -25,7 +25,7 @@ class AuthTelegramClient(AuthClient):
         return telegram_settings.bot_name
 
     @staticmethod
-    def _check_telegram_authorization(auth_data: dict[str, str]) -> bool:
+    def __check_telegram_authorization(*, auth_data: dict[str, str]) -> bool:
         auth_data = auth_data.copy()
         telegram_hash = auth_data["hash"]
 
@@ -41,7 +41,7 @@ class AuthTelegramClient(AuthClient):
 
         return telegram_hash == sign
 
-    def get_session_auth(self, auth_code: str) -> AuthData:
+    def get_session_auth(self, *, auth_code: str) -> AuthData:
         decoded_token = base64.b64decode(auth_code).decode("utf-8")
 
         parse_result: dict = parse.parse_qs(parse.urlsplit(decoded_token).query)
@@ -53,10 +53,10 @@ class AuthTelegramClient(AuthClient):
             telegram_hash = str(parse_result["hash"])
 
         except Exception:
-            raise InvalidAuthData("Invalid telegram code in request.", logger=logger)
+            raise InvalidAuthData(log_message="Invalid telegram code in request.", logger=logger)
 
-        if not self._check_telegram_authorization(auth_data=parse_result):
-            raise InvalidAuthData("Error while checking sign information from telegram", logger=logger)
+        if not self.__check_telegram_authorization(auth_data=parse_result):
+            raise InvalidAuthData(log_message="Error while checking sign information from telegram", logger=logger)
 
         auth_data: AuthData = AuthData(
             access_token=telegram_hash,
