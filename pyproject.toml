@@ -10,4 +10,4 @@ profile = "black"
 line_length = 120
 combine_as_imports = true
 force_alphabetical_sort_within_sections = true
-skip = ["db_migration", ".git", ".venv"]
+extend_skip = ["db_migration"]
