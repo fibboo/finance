@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -42,6 +42,7 @@ from app.services.accounting.transaction_processor.base import TransactionProces
 
 async def test_get_transactions(db: AsyncSession):
     # Arrange
+    base_date: date = date.today() - timedelta(days=30)
     user_create_data: UserCreate = UserCreate(
         username="test 1", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
     )
@@ -61,7 +62,7 @@ async def test_get_transactions(db: AsyncSession):
     )
     for i in range(1, 4):
         income_create_data: IncomeRequest = IncomeRequest(
-            transaction_date=date(2025, 2, 10 + i),
+            transaction_date=base_date + timedelta(days=10 + i),
             source_amount=Decimal("105") * i,
             source_currency=CurrencyType.USD,
             destination_amount=Decimal("100"),
@@ -99,7 +100,7 @@ async def test_get_transactions(db: AsyncSession):
 
     for i in range(2):
         expense_create_data: ExpenseRequest = ExpenseRequest(
-            transaction_date=date(2025, 2, 1),
+            transaction_date=base_date + timedelta(days=1),
             source_amount=Decimal("100"),
             source_currency=CurrencyType.USD,
             destination_amount=Decimal("11100"),
@@ -134,7 +135,7 @@ async def test_get_transactions(db: AsyncSession):
     )
 
     income_create_data: IncomeRequest = IncomeRequest(
-        transaction_date=date(2025, 2, 2),
+        transaction_date=base_date + timedelta(days=2),
         source_amount=Decimal("1050"),
         source_currency=CurrencyType.USD,
         destination_amount=Decimal("1000"),
@@ -149,7 +150,7 @@ async def test_get_transactions(db: AsyncSession):
     await transaction_processor.create(data=income_create_data)
 
     transfer_create_data: TransferRequest = TransferRequest(
-        transaction_date=date(2025, 2, 3),
+        transaction_date=base_date + timedelta(days=3),
         source_amount=Decimal("100"),
         source_currency=CurrencyType.EUR,
         destination_currency=CurrencyType.USD,
@@ -173,9 +174,11 @@ async def test_get_transactions(db: AsyncSession):
     request_from_101_to_105: TransactionRequest = TransactionRequest(
         base_currency_amount_from=Decimal("101"), base_currency_amount_to=Decimal("105")
     )
-    request_date_from: TransactionRequest = TransactionRequest(date_from=date(2025, 2, 2))
-    request_date_to: TransactionRequest = TransactionRequest(date_to=date(2025, 2, 2))
-    request_date_from_to: TransactionRequest = TransactionRequest(date_from=date(2025, 2, 3), date_to=date(2025, 2, 3))
+    request_date_from: TransactionRequest = TransactionRequest(date_from=base_date + timedelta(days=2))
+    request_date_to: TransactionRequest = TransactionRequest(date_to=base_date + timedelta(days=2))
+    request_date_from_to: TransactionRequest = TransactionRequest(
+        date_from=base_date + timedelta(days=3), date_to=base_date + timedelta(days=3)
+    )
     request_transaction_type: TransactionRequest = TransactionRequest(transaction_types=[TransactionType.TRANSFER])
 
     # Act
@@ -240,17 +243,17 @@ async def test_get_transactions(db: AsyncSession):
     assert transactions_date_from.total == 2
     assert len(transactions_date_from.items) == 2
     for item in transactions_date_from.items:
-        assert item.transaction_date >= date(2025, 2, 2)
+        assert item.transaction_date >= base_date + timedelta(days=2)
 
     assert transactions_date_to.total == 2
     assert len(transactions_date_to.items) == 2
     for item in transactions_date_to.items:
-        assert item.transaction_date <= date(2025, 2, 2)
+        assert item.transaction_date <= base_date + timedelta(days=2)
 
     assert transactions_date_from_to.total == 1
     assert len(transactions_date_from_to.items) == 1
-    assert transactions_date_from_to.items[0].transaction_date >= date(2025, 2, 3)
-    assert transactions_date_from_to.items[0].transaction_date <= date(2025, 2, 3)
+    assert transactions_date_from_to.items[0].transaction_date >= base_date + timedelta(days=3)
+    assert transactions_date_from_to.items[0].transaction_date <= base_date + timedelta(days=3)
 
     assert transactions_transaction_type.total == 1
     assert len(transactions_transaction_type.items) == 1

@@ -158,11 +158,22 @@ class TransactionRequest(Params):
     base_currency_amount_from: condecimal(ge=Decimal("0"), decimal_places=2) | None = None
     base_currency_amount_to: condecimal(gt=Decimal("0"), decimal_places=2) | None = None
 
-    date_from: date = (datetime.now() - timedelta(days=90)).date()
-    date_to: date = datetime.now().date()
+    date_from: date | None = None
+    date_to: date | None = None
 
     transaction_types: list[TransactionType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
+
+    @model_validator(mode="after")
+    def fill_default_dates(self) -> "TransactionRequest":
+        today: date = datetime.now().date()
+        if self.date_from is None:
+            self.date_from = today - timedelta(days=90)
+
+        if self.date_to is None:
+            self.date_to = today
+
+        return self
 
     def __hash__(self):
         data = self.model_dump()
