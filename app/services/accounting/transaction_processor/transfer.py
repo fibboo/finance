@@ -42,7 +42,7 @@ class Transfer(TransactionProcessor[TransferRequest]):
         from_account_db: AccountModel | None = await account_crud.get_or_none(
             db=self.db, id=data.from_account_id, user_id=self.user_id
         )
-        to_account_db: AccountModel | None = await account_crud.get(
+        to_account_db: AccountModel | None = await account_crud.get_or_none(
             db=self.db, id=data.to_account_id, user_id=self.user_id
         )
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
