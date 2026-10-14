@@ -11,6 +11,7 @@ from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.user.user import user_crud
 from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import UnprocessableException
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
@@ -520,3 +521,59 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
     account_db_to_after: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_db_to_after.balance == Decimal("11100") == account_to_balance_before
     assert account_db_to_after.base_currency_rate == Decimal("111.0000") == base_currency_to_rate_before
+
+
+async def test_create_transfer_to_account_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    other_user_create_data: UserCreate = UserCreate(
+        username="other", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    other_user_db: UserModel = await user_crud.create(db=db, obj_in=other_user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Income USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.INCOME,
+        "base_currency_rate": Decimal("1"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+    account_from_balance_before: Decimal = copy(account_from_db.balance)
+
+    account_to_create_data: AccountCreate = AccountCreate(
+        user_id=other_user_db.id, name="Checking USD", currency=CurrencyType.USD, account_type=AccountType.CHECKING
+    )
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+    account_to_balance_before: Decimal = copy(account_to_db.balance)
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency=CurrencyType.USD,
+        destination_currency=CurrencyType.USD,
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+        comment="test",
+    )
+    # Act
+    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_processor.create(data=transfer_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 0
+    account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_from.balance == account_from_balance_before
+    account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to.balance == account_to_balance_before
