@@ -49,6 +49,14 @@ cp .env.example .env
 Once all steps are completed, your project will be available at:  
 [http://localhost:8000](http://localhost:8000)
 
+### Upgrading from PostgreSQL 15
+
+The `postgres` service runs PostgreSQL 18, which keeps its data under `/var/lib/postgresql/18/docker`, so the compose volume is mounted at `/var/lib/postgresql`. A volume created by the old PostgreSQL 15 service starts as an empty cluster and the backend fails with `database "finance" does not exist`. Recreate the volume once, then repeat steps 4–6:
+
+```bash
+docker compose down -v
+```
+
 ---
 
 ## API Documentation

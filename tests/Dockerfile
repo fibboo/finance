@@ -11,7 +11,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y postgresql-common \
     && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
-    && apt-get install -y gcc postgresql-18 \
+    && apt-get install -y --no-install-recommends gcc postgresql-18 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements requirements

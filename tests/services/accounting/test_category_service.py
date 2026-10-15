@@ -59,7 +59,7 @@ async def test_create_category_with_existing_name(db: AsyncSession, db_transacti
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.message == "Entity integrity error"
     assert exc.value.log_message == (
-        f"Category integrity error: Key (user_id, name)=({user_id}, " f"{create_data.name}) already exists."
+        f"Category integrity error: Key (user_id, name)=({user_id}, {create_data.name}) already exists."
     )
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
@@ -250,7 +250,7 @@ async def test_update_category_double(db: AsyncSession, db_transaction: AsyncSes
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.message == "Entity integrity error"
     assert exc.value.log_message == (
-        f"Category integrity error: Key (user_id, name)=({user_id}, " f"{category_update.name}) already exists."
+        f"Category integrity error: Key (user_id, name)=({user_id}, {category_update.name}) already exists."
     )
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
