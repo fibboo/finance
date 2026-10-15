@@ -57,9 +57,7 @@ async def test_create_account_existing_name(db: AsyncSession, db_transaction: As
     # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.message == "Entity integrity error"
-    assert exc.value.log_message == (
-        f"Account integrity error: Key (user_id, name)=({user_id}, {create_data.name}) already exists."
-    )
+    assert exc.value.log_message == "Account integrity error: 23505 on accounts.account_unique_user_id_name"
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 
@@ -262,9 +260,7 @@ async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSess
     # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.message == "Entity integrity error"
-    assert exc.value.log_message == (
-        f"Account integrity error: Key (user_id, name)=({user_id}, {create_data_2.name}) already exists."
-    )
+    assert exc.value.log_message == "Account integrity error: 23505 on accounts.account_unique_user_id_name"
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
 

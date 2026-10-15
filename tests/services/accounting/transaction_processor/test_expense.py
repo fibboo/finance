@@ -372,8 +372,9 @@ async def test_create_expense_integrity_error(db: AsyncSession, db_transaction: 
     # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.message == "Entity integrity error"
-    assert exc.value.log_message == (
-        f'Transaction integrity error: Key (category_id)=({category_id}) is not present in table "categories".'
+    assert (
+        exc.value.log_message
+        == "Transaction integrity error: 23503 on transactions_expense.transactions_expense_category_id_fkey"
     )
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.ERROR

@@ -1,5 +1,6 @@
 import logging
 
+from asyncpg import PostgresError
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 
@@ -31,10 +32,11 @@ class ConflictException(AppBaseException):
 
 class IntegrityException(ConflictException):
     def __init__(self, *, entity: type[Base], exception: IntegrityError, logger: logging.Logger):
-        error_detail: str = exception.orig.detail if exception.orig.detail is not None else exception.orig.args[0]
+        driver_error: PostgresError = exception.orig.driver_exception
+        failed_on: str = f"{driver_error.table_name}.{driver_error.constraint_name}"
         super().__init__(
             message="Entity integrity error",
-            log_message=f"{entity.__name__} integrity error: {error_detail}",
+            log_message=f"{entity.__name__} integrity error: {driver_error.sqlstate} on {failed_on}",
             error_code=ErrorCodeType.INTEGRITY_ERROR,
             logger=logger,
             log_level=LogLevelType.ERROR,
