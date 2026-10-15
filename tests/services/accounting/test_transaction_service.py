@@ -37,6 +37,7 @@ from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
 from app.services.accounting import transaction_service
+from app.services.accounting.transaction_processor import factory
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -71,7 +72,7 @@ async def test_get_transactions(db: AsyncSession):
             income_source_id=income_source_db.id,
             income_period=date(2025, 1, 1),
         )
-        transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+        transaction_processor: TransactionProcessor = factory.get_processor(
             db=db, user_id=wrong_user_db.id, transaction_type=income_create_data.transaction_type
         )
         await transaction_processor.create(data=income_create_data)
@@ -109,12 +110,12 @@ async def test_get_transactions(db: AsyncSession):
             category_id=category_db.id,
             location_id=location_db.id,
         )
-        transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+        transaction_processor: TransactionProcessor = factory.get_processor(
             db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
         )
         transaction: Transaction = await transaction_processor.create(data=expense_create_data)
         if i == 1:
-            transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+            transaction_processor: TransactionProcessor = factory.get_processor(
                 db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
             )
             await transaction_processor.delete(transaction_id=transaction.id)
@@ -144,7 +145,7 @@ async def test_get_transactions(db: AsyncSession):
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     await transaction_processor.create(data=income_create_data)
@@ -159,7 +160,7 @@ async def test_get_transactions(db: AsyncSession):
         to_account_id=account_checking_db.id,
         comment="test",
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     await transaction_processor.create(data=transfer_create_data)
@@ -289,7 +290,7 @@ async def test_get_transaction_ok(db: AsyncSession):
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_db.id, transaction_type=income_create_data.transaction_type
     )
     transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
@@ -351,7 +352,7 @@ async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_db.id, transaction_type=income_create_data.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)

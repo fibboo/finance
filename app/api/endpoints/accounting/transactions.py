@@ -12,6 +12,7 @@ from app.schemas.accounting.transaction import (
     TransactionType,
 )
 from app.services.accounting import transaction_service
+from app.services.accounting.transaction_processor import factory
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 router = APIRouter()
@@ -42,7 +43,7 @@ async def create_transaction(
     - **Transfers:** `source_*` refers to **the withdrawal from one account**.
     `destination_*` refers to the deposit to **another account**.
     """
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=create_data.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=create_data)
@@ -77,7 +78,7 @@ async def delete_transaction(
     user_id: UUID = Depends(get_user_id),
     db: AsyncSession = Depends(get_db_transaction),
 ) -> Transaction:
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=transaction_type
     )
     transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_id)
