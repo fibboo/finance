@@ -18,6 +18,12 @@
 
 Skills live in `.claude/skills/<name>/SKILL.md`.
 
+## Agent Compatibility
+
+`CLAUDE.md`, `.claude/rules/` and `.claude/skills/` are the shared source of project guidance. Claude Code uses its native discovery; Codex reads `AGENTS.md` and discovers thin entrypoints under `.agents/skills/` that point to the same workflows. Keep workflow changes in the shared files and update entrypoint descriptions when their trigger or scope changes. New skills need entrypoints for both agents; new module rules need matching `paths:` frontmatter.
+
+Setup, permission modes and Git troubleshooting: `docs/agent-setup.md`. Tool names are host-specific: use the available equivalent while preserving the workflow's outputs and approval requirements. The verbatim-output rule applies when a Skill tool actually returns a result, not to shell output or source-file reads in hosts without that tool.
+
 ## Project Overview
 
 Finance is a personal finance service: accounts, categories, locations, income sources, and income, expense and transfer transactions. Users sign in through Telegram. A FastAPI backend sits at the repository root. A frontend is planned under `frontend/`.
