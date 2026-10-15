@@ -32,8 +32,13 @@ class ConflictException(AppBaseException):
 
 class IntegrityException(ConflictException):
     def __init__(self, *, entity: type[Base], exception: IntegrityError, logger: logging.Logger):
-        driver_error: PostgresError = exception.orig.driver_exception
-        failed_on: str = f"{driver_error.table_name}.{driver_error.constraint_name}"
+        driver_error: PostgresError = exception.driver_exception
+        if driver_error.constraint_name is not None:
+            failed_object: str = driver_error.constraint_name
+        else:
+            failed_object: str = driver_error.column_name
+
+        failed_on: str = f"{driver_error.table_name}.{failed_object}"
         super().__init__(
             message="Entity integrity error",
             log_message=f"{entity.__name__} integrity error: {driver_error.sqlstate} on {failed_on}",
