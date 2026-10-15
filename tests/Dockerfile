@@ -9,8 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 EXPOSE 8000
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    gcc postgresql postgresql-contrib \
+RUN apt-get update && apt-get install -y postgresql-common \
+    && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+    && apt-get install -y gcc postgresql-18 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements requirements
