@@ -12,7 +12,8 @@ async def engine(postgresql):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    return engine
+    yield engine
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture
