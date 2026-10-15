@@ -8,6 +8,8 @@ The Codex skill files refer to the full workflows in `.claude/skills/`; they are
 
 Keep Claude-specific skill metadata in `.claude/skills/`, including `allowed-tools` grants and trigger examples. Codex entrypoints have their own metadata; reading the shared workflow does not grant Codex the permissions listed for Claude. Validate Claude skills with `claude plugin validate .claude/skills` and Codex entrypoints with the Codex skill validator.
 
+The Codex issue-writer entrypoint maps Claude's command, search, file, question and plan-mode tools to the tools available in the current Codex session. It uses `request_user_input_async` for clarification when available, with a chat fallback. Asynchronous questions do not block execution automatically; the agent must wait for answers before dependent work. Draft approval must be given after the complete draft was shown in either agent.
+
 In either agent, `#issue <description>` creates an issue and `#issue <number>` updates or refines it as requested. Native explicit invocations are `/issue-writer` and `/add-module` in Claude Code, and `$issue-writer` and `$add-module` in Codex. Creating or changing an issue requires approval of the complete draft in both agents, regardless of the host's command approval mode.
 
 Open a fresh session from the intended checkout after changing the setup. In Codex CLI, check `/skills` for both skills; in Claude Code, check the `/` skill suggestions. Ask either agent to list the project instruction files it loaded and the rules it would use for a Python PR review. Expect `CLAUDE.md`, common rules, Python rules, applicable module rules and PR review rules; Codex should also name `AGENTS.md`. This read-only check should not create an issue or edit files.
@@ -16,7 +18,7 @@ Open a fresh session from the intended checkout after changing the setup. In Cod
 
 Install Git, GitHub CLI, the agent you use, and Docker Desktop for backend work. Launch Docker Desktop before running container commands. Black and isort may run locally; the project's Docker fallback is in `CLAUDE.md`.
 
-Use PowerShell on Windows. Commands below assume PowerShell 7. Start a terminal without an interactive profile when diagnosing profile errors:
+The terminal examples below assume PowerShell 7 on Windows. They are setup commands for your terminal, not a requirement to replace Claude Code's native `Bash` tool. Codex uses its available command tool; when that tool supports profile control, disable interactive profile loading for non-interactive PowerShell commands. To diagnose profile errors in your own terminal:
 
 ```powershell
 pwsh -NoProfile
@@ -94,12 +96,12 @@ Do not change an already working remote just to accommodate a sandbox. Never put
 | Access denied for `.git`, a worktree's Git metadata, SSH agent or credential store | Use the host's approval mechanism or a permission profile that provides the required access. `safe.directory` only handles Git trust; it does not grant filesystem or credential access. |
 | Docker config or `docker_engine` pipe access denied | Compare `docker info` in your terminal and in the sandbox. If only the sandbox fails, request permitted user-context execution; if both fail, start or troubleshoot Docker Desktop. |
 | `setup refresh had errors` before a command starts | This is host environment preparation, before PowerShell runs. Retry a simple command, restart the app/session if needed, and use host diagnostics if it persists. It does not identify a repository defect. |
-| `Set-PSReadLineOption` fails in redirected output | Run commands with `pwsh -NoProfile`; interactive prediction settings need a real console. |
+| `Set-PSReadLineOption` fails in redirected output | In your terminal use `pwsh -NoProfile`, or disable profile loading when the host's command tool supports it. This does not require switching Claude Code away from its native Bash tool. |
 
-For a repository intentionally owned by another account, the user may explicitly trust its exact absolute path in protected Git configuration. Run this as the account that actually executes Git, substituting the real checkout path:
+For a repository intentionally owned by another account, the user may explicitly trust its exact absolute path in protected Git configuration. **Only the user runs the following command in their own terminal; agents must not execute it or modify global `safe.directory` settings.** Replace the placeholder with the real absolute checkout path and run as the account that actually executes Git:
 
 ```powershell
-git config --global --add safe.directory 'C:/Users/Fibbo/dev/fibboo/finance'
+git config --global --add safe.directory '<absolute-checkout-path>'
 ```
 
 A separate worktree may need its own exact path. Adding trust to your user profile does not automatically configure a sandbox account. Do not use `safe.directory '*'`, alter ownership or broaden ACLs to work around a sandbox. Prefer permitted execution as the repository owner when that already works.
@@ -137,6 +139,8 @@ git branch --show-current
 Git writes worktree metadata in the main repository's `.git/worktrees/`, so permission to write files inside the new checkout alone may be insufficient. Request the necessary Git execution permission rather than repeatedly retrying a denied operation. Do not check out a branch already in another worktree or remove worktrees belonging to another task.
 
 Nested worktrees may appear as untracked files in the main checkout. Never stage the worktree directory. To hide this local workspace artifact without changing the shared `.gitignore`, the user can add `/.claude/worktrees/` to the main repository's `.git/info/exclude`.
+
+A worktree nested under the main checkout can also inherit ancestor `CLAUDE.md` instructions in Claude Code, so the parent checkout's guidance may be loaded alongside the worktree's version. Check `/context` for the actual files loaded. Searches from the main checkout can include copies of files in nested worktrees unless the search tool's exclusions filter them; scope searches to the active checkout and exclude `.claude/worktrees/**` when searching the parent. Sibling worktrees outside the repository avoid these ancestor and search-overlap issues. Existing nested worktrees do not need to be moved for this setup change.
 
 ## Sources
 

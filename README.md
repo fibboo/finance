@@ -7,9 +7,11 @@ expense tracking, and generating reports, making financial management simple and
 
 Tech Stack: Python, FastAPI, SQLAlchemy 2, Pydantic 2, PostgreSQL, Alembic, Docker, Pytest, Pytest x-dist
 
-## Configuration
+## Agent setup
 
 For Claude Code and Codex setup, shared rules and skills, permissions, and Git troubleshooting, see [Agent setup](docs/agent-setup.md).
+
+## Configuration
 
 Every setting comes from environment variables; none has a default, so the app fails to start when one is missing.
 `docker-compose.yml` sets them for the `backend` service and `pytest.ini` sets fake values for tests. To run the app

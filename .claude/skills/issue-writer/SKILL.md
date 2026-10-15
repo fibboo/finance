@@ -6,17 +6,18 @@ allowed-tools: Bash Glob Grep Read Write AskUserQuestion EnterPlanMode ExitPlanM
 
 You are the issue manager for fibboo/finance, a personal finance service with a FastAPI backend at the repository root and a frontend planned under `frontend/`. You create, update and refine precise, well-structured GitHub issues that follow the project's conventions.
 
-## Host Compatibility
+## Approval and Body Files
 
-Use the host's available shell, file-reading and user-input tools. In Claude Code, native question and plan-mode tools may be used; in Codex or another host, present the complete draft in chat and wait for explicit approval. Tool availability changes the mechanism, not the approval requirement. Approval already given for the exact draft remains valid; do not ask again unless it changes.
+Use `AskUserQuestion` for clarification and `EnterPlanMode` / `ExitPlanMode` to present the complete draft for approval. Approval remains valid only when the user gave it after seeing that complete draft, including title, body, labels and parent. An initial instruction to create an issue before the draft is shown is not approval of the draft. Do not ask again for an unchanged draft that was already approved; present a changed draft again for approval. Codex maps these native Claude tools in its own `.agents/skills/issue-writer/SKILL.md` entrypoint.
 
-Resolve repository paths from the current checkout root. Write body files to a host-provided temporary directory outside the tracked tree, using UTF-8 and the shell's safe literal quoting. On Windows, use PowerShell without loading an interactive profile.
+Resolve repository paths from the current checkout root. Write body files to a host-provided temporary directory outside the tracked tree, using UTF-8 and the shell's safe literal quoting, then pass them with `--body-file` so Markdown and backticks survive the shell. In Claude Code, use the native `Bash` tool for `gh` commands; this skill does not require PowerShell or changes to shell profile loading.
 
 ## Setup Check (Always Run First)
 
 Every operation goes through the `gh` CLI. Before anything else, run `gh auth status`:
 
-- If it fails in a sandbox, first retry through the host's approval mechanism when permitted (see `docs/agent-setup.md`). If authentication also fails in the user's environment, tell the user to run `gh auth login -h github.com` in their terminal and retry. **STOP** issue operations until authentication succeeds.
+- If it fails for any reason, **STOP** issue operations until authentication succeeds. For an ordinary authentication failure outside a sandbox, tell the user to run `gh auth login -h github.com` in their terminal and retry.
+- If the failure occurs in a sandbox, first retry through the host's approval mechanism when permitted (see `docs/agent-setup.md`). If the user-context check also fails, tell the user to run `gh auth login -h github.com` in their terminal and retry. If that check cannot be performed, report the access limitation and keep issue operations stopped.
 - Project operations need the `project` scope. If a `gh project` command fails with a scope error, tell the user to run `gh auth refresh -h github.com -s project` and retry.
 
 ## Detecting the Operation
@@ -112,10 +113,10 @@ Branches and PRs that implement an issue follow the Git Conventions section of `
 
 ## Commands
 
-Write each body to a file in the scratchpad directory and pass it with `--body-file`, so that markdown and backticks survive the shell.
+Prepare body files as described in **Approval and Body Files**.
 
 - Create: `gh issue create -R fibboo/finance --title "<title>" --body-file <file> --label <Type>[,Container] --assignee @me --project fibboo-finace`. The command prints the issue URL; the number is its last segment.
-- Find the project item and set the status: `gh project item-list 3 --owner fibboo --format json -L 200` gives the item id of the issue; then run `gh project item-edit --project-id PVT_kwHOABjdYM4AFY44 --id <item_id> --field-id PVTSSF_lAHOABjdYM4AFY44zgDGv5k --single-select-option-id f75ad846`.
+- Add every newly created issue to the project and get its item id: `gh project item-add 3 --owner fibboo --url <issue_url> --format json`. Read `.id` from the successful response; do not locate the issue through a capped item list. Set its status with `gh project item-edit --project-id PVT_kwHOABjdYM4AFY44 --id <item_id> --field-id PVTSSF_lAHOABjdYM4AFY44zgDGv5k --single-select-option-id f75ad846`. If either command fails, report the incomplete step and resume from the existing issue rather than creating a duplicate.
 - Link a sub-issue: get its numeric id with `gh api repos/fibboo/finance/issues/<child_number> --jq .id`, then run `gh api -X POST repos/fibboo/finance/issues/<parent_number>/sub_issues -F sub_issue_id=<id>`.
 - Verify the links: `gh api repos/fibboo/finance/issues/<parent_number>/sub_issues --jq '.[].number'`.
 - Fetch: `gh issue view <number> -R fibboo/finance --json number,title,body,labels,state,url`.
@@ -127,7 +128,7 @@ Write each body to a file in the scratchpad directory and pass it with `--body-f
 ### Creating a new issue
 
 1. Analyze the request to determine the type label (Bug/Enhancement/Feature/Task), the area and the estimated scope.
-2. **Ask clarifying questions before writing anything**, combined into one question round using the host's available user-input mechanism:
+2. **Ask clarifying questions before writing anything**, combined into a single `AskUserQuestion` call (do not repeat questions already answered in the conversation):
    - **Parent selection**: "If this should be a sub-issue of an existing issue, give its number, or reply **none**."
    - Every ambiguity in the request: missing context, an unclear type label, ambiguous scope, unknown data shapes or flows, unclear affected components, uncertain decomposition, anything not 100% clear. **Never assume; always ask.**
    Wait for the answers. Do not draft any issue text until every ambiguity is resolved.
@@ -135,7 +136,7 @@ Write each body to a file in the scratchpad directory and pass it with `--body-f
 4. If it exceeds the limit, plan a Container with sub-issues titled in the `PR N of M` format. Otherwise plan a single issue.
 5. **Investigate the repository** for the files the plan names: every file in Affected Scope must be confirmed to exist (or tagged `[new]`).
 6. **Compose the full draft**: title, the complete body with every section filled in, labels and parent. For a Container, compose the parent draft and every sub-issue draft.
-7. **Present the draft for approval** using the host's available plan mode or chat, in this format:
+7. **Present the draft for approval** with `EnterPlanMode`, in this format:
 
    ```
    ---
@@ -149,9 +150,9 @@ Write each body to a file in the scratchpad directory and pass it with `--body-f
    ```
 
    For a Container, show the parent draft first, then each sub-issue draft in order.
-8. **Wait for explicit approval** of the complete draft. If the user asks for changes, revise and present it again. Do NOT run any GitHub write command until it is approved.
-9. Create the issue (see Commands), assigned to `@me`. Verify project membership with the item list; if absent, use `gh project item-add 3 --owner fibboo --url <issue_url> --format json`. Then set its status to `Todo`. If creation succeeded but a later step failed, resume from the existing issue rather than creating a duplicate.
-10. For a Container: create each sub-issue in order, link each one to the Container, then verify the links.
+8. **Call `ExitPlanMode`** and wait for explicit approval given after the complete draft was shown. If the user asks for changes, revise the draft and call `ExitPlanMode` again. Do NOT run any GitHub write command until that draft is approved.
+9. Create the issue (see Commands), assigned to `@me`. Always run the project item-add command, take `.id` from its response and set the status to `Todo`. If creation succeeded but a later step failed, resume from the existing issue rather than creating a duplicate.
+10. For a Container: create each sub-issue in order using step 9, including assignment, project item-add and status `Todo` for every child. Link each child to the Container, then verify the links.
 11. Report back with the issue numbers as Markdown links: `[#<number>](<url>)`.
 
 ### Updating an existing issue
@@ -160,7 +161,7 @@ Write each body to a file in the scratchpad directory and pass it with `--body-f
 2. Fetch the current issue.
 3. Work out what the user wants changed and which body sections are affected. Keep all content the user did not ask to change.
 4. Compose the full updated body. Never send a partial body; the edit replaces the whole description.
-5. **Present the full updated body for approval**, clearly marked as the version that will replace the current one, using the host's available plan mode or chat. If the user asks for changes, revise and present it again. Wait for explicit approval.
+5. **Enter plan mode** with `EnterPlanMode`, show the full updated draft clearly marked as the version that will replace the current one, and call `ExitPlanMode`. If the user asks for changes, revise and call `ExitPlanMode` again. Wait for explicit approval given after that complete draft was shown.
 6. Edit the issue, changing only what the user explicitly asked for (title, body, labels). Never change the status.
 7. Report back with `[#<number>](<url>)` and a short summary of what changed.
 
@@ -172,9 +173,9 @@ Refining turns a raw idea into an implementation plan. It is the update path plu
 2. **Investigate the repository before writing anything.** Find the modules, classes and files the idea touches, read the surrounding code, and check `CLAUDE.md` and `.claude/rules/` for the conventions the change must follow. A plan that names files nobody checked is worse than no plan.
 3. **Verify what is uncertain instead of asserting it.** Where the right solution is not obvious, run the affected tests, run a script, or exercise the code path as described in the Commands section of `CLAUDE.md`. What a run proves goes into the plan; what a run disproves must not.
 4. Judge the scope against the 500-change limit. If the plan would exceed it, propose the Container split and its sub-issues instead of writing an oversized plan.
-5. Ask about every ambiguity the investigation could not resolve, in one question round using the host's available user-input mechanism.
+5. Ask about every ambiguity the investigation could not resolve, in one `AskUserQuestion` call. Do not repeat questions already answered in the conversation.
 6. Compose the complete description in the standard structure, choosing the Implementation Steps format that fits the work.
-7. Present the full replacement body using the host's available plan mode or chat and wait for explicit approval.
+7. Present the full replacement draft with `EnterPlanMode` / `ExitPlanMode` and wait for explicit approval given after that complete draft was shown.
 8. Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Never change the status.
 9. Post a comment summarizing what was planned and what was verified: which components the plan touches, and which claims a run confirmed.
 10. Report back with `[#<number>](<url>)`.
