@@ -7,6 +7,12 @@ paths:
 
 # backend
 
+## Primary keys
+
+Every table generates its `id` in PostgreSQL with `server_default=func.uuidv7(monotonic=True)`. UUIDv7 keys grow with time, so new rows append to the end of the primary-key index instead of landing at random pages. The `monotonic` flag tells SQLAlchemy that the values grow, which lets it insert a batch of rows in one `INSERT … RETURNING` and match the returned keys to the objects (`CRUDBase.create_batch`).
+
+`sessions` (`app/models/user/session.py`) is the exception and keeps `gen_random_uuid()`. Its `id` is the `X-Auth-Token` the client sends (`app/api/deps.py`). A UUIDv7 spends 48 of its bits on the creation time and keeps 74 random ones, against 122 in a UUIDv4. So a token would reveal when it was issued and be easier to guess.
+
 ## Transaction amounts
 
 Every transaction (`app/models/accounting/transaction.py`) stores the money it moves in five fields:
