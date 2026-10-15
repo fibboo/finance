@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.configs.logging_settings import LogLevelType
+from app.crud.accounting.category import category_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.category import Category as CategoryModel
 from app.schemas.accounting.category import (
     Category,
+    CategoryCreate,
     CategoryCreateRequest,
     CategoryRequest,
     CategoryType,
@@ -129,11 +131,10 @@ async def test_get_categories_more_than_twenty(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     for i in range(25):
-        create_data: CategoryCreateRequest = CategoryCreateRequest(name=f"Category {i:02}", type=CategoryType.GENERAL)
-        await category_service.create_category(db=db, create_data=create_data, user_id=user_id)
-    await db.commit()
+        create_data = CategoryCreate(name=f"Category {i:02}", type=CategoryType.GENERAL, user_id=user_id)
+        await category_crud.create(db=db, obj_in=create_data, commit=True)
 
-    request: CategoryRequest = CategoryRequest(size=10, page=3)
+    request = CategoryRequest(size=10, page=3)
 
     # Act
     categories: Page[Category] = await category_service.get_categories(db=db, request=request, user_id=user_id)
@@ -141,7 +142,7 @@ async def test_get_categories_more_than_twenty(db: AsyncSession):
     # Assert
     assert categories.total == 25
     assert categories.pages == 3
-    assert [category.name for category in categories.items] == [f"Category {i}" for i in range(20, 25)]
+    assert [category.name for category in categories.items] == [f"Category {i:02}" for i in range(20, 25)]
 
 
 async def test_get_category_ok(db: AsyncSession):
