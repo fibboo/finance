@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal, ROUND_HALF_EVEN
-from typing import Generic, TypeVar
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
@@ -19,19 +18,17 @@ from app.schemas.accounting.transaction import Transaction, TransactionCreate, T
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.services.user import user_service
 
-T = TypeVar("T", bound=TransactionCreateRequest)
-
 logger = get_logger(logger_name=__name__)
 
 
-class TransactionProcessor(ABC, Generic[T]):
+class TransactionProcessor[T: TransactionCreateRequest](ABC):
     def __init__(self, *, db: AsyncSession, user_id: UUID):
         self.db: AsyncSession = db
         self.user_id: UUID = user_id
         self.base_currency: CurrencyType | None = None
 
     @classmethod
-    def factory(cls, *, db: AsyncSession, user_id: UUID, transaction_type: TransactionType) -> "TransactionProcessor":
+    def factory(cls, *, db: AsyncSession, user_id: UUID, transaction_type: TransactionType) -> TransactionProcessor:
         from app.services.accounting.transaction_processor.expense import Expense
         from app.services.accounting.transaction_processor.income import Income
         from app.services.accounting.transaction_processor.transfer import Transfer
