@@ -107,6 +107,25 @@ async def test_get_locations(db: AsyncSession):
     assert len(locations_not_found.items) == 0
 
 
+async def test_get_locations_more_than_twenty(db: AsyncSession):
+    # Arrange
+    user_id = uuid4()
+    for i in range(25):
+        location_create = LocationCreateRequest(name=f"Location {i:02}")
+        await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
+    await db.commit()
+
+    request = LocationRequest(size=10, page=3)
+
+    # Act
+    locations: Page[Location] = await location_service.get_locations(db=db, request=request, user_id=user_id)
+
+    # Assert
+    assert locations.total == 25
+    assert locations.pages == 3
+    assert [location.name for location in locations.items] == [f"Location {i}" for i in range(20, 25)]
+
+
 async def test_get_location(db: AsyncSession):
     # Arrange
     user_id = uuid4()

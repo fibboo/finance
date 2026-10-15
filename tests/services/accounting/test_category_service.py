@@ -125,6 +125,25 @@ async def test_get_categories(db: AsyncSession):
     assert len(categories_not_found.items) == 0
 
 
+async def test_get_categories_more_than_twenty(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    for i in range(25):
+        create_data: CategoryCreateRequest = CategoryCreateRequest(name=f"Category {i:02}", type=CategoryType.GENERAL)
+        await category_service.create_category(db=db, create_data=create_data, user_id=user_id)
+    await db.commit()
+
+    request: CategoryRequest = CategoryRequest(size=10, page=3)
+
+    # Act
+    categories: Page[Category] = await category_service.get_categories(db=db, request=request, user_id=user_id)
+
+    # Assert
+    assert categories.total == 25
+    assert categories.pages == 3
+    assert [category.name for category in categories.items] == [f"Category {i}" for i in range(20, 25)]
+
+
 async def test_get_category_ok(db: AsyncSession):
     # Arrange
     user_id = uuid4()

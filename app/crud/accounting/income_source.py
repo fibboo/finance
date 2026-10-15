@@ -15,11 +15,7 @@ class CRUDIncomeSource(CRUDBase[IncomeSource, IncomeSourceCreateRequest, IncomeS
         self, *, db: AsyncSession, request: IncomeSourceRequest, user_id: UUID
     ) -> Page[IncomeSource]:
         query = (
-            select(self.model)
-            .where(self.model.user_id == user_id)
-            .order_by(self.model.name)
-            .order_by(self.model.id)
-            .limit(20)
+            select(self.model).where(self.model.user_id == user_id).order_by(self.model.name).order_by(self.model.id)
         )
 
         if request.search_term is not None:
