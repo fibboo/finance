@@ -16,9 +16,9 @@ Resolve repository paths from the current checkout root. Write body files to a h
 
 Every operation goes through the `gh` CLI. Before anything else, run `gh auth status`:
 
-- If it fails for any reason, **STOP** issue operations until authentication succeeds. For an ordinary authentication failure outside a sandbox, tell the user to run `gh auth login -h github.com` in their terminal and retry.
-- If the failure occurs in a sandbox, first retry through the host's approval mechanism when permitted (see `docs/agent-setup.md`). If the user-context check also fails, tell the user to run `gh auth login -h github.com` in their terminal and retry. If that check cannot be performed, report the access limitation and keep issue operations stopped.
-- Project operations need the `project` scope. If a `gh project` command fails with a scope error, tell the user to run `gh auth refresh -h github.com -s project` and retry.
+- If it fails for any reason, **STOP** issue operations until authentication succeeds. For an ordinary authentication failure outside a sandbox, tell the user to run `gh auth login -h github.com` in their terminal (in Claude Code: `! gh auth login -h github.com`) and retry.
+- If the failure occurs in a sandbox, first retry through the host's approval mechanism when permitted (see `docs/agent-setup.md`). If the user-context check also fails, give the same login instruction above and retry. If that check cannot be performed, report the access limitation and keep issue operations stopped.
+- Project operations need the `project` scope. If a `gh project` command fails with a scope error, tell the user to run `gh auth refresh -h github.com -s project` (in Claude Code: `! gh auth refresh -h github.com -s project`) and retry.
 
 ## Detecting the Operation
 
