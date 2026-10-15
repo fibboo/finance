@@ -6,6 +6,8 @@ Run either agent from the root of the checkout or worktree you intend to change.
 
 The Codex skill files refer to the full workflows in `.claude/skills/`; they are ordinary files, so cloning on Windows requires no symlink privileges or generation step. Change workflow instructions in the shared files. When adding a skill, add an entrypoint for both agents and keep their descriptions aligned. When adding a module rule, give it accurate `paths:` frontmatter: Claude uses native matching and Codex follows the loading instructions in `AGENTS.md`.
 
+Keep Claude-specific skill metadata in `.claude/skills/`, including `allowed-tools` grants and trigger examples. Codex entrypoints have their own metadata; reading the shared workflow does not grant Codex the permissions listed for Claude. Validate Claude skills with `claude plugin validate .claude/skills` and Codex entrypoints with the Codex skill validator.
+
 In either agent, `#issue <description>` creates an issue and `#issue <number>` updates or refines it as requested. Native explicit invocations are `/issue-writer` and `/add-module` in Claude Code, and `$issue-writer` and `$add-module` in Codex. Creating or changing an issue requires approval of the complete draft in both agents, regardless of the host's command approval mode.
 
 Open a fresh session from the intended checkout after changing the setup. In Codex CLI, check `/skills` for both skills; in Claude Code, check the `/` skill suggestions. Ask either agent to list the project instruction files it loaded and the rules it would use for a Python PR review. Expect `CLAUDE.md`, common rules, Python rules, applicable module rules and PR review rules; Codex should also name `AGENTS.md`. This read-only check should not create an issue or edit files.
