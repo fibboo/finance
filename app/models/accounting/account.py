@@ -15,9 +15,9 @@ class Account(Base):
     __tablename__ = "accounts"
     __table_args__ = (UniqueConstraint("user_id", "name", name="account_unique_user_id_name"),)
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[UUID] = mapped_column(  # noqa: A003
         DB_UUID, primary_key=True, server_default=func.uuidv7(monotonic=True)
-    )  # noqa: A003
+    )
     user_id: Mapped[UUID] = mapped_column(DB_UUID, nullable=False, index=True)
 
     name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)

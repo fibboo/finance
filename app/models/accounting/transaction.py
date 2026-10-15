@@ -18,9 +18,9 @@ from app.schemas.base import CurrencyType, EntityStatusType
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[UUID] = mapped_column(  # noqa: A003
         DB_UUID, primary_key=True, server_default=func.uuidv7(monotonic=True)
-    )  # noqa: A003
+    )
     user_id: Mapped[UUID] = mapped_column(DB_UUID, nullable=False, index=True)
 
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)

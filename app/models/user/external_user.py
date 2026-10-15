@@ -13,9 +13,9 @@ from app.schemas.user.external_user import ProviderType
 class ExternalUser(Base):
     __tablename__ = "external_users"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[UUID] = mapped_column(  # noqa: A003
         DB_UUID, primary_key=True, server_default=func.uuidv7(monotonic=True)
-    )  # noqa: A003
+    )
     user_id: Mapped[UUID] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=False)
 
     provider: Mapped[ProviderType] = mapped_column(
