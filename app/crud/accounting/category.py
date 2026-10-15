@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +32,7 @@ class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
             types = [t.value for t in request.types]
             query = query.where(self.model.type.in_(types))
 
-        paginated_expenses = await paginate(db, query, request)
+        paginated_expenses = await apaginate(db, query, request)
         return paginated_expenses
 
 

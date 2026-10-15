@@ -372,7 +372,7 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
         await db_transaction.commit()
 
     # Assert
-    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert exc.value.message == "Unprocessable entity"
     assert exc.value.log_message == (
         "If destination_currency differs from user base currency, " "destination_amount must be specified"

@@ -31,7 +31,7 @@ class ConflictException(AppBaseException):
 
 class IntegrityException(ConflictException):
     def __init__(self, *, entity: type[Base], exception: IntegrityError, logger: logging.Logger):
-        error_detail = exception.orig.args[0].split("\n")[1]
+        error_detail = exception.orig.detail
         super().__init__(
             message="Entity integrity error",
             log_message=f"{entity.__name__} integrity error: {error_detail}",

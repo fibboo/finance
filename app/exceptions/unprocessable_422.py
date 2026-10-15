@@ -18,7 +18,7 @@ class UnprocessableException(AppBaseException):
         error_code: ErrorCodeType | None = None,
     ):
         super().__init__(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             message=message,
             log_message=log_message,
             logger=logger,
