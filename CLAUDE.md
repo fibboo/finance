@@ -38,7 +38,7 @@ A **module** is a directory that ships as its own container. It owns a `Dockerfi
 Packages under `app/` are split by layer, and each layer is split by domain (`accounting`, `user`):
 
 - `api/`: routers in `api/endpoints/<domain>/`, joined in `api/api.py`. `api/deps.py` holds the dependencies: `get_db` (a plain session), `get_db_transaction` (a session opened with `begin()`, which commits at the end of the request), `get_user_id` and `get_token`.
-- `services/`: business logic as module-level functions (`<entity>_service.py`). Transactions are processed by `services/accounting/transaction_processor/`, where `base.py` is the abstract processor and `expense.py`, `income.py` and `transfer.py` subclass it. Authentication clients are in `services/user/auth/` (`auth_client.py` is the base, with `telegram_client.py` and `test_client.py`).
+- `services/`: business logic as module-level functions (`<entity>_service.py`). Transactions are processed by `services/accounting/transaction_processor/`, where `base.py` is the abstract processor, `expense.py`, `income.py` and `transfer.py` subclass it, and `factory.py` picks the processor for a transaction type (`get_processor`). The base never imports its subclasses; only the factory does, which keeps the package free of import cycles. Authentication clients are in `services/user/auth/` (`auth_client.py` is the base, with `telegram_client.py` and `test_client.py`).
 - `crud/`: data access. `crud/base.py` defines `CRUDBase`, which writes with `flush` and leaves the commit to the request transaction. Each entity has a crud module with a module-level instance.
 - `models/`: SQLAlchemy models on `models/base.py`.
 - `schemas/`: Pydantic schemas, plus `error_response.py` (`ErrorResponse`, `ErrorCodeType`).

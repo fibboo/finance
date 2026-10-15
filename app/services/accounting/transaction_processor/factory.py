@@ -22,7 +22,7 @@ TRANSACTION_PROCESSORS: frozendict[TransactionType, type[TransactionProcessor]] 
 
 
 def get_processor(*, db: AsyncSession, user_id: UUID, transaction_type: TransactionType) -> TransactionProcessor:
-    transaction_class: type[TransactionProcessor] | None = TRANSACTION_PROCESSORS.get(transaction_type, None)
+    transaction_class: type[TransactionProcessor] | None = TRANSACTION_PROCESSORS.get(transaction_type)
     if transaction_class is None:
         raise NotImplementedException(log_message=f"Transaction {transaction_type} is not implemented", logger=logger)
 
