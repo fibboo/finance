@@ -165,7 +165,7 @@ class TransactionRequest(Params):
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 
     @model_validator(mode="after")
-    def fill_default_dates(self) -> "TransactionRequest":
+    def fill_default_dates(self) -> TransactionRequest:
         today: date = datetime.now().date()
         if self.date_from is None:
             self.date_from = today - timedelta(days=90)

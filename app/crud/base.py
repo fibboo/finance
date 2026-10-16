@@ -1,4 +1,4 @@
-from typing import Any, Generic, Type, TypeVar
+from typing import Any
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
@@ -7,13 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import Base
 
-Model = TypeVar("Model", bound=Base)
-CreateSchema = TypeVar("CreateSchema", bound=BaseModel)
-UpdateSchema = TypeVar("UpdateSchema", bound=BaseModel)
 
-
-class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
-    def __init__(self, *, model: Type[Model]):
+class CRUDBase[Model: Base, CreateSchema: BaseModel, UpdateSchema: BaseModel]:
+    def __init__(self, *, model: type[Model]):
         self.model = model
 
     def _build_get_query(self, *, with_for_update: bool = False, **kwargs) -> Select:
