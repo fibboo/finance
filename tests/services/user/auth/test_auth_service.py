@@ -19,9 +19,12 @@ from app.crud.user.external_user import external_user_crud
 from app.crud.user.refresh_token import refresh_token_crud
 from app.crud.user.user import user_crud
 from app.exceptions.bad_gateway_502 import ProviderUnavailable
+from app.exceptions.conflict_409 import LastIdentityUnlinkForbidden, ProviderAlreadyLinked
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException
 from app.exceptions.unprocessable_422 import RedirectUriNotAllowed
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
+from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
 from app.schemas.error_response import ErrorCodeType
@@ -686,16 +689,22 @@ async def test_callback_token_endpoint_error(
 
 
 @pytest.mark.parametrize(
-    "state, expires_in, code_hash",
+    "state, expires_in, code_hash, used",
     [
-        ("unknown_state", timedelta(minutes=10), None),
-        ("state", -timedelta(seconds=1), None),
-        ("state", timedelta(minutes=10), hashlib.sha256(b"issued_code").hexdigest()),
+        ("unknown_state", timedelta(minutes=10), None, False),
+        ("state", -timedelta(seconds=1), None, False),
+        ("state", timedelta(minutes=10), hashlib.sha256(b"issued_code").hexdigest(), False),
+        ("state", timedelta(minutes=10), None, True),
     ],
-    ids=["unknown_state", "expired", "already_completed"],
+    ids=["unknown_state", "expired", "already_completed", "link_already_completed"],
 )
 async def test_callback_invalid_state(
-    db: AsyncSession, db_transaction: AsyncSession, state: str, expires_in: timedelta, code_hash: str | None
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    state: str,
+    expires_in: timedelta,
+    code_hash: str | None,
+    used: bool,
 ):
     # Arrange
     await authorization_request_crud.create(
@@ -710,6 +719,7 @@ async def test_callback_invalid_state(
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + expires_in,
             "code_hash": code_hash,
+            "used": used,
         },
         commit=True,
     )
@@ -1169,3 +1179,422 @@ async def test_callback_no_free_username(
     await db.refresh(request_db)
     assert request_db.code_hash is None
     assert request_db.user_id is None
+
+
+async def test_authorize_link_ok(db: AsyncSession, db_transaction: AsyncSession, google_signing_key: RSAKey):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+
+    # Act
+    authorization_url: str = await auth_service.authorize(
+        db=db_transaction,
+        provider=ProviderType.GOOGLE,
+        redirect_uri="https://finance.test/auth/callback",
+        code_challenge="client_code_challenge",
+        client_state="client_state",
+        link_user_id=user_db.id,
+    )
+    await db_transaction.commit()
+
+    # Assert
+    request_db: AuthorizationRequestModel = await authorization_request_crud.get(db=db)
+    assert request_db.provider == ProviderType.GOOGLE
+    assert request_db.link_user_id == user_db.id
+    assert parse_qs(urlsplit(authorization_url).query)["state"] == [request_db.state]
+
+
+async def test_authorize_link_provider_already_linked(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+
+    # Act / Assert
+    with pytest.raises(ProviderAlreadyLinked) as exc:
+        await auth_service.authorize(
+            db=db_transaction,
+            provider=ProviderType.TELEGRAM,
+            redirect_uri="https://finance.test/auth/callback",
+            code_challenge="client_code_challenge",
+            client_state="client_state",
+            link_user_id=user_db.id,
+        )
+
+    assert exc.value.error_code == ErrorCodeType.PROVIDER_ALREADY_LINKED
+
+    requests_db: list[AuthorizationRequestModel] = await authorization_request_crud.get_batch(db=db)
+    assert len(requests_db) == 0
+
+
+async def test_callback_link_adds_identity(
+    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, google_signing_key: RSAKey
+):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.GOOGLE,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+            "link_user_id": user_db.id,
+        },
+        commit=True,
+    )
+    id_token: str = jwt.encode(
+        {"alg": "RS256", "kid": "google-test-key"},
+        {
+            "iss": "https://accounts.google.com",
+            "aud": "fake_google_client_id.apps.googleusercontent.com",
+            "sub": "110169484474386276334",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+            "nonce": "nonce",
+            "email": "john.doe@gmail.com",
+            "email_verified": True,
+            "given_name": "John",
+        },
+        google_signing_key,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth2.googleapis.com/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3599,
+            "id_token": id_token,
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    # the client is already signed in, so it gets no code
+    url = urlsplit(redirect_url)
+    assert f"{url.scheme}://{url.netloc}{url.path}" == "https://finance.test/auth/callback"
+    assert parse_qs(url.query) == {"state": ["client_state"]}
+
+    users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
+    assert len(users_db) == 1
+
+    linked_user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id="110169484474386276334", provider=ProviderType.GOOGLE
+    )
+    assert linked_user_db.id == user_db.id
+
+    external_user_db: ExternalUserModel = await external_user_crud.get(
+        db=db, user_id=user_db.id, provider=ProviderType.GOOGLE
+    )
+    assert external_user_db.username == "google_110169484474386276334"
+    assert external_user_db.first_name == "John"
+    assert external_user_db.email == "john.doe@gmail.com"
+
+    await db.refresh(request_db)
+    assert request_db.used is True
+    assert request_db.code_hash is None
+
+
+async def test_callback_link_already_linked_to_same_user(
+    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, google_signing_key: RSAKey
+):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.GOOGLE,
+            "external_id": "110169484474386276334",
+            "username": "google_110169484474386276334",
+        },
+        commit=True,
+    )
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.GOOGLE,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+            "link_user_id": user_db.id,
+        },
+        commit=True,
+    )
+    id_token: str = jwt.encode(
+        {"alg": "RS256", "kid": "google-test-key"},
+        {
+            "iss": "https://accounts.google.com",
+            "aud": "fake_google_client_id.apps.googleusercontent.com",
+            "sub": "110169484474386276334",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+            "nonce": "nonce",
+            "email": "john.doe@gmail.com",
+            "email_verified": True,
+            "given_name": "John",
+        },
+        google_signing_key,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth2.googleapis.com/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3599,
+            "id_token": id_token,
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert parse_qs(urlsplit(redirect_url).query) == {"state": ["client_state"]}
+
+    external_users_db: list[ExternalUserModel] = await external_user_crud.get_batch(db=db)
+    assert len(external_users_db) == 2
+
+    await db.refresh(request_db)
+    assert request_db.used is True
+
+
+async def test_callback_link_identity_of_another_user(
+    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, google_signing_key: RSAKey
+):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+    other_user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="janedoe", registration_provider=ProviderType.GOOGLE), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": other_user_db.id,
+            "provider": ProviderType.GOOGLE,
+            "external_id": "110169484474386276334",
+            "username": "janedoe",
+        },
+        commit=True,
+    )
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.GOOGLE,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+            "link_user_id": user_db.id,
+        },
+        commit=True,
+    )
+    id_token: str = jwt.encode(
+        {"alg": "RS256", "kid": "google-test-key"},
+        {
+            "iss": "https://accounts.google.com",
+            "aud": "fake_google_client_id.apps.googleusercontent.com",
+            "sub": "110169484474386276334",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+            "nonce": "nonce",
+            "email": "john.doe@gmail.com",
+            "email_verified": True,
+            "given_name": "John",
+        },
+        google_signing_key,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth2.googleapis.com/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3599,
+            "id_token": id_token,
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    params: dict[str, list[str]] = parse_qs(urlsplit(redirect_url).query)
+    assert params == {"error": ["IDENTITY_LINKED_TO_ANOTHER_USER"], "state": ["client_state"]}
+
+    # nothing is written: the identity stays with its owner and the request stays open
+    external_user_db: ExternalUserModel = await external_user_crud.get(db=db, provider=ProviderType.GOOGLE)
+    assert external_user_db.user_id == other_user_db.id
+
+    external_users_db: list[ExternalUserModel] = await external_user_crud.get_batch(db=db, user_id=user_db.id)
+    assert len(external_users_db) == 1
+
+    await db.refresh(request_db)
+    assert request_db.used is False
+
+
+async def test_unlink_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.GOOGLE,
+            "external_id": "110169484474386276334",
+            "username": "google_110169484474386276334",
+        },
+        commit=True,
+    )
+
+    # Act
+    await auth_service.unlink(db=db_transaction, user_id=user_db.id, provider=ProviderType.GOOGLE)
+    await db_transaction.commit()
+
+    # Assert
+    external_users_db: list[ExternalUserModel] = await external_user_crud.get_batch(db=db)
+    assert len(external_users_db) == 1
+    assert external_users_db[0].provider == ProviderType.TELEGRAM
+
+
+async def test_unlink_last_identity(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+
+    # Act / Assert
+    with pytest.raises(LastIdentityUnlinkForbidden) as exc:
+        await auth_service.unlink(db=db_transaction, user_id=user_db.id, provider=ProviderType.TELEGRAM)
+
+    assert exc.value.error_code == ErrorCodeType.LAST_IDENTITY_UNLINK_FORBIDDEN
+
+    external_users_db: list[ExternalUserModel] = await external_user_crud.get_batch(db=db)
+    assert len(external_users_db) == 1
+
+
+async def test_unlink_not_linked(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+
+    # Act / Assert
+    with pytest.raises(EntityNotFound):
+        await auth_service.unlink(db=db_transaction, user_id=user_db.id, provider=ProviderType.GOOGLE)
+
+    external_users_db: list[ExternalUserModel] = await external_user_crud.get_batch(db=db)
+    assert len(external_users_db) == 1
