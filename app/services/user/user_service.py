@@ -11,15 +11,21 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.user import User as UserModel
 from app.schemas.base import CurrencyType
-from app.schemas.user.external_user import ExternalUserCreate, ProviderType
+from app.schemas.user.external_user import ExternalUserCreate
+from app.schemas.user.identity import ProviderIdentity
 from app.schemas.user.user import User, UserCreate
 from app.services.accounting import account_service
 
 logger = get_logger(logger_name=__name__)
 
 
-async def create_user(*, db: AsyncSession, provider: ProviderType, external_id: str, username: str) -> UserModel:
-    user_create = UserCreate(username=username, registration_provider=provider)
+async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserModel:
+    if identity.username is not None:
+        username: str = identity.username
+    else:
+        username: str = f"{identity.provider.value.lower()}_{identity.subject}"
+
+    user_create = UserCreate(username=username, avatar=identity.avatar, registration_provider=identity.provider)
 
     try:
         user_db: UserModel = await user_crud.create(db=db, obj_in=user_create)
@@ -29,9 +35,13 @@ async def create_user(*, db: AsyncSession, provider: ProviderType, external_id: 
 
     external_user_create = ExternalUserCreate(
         user_id=user_db.id,
-        provider=provider,
-        external_id=external_id,
+        provider=identity.provider,
+        external_id=identity.subject,
         username=username,
+        first_name=identity.first_name,
+        last_name=identity.last_name,
+        avatar=identity.avatar,
+        email=identity.email,
     )
     external_user_db: ExternalUserModel = await external_user_crud.create(db=db, obj_in=external_user_create)
     user_db.external_users = [external_user_db]
