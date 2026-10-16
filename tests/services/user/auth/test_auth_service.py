@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 from authlib.oauth2.rfc7636 import create_s256_code_challenge
 from joserfc import jwt
-from joserfc.jwk import ECKey, OctKey
+from joserfc.jwk import ECKey, OctKey, RSAKey
 from pytest_httpx import HTTPXMock
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -324,6 +324,118 @@ async def test_callback_without_username(
         db=db, external_id="1234123412341234123", provider=ProviderType.TELEGRAM
     )
     assert user_db.username == "telegram_1234123412341234123"
+
+
+async def test_authorize_google(db: AsyncSession, db_transaction: AsyncSession, google_signing_key: RSAKey):
+    # Arrange
+    client_code_challenge: str = create_s256_code_challenge("client_code_verifier_of_at_least_43_characters")
+
+    # Act
+    authorization_url: str = await auth_service.authorize(
+        db=db_transaction,
+        provider=ProviderType.GOOGLE,
+        redirect_uri="finance://auth/callback",
+        code_challenge=client_code_challenge,
+        client_state="client_state",
+    )
+    await db_transaction.commit()
+
+    # Assert
+    request_db: AuthorizationRequestModel = await authorization_request_crud.get(db=db)
+    assert request_db.provider == ProviderType.GOOGLE
+
+    url = urlsplit(authorization_url)
+    assert f"{url.scheme}://{url.netloc}{url.path}" == "https://accounts.google.com/o/oauth2/v2/auth"
+    params: dict[str, list[str]] = parse_qs(url.query)
+    assert params["client_id"] == ["fake_google_client_id.apps.googleusercontent.com"]
+    assert params["scope"] == ["openid profile email"]
+    assert params["redirect_uri"] == [f"{settings.public_base_url}/user/auth/callback/GOOGLE"]
+    assert params["state"] == [request_db.state]
+    assert params["nonce"] == [request_db.nonce]
+
+
+@pytest.mark.parametrize(
+    ("issuer", "email_verified", "expected_email"),
+    [
+        ("https://accounts.google.com", True, "john.doe@gmail.com"),
+        ("accounts.google.com", True, "john.doe@gmail.com"),
+        ("https://accounts.google.com", False, None),
+    ],
+    ids=["verified_email", "issuer_without_scheme", "unverified_email"],
+)
+async def test_callback_google_creates_user(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    httpx_mock: HTTPXMock,
+    google_signing_key: RSAKey,
+    issuer: str,
+    email_verified: bool,
+    expected_email: str | None,
+):
+    # Arrange
+    await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.GOOGLE,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "finance://auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+    id_token: str = jwt.encode(
+        {"alg": "RS256", "kid": "google-test-key"},
+        {
+            "iss": issuer,
+            "aud": "fake_google_client_id.apps.googleusercontent.com",
+            "sub": "110169484474386276334",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+            "nonce": "nonce",
+            "email": "john.doe@gmail.com",
+            "email_verified": email_verified,
+            "name": "John Doe",
+            "given_name": "John",
+            "family_name": "Doe",
+            "picture": "https://lh3.googleusercontent.com/a/johndoe",
+        },
+        google_signing_key,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth2.googleapis.com/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3599,
+            "id_token": id_token,
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    params: dict[str, list[str]] = parse_qs(urlsplit(redirect_url).query)
+    assert "code" in params
+
+    user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id="110169484474386276334", provider=ProviderType.GOOGLE
+    )
+    assert user_db is not None
+    assert user_db.username == "google_110169484474386276334"
+    assert user_db.avatar == "https://lh3.googleusercontent.com/a/johndoe"
+    assert user_db.registration_provider == ProviderType.GOOGLE
+    assert user_db.external_users[0].first_name == "John"
+    assert user_db.external_users[0].last_name == "Doe"
+    assert user_db.external_users[0].email == expected_email
 
 
 async def test_callback_provider_error(db: AsyncSession, db_transaction: AsyncSession):

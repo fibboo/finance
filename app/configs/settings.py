@@ -47,3 +47,13 @@ class TelegramSettings(BaseSettings):
 
 
 telegram_settings = TelegramSettings()
+
+
+class GoogleSettings(BaseSettings):
+    client_id: str
+    client_secret: str
+
+    model_config = SettingsConfigDict(env_prefix="google_", env_file=".env", extra="ignore")
+
+
+google_settings = GoogleSettings()
