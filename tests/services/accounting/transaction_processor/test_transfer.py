@@ -22,6 +22,7 @@ from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
+from app.services.accounting.transaction_processor import factory
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -60,7 +61,7 @@ async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction:
         comment="test",
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
@@ -135,7 +136,7 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
         comment="test",
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
@@ -210,7 +211,7 @@ async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction
         comment="test",
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
@@ -290,7 +291,7 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
         comment="test",
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
@@ -364,7 +365,7 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
         comment="test",
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     with pytest.raises(UnprocessableException) as exc:
@@ -427,7 +428,7 @@ async def test_create_transfer_other_to_other_not_base_rate(db: AsyncSession, db
         comment="test",
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     with pytest.raises(NoAccountBaseCurrencyRate) as exc:
@@ -493,7 +494,7 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
         to_account_id=account_to_db.id,
         comment="test",
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     transaction_before: Transaction = await transaction_processor.create(data=transfer_create_data)
@@ -501,7 +502,7 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
     await db.close()
 
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)
@@ -560,7 +561,7 @@ async def test_create_transfer_to_account_of_other_user(db: AsyncSession, db_tra
         comment="test",
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
     with pytest.raises(EntityNotFound) as exc:

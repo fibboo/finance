@@ -26,6 +26,7 @@ from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
+from app.services.accounting.transaction_processor import factory
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -60,7 +61,7 @@ async def test_create_income_base_currency_ok(db: AsyncSession, db_transaction: 
         income_period=date(2025, 1, 18),
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)
@@ -129,7 +130,7 @@ async def test_create_income_other_currency_ok(db: AsyncSession, db_transaction:
     )
 
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)
@@ -192,7 +193,7 @@ async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, 
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db,
         user_id=user_id,
         transaction_type=income_create_data_1.transaction_type,
@@ -214,7 +215,7 @@ async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, 
     )
 
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=income_create_data_2.transaction_type
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data_2)
@@ -274,7 +275,7 @@ async def test_create_income_account_not_found(db: AsyncSession, db_transaction:
     )
 
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     with pytest.raises(EntityNotFound) as exc:
@@ -325,7 +326,7 @@ async def test_create_income_currency_mismatch(db: AsyncSession, db_transaction:
     )
 
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     with pytest.raises(CurrencyMismatchException) as exc:
@@ -381,7 +382,7 @@ async def test_create_income_account_type_mismatch(db: AsyncSession, db_transact
         income_period=date(2025, 1, 18),
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     with pytest.raises(AccountTypeMismatchException) as exc:
@@ -433,7 +434,7 @@ async def test_create_income_integrity_error(db: AsyncSession, db_transaction: A
         income_period=date(2025, 1, 18),
     )
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     with pytest.raises(IntegrityException) as exc:
@@ -486,7 +487,7 @@ async def test_delete_base_currency_ok(db: AsyncSession, db_transaction: AsyncSe
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
@@ -494,7 +495,7 @@ async def test_delete_base_currency_ok(db: AsyncSession, db_transaction: AsyncSe
     await db.close()
 
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)
@@ -540,7 +541,7 @@ async def test_delete_other_currency_ok(db: AsyncSession, db_transaction: AsyncS
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
@@ -548,7 +549,7 @@ async def test_delete_other_currency_ok(db: AsyncSession, db_transaction: AsyncS
     await db.close()
 
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)
@@ -601,7 +602,7 @@ async def test_delete_other_currency_2_ok(db: AsyncSession, db_transaction: Asyn
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
     transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
@@ -609,7 +610,7 @@ async def test_delete_other_currency_2_ok(db: AsyncSession, db_transaction: Asyn
     await db.close()
 
     # Act
-    transaction_processor: TransactionProcessor = TransactionProcessor.factory(
+    transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)

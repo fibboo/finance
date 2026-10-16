@@ -11,7 +11,6 @@ from app.crud.base import CRUDBase
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import CurrencyMismatchException, NoAccountBaseCurrencyRate
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.not_implemented_501 import NotImplementedException
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.transaction import Transaction, TransactionCreate, TransactionCreateRequest, TransactionType
@@ -26,26 +25,6 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         self.db: AsyncSession = db
         self.user_id: UUID = user_id
         self.base_currency: CurrencyType | None = None
-
-    @classmethod
-    def factory(cls, *, db: AsyncSession, user_id: UUID, transaction_type: TransactionType) -> TransactionProcessor:
-        from app.services.accounting.transaction_processor.expense import Expense
-        from app.services.accounting.transaction_processor.income import Income
-        from app.services.accounting.transaction_processor.transfer import Transfer
-
-        type_processor = {
-            TransactionType.EXPENSE: Expense,
-            TransactionType.INCOME: Income,
-            TransactionType.TRANSFER: Transfer,
-        }
-        transaction_class: type[TransactionProcessor] | None = type_processor.get(transaction_type, None)
-        if transaction_class is None:
-            raise NotImplementedException(
-                log_message=f"Transaction {transaction_type} is not implemented", logger=logger
-            )
-
-        transaction_processor: TransactionProcessor = transaction_class(db=db, user_id=user_id)
-        return transaction_processor
 
     @property
     @abstractmethod
