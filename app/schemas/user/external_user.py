@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 class ProviderType(str, Enum):
     TELEGRAM = "TELEGRAM"
+    GOOGLE = "GOOGLE"
 
 
 class ExternalUserBase(BaseModel):
