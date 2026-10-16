@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, func, Numeric, String, text
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, func, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,7 +18,9 @@ from app.schemas.base import CurrencyType, EntityStatusType
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id: Mapped[UUID] = mapped_column(DB_UUID, primary_key=True, server_default=text("gen_random_uuid()"))  # noqa: A003
+    id: Mapped[UUID] = mapped_column(  # noqa: A003
+        DB_UUID, primary_key=True, server_default=func.uuidv7(monotonic=True)
+    )
     user_id: Mapped[UUID] = mapped_column(DB_UUID, nullable=False, index=True)
 
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
