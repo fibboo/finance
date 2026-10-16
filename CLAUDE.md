@@ -55,7 +55,7 @@ Packages under `app/` are split by layer, and each layer is split by domain (`ac
 
 ## Commands
 
-Everything runs in Docker through `docker-compose.yml`, which has the `postgres` and `backend` services. Rebuild the image only when `tests/Dockerfile` or `requirements/` change.
+Everything runs in Docker through `docker-compose.yml`, which has the `postgres` and `backend` services. Rebuild the image only when `tests/Dockerfile` or `requirements/` change. The `backend` service reads its settings from the committed `.env` through `env_file`. Production runs `docker-compose.production.yml`, which builds `backend` from the root `Dockerfile` and reads `.env-production`, whose secrets are `'${VAR}'` placeholders filled with envsubst at deploy time.
 
 ### Format
 

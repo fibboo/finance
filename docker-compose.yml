@@ -22,14 +22,8 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-    environment:
-      - ENVIRONMENT=local
-      - APP_TITLE=Finance API
-      - SESSION_EXPIRE_SECONDS=604800
-      - MAX_ACCOUNTS_PER_USER=10
-      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/finance
-      - TELEGRAM_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
-      - TELEGRAM_BOT_NAME=bot_name
+    env_file:
+      - .env
 
     command: uvicorn app.main:app --host 0.0.0.0 --reload
 
