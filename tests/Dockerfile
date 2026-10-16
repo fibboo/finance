@@ -1,4 +1,4 @@
-FROM python:3.11.9-slim
+FROM python:3.15.0-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -9,8 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 EXPOSE 8000
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    gcc postgresql postgresql-contrib \
+RUN apt-get update && apt-get install -y postgresql-common \
+    && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+    && apt-get install -y --no-install-recommends gcc postgresql-18 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements requirements

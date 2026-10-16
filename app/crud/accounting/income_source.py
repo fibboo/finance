@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +30,7 @@ class CRUDIncomeSource(CRUDBase[IncomeSource, IncomeSourceCreateRequest, IncomeS
                 )
             )
 
-        paginated_income_sources = await paginate(db, query, request)
+        paginated_income_sources = await apaginate(db, query, request)
         return paginated_income_sources
 
 

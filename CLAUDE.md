@@ -28,7 +28,7 @@ Setup, permission modes and Git troubleshooting: `docs/agent-setup.md`. Tool nam
 
 Finance is a personal finance service: accounts, categories, locations, income sources, and income, expense and transfer transactions. Users sign in through Telegram. A FastAPI backend sits at the repository root. A frontend is planned under `frontend/`.
 
-Tech stack: Python 3.11, FastAPI, SQLAlchemy 2 (async, asyncpg), Pydantic 2, pydantic-settings, PostgreSQL, Alembic, Docker, pytest with pytest-postgresql and pytest-xdist.
+Tech stack: Python 3.15, FastAPI, SQLAlchemy 2 (async, asyncpg), Pydantic 2, pydantic-settings, PostgreSQL, Alembic, Docker, pytest with pytest-postgresql and pytest-xdist.
 
 ## Architecture
 

@@ -52,8 +52,7 @@ async def test_create_location_with_existing_name(db: AsyncSession, db_transacti
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.message == "Entity integrity error"
     assert exc.value.log_message == (
-        f"Location integrity error: DETAIL:  Key (user_id, name)=({user_id}, "
-        f"{location_create.name}) already exists."
+        f"Location integrity error: Key (user_id, name)=({user_id}, {location_create.name}) already exists."
     )
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
@@ -224,8 +223,7 @@ async def test_update_location_double(db: AsyncSession, db_transaction: AsyncSes
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.message == "Entity integrity error"
     assert exc.value.log_message == (
-        f"Location integrity error: DETAIL:  Key (user_id, name)=({user_id}, "
-        f"{location_update.name}) already exists."
+        f"Location integrity error: Key (user_id, name)=({user_id}, {location_update.name}) already exists."
     )
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
