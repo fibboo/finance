@@ -11,7 +11,13 @@ paths:
 
 Every table that owns its `id` generates it in PostgreSQL with `server_default=func.uuidv7(monotonic=True)`. The transaction subtype tables (`transactions_expense`, `transactions_income`, `transactions_transfer`) generate nothing: their `id` is a foreign key to `transactions.id` and is copied from the base row. UUIDv7 keys grow with time, so new rows append to the end of the primary-key index instead of landing at random pages. The `monotonic` flag tells SQLAlchemy that the values grow, which lets it insert a batch of rows in one `INSERT … RETURNING` and match the returned keys to the objects (`CRUDBase.create_batch`).
 
-`sessions` (`app/models/user/session.py`) is the exception and keeps `gen_random_uuid()`. Its `id` is the `X-Auth-Token` the client sends (`app/api/deps.py`). A UUIDv7 spends 48 of its bits on the creation time and keeps 74 random ones, against 122 in a UUIDv4. So a token would reveal when it was issued and be easier to guess.
+No `id` is a secret. A refresh token (`app/models/user/refresh_token.py`) is a random string the client keeps, and the table stores only its SHA-256 hash, so a UUIDv7 key revealing when a row was created gives nothing away.
+
+## Tokens
+
+The API authenticates by a short-lived HS256 JWT access token (`app/services/user/token_service.py`). `get_user_id` (`app/api/deps.py`) checks its signature and expiry and returns its `sub` without reading the database, so an access token stays valid until it expires even after its refresh token is revoked.
+
+Refresh tokens rotate: each use revokes the presented token and issues a new one in the same family. Presenting a token that is already revoked means it was copied, so the whole family is revoked (reuse detection). That revocation must outlive the 401 it answers with, while `get_db_transaction` rolls a request back on any exception. So `get_db_transaction` commits before re-raising `RefreshTokenReusedException`, and only that one.
 
 ## Transaction amounts
 

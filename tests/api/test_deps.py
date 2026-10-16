@@ -1,67 +1,48 @@
-from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import HTTPAuthorizationCredentials
+from joserfc import jwt
+from joserfc.jwk import OctKey
 from starlette import status
 
 from app.api.deps import get_user_id
-from app.crud.user.session import user_session_crud
-from app.crud.user.user import user_crud
-from app.exceptions.unauthorized_401 import SessionExpiredException
-from app.models.user.session import Session as SessionModel
-from app.models.user.user import User as UserModel
-from app.schemas.base import CurrencyType
+from app.configs.settings import settings
+from app.exceptions.unauthorized_401 import InvalidTokenException
 from app.schemas.error_response import ErrorCodeType
-from app.schemas.user.external_user import ProviderType
-from app.schemas.user.session import UserSessionCreate
-from app.schemas.user.user import UserCreate
 
 
-async def test_get_user_id_active_session(db: AsyncSession):
+async def test_get_user_id_valid_token():
     # Arrange
-    user_create: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    user_id: UUID = uuid4()
+    access_token: str = jwt.encode(
+        {"alg": "HS256"}, {"sub": str(user_id), "exp": 4102444800}, OctKey.import_key(settings.jwt_secret)
     )
-    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
-    session_create: UserSessionCreate = UserSessionCreate(
-        user_id=user_db.id, expires_at=datetime.now() + timedelta(days=7), provider=ProviderType.TELEGRAM
-    )
-    session_db: SessionModel = await user_session_crud.create(db=db, obj_in=session_create, commit=True)
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=access_token)
 
     # Act
-    user_id: UUID = await get_user_id(x_auth_token=session_db.id, db=db)
+    result: UUID = await get_user_id(credentials=credentials)
 
     # Assert
-    assert user_id == user_db.id
+    assert result == user_id
 
 
-async def test_get_user_id_expired_session(db: AsyncSession):
-    # Arrange
-    user_create: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
-    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
-    session_create: UserSessionCreate = UserSessionCreate(
-        user_id=user_db.id, expires_at=datetime.now() - timedelta(seconds=1), provider=ProviderType.TELEGRAM
-    )
-    session_db: SessionModel = await user_session_crud.create(db=db, obj_in=session_create, commit=True)
-
+async def test_get_user_id_missing_credentials():
     # Act / Assert
-    with pytest.raises(SessionExpiredException) as exc:
-        await get_user_id(x_auth_token=session_db.id, db=db)
+    with pytest.raises(InvalidTokenException) as exc:
+        await get_user_id(credentials=None)
 
     assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
-    assert exc.value.error_code == ErrorCodeType.SESSION_EXPIRED
+    assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
 
 
-async def test_get_user_id_unknown_token(db: AsyncSession):
+async def test_get_user_id_malformed_token():
     # Arrange
-    token: UUID = uuid4()
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="not-a-jwt")
 
     # Act / Assert
-    with pytest.raises(SessionExpiredException) as exc:
-        await get_user_id(x_auth_token=token, db=db)
+    with pytest.raises(InvalidTokenException) as exc:
+        await get_user_id(credentials=credentials)
 
     assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
-    assert exc.value.error_code == ErrorCodeType.SESSION_EXPIRED
+    assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN

@@ -36,7 +36,7 @@ class AuthTestClient(AuthClient):
         auth_data: AuthData = AuthData(
             access_token=str(hash(auth_code)),
             token_type="test_hash",
-            expires_in=settings.session_expire_seconds,
+            expires_in=settings.access_token_expire_seconds,
             scope="test_scope",
             external_id=user_identifier,
             username=username,
