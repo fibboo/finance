@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi_pagination import Page
@@ -7,10 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.configs.logging_settings import LogLevelType
+from app.crud.accounting.location import location_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.location import Location as LocationModel
-from app.schemas.accounting.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
+from app.schemas.accounting.location import (
+    Location,
+    LocationCreate,
+    LocationCreateRequest,
+    LocationRequest,
+    LocationUpdate,
+)
 from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import location_service
 
@@ -105,6 +112,24 @@ async def test_get_locations(db: AsyncSession):
 
     assert locations_not_found.total == 0
     assert len(locations_not_found.items) == 0
+
+
+async def test_get_locations_more_than_twenty(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    for i in range(25):
+        location_create = LocationCreate(name=f"Location {i:02}", user_id=user_id)
+        await location_crud.create(db=db, obj_in=location_create, commit=True)
+
+    request = LocationRequest(size=10, page=3)
+
+    # Act
+    locations: Page[Location] = await location_service.get_locations(db=db, request=request, user_id=user_id)
+
+    # Assert
+    assert locations.total == 25
+    assert locations.pages == 3
+    assert [location.name for location in locations.items] == [f"Location {i:02}" for i in range(20, 25)]
 
 
 async def test_get_location(db: AsyncSession):

@@ -13,11 +13,7 @@ from app.schemas.accounting.category import CategoryCreateRequest, CategoryReque
 class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
     async def get_categories(self, *, db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
         query = (
-            select(self.model)
-            .where(self.model.user_id == user_id)
-            .order_by(self.model.name)
-            .order_by(self.model.id)
-            .limit(20)
+            select(self.model).where(self.model.user_id == user_id).order_by(self.model.name).order_by(self.model.id)
         )
 
         if request.search_term is not None:
