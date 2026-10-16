@@ -20,13 +20,25 @@ from app.utils.utils import hash_secret
 logger = get_logger(logger_name=__name__)
 
 
-async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserModel | None:
+def _build_fallback_username(*, identity: ProviderIdentity) -> str:
     subject: str = identity.subject if len(identity.subject) <= 32 else hash_secret(secret=identity.subject)[:32]
     fallback_username: str = f"{identity.provider.value.lower()}_{subject}"
-    username: str = identity.username if identity.username is not None else fallback_username
+    return fallback_username
+
+
+def build_username(*, identity: ProviderIdentity) -> str:
+    if identity.username is not None:
+        return identity.username
+
+    username: str = _build_fallback_username(identity=identity)
+    return username
+
+
+async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserModel | None:
+    username: str = build_username(identity=identity)
     username_owner_db: UserModel | None = await user_crud.get_or_none(db=db, username=username)
-    if username_owner_db is not None and username != fallback_username:
-        username = fallback_username
+    if username_owner_db is not None and identity.username is not None:
+        username = _build_fallback_username(identity=identity)
         username_owner_db = await user_crud.get_or_none(db=db, username=username)
 
     if username_owner_db is not None:
@@ -41,20 +53,29 @@ async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserMo
     except IntegrityError as exc:
         raise IntegrityException(entity=UserModel, exception=exc, logger=logger)
 
+    external_user_db: ExternalUserModel = await add_external_user(
+        db=db, user_id=user_db.id, identity=identity, username=build_username(identity=identity)
+    )
+    user_db.external_users = [external_user_db]
+
+    return user_db
+
+
+async def add_external_user(
+    *, db: AsyncSession, user_id: UUID, identity: ProviderIdentity, username: str
+) -> ExternalUserModel:
     external_user_create = ExternalUserCreate(
-        user_id=user_db.id,
+        user_id=user_id,
         provider=identity.provider,
         external_id=identity.subject,
-        username=identity.username if identity.username is not None else fallback_username,
+        username=username,
         first_name=identity.first_name,
         last_name=identity.last_name,
         avatar=identity.avatar,
         email=identity.email,
     )
     external_user_db: ExternalUserModel = await external_user_crud.create(db=db, obj_in=external_user_create)
-    user_db.external_users = [external_user_db]
-
-    return user_db
+    return external_user_db
 
 
 async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyType) -> User:

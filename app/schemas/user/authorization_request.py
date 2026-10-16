@@ -15,9 +15,14 @@ class AuthorizationRequestCreate(BaseModel):
     client_state: str
     client_code_challenge: str
     expires_at: datetime
+    link_user_id: UUID | None = None
 
 
 class AuthorizationRequestUpdate(BaseModel):
     user_id: UUID
     code_hash: str
     expires_at: datetime
+
+
+class AuthorizationUrlResponse(BaseModel):
+    authorization_url: str

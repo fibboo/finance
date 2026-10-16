@@ -1,5 +1,6 @@
 import secrets
 from datetime import datetime, timedelta
+from uuid import UUID
 
 from authlib.common.urls import add_params_to_uri
 from authlib.oauth2.rfc7636 import create_s256_code_challenge
@@ -8,11 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
 from app.crud.user.authorization_request import authorization_request_crud
+from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
+from app.exceptions.conflict_409 import LastIdentityUnlinkForbidden, ProviderAlreadyLinked
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException
 from app.exceptions.unprocessable_422 import RedirectUriNotAllowed
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
+from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.user import User as UserModel
+from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.authorization_request import AuthorizationRequestCreate, AuthorizationRequestUpdate
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.identity import ProviderIdentity
@@ -34,10 +40,23 @@ def _build_client_url(*, request_db: AuthorizationRequestModel, params: dict[str
 
 
 async def authorize(
-    *, db: AsyncSession, provider: ProviderType, redirect_uri: str, code_challenge: str, client_state: str
+    *,
+    db: AsyncSession,
+    provider: ProviderType,
+    redirect_uri: str,
+    code_challenge: str,
+    client_state: str,
+    link_user_id: UUID | None = None,
 ) -> str:
     if redirect_uri not in settings.allowed_redirect_uris:
         raise RedirectUriNotAllowed(redirect_uri=redirect_uri, logger=logger)
+
+    if link_user_id is not None:
+        linked_db: ExternalUserModel | None = await external_user_crud.get_or_none(
+            db=db, user_id=link_user_id, provider=provider
+        )
+        if linked_db is not None:
+            raise ProviderAlreadyLinked(user_id=link_user_id, provider=provider, logger=logger)
 
     authorization_request_create = AuthorizationRequestCreate(
         provider=provider,
@@ -48,6 +67,7 @@ async def authorize(
         client_state=client_state,
         client_code_challenge=code_challenge,
         expires_at=datetime.now() + AUTHORIZATION_REQUEST_LIFETIME,
+        link_user_id=link_user_id,
     )
     await authorization_request_crud.create(db=db, obj_in=authorization_request_create)
 
@@ -65,7 +85,7 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     if request_db is None or request_db.provider != provider:
         raise InvalidAuthData(log_message=f"Unknown {provider.value} authorization state", logger=logger)
 
-    if request_db.code_hash is not None:
+    if request_db.code_hash is not None or request_db.used:
         raise InvalidAuthData(log_message=f"Authorization request `{request_db.id}` already completed", logger=logger)
 
     if request_db.expires_at <= datetime.now():
@@ -87,6 +107,26 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
         db=db, external_id=identity.subject, provider=provider
     )
+    if request_db.link_user_id is not None:
+        if user_db is not None and user_db.id != request_db.link_user_id:
+            error_params: dict[str, str] = {
+                "error": ErrorCodeType.IDENTITY_LINKED_TO_ANOTHER_USER.value,
+                "state": request_db.client_state,
+            }
+            error_url: str = add_params_to_uri(request_db.client_redirect_uri, error_params)
+            return error_url
+
+        if user_db is None:
+            username: str = user_service.build_username(identity=identity)
+            await user_service.add_external_user(
+                db=db, user_id=request_db.link_user_id, identity=identity, username=username
+            )
+
+        await authorization_request_crud.update_orm(db=db, obj_in={"used": True}, id=request_db.id)
+
+        linked_url: str = add_params_to_uri(request_db.client_redirect_uri, {"state": request_db.client_state})
+        return linked_url
+
     if user_db is None:
         user_db: UserModel | None = await user_service.create_user(db=db, identity=identity)
         if user_db is None:
@@ -127,3 +167,17 @@ async def exchange_code(
 
     token: TokenPair = await token_service.issue_token_pair(db=db, user_id=request_db.user_id)
     return token
+
+
+async def unlink(*, db: AsyncSession, user_id: UUID, provider: ProviderType) -> None:
+    external_users_db: list[ExternalUserModel] = await external_user_crud.get_by_user_for_update(db=db, user_id=user_id)
+    linked_providers: list[ProviderType] = [external_user.provider for external_user in external_users_db]
+    if provider not in linked_providers:
+        raise EntityNotFound(
+            entity=ExternalUserModel, search_params={"user_id": user_id, "provider": provider}, logger=logger
+        )
+
+    if len(linked_providers) == 1:
+        raise LastIdentityUnlinkForbidden(user_id=user_id, provider=provider, logger=logger)
+
+    await external_user_crud.delete_by_user_and_provider(db=db, user_id=user_id, provider=provider)
