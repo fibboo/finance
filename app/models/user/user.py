@@ -19,10 +19,9 @@ class User(Base):
         Enum(ProviderType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
         nullable=False,
     )
-    base_currency: Mapped[CurrencyType] = mapped_column(
+    base_currency: Mapped[CurrencyType | None] = mapped_column(
         Enum(CurrencyType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
-        nullable=False,
-        server_default=CurrencyType.USD.value,
+        nullable=True,
     )
 
     external_users: Mapped[list["ExternalUser"]] = relationship("ExternalUser", lazy="joined")  # noqa: F821

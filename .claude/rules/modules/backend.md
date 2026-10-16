@@ -19,6 +19,10 @@ The API authenticates by a short-lived HS256 JWT access token (`app/services/use
 
 Refresh tokens rotate: each use revokes the presented token and issues a new one in the same family. Presenting a token that is already revoked means it was copied, so the whole family is revoked (reuse detection). That revocation must outlive the 401 it answers with, while `get_db_transaction` rolls a request back on any exception. So `get_db_transaction` commits before re-raising `RefreshTokenReusedException`, and only that one.
 
+## Base currency
+
+A user is created without a base currency (`users.base_currency` is nullable), so that signing in needs nothing but the provider's answer. The client chooses it once afterwards with `PUT /user/me/base_currency` (`user_service.set_base_currency`), which also creates the standard accounts in that currency. It cannot be changed: a second call answers 409 `BASE_CURRENCY_ALREADY_SET`, because every stored `base_currency_amount` is in that currency. The update only matches a row whose currency is still null, so two concurrent calls cannot both create the standard accounts. Until it is set, `user_service.get_user_base_currency` answers 409 `BASE_CURRENCY_NOT_SET`, which tells the client to show onboarding.
+
 ## Transaction amounts
 
 Every transaction (`app/models/accounting/transaction.py`) stores the money it moves in five fields:

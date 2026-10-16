@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db_transaction
-from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenResponse
 from app.services.user import token_service
@@ -29,14 +28,10 @@ async def get_auth_url(*, provider: ProviderType):
 
 @router.post("/register")
 async def register(
-    *,
-    provider: ProviderType,
-    base_currency: CurrencyType,
-    auth_code: str,
-    db: AsyncSession = Depends(get_db_transaction),
+    *, provider: ProviderType, auth_code: str, db: AsyncSession = Depends(get_db_transaction)
 ) -> TokenResponse:
     client: AuthClient = auth_clients[provider]
-    token: TokenResponse = await client.register(db=db, auth_code=auth_code, base_currency=base_currency)
+    token: TokenResponse = await client.register(db=db, auth_code=auth_code)
     return token
 
 

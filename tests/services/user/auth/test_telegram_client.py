@@ -16,8 +16,6 @@ from app.models import Account as AccountModel
 from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountType
-from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenResponse
@@ -52,12 +50,8 @@ async def test_register_new_user_ok(db: AsyncSession, db_transaction: AsyncSessi
 
     auth_code = base64.b64encode(code).decode("utf-8")
 
-    base_currency: CurrencyType = CurrencyType.EUR
-
     # When
-    token: TokenResponse = await telegram_auth.register(
-        db=db_transaction, auth_code=auth_code, base_currency=base_currency
-    )
+    token: TokenResponse = await telegram_auth.register(db=db_transaction, auth_code=auth_code)
     await db_transaction.commit()
 
     # Then
@@ -68,7 +62,7 @@ async def test_register_new_user_ok(db: AsyncSession, db_transaction: AsyncSessi
     assert user_db.username == username
     assert user_db.avatar is None
     assert user_db.registration_provider == ProviderType.TELEGRAM
-    assert user_db.base_currency == base_currency
+    assert user_db.base_currency is None
 
     token_hash: str = hashlib.sha256(token.refresh_token.encode("utf-8")).hexdigest()
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_or_none(db=db, token_hash=token_hash)
@@ -82,14 +76,7 @@ async def test_register_new_user_ok(db: AsyncSession, db_transaction: AsyncSessi
     assert telegram_user_db.provider == ProviderType.TELEGRAM
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db)
-    account_types: list[AccountType] = [account_type for account_type in AccountType]
-    current_account_types: list[AccountType] = []
-    for account_db in accounts_db:
-        current_account_types.append(account_db.account_type)
-        assert account_db.user_id == user_db.id
-        assert account_db.currency == base_currency
-    assert len(current_account_types) == len(account_types)
-    assert set(current_account_types) == set(account_types)
+    assert len(accounts_db) == 0
 
 
 async def test_register_user_exists_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -109,14 +96,11 @@ async def test_register_user_exists_ok(db: AsyncSession, db_transaction: AsyncSe
 
     auth_code = base64.b64encode(code).decode("utf-8")
 
-    base_currency_before: CurrencyType = CurrencyType.EUR
-    await telegram_auth.register(db=db, auth_code=auth_code, base_currency=base_currency_before)
+    await telegram_auth.register(db=db, auth_code=auth_code)
     await db.commit()
 
-    base_currency: CurrencyType = CurrencyType.USD
-
     # When
-    await telegram_auth.register(db=db_transaction, auth_code=auth_code, base_currency=base_currency)
+    await telegram_auth.register(db=db_transaction, auth_code=auth_code)
     await db_transaction.commit()
 
     # Then
@@ -127,7 +111,6 @@ async def test_register_user_exists_ok(db: AsyncSession, db_transaction: AsyncSe
     assert user_db.username == username
     assert user_db.avatar is None
     assert user_db.registration_provider == ProviderType.TELEGRAM
-    assert user_db.base_currency == base_currency_before
 
     refresh_tokens_db: list[RefreshTokenModel] = await refresh_token_crud.get_batch(db=db, user_id=user_db.id)
     assert len(refresh_tokens_db) == 2
@@ -137,16 +120,6 @@ async def test_register_user_exists_ok(db: AsyncSession, db_transaction: AsyncSe
     assert telegram_user_db.external_id == telegram_id
     assert telegram_user_db.username == username
     assert telegram_user_db.provider == ProviderType.TELEGRAM
-
-    accounts_db: list[AccountModel] = await account_crud.get_batch(db=db)
-    account_types: list[AccountType] = [account_type for account_type in AccountType]
-    current_account_types: list[AccountType] = []
-    for account_db in accounts_db:
-        current_account_types.append(account_db.account_type)
-        assert account_db.user_id == user_db.id
-        assert account_db.currency == base_currency_before
-    assert len(current_account_types) == len(account_types)
-    assert set(current_account_types) == set(account_types)
 
 
 async def test_register_login_ok(db: AsyncSession):
@@ -166,8 +139,7 @@ async def test_register_login_ok(db: AsyncSession):
 
     auth_code = base64.b64encode(code).decode("utf-8")
 
-    base_currency: CurrencyType = CurrencyType.EUR
-    await telegram_auth.register(db=db, auth_code=auth_code, base_currency=base_currency)
+    await telegram_auth.register(db=db, auth_code=auth_code)
     await db.commit()
 
     # When
