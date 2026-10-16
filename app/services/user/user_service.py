@@ -11,20 +11,15 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.user import User as UserModel
 from app.schemas.base import CurrencyType
-from app.schemas.user.external_user import ExternalUserCreate
-from app.schemas.user.session import AuthData
+from app.schemas.user.external_user import ExternalUserCreate, ProviderType
 from app.schemas.user.user import User, UserCreate
 from app.services.accounting import account_service
 
 logger = get_logger(logger_name=__name__)
 
 
-async def create_user(*, db: AsyncSession, auth_data: AuthData) -> UserModel:
-    user_create = UserCreate(
-        username=auth_data.username,
-        avatar=auth_data.avatar,
-        registration_provider=auth_data.provider,
-    )
+async def create_user(*, db: AsyncSession, provider: ProviderType, external_id: str, username: str) -> UserModel:
+    user_create = UserCreate(username=username, registration_provider=provider)
 
     try:
         user_db: UserModel = await user_crud.create(db=db, obj_in=user_create)
@@ -34,14 +29,9 @@ async def create_user(*, db: AsyncSession, auth_data: AuthData) -> UserModel:
 
     external_user_create = ExternalUserCreate(
         user_id=user_db.id,
-        provider=auth_data.provider,
-        external_id=auth_data.external_id,
-        username=auth_data.username,
-        first_name=auth_data.first_name,
-        last_name=auth_data.last_name,
-        avatar=auth_data.avatar,
-        profile_url=auth_data.profile_url,
-        email=auth_data.email,
+        provider=provider,
+        external_id=external_id,
+        username=username,
     )
     external_user_db: ExternalUserModel = await external_user_crud.create(db=db, obj_in=external_user_create)
     user_db.external_users = [external_user_db]

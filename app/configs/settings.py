@@ -34,13 +34,3 @@ class DatabaseSettings(BaseSettings):
 
 
 database_settings = DatabaseSettings()
-
-
-class TelegramSettings(BaseSettings):
-    token: str
-    bot_name: str
-
-    model_config = SettingsConfigDict(env_prefix="telegram_", env_file=".env", extra="ignore")
-
-
-telegram_settings = TelegramSettings()
