@@ -1582,6 +1582,7 @@ async def test_complete_link_ok(db: AsyncSession, db_transaction: AsyncSession):
 
     await db.refresh(request_db)
     assert request_db.used is True
+    assert request_db.link_identity is None
 
 
 @pytest.mark.parametrize(
@@ -1730,6 +1731,7 @@ async def test_complete_link_already_linked_to_same_user(db: AsyncSession, db_tr
 
     await db.refresh(request_db)
     assert request_db.used is True
+    assert request_db.link_identity is None
 
 
 async def test_complete_link_provider_linked_meanwhile(db: AsyncSession, db_transaction: AsyncSession):

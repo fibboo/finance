@@ -28,7 +28,6 @@ class ExternalUser(Base):
     provider: Mapped[ProviderType] = mapped_column(
         Enum(ProviderType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
         nullable=False,
-        index=True,
     )
     external_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     username: Mapped[str] = mapped_column(String, nullable=False, index=True)
