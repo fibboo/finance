@@ -28,7 +28,7 @@ async def get_db() -> AsyncSession:
         await session.close()
 
 
-async def get_db_transaction() -> AsyncSession:
+async def _get_db_transaction() -> AsyncSession:
     try:
         async with session_maker.begin() as session:
             try:
@@ -43,7 +43,7 @@ async def get_db_transaction() -> AsyncSession:
         await session.close()
 
 
-DbTransaction = Annotated[AsyncSession, Depends(get_db_transaction, scope="function")]
+DbTransaction = Annotated[AsyncSession, Depends(_get_db_transaction, scope="function")]
 
 
 async def get_user_id(*, credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> UUID:
