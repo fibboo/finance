@@ -115,7 +115,7 @@ docker compose exec backend alembic revision --autogenerate -m "<description>"
 
 ## CI/CD
 
-`.github/workflows/tests.yml` runs on every pull request (any base branch) and on every push to `main`. On the free `ubuntu-latest` runner it builds `tests/Dockerfile` and runs `pytest -v -n auto` inside it. There is no deploy workflow.
+`.github/workflows/tests.yml` runs on every pull request (any base branch) and on every push to `main`. It has two jobs on the free `ubuntu-latest` runner that run in parallel, and both build `tests/Dockerfile`. `tests` runs `pytest -v -n auto` inside the image. `migrations` starts a `postgres:18` service and runs `alembic upgrade head`, `alembic check`, `alembic downgrade base` and `alembic upgrade head` inside the image against it, with the committed `.env` mounted and `DATABASE_URL` pointing at the service, so a model change without a matching revision fails CI. There is no deploy workflow.
 
 ## Issue Tracking
 

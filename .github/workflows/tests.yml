@@ -21,3 +21,34 @@ jobs:
 
       - name: Run tests
         run: docker run --rm finance-test pytest -v -n auto
+
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: finance
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user -d finance"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build test image
+        run: docker build -t finance-test -f tests/Dockerfile .
+
+      - name: Check migrations against the models
+        run: >-
+          docker run --rm --network host
+          -v "$PWD/.env:/app/.env:ro"
+          -e DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/finance
+          finance-test
+          sh -c "alembic upgrade head && alembic check && alembic downgrade base && alembic upgrade head"
