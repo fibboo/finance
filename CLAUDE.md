@@ -9,7 +9,7 @@
   1. Run Black
   2. Run isort
   3. Run only the tests affected by the changes (see the Tests section for scoping rules)
-- See `.claude/rules/common.md` for general coding principles, `.claude/rules/python.md` for Python conventions, and `.claude/rules/pr-review.md` for PR review guidelines. pr-review.md is the one place that says what a finding is and how severe it is.
+- See `.claude/rules/common.md` for the principles that apply to every module and language, `.claude/rules/python.md` for Python conventions and the Python form of those principles, and `.claude/rules/pr-review.md` for PR review guidelines. pr-review.md is the one place that says what a finding is and how severe it is.
 
 ## Skill Triggers
 
