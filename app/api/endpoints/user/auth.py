@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.cookies import delete_refresh_token_cookie, set_refresh_token_cookie
 from app.api.deps import get_db_transaction, get_grant_refresh_token, get_refresh_token, get_user_id
-from app.schemas.user.authorization_request import AuthorizationUrlResponse
+from app.schemas.user.authorization_request import AuthorizationUrlResponse, LinkCompleteRequest
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair, TokenRequest, TokenResponse
 from app.services.user import token_service
@@ -47,7 +47,8 @@ async def link(
 ) -> AuthorizationUrlResponse:
     """Start linking another provider to the signed-in user. Returns the provider's sign-in URL to open.
 
-    The callback then redirects to the client with `state` and no code, or with `error`."""
+    The callback then redirects to the client with a one-time code, or with `error`. The client finishes the link
+    with `POST /user/auth/link/{provider}/complete`."""
     authorization_url: str = await auth_service.authorize(
         db=db,
         provider=provider,
@@ -58,6 +59,25 @@ async def link(
     )
     response = AuthorizationUrlResponse(authorization_url=authorization_url)
     return response
+
+
+@router.post("/link/{provider}/complete")
+async def complete_link(
+    *,
+    provider: ProviderType,
+    data: LinkCompleteRequest,
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db_transaction),
+) -> None:
+    """Finish linking a provider: present the one-time code from the link callback with its PKCE verifier."""
+    await auth_service.complete_link(
+        db=db,
+        user_id=user_id,
+        provider=provider,
+        code=data.code,
+        redirect_uri=data.redirect_uri,
+        code_verifier=data.code_verifier,
+    )
 
 
 @router.delete("/link/{provider}")

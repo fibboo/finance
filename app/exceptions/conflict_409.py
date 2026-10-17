@@ -92,3 +92,14 @@ class LastIdentityUnlinkForbidden(ConflictException):
             logger=logger,
             log_level=LogLevelType.INFO,
         )
+
+
+class IdentityLinkedToAnotherUser(ConflictException):
+    def __init__(self, *, user_id: UUID, provider: ProviderType, logger: logging.Logger):
+        super().__init__(
+            message="The identity is linked to another user",
+            log_message=f"The {provider.value} identity linked for user `{user_id}` belongs to another user",
+            error_code=ErrorCodeType.IDENTITY_LINKED_TO_ANOTHER_USER,
+            logger=logger,
+            log_level=LogLevelType.WARNING,
+        )

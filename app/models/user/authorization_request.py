@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Boolean, DateTime, Enum, false, ForeignKey, func, String
-from sqlalchemy.dialects.postgresql import UUID as DB_UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -29,6 +29,7 @@ class AuthorizationRequest(Base):
     client_code_challenge: Mapped[str] = mapped_column(String, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     link_user_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=True)
+    link_identity: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     user_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=True, index=True)
     code_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)

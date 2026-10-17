@@ -6,9 +6,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.configs.logging_settings import get_logger
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
-from app.exceptions.conflict_409 import BaseCurrencyAlreadySet, BaseCurrencyNotSet, IntegrityException
+from app.exceptions.conflict_409 import (
+    BaseCurrencyAlreadySet,
+    BaseCurrencyNotSet,
+    IdentityLinkedToAnotherUser,
+    IntegrityException,
+    ProviderAlreadyLinked,
+)
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.models.user.external_user import ExternalUser as ExternalUserModel
+from app.models.user.external_user import (
+    ExternalUser as ExternalUserModel,
+    PROVIDER_EXTERNAL_ID_CONSTRAINT,
+    USER_PROVIDER_CONSTRAINT,
+)
 from app.models.user.user import User as UserModel
 from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ExternalUserCreate
@@ -74,7 +84,19 @@ async def add_external_user(
         avatar=identity.avatar,
         email=identity.email,
     )
-    external_user_db: ExternalUserModel = await external_user_crud.create(db=db, obj_in=external_user_create)
+    try:
+        external_user_db: ExternalUserModel = await external_user_crud.create(db=db, obj_in=external_user_create)
+
+    except IntegrityError as exc:
+        constraint_name: str | None = exc.driver_exception.constraint_name
+        if constraint_name == PROVIDER_EXTERNAL_ID_CONSTRAINT:
+            raise IdentityLinkedToAnotherUser(user_id=user_id, provider=identity.provider, logger=logger)
+
+        if constraint_name == USER_PROVIDER_CONSTRAINT:
+            raise ProviderAlreadyLinked(user_id=user_id, provider=identity.provider, logger=logger)
+
+        raise IntegrityException(entity=ExternalUserModel, exception=exc, logger=logger)
+
     return external_user_db
 
 

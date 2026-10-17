@@ -48,7 +48,7 @@ Packages under `app/` are split by layer, and each layer is split by domain (`ac
 - `crud/`: data access. `crud/base.py` defines `CRUDBase`, which writes with `flush` and leaves the commit to the request transaction. Each entity has a crud module with a module-level instance.
 - `models/`: SQLAlchemy models on `models/base.py`.
 - `schemas/`: Pydantic schemas, plus `error_response.py` (`ErrorResponse`, `ErrorCodeType`).
-- `exceptions/`: the `AppBaseException` hierarchy (`exceptions/base.py`), one file per HTTP status. Each exception carries its status code, message, log message, logger and log level. The handler in `app/main.py` logs it and turns it into an `ErrorResponse`.
+- `exceptions/`: the `AppBaseException` hierarchy (`exceptions/base.py`), one file per HTTP status. Each exception carries its status code, message, log message, logger and log level. The handler in `app/main.py` logs it and turns it into an `ErrorResponse`, except `ClientRedirect` (`temporary_redirect_307.py`), which its own handler turns into a redirect to the sign-in client.
 - `configs/`: `settings.py` holds the `settings`, `database_settings`, `telegram_settings` (the OIDC client id and secret from BotFather) and `google_settings` (the OAuth client id and secret from Google Cloud) instances. `logging_settings.py` holds `get_logger` and `LogLevelType`.
 - `db/postgres.py`: the async engine and `session_maker`.
 - `utils/`: small pure helpers.

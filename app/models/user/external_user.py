@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, func, String
+from sqlalchemy import DateTime, Enum, ForeignKey, func, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -9,9 +9,16 @@ from app.models.base import Base
 from app.models.user.user import User
 from app.schemas.user.external_user import ProviderType
 
+PROVIDER_EXTERNAL_ID_CONSTRAINT = "uq_external_users_provider_external_id"
+USER_PROVIDER_CONSTRAINT = "uq_external_users_user_id_provider"
+
 
 class ExternalUser(Base):
     __tablename__ = "external_users"
+    __table_args__ = (
+        UniqueConstraint("provider", "external_id", name=PROVIDER_EXTERNAL_ID_CONSTRAINT),
+        UniqueConstraint("user_id", "provider", name=USER_PROVIDER_CONSTRAINT),
+    )
 
     id: Mapped[UUID] = mapped_column(  # noqa: A003
         DB_UUID, primary_key=True, server_default=func.uuidv7(monotonic=True)
