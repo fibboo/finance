@@ -48,7 +48,7 @@ These rules apply to new and changed code under `frontend/`. They give the TypeS
 ## Function Signatures
 
 - A function that takes more than one parameter takes a single object parameter with named fields, the TypeScript form of the keyword-only rule in `.claude/rules/python.md`. A callback whose signature a library dictates (an event handler, a `select` function, a `queryFn`) is exempt.
-- Functions are declared with `function` at module level. Arrow functions are for inline callbacks.
+- Functions are declared with `function` at module level. Arrow functions are for inline callbacks. A function inside an object literal, such as a key factory's entry, uses method shorthand.
 
 ## Return Style
 
@@ -56,7 +56,8 @@ These rules apply to new and changed code under `frontend/`. They give the TypeS
 
 ## Modules and Imports
 
-- Named exports only. A default export is allowed only where a tool requires one, such as a target of `React.lazy`.
+- Named exports only. A default export is allowed only where a tool requires one.
+- A route module that React Router loads through `lazy` exports `Component`, `loader` and `ErrorBoundary` under the names React Router expects. It is the one exception to the one-component-per-file rule of `.claude/rules/react.md`.
 - No barrel `index.ts` files that re-export a folder. Import from the file that defines the thing. Barrels slow the Vite dev server, defeat tree-shaking and hide import cycles.
 - Absolute imports go through the one `@/` alias for `frontend/src/`, declared in both `tsconfig` and the Vite config. Relative imports are used only inside one feature folder.
 - The module boundaries of `.claude/rules/react.md` **Structure** are enforced by an ESLint import restriction, not by convention alone.
@@ -64,7 +65,7 @@ These rules apply to new and changed code under `frontend/`. They give the TypeS
 ## Naming
 
 - Files and folders are kebab-case (`account-list.tsx`, `use-accounts.ts`). This avoids case-only renames that Windows and Linux treat differently.
-- Types and components are PascalCase, functions and variables camelCase, and module-level constants that never change UPPER_SNAKE_CASE.
+- Types and components are PascalCase, functions and variables camelCase, and module-level constants holding a primitive value that never changes (a number, a string) UPPER_SNAKE_CASE. An object of functions, such as a query key factory, is camelCase.
 - Fields keep the names the API gives them (snake_case). The frontend does not map them to camelCase, so one concept has one name across the modules (`.claude/rules/common.md` **Naming**).
 
 ## Configuration
@@ -77,7 +78,7 @@ These rules apply to new and changed code under `frontend/`. They give the TypeS
 
 - Only `Error` instances are thrown (`only-throw-error`), and a promise is only rejected with one.
 - A `catch` binding is `unknown` and is narrowed before use.
-- An error of the backend becomes one typed `ApiError` (status, error code from `ErrorResponse`, message) in the API client, so the rest of the code never inspects a raw response.
+- An error of the backend becomes one typed `ApiError` (status, the error code and message from `ErrorResponse`, and the field errors of a FastAPI validation 422, taken from the `loc` and `msg` of each `detail` item) in the API client, so the rest of the code never inspects a raw response.
 - No empty `catch`. An error is handled, rethrown or shown, never swallowed.
 
 ## Logging
