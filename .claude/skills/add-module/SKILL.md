@@ -17,6 +17,6 @@ For **FastAPI services** specifically:
 - The service exposes a `GET /health` endpoint that returns `{"status": "ok"}`.
 
 For the **frontend** specifically:
-- It follows `.claude/rules/typescript.md` and `.claude/rules/react.md` from the first commit: the compiler options, the ESLint and Prettier configs, the typed settings module and the `package.json` script that regenerates the API types from the backend's OpenAPI schema.
+- It follows `.claude/rules/typescript.md` and `.claude/rules/react.md` from the first commit: the compiler options, the ESLint and Prettier configs, the typed settings module, the `package.json` script that regenerates the API types from the backend's OpenAPI schema, and the ignore entries that keep that generated `frontend/src/lib/api-schema.ts` out of ESLint and Prettier.
 - `package.json` has `lint`, `format`, `typecheck`, `test` and `generate:api` scripts, and `CLAUDE.md` lists them under Commands. CI runs `lint`, `typecheck`, `test` and a Prettier check, and fails when the committed API types are stale.
 - It lives in `frontend/` and proxies every API call (`/api/*`) to the `backend` compose service, in the dev server configuration and in the production web-server configuration alike. The backend then needs no CORS configuration, and in production it does not have to expose a host port of its own. The backend sets the refresh-token cookie on `/user/auth`, which the browser sees as `/api/user/auth`, so both proxies rewrite the cookie path: `cookiePathRewrite` in the Vite dev proxy and `proxy_cookie_path` in nginx.
