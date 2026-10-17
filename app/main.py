@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from starlette.requests import Request
 from starlette.responses import JSONResponse, RedirectResponse
 
+from app.api import cookies
 from app.api.api import api_router
-from app.api.cookies import delete_refresh_token_cookie
 from app.configs.logging_settings import get_logger
 from app.configs.settings import EnvironmentType, settings
 from app.exceptions.base import AppBaseException
@@ -33,7 +33,7 @@ async def app_exception_handler(_: Request, exc: AppBaseException):
 @app.exception_handler(RefreshTokenRejectedException)
 async def refresh_token_rejected_handler(request: Request, exc: RefreshTokenRejectedException):
     response: JSONResponse = await app_exception_handler(request, exc)
-    delete_refresh_token_cookie(response=response)
+    cookies.delete_refresh_token_cookie(response=response)
     return response
 
 

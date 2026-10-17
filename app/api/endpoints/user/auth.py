@@ -1,13 +1,18 @@
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, Response
+from fastapi import APIRouter, Depends, Form, Query, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.cookies import delete_refresh_token_cookie, set_refresh_token_cookie
+from app.api import cookies
 from app.api.deps import get_db_transaction, get_grant_refresh_token, get_refresh_token, get_user_id
-from app.schemas.user.authorization_request import AuthorizationUrlResponse, LinkCompleteRequest
+from app.schemas.user.authorization_request import (
+    AuthorizationUrlResponse,
+    AuthorizeRequest,
+    CallbackRequest,
+    LinkCompleteRequest,
+)
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair, TokenRequest, TokenResponse
 from app.services.user import token_service
@@ -16,32 +21,23 @@ from app.services.user.auth import auth_service
 router = APIRouter()
 
 
-@router.get("/authorize/{provider}")
+@router.get("/authorize/{provider}", response_class=RedirectResponse)
 async def authorize(
     *,
     provider: ProviderType,
-    redirect_uri: str,
-    code_challenge: str,
-    code_challenge_method: Literal["S256"],
-    state: str,
+    authorize_request: Annotated[AuthorizeRequest, Query()],
     db: AsyncSession = Depends(get_db_transaction),
-) -> RedirectResponse:
+) -> str:
     """Start signing in with a provider. Redirects to the provider's sign-in page."""
-    authorization_url: str = await auth_service.authorize(
-        db=db, provider=provider, redirect_uri=redirect_uri, code_challenge=code_challenge, client_state=state
-    )
-    response = RedirectResponse(url=authorization_url)
-    return response
+    authorization_url: str = await auth_service.authorize(db=db, provider=provider, authorize_request=authorize_request)
+    return authorization_url
 
 
 @router.post("/link/{provider}")
 async def link(
     *,
     provider: ProviderType,
-    redirect_uri: str,
-    code_challenge: str,
-    code_challenge_method: Literal["S256"],
-    state: str,
+    authorize_request: Annotated[AuthorizeRequest, Query()],
     user_id: UUID = Depends(get_user_id),
     db: AsyncSession = Depends(get_db_transaction),
 ) -> AuthorizationUrlResponse:
@@ -49,16 +45,10 @@ async def link(
 
     The callback then redirects to the client with a one-time code, or with `error`. The client finishes the link
     with `POST /user/auth/link/{provider}/complete`."""
-    authorization_url: str = await auth_service.authorize(
-        db=db,
-        provider=provider,
-        redirect_uri=redirect_uri,
-        code_challenge=code_challenge,
-        client_state=state,
-        link_user_id=user_id,
+    authorization_url_response: AuthorizationUrlResponse = await auth_service.start_link(
+        db=db, user_id=user_id, provider=provider, authorize_request=authorize_request
     )
-    response = AuthorizationUrlResponse(authorization_url=authorization_url)
-    return response
+    return authorization_url_response
 
 
 @router.post("/link/{provider}/complete")
@@ -88,19 +78,16 @@ async def unlink(
     await auth_service.unlink(db=db, user_id=user_id, provider=provider)
 
 
-@router.get("/callback/{provider}")
+@router.get("/callback/{provider}", response_class=RedirectResponse)
 async def callback(
     *,
     provider: ProviderType,
-    state: str,
-    code: str | None = None,
-    error: str | None = None,
+    callback_request: Annotated[CallbackRequest, Query()],
     db: AsyncSession = Depends(get_db_transaction),
-) -> RedirectResponse:
+) -> str:
     """The provider's redirect target. Redirects to the client with a one-time code, or with `error`."""
-    redirect_url: str = await auth_service.callback(db=db, provider=provider, state=state, code=code, error=error)
-    response = RedirectResponse(url=redirect_url)
-    return response
+    redirect_url: str = await auth_service.callback(db=db, provider=provider, callback_request=callback_request)
+    return redirect_url
 
 
 @router.post("/token")
@@ -114,21 +101,8 @@ async def token(
     """Exchange a one-time code with its PKCE verifier, or the refresh token cookie, for a new access token.
 
     The new refresh token is set as an HttpOnly cookie. A presented refresh token is revoked."""
-    if data.grant_type == "authorization_code":
-        token_pair: TokenPair = await auth_service.exchange_code(
-            db=db,
-            code=data.code,
-            redirect_uri=data.redirect_uri,
-            code_verifier=data.code_verifier,
-            refresh_token=refresh_token,
-        )
-    else:
-        token_pair: TokenPair = await token_service.rotate_refresh_token(db=db, refresh_token=refresh_token)
-
-    set_refresh_token_cookie(response=response, refresh_token=token_pair.refresh_token)
-    token_response = TokenResponse(
-        access_token=token_pair.access_token, token_type="Bearer", expires_in=token_pair.expires_in
-    )
+    token_pair: TokenPair = await auth_service.grant_token(db=db, token_request=data, refresh_token=refresh_token)
+    token_response: TokenResponse = cookies.build_token_response(response=response, token_pair=token_pair)
     return token_response
 
 
@@ -143,4 +117,4 @@ async def revoke(
 
     Always succeeds, as RFC 7009 requires: an unknown token or a request without the cookie only clears it."""
     await token_service.revoke_refresh_token(db=db, refresh_token=refresh_token)
-    delete_refresh_token_cookie(response=response)
+    cookies.delete_refresh_token_cookie(response=response)
