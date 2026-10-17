@@ -70,7 +70,7 @@ The frontend is a responsive, mobile-first single-page app. It is built from Rea
 
 ## Auth and Security
 
-- The access token is kept in memory only. The refresh token is an `HttpOnly`, `Secure`, `SameSite=Strict` cookie that the backend sets on its token path, so script never reads it. Neither token is ever written to `localStorage`, `sessionStorage` or a readable cookie.
+- The access token is kept in memory only. The refresh token is an `HttpOnly`, `Secure`, `SameSite=Strict` cookie that the backend sets on its auth path (`/user/auth`), so script never reads it. The browser sees that path as `/api/user/auth`, so the dev proxy and the production web server rewrite the cookie's `Path` to match (`.claude/skills/add-module/SKILL.md`); the backend knows nothing of the `/api` prefix. Neither token is ever written to `localStorage`, `sessionStorage` or a readable cookie.
 - One middleware of the API client adds the access token, refreshes it once on a 401 while sharing a single in-flight refresh between concurrent requests, and signs the user out when the refresh fails. On startup the app restores the session through the same refresh.
 - No `dangerouslySetInnerHTML`. A URL from data is checked to be `http:` or `https:` before it goes into an `href` or `src`.
 - A response from the backend is trusted to match the generated types. Data from anywhere else (the URL, storage, a third party) is parsed with Zod before use.
