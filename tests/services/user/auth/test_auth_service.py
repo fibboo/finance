@@ -31,14 +31,44 @@ from app.schemas.user.user import UserCreate
 from app.services.user.auth import auth_service
 
 
-async def test_authorize_ok(db: AsyncSession, db_transaction: AsyncSession, telegram_signing_key: ECKey):
+@pytest.mark.parametrize(
+    "provider, signing_key_fixture, authorization_endpoint, client_id, scope",
+    [
+        (
+            ProviderType.TELEGRAM,
+            "telegram_signing_key",
+            "https://oauth.telegram.org/auth",
+            "123456789",
+            "openid profile",
+        ),
+        (
+            ProviderType.GOOGLE,
+            "google_signing_key",
+            "https://accounts.google.com/o/oauth2/v2/auth",
+            "fake_google_client_id.apps.googleusercontent.com",
+            "openid profile email",
+        ),
+    ],
+    ids=["telegram", "google"],
+)
+async def test_authorize_ok(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    request: pytest.FixtureRequest,
+    provider: ProviderType,
+    signing_key_fixture: str,
+    authorization_endpoint: str,
+    client_id: str,
+    scope: str,
+):
     # Arrange
+    request.getfixturevalue(signing_key_fixture)
     client_code_challenge: str = create_s256_code_challenge("client_code_verifier_of_at_least_43_characters")
 
     # Act
     authorization_url: str = await auth_service.authorize(
         db=db_transaction,
-        provider=ProviderType.TELEGRAM,
+        provider=provider,
         redirect_uri="https://finance.test/auth/callback",
         code_challenge=client_code_challenge,
         client_state="client_state",
@@ -47,7 +77,7 @@ async def test_authorize_ok(db: AsyncSession, db_transaction: AsyncSession, tele
 
     # Assert
     request_db: AuthorizationRequestModel = await authorization_request_crud.get(db=db)
-    assert request_db.provider == ProviderType.TELEGRAM
+    assert request_db.provider == provider
     assert request_db.client_redirect_uri == "https://finance.test/auth/callback"
     assert request_db.client_state == "client_state"
     assert request_db.client_code_challenge == client_code_challenge
@@ -57,12 +87,12 @@ async def test_authorize_ok(db: AsyncSession, db_transaction: AsyncSession, tele
 
     # the provider gets our own state, nonce and PKCE challenge, never the client's
     url = urlsplit(authorization_url)
-    assert f"{url.scheme}://{url.netloc}{url.path}" == "https://oauth.telegram.org/auth"
+    assert f"{url.scheme}://{url.netloc}{url.path}" == authorization_endpoint
     params: dict[str, list[str]] = parse_qs(url.query)
-    assert params["client_id"] == ["123456789"]
+    assert params["client_id"] == [client_id]
     assert params["response_type"] == ["code"]
-    assert params["scope"] == ["openid profile"]
-    assert params["redirect_uri"] == [f"{settings.public_base_url}/user/auth/callback/TELEGRAM"]
+    assert params["scope"] == [scope]
+    assert params["redirect_uri"] == [f"{settings.public_base_url}/user/auth/callback/{provider.value}"]
     assert params["state"] == [request_db.state]
     assert params["nonce"] == [request_db.nonce]
     assert params["code_challenge"] == [create_s256_code_challenge(request_db.provider_code_verifier)]
@@ -326,42 +356,15 @@ async def test_callback_without_username(
     assert user_db.username == "telegram_1234123412341234123"
 
 
-async def test_authorize_google(db: AsyncSession, db_transaction: AsyncSession, google_signing_key: RSAKey):
-    # Arrange
-    client_code_challenge: str = create_s256_code_challenge("client_code_verifier_of_at_least_43_characters")
-
-    # Act
-    authorization_url: str = await auth_service.authorize(
-        db=db_transaction,
-        provider=ProviderType.GOOGLE,
-        redirect_uri="finance://auth/callback",
-        code_challenge=client_code_challenge,
-        client_state="client_state",
-    )
-    await db_transaction.commit()
-
-    # Assert
-    request_db: AuthorizationRequestModel = await authorization_request_crud.get(db=db)
-    assert request_db.provider == ProviderType.GOOGLE
-
-    url = urlsplit(authorization_url)
-    assert f"{url.scheme}://{url.netloc}{url.path}" == "https://accounts.google.com/o/oauth2/v2/auth"
-    params: dict[str, list[str]] = parse_qs(url.query)
-    assert params["client_id"] == ["fake_google_client_id.apps.googleusercontent.com"]
-    assert params["scope"] == ["openid profile email"]
-    assert params["redirect_uri"] == [f"{settings.public_base_url}/user/auth/callback/GOOGLE"]
-    assert params["state"] == [request_db.state]
-    assert params["nonce"] == [request_db.nonce]
-
-
 @pytest.mark.parametrize(
-    ("issuer", "email_verified", "expected_email"),
+    ("issuer", "email_claims", "expected_email"),
     [
-        ("https://accounts.google.com", True, "john.doe@gmail.com"),
-        ("accounts.google.com", True, "john.doe@gmail.com"),
-        ("https://accounts.google.com", False, None),
+        ("https://accounts.google.com", {"email": "john.doe@gmail.com", "email_verified": True}, "john.doe@gmail.com"),
+        ("accounts.google.com", {"email": "john.doe@gmail.com", "email_verified": True}, "john.doe@gmail.com"),
+        ("https://accounts.google.com", {"email": "john.doe@gmail.com", "email_verified": False}, None),
+        ("https://accounts.google.com", {"email": "john.doe@gmail.com"}, None),
     ],
-    ids=["verified_email", "issuer_without_scheme", "unverified_email"],
+    ids=["verified_email", "issuer_without_scheme", "unverified_email", "email_without_email_verified"],
 )
 async def test_callback_google_creates_user(
     db: AsyncSession,
@@ -369,7 +372,7 @@ async def test_callback_google_creates_user(
     httpx_mock: HTTPXMock,
     google_signing_key: RSAKey,
     issuer: str,
-    email_verified: bool,
+    email_claims: dict,
     expected_email: str | None,
 ):
     # Arrange
@@ -380,7 +383,7 @@ async def test_callback_google_creates_user(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -396,13 +399,12 @@ async def test_callback_google_creates_user(
             "iat": int(time.time()),
             "exp": int(time.time()) + 600,
             "nonce": "nonce",
-            "email": "john.doe@gmail.com",
-            "email_verified": email_verified,
             "name": "John Doe",
             "given_name": "John",
             "family_name": "Doe",
             "picture": "https://lh3.googleusercontent.com/a/johndoe",
-        },
+        }
+        | email_claims,
         google_signing_key,
     )
     httpx_mock.add_response(
@@ -436,6 +438,61 @@ async def test_callback_google_creates_user(
     assert user_db.external_users[0].first_name == "John"
     assert user_db.external_users[0].last_name == "Doe"
     assert user_db.external_users[0].email == expected_email
+
+
+async def test_callback_google_issuer_not_allowed(
+    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, google_signing_key: RSAKey
+):
+    # Arrange
+    await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.GOOGLE,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+    # neither the discovery issuer nor one of Google's issuer aliases
+    id_token: str = jwt.encode(
+        {"alg": "RS256", "kid": "google-test-key"},
+        {
+            "iss": "https://accounts.google.com.attacker.test",
+            "aud": "fake_google_client_id.apps.googleusercontent.com",
+            "sub": "110169484474386276334",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+            "nonce": "nonce",
+        },
+        google_signing_key,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth2.googleapis.com/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3599,
+            "id_token": id_token,
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert parse_qs(urlsplit(redirect_url).query) == {"error": ["server_error"], "state": ["client_state"]}
+
+    users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
+    assert len(users_db) == 0
 
 
 async def test_callback_provider_error(db: AsyncSession, db_transaction: AsyncSession):
@@ -773,12 +830,7 @@ async def test_exchange_code_revokes_presented_refresh_token(db: AsyncSession, d
             "client_code_verifier_of_at_least_43_characters",
             False,
         ),
-        (
-            "one_time_code",
-            "https://finance.test/auth/callback",
-            "another_code_verifier_of_at_least_43_characters",
-            False,
-        ),
+        ("one_time_code", "https://finance.test/auth/callback", "another_code_verifier_of_at_least_43_characters", False),
     ],
     ids=["unknown_code", "used_code", "redirect_uri_mismatch", "wrong_code_verifier"],
 )

@@ -9,7 +9,6 @@ providers: dict[ProviderType, OIDCProvider] = {
         client_secret=telegram_settings.client_secret,
         server_metadata_url="https://oauth.telegram.org/.well-known/openid-configuration",
         scope="openid profile",
-        issuer_aliases=(),
     ),
     ProviderType.GOOGLE: OIDCProvider(
         provider=ProviderType.GOOGLE,
