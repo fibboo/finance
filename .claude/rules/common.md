@@ -25,7 +25,7 @@ These rules apply to every module and every language in the repository. Each lan
 ## Security
 
 - Never hardcode credentials, tokens or secrets. Load them from the environment through the module's settings mechanism, which the language rule file names.
-- Validate all external inputs (request bodies, sign-in provider data, responses of the backend and of third-party APIs) before processing them.
+- Validate all external inputs (request bodies, sign-in provider data, responses of third-party APIs) before processing them. A response of our own backend to the frontend is not parsed again: its contract is the types generated from the backend's schema, which the language rule file describes.
 - Never log sensitive data (passwords, tokens, session ids, PII).
 
 ## General Coding
@@ -47,6 +47,7 @@ These rules apply to every module and every language in the repository. Each lan
     - anything under a `.vscode/` or `.devcontainer/` directory
     - any file named `package.json`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `poetry.lock`, `uv.lock`, `settings.local.json`, `pytest.ini` or `local_tests.txt`
     - any file ending in `.min.js` or `.min.css`
+    - the API types generated from the backend's OpenAPI schema, `frontend/src/lib/api-schema.ts`
     - any binary or document asset: `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.ico`, `.pdf`, `.xls`, `.xlsx`, `.csv`, `.zip`, `.gz`, `.ttf`, `.woff`, `.woff2`
 
   Nothing else is excluded. Source, configuration, compose files, workflows, hand-written files under `db_migration/` such as `env.py`, `docs/` and the rest of `.claude/` all count. Two people counting the same branch must get the same number, because that number decides whether the work is split.
