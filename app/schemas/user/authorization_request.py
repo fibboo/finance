@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypeAlias
 from uuid import UUID
 
 from pydantic import BaseModel, StringConstraints
 
 from app.schemas.user.external_user import ProviderType
 
-OAuthState = Annotated[str, StringConstraints(min_length=1, max_length=512)]
+OAuthState: TypeAlias = Annotated[str, StringConstraints(min_length=1, max_length=512)]
 
 
 class AuthorizeRequest(BaseModel):

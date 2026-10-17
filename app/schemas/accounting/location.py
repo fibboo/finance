@@ -7,13 +7,11 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.utils import utils
 
-ShortText = Annotated[str, StringConstraints(min_length=3, max_length=64)]
-
 
 class LocationBase(BaseModel):
-    name: ShortText
+    name: Annotated[str, StringConstraints(min_length=3, max_length=64)]
     description: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
-    coordinates: ShortText | None = None
+    coordinates: Annotated[str, StringConstraints(min_length=3, max_length=64)] | None = None
 
 
 class LocationCreateRequest(LocationBase):

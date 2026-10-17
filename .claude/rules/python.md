@@ -95,7 +95,7 @@ These rules cover the code in `app/`. A test imports the functions it tests by n
 ## Typing
 
 - All function parameters, return types and variable assignments carry explicit type annotations, with two exceptions: (1) omit the annotation if adding it would push the line past the configured line length; (2) omit it when the variable is assigned directly from a constructor call, since the type is evident from the right-hand side (e.g. `result = MyClass(...)`).
-- A constrained field uses `Annotated`, as the Pydantic documentation recommends: `Annotated[str, StringConstraints(...)]` for a string and `Annotated[Decimal, Field(...)]` for a number. The `con*` functions (`constr`, `condecimal`, `conint` and the rest) are not used. A constraint shared by several fields of one module is one named `Annotated` alias in that module.
+- A constrained field uses `Annotated`, as the Pydantic documentation recommends: `Annotated[str, StringConstraints(...)]` for a string and `Annotated[Decimal, Field(...)]` for a number. The `con*` functions (`constr`, `condecimal`, `conint` and the rest) are not used. A constraint shared by several fields of one module that mean the same thing is one named `Annotated` alias in that module, annotated `TypeAlias`.
 
 ## Function Signatures
 

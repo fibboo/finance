@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, TypeAlias
 from uuid import UUID
 
 from fastapi import Query
@@ -15,7 +15,7 @@ from app.schemas.accounting.location import Location
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.utils import utils
 
-PositiveAmount = Annotated[Decimal, Field(gt=Decimal("0"), decimal_places=2)]
+PositiveAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), decimal_places=2)]
 
 
 class TransactionType(str, Enum):
