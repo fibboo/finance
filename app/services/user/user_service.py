@@ -54,6 +54,10 @@ async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: C
     if user_db is None:
         raise EntityNotFound(entity=UserModel, search_params={"id": user_id}, logger=logger)
 
+    if user_db.base_currency == base_currency:
+        user: User = User.model_validate(user_db)
+        return user
+
     if user_db.base_currency is not None:
         raise BaseCurrencyAlreadySet(user_id=user_id, logger=logger)
 
@@ -65,8 +69,8 @@ async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: C
 
     await account_service.create_standard_accounts(db=db, user_id=user_id, base_currency=base_currency)
 
-    user: User = User.model_validate(updated_user_db)
-    return user
+    updated_user: User = User.model_validate(updated_user_db)
+    return updated_user
 
 
 async def get_user_base_currency(*, db: AsyncSession, user_id: UUID) -> CurrencyType:

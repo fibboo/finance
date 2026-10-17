@@ -78,7 +78,8 @@ async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: A
     # Act / Assert
     with pytest.raises(BaseCurrencyAlreadySet) as exc:
         await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency=CurrencyType.EUR)
-    await db_transaction.commit()
+
+    await db_transaction.rollback()
 
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_ALREADY_SET
@@ -86,6 +87,25 @@ async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: A
 
     await db.refresh(user_db)
     assert user_db.base_currency == CurrencyType.USD
+
+    accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
+    assert len(accounts_db) == 0
+
+
+async def test_set_base_currency_same_currency_again(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+
+    # Act
+    user: User = await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency=CurrencyType.USD)
+    await db_transaction.commit()
+
+    # Assert
+    assert user.id == user_db.id
+    assert user.base_currency == CurrencyType.USD
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 0
@@ -106,14 +126,16 @@ async def test_get_user_base_currency(db: AsyncSession):
     assert base_currency == CurrencyType.USD
 
 
-async def test_get_user_base_currency_not_set(db: AsyncSession):
+async def test_get_user_base_currency_not_set(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM)
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
 
     # Act / Assert
     with pytest.raises(BaseCurrencyNotSet) as exc:
-        await get_user_base_currency(db=db, user_id=user_db.id)
+        await get_user_base_currency(db=db_transaction, user_id=user_db.id)
+
+    await db_transaction.rollback()
 
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_NOT_SET
