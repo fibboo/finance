@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, constr
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ExternalUser, ProviderType
@@ -12,8 +13,8 @@ AVATAR_MAX_LENGTH = 2560
 
 
 class UserBase(BaseModel):
-    username: constr(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH)
-    avatar: constr(min_length=AVATAR_MIN_LENGTH, max_length=AVATAR_MAX_LENGTH) | None = None
+    username: Annotated[str, StringConstraints(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH)]
+    avatar: Annotated[str, StringConstraints(min_length=AVATAR_MIN_LENGTH, max_length=AVATAR_MAX_LENGTH)] | None = None
     registration_provider: ProviderType
     base_currency: CurrencyType | None = None
 

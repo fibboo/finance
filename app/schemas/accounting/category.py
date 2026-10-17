@@ -1,10 +1,11 @@
 from datetime import datetime
 from enum import Enum
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, ConfigDict, constr
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.utils import utils
 
@@ -15,8 +16,8 @@ class CategoryType(str, Enum):
 
 
 class CategoryBase(BaseModel):
-    name: constr(min_length=3, max_length=64)
-    description: constr(min_length=3, max_length=256) | None = None
+    name: Annotated[str, StringConstraints(min_length=3, max_length=64)]
+    description: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
     type: CategoryType  # noqa: A003
 
 
@@ -45,7 +46,7 @@ class CategoryRequest(Params):
     page: int = Query(1, ge=1, description="Page number")
     size: int = Query(20, ge=1, le=100, description="Page size")
 
-    search_term: constr(min_length=3) | None = None
+    search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
     types: list[CategoryType] = []
 
     def __hash__(self):

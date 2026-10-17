@@ -1,16 +1,19 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, ConfigDict, constr
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.utils import utils
 
+ShortText = Annotated[str, StringConstraints(min_length=3, max_length=64)]
+
 
 class LocationBase(BaseModel):
-    name: constr(min_length=3, max_length=64)
-    description: constr(min_length=3, max_length=256) | None = None
-    coordinates: constr(min_length=3, max_length=64) | None = None
+    name: ShortText
+    description: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
+    coordinates: ShortText | None = None
 
 
 class LocationCreateRequest(LocationBase):
@@ -35,7 +38,7 @@ class LocationRequest(Params):
     page: int = Query(1, ge=1, description="Page number")
     size: int = Query(20, ge=1, le=100, description="Page size")
 
-    search_term: constr(min_length=3) | None = None
+    search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
 
     def __hash__(self):
         data = self.model_dump()

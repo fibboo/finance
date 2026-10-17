@@ -1,11 +1,12 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, condecimal, ConfigDict, constr, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, StringConstraints
 
 from app.schemas.accounting.account import Account
 from app.schemas.accounting.category import Category
@@ -13,6 +14,8 @@ from app.schemas.accounting.income_source import IncomeSource
 from app.schemas.accounting.location import Location
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.utils import utils
+
+PositiveAmount = Annotated[Decimal, Field(gt=Decimal("0"), decimal_places=2)]
 
 
 class TransactionType(str, Enum):
@@ -23,10 +26,10 @@ class TransactionType(str, Enum):
 
 class TransactionBase(BaseModel):
     transaction_date: date
-    comment: constr(min_length=3, max_length=256) | None = None
-    source_amount: condecimal(gt=Decimal("0"), decimal_places=2)
+    comment: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
+    source_amount: PositiveAmount
     source_currency: CurrencyType
-    destination_amount: condecimal(gt=Decimal("0"), decimal_places=2)
+    destination_amount: PositiveAmount
     destination_currency: CurrencyType
     transaction_type: TransactionType
 
@@ -68,7 +71,7 @@ class IncomeRequest(TransactionBase):
 
 class TransferRequest(TransactionBase):
     transaction_type: TransactionType = TransactionType.TRANSFER
-    destination_amount: condecimal(gt=Decimal("0"), decimal_places=2) | None = None
+    destination_amount: PositiveAmount | None = None
     from_account_id: UUID
     to_account_id: UUID
 
@@ -85,7 +88,7 @@ TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest
 
 class TransactionCreate(TransactionBase):
     user_id: UUID
-    base_currency_amount: condecimal(gt=Decimal("0"), decimal_places=2)
+    base_currency_amount: PositiveAmount
 
     category_id: UUID | None = None
     location_id: UUID | None = None
@@ -155,8 +158,8 @@ class TransactionRequest(Params):
         Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC),
     ]
 
-    base_currency_amount_from: condecimal(ge=Decimal("0"), decimal_places=2) | None = None
-    base_currency_amount_to: condecimal(gt=Decimal("0"), decimal_places=2) | None = None
+    base_currency_amount_from: Annotated[Decimal, Field(ge=Decimal("0"), decimal_places=2)] | None = None
+    base_currency_amount_to: PositiveAmount | None = None
 
     date_from: date | None = None
     date_to: date | None = None
