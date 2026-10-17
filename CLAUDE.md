@@ -49,7 +49,7 @@ Packages under `app/` are split by layer, and each layer is split by domain (`ac
 - `models/`: SQLAlchemy models on `models/base.py`.
 - `schemas/`: Pydantic schemas, plus `error_response.py` (`ErrorResponse`, `ErrorCodeType`).
 - `exceptions/`: the `AppBaseException` hierarchy (`exceptions/base.py`), one file per HTTP status. Each exception carries its status code, message, log message, logger and log level. The handler in `app/main.py` logs it and turns it into an `ErrorResponse`.
-- `configs/`: `settings.py` holds the `settings`, `database_settings` and `telegram_settings` (the OIDC client id and secret from BotFather) instances. `logging_settings.py` holds `get_logger` and `LogLevelType`.
+- `configs/`: `settings.py` holds the `settings`, `database_settings`, `telegram_settings` (the OIDC client id and secret from BotFather) and `google_settings` (the OAuth client id and secret from Google Cloud) instances. `logging_settings.py` holds `get_logger` and `LogLevelType`.
 - `db/postgres.py`: the async engine and `session_maker`.
 - `utils/`: small pure helpers.
 

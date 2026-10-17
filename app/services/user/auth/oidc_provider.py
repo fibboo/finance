@@ -20,7 +20,7 @@ class OIDCProvider:
         client_secret: str,
         server_metadata_url: str,
         scope: str,
-        issuer_aliases: tuple[str, ...],
+        issuer_aliases: tuple[str, ...] = (),
     ):
         self.provider = provider
         self.__client_id = client_id
