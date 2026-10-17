@@ -63,6 +63,18 @@ Each of the following is a finding when the diff adds it (`.claude/rules/python.
 
 Grade it **P2** and treat it as blocking: the fix is to return the model, to move the write into the crud, or to let the request transaction commit.
 
+## Endpoints and Imports
+
+Each of the following is a finding when the diff adds it (`.claude/rules/python.md` **Endpoints** and **Imports**):
+
+- a route handler that branches, computes or turns a model into a schema instead of calling one service function and returning its result;
+- an HTTP-only step, such as setting or clearing a cookie or building a redirect response, done inside a service or written out in the handler instead of in one helper in `app/api/`;
+- a handler with more than two query parameters that takes them one by one instead of as one query parameter model, or that checks their values outside that model.
+
+Grade it **P2** and treat it as blocking: the fix is to move the decision into the service, the HTTP step into a helper in `app/api/`, or the parameters into a query parameter model.
+
+A function of one of our modules of plain functions (a service, `utils`, `cookies`) imported by name instead of through its module is a finding too. Grade it **P3**.
+
 ## Frontend
 
 Each of the following is a finding when the diff adds it under `frontend/` (`.claude/rules/react.md`, `.claude/rules/typescript.md`):
