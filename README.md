@@ -64,15 +64,7 @@ The `postgres` service runs PostgreSQL 18, which keeps its data under `/var/lib/
 docker compose down -v
 ```
 
-### Recreating the database after the migration squash
-
-All Alembic revisions were squashed into one initial revision. A local database migrated before the squash records a
-revision that no longer exists, so `alembic upgrade head` fails with `Can't locate revision`. Drop the database and
-create it again, then repeat step 6:
-
-```bash
-docker compose exec postgres psql -U user -d postgres -c "DROP DATABASE finance WITH (FORCE);" -c "CREATE DATABASE finance;"
-```
+A database migrated before the Alembic revisions were squashed into one initial revision fails `alembic upgrade head` with `Can't locate revision`; recreate it the same way.
 
 ---
 

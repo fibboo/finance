@@ -135,6 +135,8 @@ def upgrade() -> None:
     sa.UniqueConstraint('code_hash'),
     sa.UniqueConstraint('state')
     )
+    op.create_index(op.f('ix_authorization_requests_link_user_id'), 'authorization_requests', ['link_user_id'], unique=False)
+    op.create_index(op.f('ix_authorization_requests_user_id'), 'authorization_requests', ['user_id'], unique=False)
     op.create_table('external_users',
     sa.Column('id', sa.UUID(), server_default=sa.text('uuidv7()'), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
@@ -154,7 +156,6 @@ def upgrade() -> None:
     sa.UniqueConstraint('user_id', 'provider', name='uq_external_users_user_id_provider')
     )
     op.create_index(op.f('ix_external_users_external_id'), 'external_users', ['external_id'], unique=False)
-    op.create_index(op.f('ix_external_users_provider'), 'external_users', ['provider'], unique=False)
     op.create_index(op.f('ix_external_users_username'), 'external_users', ['username'], unique=False)
     op.create_table('refresh_tokens',
     sa.Column('id', sa.UUID(), server_default=sa.text('uuidv7()'), nullable=False),
@@ -229,9 +230,10 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_refresh_tokens_family_id'), table_name='refresh_tokens')
     op.drop_table('refresh_tokens')
     op.drop_index(op.f('ix_external_users_username'), table_name='external_users')
-    op.drop_index(op.f('ix_external_users_provider'), table_name='external_users')
     op.drop_index(op.f('ix_external_users_external_id'), table_name='external_users')
     op.drop_table('external_users')
+    op.drop_index(op.f('ix_authorization_requests_user_id'), table_name='authorization_requests')
+    op.drop_index(op.f('ix_authorization_requests_link_user_id'), table_name='authorization_requests')
     op.drop_table('authorization_requests')
     op.drop_index(op.f('ix_users_username'), table_name='users')
     op.drop_table('users')
