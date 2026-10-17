@@ -46,8 +46,14 @@ These rules apply to new and changed code. Existing code that does not follow th
 - Use pydantic `BaseSettings` for all settings.
 - Every field is populated from environment variables and `.env` files. Never set default field values.
 - Never read `os.environ` directly.
+- Code imports the settings instance it needs (`settings`, `database_settings`, `telegram_settings`) from `app/configs/settings.py` and reads the field where the value is used.
 - Never pass a setting value or a settings object into our own code as a parameter. The callee reads the field from the settings instance itself (`.claude/rules/common.md` **Architecture** names the exceptions).
 - Tests run on the settings `pytest.ini` sets, which are the test values by design. A test that really needs another value overrides that one field for its own duration (`monkeypatch.setattr` on the settings instance) and nothing else. It does not add a parameter to the code under test to receive the value.
+
+## Comments
+
+- A route handler's docstring stays, because FastAPI shows it as the endpoint description in Swagger and Redoc. It is API documentation for the people who call the API, not a comment on the code. Every other docstring and comment follows the no-comments rule of `.claude/rules/common.md`.
+- Test section markers are `# arrange`, `# act`, `# assert` and `# act / assert`, the last one for a `pytest.raises` block.
 
 ## Error Handling
 
@@ -95,6 +101,11 @@ These rules apply to new and changed code. Existing code that does not follow th
 - A method that only its own class calls is private and is named `__name`.
 - A single underscore `_name` is for a method that a subclass overrides or calls: abstract hooks, and base-class helpers that subclasses use (for example the `transaction_processor` hooks or `CRUDBase._build_get_query`). Python mangles `__name` per class, so a subclass can neither override nor call it.
 - Call sites decide, not habit: a `_name` defined and called in one class only breaks the rule, and a `_name` a subclass reaches is correct.
+
+## Static Methods
+
+- Any method that never touches `self` must be a `@staticmethod`. Call sites keep using `self.__method(...)`.
+- The pure calculator that `.claude/rules/common.md` lets any private helper call is a `@staticmethod` with no state and no side effects.
 
 ## Database Access
 
