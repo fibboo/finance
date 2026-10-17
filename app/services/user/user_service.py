@@ -23,7 +23,14 @@ from app.models.user.user import User as UserModel
 from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ExternalUserCreate
 from app.schemas.user.identity import ProviderIdentity
-from app.schemas.user.user import User, UserCreate
+from app.schemas.user.user import (
+    AVATAR_MAX_LENGTH,
+    AVATAR_MIN_LENGTH,
+    User,
+    UserCreate,
+    USERNAME_MAX_LENGTH,
+    USERNAME_MIN_LENGTH,
+)
 from app.services.accounting import account_service
 from app.utils import utils
 
@@ -47,9 +54,10 @@ def build_username(*, identity: ProviderIdentity) -> str:
 
 
 async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserModel | None:
-    provider_username: str = build_username(identity=identity)
     fallback_username: str = _build_fallback_username(identity=identity)
-    username: str = provider_username if 3 <= len(provider_username) <= 64 else fallback_username
+    provider_username: str = identity.username if identity.username is not None else fallback_username
+    is_username_valid: bool = USERNAME_MIN_LENGTH <= len(provider_username) <= USERNAME_MAX_LENGTH
+    username: str = provider_username if is_username_valid else fallback_username
     username_owner_db: UserModel | None = await user_crud.get_or_none(db=db, username=username)
     if username_owner_db is not None and username != fallback_username:
         username = fallback_username
@@ -59,7 +67,10 @@ async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserMo
         logger.warning(f"{identity.provider.value} sign-in rejected: no free username for the new user")
         return None
 
-    avatar: str | None = identity.avatar if identity.avatar is not None and 3 <= len(identity.avatar) <= 2560 else None
+    is_avatar_valid: bool = (
+        identity.avatar is not None and AVATAR_MIN_LENGTH <= len(identity.avatar) <= AVATAR_MAX_LENGTH
+    )
+    avatar: str | None = identity.avatar if is_avatar_valid else None
     user_create = UserCreate(username=username, avatar=avatar, registration_provider=identity.provider)
 
     try:

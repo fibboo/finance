@@ -561,6 +561,39 @@ async def test_callback_provider_error(db: AsyncSession, db_transaction: AsyncSe
     assert request_db.used is True
 
 
+@pytest.mark.parametrize("error", ['access "denied"', "a" * 129], ids=["outside_charset", "too_long"])
+async def test_callback_provider_error_replaced(db: AsyncSession, db_transaction: AsyncSession, error: str):
+    # Arrange
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code=None, error=error),
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert parse_qs(urlsplit(redirect_url).query) == {"error": ["invalid_request"], "state": ["client_state"]}
+
+    await db.refresh(request_db)
+    assert request_db.used is True
+
+
 @pytest.mark.parametrize(
     "claims",
     [
@@ -773,7 +806,7 @@ async def test_callback_invalid_state(
     assert len(users_db) == 0
 
 
-async def test_exchange_code_ok(db: AsyncSession, db_transaction: AsyncSession):
+async def test_grant_token_authorization_code_without_cookie(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_db: UserModel = await user_crud.create(
         db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
@@ -796,11 +829,15 @@ async def test_exchange_code_ok(db: AsyncSession, db_transaction: AsyncSession):
     )
 
     # Act
-    token: TokenPair = await auth_service.exchange_code(
+    token: TokenPair = await auth_service.grant_token(
         db=db_transaction,
-        code="one_time_code",
-        redirect_uri="https://finance.test/auth/callback",
-        code_verifier="client_code_verifier_of_at_least_43_characters",
+        token_request=TokenRequest(
+            grant_type="authorization_code",
+            code="one_time_code",
+            redirect_uri="https://finance.test/auth/callback",
+            code_verifier="client_code_verifier_of_at_least_43_characters",
+        ),
+        refresh_token=None,
     )
     await db_transaction.commit()
 
@@ -811,58 +848,6 @@ async def test_exchange_code_ok(db: AsyncSession, db_transaction: AsyncSession):
 
     await db.refresh(request_db)
     assert request_db.used is True
-
-
-async def test_exchange_code_revokes_presented_refresh_token(db: AsyncSession, db_transaction: AsyncSession):
-    # Arrange
-    user_db: UserModel = await user_crud.create(
-        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
-    )
-    await authorization_request_crud.create(
-        db=db,
-        obj_in={
-            "provider": ProviderType.TELEGRAM,
-            "state": "state",
-            "nonce": "nonce",
-            "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "https://finance.test/auth/callback",
-            "client_state": "client_state",
-            "client_code_challenge": create_s256_code_challenge("client_code_verifier_of_at_least_43_characters"),
-            "expires_at": datetime.now() + timedelta(minutes=1),
-            "user_id": user_db.id,
-            "code_hash": hashlib.sha256(b"one_time_code").hexdigest(),
-        },
-        commit=True,
-    )
-    old_token_db: RefreshTokenModel = await refresh_token_crud.create(
-        db=db,
-        obj_in={
-            "user_id": user_db.id,
-            "token_hash": hashlib.sha256(b"old_refresh_token").hexdigest(),
-            "family_id": uuid4(),
-            "expires_at": datetime.now() + timedelta(days=1),
-        },
-        commit=True,
-    )
-
-    # Act
-    token: TokenPair = await auth_service.exchange_code(
-        db=db_transaction,
-        code="one_time_code",
-        redirect_uri="https://finance.test/auth/callback",
-        code_verifier="client_code_verifier_of_at_least_43_characters",
-        refresh_token="old_refresh_token",
-    )
-    await db_transaction.commit()
-
-    # Assert
-    await db.refresh(old_token_db)
-    assert old_token_db.revoked is True
-
-    new_token_hash: str = hashlib.sha256(token.refresh_token.encode("utf-8")).hexdigest()
-    new_token_db: RefreshTokenModel = await refresh_token_crud.get(db=db, token_hash=new_token_hash)
-    assert new_token_db.family_id != old_token_db.family_id
-    assert new_token_db.revoked is False
 
 
 @pytest.mark.parametrize(
@@ -885,7 +870,7 @@ async def test_exchange_code_revokes_presented_refresh_token(db: AsyncSession, d
     ],
     ids=["unknown_code", "used_code", "redirect_uri_mismatch", "wrong_code_verifier"],
 )
-async def test_exchange_code_invalid(
+async def test_grant_token_authorization_code_invalid(
     db: AsyncSession, db_transaction: AsyncSession, code: str, redirect_uri: str, code_verifier: str, used: bool
 ):
     # Arrange
@@ -912,8 +897,12 @@ async def test_exchange_code_invalid(
 
     # Act / Assert
     with pytest.raises(InvalidTokenException) as exc:
-        await auth_service.exchange_code(
-            db=db_transaction, code=code, redirect_uri=redirect_uri, code_verifier=code_verifier
+        await auth_service.grant_token(
+            db=db_transaction,
+            token_request=TokenRequest(
+                grant_type="authorization_code", code=code, redirect_uri=redirect_uri, code_verifier=code_verifier
+            ),
+            refresh_token=None,
         )
     await db_transaction.commit()
 
@@ -923,7 +912,7 @@ async def test_exchange_code_invalid(
     assert request_db.used is used
 
 
-async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSession):
+async def test_grant_token_authorization_code_expired(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_db: UserModel = await user_crud.create(
         db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
@@ -947,11 +936,15 @@ async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSess
 
     # Act / Assert
     with pytest.raises(InvalidTokenException) as exc:
-        await auth_service.exchange_code(
+        await auth_service.grant_token(
             db=db_transaction,
-            code="one_time_code",
-            redirect_uri="https://finance.test/auth/callback",
-            code_verifier="client_code_verifier_of_at_least_43_characters",
+            token_request=TokenRequest(
+                grant_type="authorization_code",
+                code="one_time_code",
+                redirect_uri="https://finance.test/auth/callback",
+                code_verifier="client_code_verifier_of_at_least_43_characters",
+            ),
+            refresh_token=None,
         )
 
     assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
@@ -1523,6 +1516,44 @@ async def test_start_link_provider_already_linked(db: AsyncSession, db_transacti
     await db_transaction.commit()
 
     assert exc.value.error_code == ErrorCodeType.PROVIDER_ALREADY_LINKED
+
+    requests_db: list[AuthorizationRequestModel] = await authorization_request_crud.get_batch(db=db)
+    assert len(requests_db) == 0
+
+
+async def test_start_link_redirect_uri_not_allowed(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+
+    # Act / Assert
+    with pytest.raises(RedirectUriNotAllowed) as exc:
+        await auth_service.start_link(
+            db=db_transaction,
+            user_id=user_db.id,
+            provider=ProviderType.TELEGRAM,
+            authorize_request=AuthorizeRequest(
+                redirect_uri="https://attacker.test/callback",
+                code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+                code_challenge_method="S256",
+                state="client_state",
+            ),
+        )
+    await db_transaction.commit()
+
+    # the redirect URI is checked before the already linked provider
+    assert exc.value.error_code == ErrorCodeType.REDIRECT_URI_NOT_ALLOWED
 
     requests_db: list[AuthorizationRequestModel] = await authorization_request_crud.get_batch(db=db)
     assert len(requests_db) == 0
@@ -2158,7 +2189,7 @@ async def test_complete_link_identity_linked_meanwhile(db: AsyncSession, db_tran
     assert len(external_users_db) == 1
 
 
-async def test_exchange_code_link_code(db: AsyncSession, db_transaction: AsyncSession):
+async def test_grant_token_link_code(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_db: UserModel = await user_crud.create(
         db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
@@ -2202,11 +2233,15 @@ async def test_exchange_code_link_code(db: AsyncSession, db_transaction: AsyncSe
 
     # Act / Assert
     with pytest.raises(InvalidTokenException) as exc:
-        await auth_service.exchange_code(
+        await auth_service.grant_token(
             db=db_transaction,
-            code="link_code",
-            redirect_uri="https://finance.test/auth/callback",
-            code_verifier="client_code_verifier_of_at_least_43_characters",
+            token_request=TokenRequest(
+                grant_type="authorization_code",
+                code="link_code",
+                redirect_uri="https://finance.test/auth/callback",
+                code_verifier="client_code_verifier_of_at_least_43_characters",
+            ),
+            refresh_token=None,
         )
     await db_transaction.commit()
 

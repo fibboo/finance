@@ -16,8 +16,8 @@ class AuthorizeRequest(BaseModel):
 
 class CallbackRequest(BaseModel):
     state: constr(min_length=1, max_length=512)
-    code: constr(min_length=1, max_length=2048) | None = None
-    error: constr(pattern=r"^[\x20-\x21\x23-\x5B\x5D-\x7E]{1,128}$") | None = None
+    code: str | None = None
+    error: str | None = None
 
 
 class AuthorizationRequestCreate(BaseModel):

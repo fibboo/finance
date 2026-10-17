@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Form, Query, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.api import cookies
 from app.api.deps import get_db_transaction, get_refresh_token, get_user_id
@@ -21,7 +22,12 @@ from app.services.user.auth import auth_service
 router = APIRouter()
 
 
-@router.get("/authorize/{provider}", response_class=RedirectResponse)
+@router.get(
+    "/authorize/{provider}",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    response_class=RedirectResponse,
+    response_model=None,
+)
 async def authorize(
     *,
     provider: ProviderType,
@@ -78,7 +84,12 @@ async def unlink(
     await auth_service.unlink(db=db, user_id=user_id, provider=provider)
 
 
-@router.get("/callback/{provider}", response_class=RedirectResponse)
+@router.get(
+    "/callback/{provider}",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    response_class=RedirectResponse,
+    response_model=None,
+)
 async def callback(
     *,
     provider: ProviderType,

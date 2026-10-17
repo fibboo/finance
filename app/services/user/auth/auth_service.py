@@ -1,3 +1,4 @@
+import re
 import secrets
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -44,6 +45,19 @@ logger = get_logger(logger_name=__name__)
 
 AUTHORIZATION_REQUEST_LIFETIME = timedelta(minutes=10)
 AUTHORIZATION_CODE_LIFETIME = timedelta(minutes=1)
+CLIENT_ERROR_PATTERN: re.Pattern[str] = re.compile(r"[\x20-\x21\x23-\x5B\x5D-\x7E]{1,128}")
+
+
+def _build_client_error_code(*, error: str | None) -> str:
+    if error is not None and CLIENT_ERROR_PATTERN.fullmatch(error) is not None:
+        return error
+
+    return "invalid_request"
+
+
+def _check_redirect_uri(*, redirect_uri: str) -> None:
+    if redirect_uri not in settings.allowed_redirect_uris:
+        raise RedirectUriNotAllowed(redirect_uri=redirect_uri, logger=logger)
 
 
 def _build_client_url(*, request_db: AuthorizationRequestModel, params: dict[str, str]) -> str:
@@ -79,9 +93,6 @@ async def _reject_callback(*, db: AsyncSession, request_db: AuthorizationRequest
 async def _create_authorization_url(
     *, db: AsyncSession, provider: ProviderType, authorize_request: AuthorizeRequest, link_user_id: UUID | None
 ) -> str:
-    if authorize_request.redirect_uri not in settings.allowed_redirect_uris:
-        raise RedirectUriNotAllowed(redirect_uri=authorize_request.redirect_uri, logger=logger)
-
     authorization_request_create = AuthorizationRequestCreate(
         provider=provider,
         state=secrets.token_urlsafe(32),
@@ -105,6 +116,7 @@ async def _create_authorization_url(
 
 
 async def authorize(*, db: AsyncSession, provider: ProviderType, authorize_request: AuthorizeRequest) -> str:
+    _check_redirect_uri(redirect_uri=authorize_request.redirect_uri)
     authorization_url: str = await _create_authorization_url(
         db=db, provider=provider, authorize_request=authorize_request, link_user_id=None
     )
@@ -114,6 +126,7 @@ async def authorize(*, db: AsyncSession, provider: ProviderType, authorize_reque
 async def start_link(
     *, db: AsyncSession, user_id: UUID, provider: ProviderType, authorize_request: AuthorizeRequest
 ) -> AuthorizationUrlResponse:
+    _check_redirect_uri(redirect_uri=authorize_request.redirect_uri)
     linked_db: ExternalUserModel | None = await external_user_crud.get_or_none(
         db=db, user_id=user_id, provider=provider
     )
@@ -141,7 +154,7 @@ async def callback(*, db: AsyncSession, provider: ProviderType, callback_request
         raise InvalidAuthData(log_message=f"Authorization request `{request_db.id}` expired", logger=logger)
 
     if callback_request.error is not None or callback_request.code is None:
-        error_code: str = callback_request.error if callback_request.error is not None else "invalid_request"
+        error_code: str = _build_client_error_code(error=callback_request.error)
         error_url: str = await _reject_callback(db=db, request_db=request_db, error_code=error_code)
         return error_url
 
@@ -188,11 +201,19 @@ async def callback(*, db: AsyncSession, provider: ProviderType, callback_request
     return redirect_url
 
 
-async def exchange_code(
-    *, db: AsyncSession, code: str, redirect_uri: str, code_verifier: str, refresh_token: str | None = None
-) -> TokenPair:
+async def grant_token(*, db: AsyncSession, token_request: TokenRequest, refresh_token: str | None) -> TokenPair:
+    if token_request.grant_type == "refresh_token":
+        if refresh_token is None:
+            raise InvalidTokenException(log_message="Refresh token cookie missing", logger=logger)
+
+        refreshed_token: TokenPair = await token_service.rotate_refresh_token(db=db, refresh_token=refresh_token)
+        return refreshed_token
+
     request_db: AuthorizationRequestModel = await _get_verified_code_request(
-        db=db, code=code, redirect_uri=redirect_uri, code_verifier=code_verifier
+        db=db,
+        code=token_request.code,
+        redirect_uri=token_request.redirect_uri,
+        code_verifier=token_request.code_verifier,
     )
     if request_db.link_user_id is not None:
         raise InvalidTokenException(
@@ -205,24 +226,6 @@ async def exchange_code(
         await token_service.revoke_refresh_token(db=db, refresh_token=refresh_token)
 
     token: TokenPair = await token_service.issue_token_pair(db=db, user_id=request_db.user_id)
-    return token
-
-
-async def grant_token(*, db: AsyncSession, token_request: TokenRequest, refresh_token: str | None) -> TokenPair:
-    if token_request.grant_type == "refresh_token":
-        if refresh_token is None:
-            raise InvalidTokenException(log_message="Refresh token cookie missing", logger=logger)
-
-        refreshed_token: TokenPair = await token_service.rotate_refresh_token(db=db, refresh_token=refresh_token)
-        return refreshed_token
-
-    token: TokenPair = await exchange_code(
-        db=db,
-        code=token_request.code,
-        redirect_uri=token_request.redirect_uri,
-        code_verifier=token_request.code_verifier,
-        refresh_token=refresh_token,
-    )
     return token
 
 

@@ -5,10 +5,15 @@ from pydantic import BaseModel, ConfigDict, constr
 from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ExternalUser, ProviderType
 
+USERNAME_MIN_LENGTH = 3
+USERNAME_MAX_LENGTH = 64
+AVATAR_MIN_LENGTH = 3
+AVATAR_MAX_LENGTH = 2560
+
 
 class UserBase(BaseModel):
-    username: constr(min_length=3, max_length=64)
-    avatar: constr(min_length=3, max_length=2560) | None = None
+    username: constr(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH)
+    avatar: constr(min_length=AVATAR_MIN_LENGTH, max_length=AVATAR_MAX_LENGTH) | None = None
     registration_provider: ProviderType
     base_currency: CurrencyType | None = None
 
