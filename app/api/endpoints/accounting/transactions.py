@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_db_transaction, get_user_id
+from app.api.deps import get_db, get_db_transaction, get_onboarded_user_id, get_user_id
 from app.schemas.accounting.transaction import (
     Transaction,
     TransactionCreateRequest,
@@ -22,7 +22,7 @@ router = APIRouter()
 async def create_transaction(
     *,
     create_data: TransactionCreateRequest,
-    user_id: UUID = Depends(get_user_id),
+    user_id: UUID = Depends(get_onboarded_user_id),
     db: AsyncSession = Depends(get_db_transaction),
 ) -> Transaction:
     """

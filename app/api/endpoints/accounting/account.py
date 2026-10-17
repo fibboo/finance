@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_db_transaction, get_user_id
+from app.api.deps import get_db, get_db_transaction, get_onboarded_user_id, get_user_id
 from app.schemas.accounting.account import Account, AccountCreateRequest, AccountUpdate
 from app.services.accounting import account_service
 
@@ -14,7 +14,7 @@ router = APIRouter()
 async def create_account(
     *,
     create_data: AccountCreateRequest,
-    user_id: UUID = Depends(get_user_id),
+    user_id: UUID = Depends(get_onboarded_user_id),
     db: AsyncSession = Depends(get_db_transaction),
 ) -> Account:
     account: Account = await account_service.create_account(db=db, create_data=create_data, user_id=user_id)

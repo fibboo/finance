@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_db_transaction, get_user_id
+from app.api.deps import get_db, get_db_transaction, get_onboarded_user_id, get_user_id
 from app.schemas.accounting.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
 from app.services.accounting import location_service
 
@@ -15,7 +15,7 @@ router = APIRouter()
 async def create_location(
     *,
     create_data: LocationCreateRequest,
-    user_id: UUID = Depends(get_user_id),
+    user_id: UUID = Depends(get_onboarded_user_id),
     db: AsyncSession = Depends(get_db_transaction),
 ) -> Location:
     location: Location = await location_service.create_location(db=db, create_data=create_data, user_id=user_id)

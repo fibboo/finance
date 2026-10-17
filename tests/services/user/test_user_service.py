@@ -78,8 +78,8 @@ async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: A
     # Act / Assert
     with pytest.raises(BaseCurrencyAlreadySet) as exc:
         await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency=CurrencyType.EUR)
+    await db_transaction.commit()
 
-    # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_ALREADY_SET
     assert exc.value.log_level == LogLevelType.ERROR
@@ -115,7 +115,6 @@ async def test_get_user_base_currency_not_set(db: AsyncSession):
     with pytest.raises(BaseCurrencyNotSet) as exc:
         await get_user_base_currency(db=db, user_id=user_db.id)
 
-    # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_NOT_SET
     assert exc.value.log_level == LogLevelType.INFO

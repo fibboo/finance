@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_db_transaction, get_user_id
+from app.api.deps import get_db, get_db_transaction, get_onboarded_user_id, get_user_id
 from app.schemas.accounting.income_source import (
     IncomeSource,
     IncomeSourceCreateRequest,
@@ -20,7 +20,7 @@ router = APIRouter()
 async def create_income_source(
     *,
     create_data: IncomeSourceCreateRequest,
-    user_id: UUID = Depends(get_user_id),
+    user_id: UUID = Depends(get_onboarded_user_id),
     db: AsyncSession = Depends(get_db_transaction),
 ) -> IncomeSource:
     income_source: IncomeSource = await income_service.create_income_source(
