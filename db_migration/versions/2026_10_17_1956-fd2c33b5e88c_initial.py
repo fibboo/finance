@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -122,6 +123,7 @@ def upgrade() -> None:
     sa.Column('client_code_challenge', sa.String(), nullable=False),
     sa.Column('expires_at', sa.DateTime(), nullable=False),
     sa.Column('link_user_id', sa.UUID(), nullable=True),
+    sa.Column('link_identity', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('user_id', sa.UUID(), nullable=True),
     sa.Column('code_hash', sa.String(length=64), nullable=True),
     sa.Column('used', sa.Boolean(), server_default=sa.text('false'), nullable=False),
@@ -147,7 +149,9 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('provider', 'external_id', name='uq_external_users_provider_external_id'),
+    sa.UniqueConstraint('user_id', 'provider', name='uq_external_users_user_id_provider')
     )
     op.create_index(op.f('ix_external_users_external_id'), 'external_users', ['external_id'], unique=False)
     op.create_index(op.f('ix_external_users_provider'), 'external_users', ['provider'], unique=False)
