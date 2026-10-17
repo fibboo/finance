@@ -10,7 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.configs.settings import settings
 from app.crud.user.refresh_token import refresh_token_crud
 from app.crud.user.user import user_crud
-from app.exceptions.unauthorized_401 import InvalidTokenException, RefreshTokenReusedException, TokenExpiredException
+from app.exceptions.unauthorized_401 import (
+    InvalidRefreshTokenException,
+    InvalidTokenException,
+    RefreshTokenExpiredException,
+    RefreshTokenReusedException,
+    TokenExpiredException,
+)
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
 from app.schemas.base import CurrencyType
@@ -192,7 +198,7 @@ async def test_rotate_refresh_token_reused_revokes_family(db: AsyncSession, db_t
 
 async def test_rotate_refresh_token_unknown(db: AsyncSession, db_transaction: AsyncSession):
     # Act / Assert
-    with pytest.raises(InvalidTokenException) as exc:
+    with pytest.raises(InvalidRefreshTokenException) as exc:
         await token_service.rotate_refresh_token(db=db_transaction, refresh_token="unknown_refresh_token")
     await db_transaction.commit()
 
@@ -220,7 +226,7 @@ async def test_rotate_refresh_token_expired(db: AsyncSession, db_transaction: As
     )
 
     # Act / Assert
-    with pytest.raises(TokenExpiredException) as exc:
+    with pytest.raises(RefreshTokenExpiredException) as exc:
         await token_service.rotate_refresh_token(db=db_transaction, refresh_token="expired_refresh_token")
     await db_transaction.commit()
 
@@ -282,28 +288,6 @@ async def test_revoke_refresh_token_revokes_family(db: AsyncSession, db_transact
 async def test_revoke_refresh_token_unknown(db: AsyncSession, db_transaction: AsyncSession):
     # Act
     await token_service.revoke_refresh_token(db=db_transaction, refresh_token="unknown_refresh_token")
-    await db_transaction.commit()
-
-    # Assert
-    tokens_db: list[RefreshTokenModel] = await refresh_token_crud.get_batch(db=db)
-    assert len(tokens_db) == 0
-
-
-async def test_rotate_refresh_token_missing(db: AsyncSession, db_transaction: AsyncSession):
-    # Act / Assert
-    with pytest.raises(InvalidTokenException) as exc:
-        await token_service.rotate_refresh_token(db=db_transaction, refresh_token=None)
-    await db_transaction.commit()
-
-    assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
-
-    tokens_db: list[RefreshTokenModel] = await refresh_token_crud.get_batch(db=db)
-    assert len(tokens_db) == 0
-
-
-async def test_revoke_refresh_token_missing(db: AsyncSession, db_transaction: AsyncSession):
-    # Act
-    await token_service.revoke_refresh_token(db=db_transaction, refresh_token=None)
     await db_transaction.commit()
 
     # Assert

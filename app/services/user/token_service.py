@@ -10,7 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
 from app.crud.user.refresh_token import refresh_token_crud
-from app.exceptions.unauthorized_401 import InvalidTokenException, RefreshTokenReusedException, TokenExpiredException
+from app.exceptions.unauthorized_401 import (
+    InvalidRefreshTokenException,
+    InvalidTokenException,
+    RefreshTokenExpiredException,
+    RefreshTokenReusedException,
+    TokenExpiredException,
+)
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.schemas.user.token import RefreshTokenCreate, TokenPair
 from app.utils.utils import hash_secret
@@ -68,21 +74,18 @@ def verify_access_token(*, access_token: str) -> UUID:
     return user_id
 
 
-async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str | None) -> TokenPair:
-    if refresh_token is None:
-        raise InvalidTokenException(log_message="Refresh token cookie missing", logger=logger)
-
+async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str) -> TokenPair:
     token_hash: str = hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:
-        raise InvalidTokenException(log_message="Unknown refresh token", logger=logger)
+        raise InvalidRefreshTokenException(log_message="Unknown refresh token", logger=logger)
 
     if refresh_token_db.revoked:
         await refresh_token_crud.update_orm(db=db, family_id=refresh_token_db.family_id, obj_in={"revoked": True})
         raise RefreshTokenReusedException(family_id=refresh_token_db.family_id, logger=logger)
 
     if refresh_token_db.expires_at <= datetime.now():
-        raise TokenExpiredException(log_message=f"Refresh token `{refresh_token_db.id}` expired", logger=logger)
+        raise RefreshTokenExpiredException(log_message=f"Refresh token `{refresh_token_db.id}` expired", logger=logger)
 
     await refresh_token_crud.update_orm(db=db, id=refresh_token_db.id, obj_in={"revoked": True})
 
@@ -92,10 +95,7 @@ async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str | None) -
     return token
 
 
-async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str | None) -> None:
-    if refresh_token is None:
-        return
-
+async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str) -> None:
     token_hash: str = hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:

@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.cookies import delete_refresh_token_cookie, set_refresh_token_cookie
-from app.api.deps import get_db_transaction, get_refresh_token
+from app.api.deps import get_db_transaction, get_grant_refresh_token, get_required_refresh_token
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair, TokenRequest, TokenResponse
 from app.services.user import token_service
@@ -52,15 +52,19 @@ async def token(
     *,
     response: Response,
     data: Annotated[TokenRequest, Form()],
-    refresh_token: str | None = Depends(get_refresh_token),
-    db: AsyncSession = Depends(get_db_transaction),
+    refresh_token: str | None = Depends(get_grant_refresh_token),
+    db: AsyncSession = Depends(get_db_transaction, scope="function"),
 ) -> TokenResponse:
     """Exchange a one-time code with its PKCE verifier, or the refresh token cookie, for a new access token.
 
     The new refresh token is set as an HttpOnly cookie. A presented refresh token is revoked."""
     if data.grant_type == "authorization_code":
         token_pair: TokenPair = await auth_service.exchange_code(
-            db=db, code=data.code, redirect_uri=data.redirect_uri, code_verifier=data.code_verifier
+            db=db,
+            code=data.code,
+            redirect_uri=data.redirect_uri,
+            code_verifier=data.code_verifier,
+            refresh_token=refresh_token,
         )
     else:
         token_pair: TokenPair = await token_service.rotate_refresh_token(db=db, refresh_token=refresh_token)
@@ -76,11 +80,11 @@ async def token(
 async def revoke(
     *,
     response: Response,
-    refresh_token: str | None = Depends(get_refresh_token),
-    db: AsyncSession = Depends(get_db_transaction),
+    refresh_token: str = Depends(get_required_refresh_token),
+    db: AsyncSession = Depends(get_db_transaction, scope="function"),
 ) -> None:
     """Revoke the refresh token cookie and every token rotated from it, and clear the cookie.
 
-    Always succeeds, as RFC 7009 requires."""
+    An unknown token succeeds, as RFC 7009 requires. A request without the cookie answers 401."""
     await token_service.revoke_refresh_token(db=db, refresh_token=refresh_token)
     delete_refresh_token_cookie(response=response)

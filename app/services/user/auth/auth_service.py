@@ -104,7 +104,9 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     return redirect_url
 
 
-async def exchange_code(*, db: AsyncSession, code: str, redirect_uri: str, code_verifier: str) -> TokenPair:
+async def exchange_code(
+    *, db: AsyncSession, code: str, redirect_uri: str, code_verifier: str, refresh_token: str | None = None
+) -> TokenPair:
     request_db: AuthorizationRequestModel | None = await authorization_request_crud.get_by_code_hash(
         db=db, code_hash=hash_secret(secret=code)
     )
@@ -119,6 +121,9 @@ async def exchange_code(*, db: AsyncSession, code: str, redirect_uri: str, code_
         raise InvalidTokenException(log_message=f"PKCE verification failed for `{request_db.id}`", logger=logger)
 
     await authorization_request_crud.update_orm(db=db, obj_in={"used": True}, id=request_db.id)
+
+    if refresh_token is not None:
+        await token_service.revoke_refresh_token(db=db, refresh_token=refresh_token)
 
     token: TokenPair = await token_service.issue_token_pair(db=db, user_id=request_db.user_id)
     return token

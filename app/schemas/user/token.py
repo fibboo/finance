@@ -32,17 +32,13 @@ class TokenRequest(BaseModel):
 
     @model_validator(mode="after")
     def check_grant_fields(self) -> Self:
-        if self.grant_type == "authorization_code":
-            required: dict[str, str | None] = {
-                "code": self.code,
-                "redirect_uri": self.redirect_uri,
-                "code_verifier": self.code_verifier,
-            }
-        else:
-            required: dict[str, str | None] = {}
-
-        missing: list[str] = [name for name, value in required.items() if value is None]
-        if len(missing) > 0:
-            raise ValueError(f"{self.grant_type} grant requires {', '.join(missing)}")
+        code_fields: dict[str, str | None] = {
+            "code": self.code,
+            "redirect_uri": self.redirect_uri,
+            "code_verifier": self.code_verifier,
+        }
+        missing: list[str] = [name for name, value in code_fields.items() if value is None]
+        if self.grant_type == "authorization_code" and len(missing) > 0:
+            raise ValueError(f"authorization_code grant requires {', '.join(missing)}")
 
         return self
