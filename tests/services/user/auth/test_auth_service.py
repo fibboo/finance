@@ -32,8 +32,9 @@ from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
 from app.schemas.error_response import ErrorCodeType
+from app.schemas.user.authorization_request import AuthorizationUrlResponse, AuthorizeRequest, CallbackRequest
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.token import TokenPair
+from app.schemas.user.token import TokenPair, TokenRequest
 from app.schemas.user.user import UserCreate
 from app.services.user.auth import auth_service
 
@@ -76,9 +77,12 @@ async def test_authorize_ok(
     authorization_url: str = await auth_service.authorize(
         db=db_transaction,
         provider=provider,
-        redirect_uri="https://finance.test/auth/callback",
-        code_challenge=client_code_challenge,
-        client_state="client_state",
+        authorize_request=AuthorizeRequest(
+            redirect_uri="https://finance.test/auth/callback",
+            code_challenge=client_code_challenge,
+            code_challenge_method="S256",
+            state="client_state",
+        ),
     )
     await db_transaction.commit()
 
@@ -112,9 +116,12 @@ async def test_authorize_redirect_uri_not_allowed(db: AsyncSession, db_transacti
         await auth_service.authorize(
             db=db_transaction,
             provider=ProviderType.TELEGRAM,
-            redirect_uri="https://attacker.test/callback",
-            code_challenge="challenge",
-            client_state="client_state",
+            authorize_request=AuthorizeRequest(
+                redirect_uri="https://attacker.test/callback",
+                code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+                code_challenge_method="S256",
+                state="client_state",
+            ),
         )
     await db_transaction.commit()
 
@@ -152,9 +159,12 @@ async def test_authorize_provider_unavailable(
         await auth_service.authorize(
             db=db_transaction,
             provider=ProviderType.TELEGRAM,
-            redirect_uri="https://finance.test/auth/callback",
-            code_challenge="challenge",
-            client_state="client_state",
+            authorize_request=AuthorizeRequest(
+                redirect_uri="https://finance.test/auth/callback",
+                code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+                code_challenge_method="S256",
+                state="client_state",
+            ),
         )
 
     assert exc.value.status_code == status.HTTP_502_BAD_GATEWAY
@@ -210,7 +220,9 @@ async def test_callback_creates_user(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -295,7 +307,9 @@ async def test_callback_existing_user(
 
     # Act
     await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -352,7 +366,9 @@ async def test_callback_without_username(
 
     # Act
     await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -427,7 +443,9 @@ async def test_callback_google_creates_user(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.GOOGLE,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -491,7 +509,9 @@ async def test_callback_google_issuer_not_allowed(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.GOOGLE,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -521,7 +541,9 @@ async def test_callback_provider_error(db: AsyncSession, db_transaction: AsyncSe
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code=None, error="access_denied"
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code=None, error="access_denied"),
     )
     await db_transaction.commit()
 
@@ -589,7 +611,9 @@ async def test_callback_invalid_id_token(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -646,7 +670,9 @@ async def test_callback_wrong_signing_key(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -681,7 +707,9 @@ async def test_callback_token_endpoint_error(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -731,7 +759,9 @@ async def test_callback_invalid_state(
     # Act / Assert
     with pytest.raises(InvalidAuthData) as exc:
         await auth_service.callback(
-            db=db_transaction, provider=ProviderType.TELEGRAM, state=state, code="provider_code", error=None
+            db=db_transaction,
+            provider=ProviderType.TELEGRAM,
+            callback_request=CallbackRequest(state=state, code="provider_code", error=None),
         )
     await db_transaction.commit()
 
@@ -925,6 +955,67 @@ async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSess
     assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
 
 
+@pytest.mark.parametrize("grant_type", ["authorization_code", "refresh_token"])
+async def test_grant_token(db: AsyncSession, db_transaction: AsyncSession, grant_type: str):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": create_s256_code_challenge("client_code_verifier_of_at_least_43_characters"),
+            "expires_at": datetime.now() + timedelta(minutes=1),
+            "user_id": user_db.id,
+            "code_hash": hashlib.sha256(b"one_time_code").hexdigest(),
+        },
+        commit=True,
+    )
+    old_token_db: RefreshTokenModel = await refresh_token_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "token_hash": hashlib.sha256(b"old_refresh_token").hexdigest(),
+            "family_id": uuid4(),
+            "expires_at": datetime.now() + timedelta(days=1),
+        },
+        commit=True,
+    )
+    token_request = TokenRequest(
+        grant_type=grant_type,
+        code="one_time_code",
+        redirect_uri="https://finance.test/auth/callback",
+        code_verifier="client_code_verifier_of_at_least_43_characters",
+    )
+
+    # Act
+    token: TokenPair = await auth_service.grant_token(
+        db=db_transaction, token_request=token_request, refresh_token="old_refresh_token"
+    )
+    await db_transaction.commit()
+
+    # Assert
+    claims: dict = jwt.decode(token.access_token, OctKey.import_key(settings.jwt_secret), algorithms=["HS256"]).claims
+    assert UUID(claims["sub"]) == user_db.id
+
+    # both grants revoke the presented token; only the refresh grant keeps its family
+    await db.refresh(old_token_db)
+    assert old_token_db.revoked is True
+
+    new_token_hash: str = hashlib.sha256(token.refresh_token.encode("utf-8")).hexdigest()
+    new_token_db: RefreshTokenModel = await refresh_token_crud.get(db=db, token_hash=new_token_hash)
+    assert (new_token_db.family_id == old_token_db.family_id) is (grant_type == "refresh_token")
+
+    request_db: AuthorizationRequestModel = await authorization_request_crud.get(db=db)
+    assert request_db.used is (grant_type == "authorization_code")
+
+
 async def test_callback_no_id_token(
     db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, telegram_signing_key: ECKey
 ):
@@ -951,7 +1042,9 @@ async def test_callback_no_id_token(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -1004,7 +1097,9 @@ async def test_callback_discovery_without_issuer(db: AsyncSession, db_transactio
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -1101,9 +1196,7 @@ async def test_callback_broken_provider_response(
     redirect_url: str = await auth_service.callback(
         db=db_transaction,
         provider=ProviderType.TELEGRAM,
-        state="state",
-        code="provider_code",
-        error=None,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -1170,7 +1263,9 @@ async def test_callback_no_free_username(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -1185,7 +1280,7 @@ async def test_callback_no_free_username(
     assert request_db.user_id is None
 
 
-async def test_authorize_link_ok(db: AsyncSession, db_transaction: AsyncSession, google_signing_key: RSAKey):
+async def test_start_link_ok(db: AsyncSession, db_transaction: AsyncSession, google_signing_key: RSAKey):
     # Arrange
     user_db: UserModel = await user_crud.create(
         db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
@@ -1202,13 +1297,16 @@ async def test_authorize_link_ok(db: AsyncSession, db_transaction: AsyncSession,
     )
 
     # Act
-    authorization_url: str = await auth_service.authorize(
+    authorization_url_response: AuthorizationUrlResponse = await auth_service.start_link(
         db=db_transaction,
+        user_id=user_db.id,
         provider=ProviderType.GOOGLE,
-        redirect_uri="https://finance.test/auth/callback",
-        code_challenge="client_code_challenge",
-        client_state="client_state",
-        link_user_id=user_db.id,
+        authorize_request=AuthorizeRequest(
+            redirect_uri="https://finance.test/auth/callback",
+            code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+            code_challenge_method="S256",
+            state="client_state",
+        ),
     )
     await db_transaction.commit()
 
@@ -1216,10 +1314,10 @@ async def test_authorize_link_ok(db: AsyncSession, db_transaction: AsyncSession,
     request_db: AuthorizationRequestModel = await authorization_request_crud.get(db=db)
     assert request_db.provider == ProviderType.GOOGLE
     assert request_db.link_user_id == user_db.id
-    assert parse_qs(urlsplit(authorization_url).query)["state"] == [request_db.state]
+    assert parse_qs(urlsplit(authorization_url_response.authorization_url).query)["state"] == [request_db.state]
 
 
-async def test_authorize_link_provider_already_linked(db: AsyncSession, db_transaction: AsyncSession):
+async def test_start_link_provider_already_linked(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_db: UserModel = await user_crud.create(
         db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
@@ -1237,13 +1335,16 @@ async def test_authorize_link_provider_already_linked(db: AsyncSession, db_trans
 
     # Act / Assert
     with pytest.raises(ProviderAlreadyLinked) as exc:
-        await auth_service.authorize(
+        await auth_service.start_link(
             db=db_transaction,
+            user_id=user_db.id,
             provider=ProviderType.TELEGRAM,
-            redirect_uri="https://finance.test/auth/callback",
-            code_challenge="client_code_challenge",
-            client_state="client_state",
-            link_user_id=user_db.id,
+            authorize_request=AuthorizeRequest(
+                redirect_uri="https://finance.test/auth/callback",
+                code_challenge="E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+                code_challenge_method="S256",
+                state="client_state",
+            ),
         )
     await db_transaction.commit()
 
@@ -1313,7 +1414,9 @@ async def test_callback_link_issues_code(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.GOOGLE,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 
@@ -1410,7 +1513,9 @@ async def test_callback_link_identity_of_another_user(
 
     # Act
     redirect_url: str = await auth_service.callback(
-        db=db_transaction, provider=ProviderType.GOOGLE, state="state", code="provider_code", error=None
+        db=db_transaction,
+        provider=ProviderType.GOOGLE,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
     )
     await db_transaction.commit()
 

@@ -5,7 +5,7 @@ from fastapi import Cookie, Depends, Form, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.cookies import REFRESH_TOKEN_COOKIE
+from app.api import cookies
 from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
 from app.db.postgres import session_maker
@@ -62,7 +62,7 @@ async def get_onboarded_user_id(
 async def get_refresh_token(
     *,
     origin: str | None = Header(default=None),
-    refresh_token: str | None = Cookie(default=None, alias=REFRESH_TOKEN_COOKIE),
+    refresh_token: str | None = Cookie(default=None, alias=cookies.REFRESH_TOKEN_COOKIE),
 ) -> str | None:
     if origin is not None and origin not in settings.allowed_origins:
         raise OriginNotAllowed(origin=origin, logger=logger)
