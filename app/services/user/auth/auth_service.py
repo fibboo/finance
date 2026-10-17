@@ -134,7 +134,9 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     )
     is_link: bool = request_db.link_user_id is not None
     if is_link and user_db is not None and user_db.id != request_db.link_user_id:
-        await authorization_request_crud.update_orm(db=db, obj_in={"used": True}, id=request_db.id)
+        await authorization_request_crud.update_orm(
+            db=db, obj_in={"used": True, "link_identity": None}, id=request_db.id
+        )
         error_url: str = _build_client_url(
             request_db=request_db, params={"error": ErrorCodeType.IDENTITY_LINKED_TO_ANOTHER_USER.value}
         )
@@ -145,7 +147,7 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
             user_db: UserModel | None = await user_service.create_user(db=db, identity=identity)
 
         except ConflictException as exc:
-            raise ClientRedirect(url=server_error_url, log_message=exc.log_message, logger=logger)
+            raise ClientRedirect(url=server_error_url, exception=exc)
 
         if user_db is None:
             return server_error_url
@@ -192,9 +194,9 @@ async def complete_link(
     if request_db.link_user_id != user_id or request_db.provider != provider:
         raise InvalidTokenException(log_message=f"Link code of `{request_db.id}` is not for this link", logger=logger)
 
-    await authorization_request_crud.update_orm(db=db, obj_in={"used": True}, id=request_db.id)
-
     identity: ProviderIdentity = ProviderIdentity.model_validate(request_db.link_identity)
+    await authorization_request_crud.update_orm(db=db, obj_in={"used": True, "link_identity": None}, id=request_db.id)
+
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
         db=db, external_id=identity.subject, provider=provider
     )

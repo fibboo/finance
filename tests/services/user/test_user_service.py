@@ -236,20 +236,21 @@ async def test_get_user_base_currency_not_set(db: AsyncSession, db_transaction: 
 
 
 @pytest.mark.parametrize(
-    "external_id, expected_exception",
-    [("1111111111", IdentityLinkedToAnotherUser), ("2222222222", ProviderAlreadyLinked)],
+    "user_index, external_id, expected_exception",
+    [(2, "1111111111", IdentityLinkedToAnotherUser), (0, "2222222222", ProviderAlreadyLinked)],
     ids=["identity_of_another_user", "provider_already_linked"],
 )
 async def test_add_external_user_conflict(
-    db: AsyncSession, db_transaction: AsyncSession, external_id: str, expected_exception: type
+    db: AsyncSession, db_transaction: AsyncSession, user_index: int, external_id: str, expected_exception: type
 ):
     # Arrange
-    # stenbot already has a Telegram identity, and janedoe owns Telegram identity 1111111111
+    # stenbot already has a Telegram identity, janedoe owns Telegram identity 1111111111, johndoe has none
     users_db: list[UserModel] = await user_crud.create_batch(
         db=db,
         objs_in=[
             UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM),
             UserCreate(username="janedoe", registration_provider=ProviderType.TELEGRAM),
+            UserCreate(username="johndoe", registration_provider=ProviderType.GOOGLE),
         ],
         commit=True,
     )
@@ -283,6 +284,8 @@ async def test_add_external_user_conflict(
 
     # Act / Assert
     with pytest.raises(expected_exception) as exc:
-        await add_external_user(db=db_transaction, user_id=users_db[0].id, identity=identity, username="stenbot")
+        await add_external_user(
+            db=db_transaction, user_id=users_db[user_index].id, identity=identity, username="stenbot"
+        )
 
     assert exc.value.status_code == status.HTTP_409_CONFLICT

@@ -28,7 +28,7 @@ class AuthorizationRequest(Base):
     client_state: Mapped[str] = mapped_column(String, nullable=False)
     client_code_challenge: Mapped[str] = mapped_column(String, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    link_user_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=True)
+    link_user_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=True, index=True)
     link_identity: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     user_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=True, index=True)
