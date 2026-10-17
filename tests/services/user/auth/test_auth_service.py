@@ -830,7 +830,12 @@ async def test_exchange_code_revokes_presented_refresh_token(db: AsyncSession, d
             "client_code_verifier_of_at_least_43_characters",
             False,
         ),
-        ("one_time_code", "https://finance.test/auth/callback", "another_code_verifier_of_at_least_43_characters", False),
+        (
+            "one_time_code",
+            "https://finance.test/auth/callback",
+            "another_code_verifier_of_at_least_43_characters",
+            False,
+        ),
     ],
     ids=["unknown_code", "used_code", "redirect_uri_mismatch", "wrong_code_verifier"],
 )
