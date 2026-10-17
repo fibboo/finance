@@ -41,6 +41,10 @@ These rules apply to new and changed code. Existing code that does not follow th
 - Don't use comprehensions or generator expressions when they would push the line past the configured line length. Use a regular `for` loop instead.
 - Prefer explicit conditions (`len(x) > 0`, `x is not None`) over truthy/falsy checks. Use truthy/falsy only when the falsy semantics are really needed.
 
+## Imports
+
+- A module of plain functions of ours (a service, `utils`, `cookies`) is imported as a module, and its functions are called through it: `from app.api import cookies`, then `cookies.set_refresh_token_cookie(...)`. Classes, instances (crud objects, settings, routers), enums, exceptions, schemas and the FastAPI dependencies in `deps.py` are imported by name, as the code already does.
+
 ## Configuration
 
 - Use pydantic `BaseSettings` for all settings.
@@ -106,6 +110,12 @@ These rules apply to new and changed code. Existing code that does not follow th
 
 - Any method that never touches `self` must be a `@staticmethod`. Call sites keep using `self.__method(...)`.
 - The pure calculator that `.claude/rules/common.md` lets any private helper call is a `@staticmethod` with no state and no side effects.
+
+## Endpoints
+
+- A route handler takes its parameters and dependencies, calls one service function and returns its result. It holds no branching, no computation and no model-to-schema conversion. Every decision about the request belongs to the service.
+- What exists only in HTTP, such as setting or clearing a cookie or building a redirect response, is done by one helper in `app/api/` that the handler calls with the service's result.
+- A handler with more than two query parameters takes them as one Pydantic model through FastAPI's query parameter models (`Annotated[Model, Query()]`). Validation of their values (a fixed value, a format, a length) lives in that model, and the handler passes the model to the service as it is. Path parameters and dependencies are not counted.
 
 ## Database Access
 
