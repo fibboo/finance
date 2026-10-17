@@ -43,7 +43,9 @@ These rules apply to new and changed code. Existing code that does not follow th
 
 ## Imports
 
-- A module of plain functions of ours (a service, `utils`, `cookies`) is imported as a module, and its functions are called through it: `from app.api import cookies`, then `cookies.set_refresh_token_cookie(...)`. Classes, instances (crud objects, settings, routers), enums, exceptions, schemas and the FastAPI dependencies in `deps.py` are imported by name, as the code already does.
+- A module of plain functions of ours (a service, `utils`, `cookies`) is imported as a module, and its functions and constants are reached through it: `from app.api import cookies`, then `cookies.delete_refresh_token_cookie(...)` or `cookies.REFRESH_TOKEN_COOKIE`.
+- An endpoint module is imported as a module too, and its `router` is read through it, as `app/api/api.py` does (`auth.router`).
+- Classes, instances (crud objects, settings), enums, exceptions, schemas and the FastAPI dependencies in `deps.py` are imported by name, as the code already does. So is `get_logger`, as **Logging** prescribes.
 
 ## Configuration
 
@@ -113,9 +115,9 @@ These rules apply to new and changed code. Existing code that does not follow th
 
 ## Endpoints
 
-- A route handler takes its parameters and dependencies, calls one service function and returns its result. It holds no branching, no computation and no model-to-schema conversion. Every decision about the request belongs to the service.
-- What exists only in HTTP, such as setting or clearing a cookie or building a redirect response, is done by one helper in `app/api/` that the handler calls with the service's result.
-- A handler with more than two query parameters takes them as one Pydantic model through FastAPI's query parameter models (`Annotated[Model, Query()]`). Validation of their values (a fixed value, a format, a length) lives in that model, and the handler passes the model to the service as it is. Path parameters and dependencies are not counted.
+- A route handler takes its parameters and dependencies, hands the request to the service layer and returns the result. It has no logic of its own: no branching, no computation and no building of a schema from a model. Every decision about the request belongs to the service layer. Handing over is one call into it, such as a service function, or the transaction processor that `factory.get_processor` returns (`app/services/accounting/transaction_processor/`).
+- What exists only in HTTP, such as setting or clearing a cookie or building a redirect response, is done by a helper in `app/api/`. The handler may call one such helper with the service layer's result before it returns.
+- A handler with more than two query parameters takes them as one Pydantic model. A new handler uses FastAPI's query parameter models (`Annotated[Model, Query()]`). An existing model taken as `Depends()`, as the pagination `TransactionRequest` is, is allowed too. Validation of their values (a fixed value, a format, a length) lives in that model, and the handler passes the model to the service as it is. Path parameters and dependencies are not counted.
 
 ## Database Access
 
