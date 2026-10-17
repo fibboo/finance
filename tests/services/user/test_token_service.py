@@ -81,8 +81,9 @@ async def test_verify_access_token_expired():
         ("another_secret_of_at_least_32_bytes", {"sub": str(uuid4()), "exp": 4102444800}),
         (settings.jwt_secret, {"exp": 4102444800}),
         (settings.jwt_secret, {"sub": str(uuid4())}),
+        (settings.jwt_secret, {"sub": "not-a-user-id", "exp": 4102444800}),
     ],
-    ids=["wrong_signature", "missing_sub", "missing_exp"],
+    ids=["wrong_signature", "missing_sub", "missing_exp", "sub_not_uuid"],
 )
 async def test_verify_access_token_invalid(secret: str, claims: dict):
     # Arrange
@@ -192,12 +193,16 @@ async def test_rotate_refresh_token_reused_revokes_family(db: AsyncSession, db_t
     assert other_token_db.revoked is False
 
 
-async def test_rotate_refresh_token_unknown(db_transaction: AsyncSession):
+async def test_rotate_refresh_token_unknown(db: AsyncSession, db_transaction: AsyncSession):
     # Act / Assert
     with pytest.raises(InvalidTokenException) as exc:
         await token_service.rotate_refresh_token(db=db_transaction, refresh_token="unknown_refresh_token")
+    await db_transaction.commit()
 
     assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
+
+    tokens_db: list[RefreshTokenModel] = await refresh_token_crud.get_batch(db=db)
+    assert len(tokens_db) == 0
 
 
 async def test_rotate_refresh_token_expired(db: AsyncSession, db_transaction: AsyncSession):
@@ -220,6 +225,7 @@ async def test_rotate_refresh_token_expired(db: AsyncSession, db_transaction: As
     # Act / Assert
     with pytest.raises(TokenExpiredException) as exc:
         await token_service.rotate_refresh_token(db=db_transaction, refresh_token="expired_refresh_token")
+    await db_transaction.commit()
 
     assert exc.value.error_code == ErrorCodeType.TOKEN_EXPIRED
 

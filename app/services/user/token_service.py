@@ -60,6 +60,7 @@ def verify_access_token(*, access_token: str) -> UUID:
     try:
         token: jwt.Token = jwt.decode(access_token, OctKey.import_key(settings.jwt_secret), algorithms=[JWT_ALGORITHM])
         jwt.JWTClaimsRegistry(sub={"essential": True}, exp={"essential": True}).validate(token.claims)
+        user_id = UUID(token.claims["sub"])
 
     except ExpiredTokenError:
         raise TokenExpiredException(log_message="Access token expired", logger=logger)
@@ -67,7 +68,9 @@ def verify_access_token(*, access_token: str) -> UUID:
     except JoseError as exc:
         raise InvalidTokenException(log_message=f"Access token rejected: {exc.error}", logger=logger)
 
-    user_id = UUID(token.claims["sub"])
+    except ValueError:
+        raise InvalidTokenException(log_message="Access token subject is not a user id", logger=logger)
+
     return user_id
 
 
@@ -78,13 +81,13 @@ async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str) -> Token
         raise InvalidTokenException(log_message="Unknown refresh token", logger=logger)
 
     if refresh_token_db.revoked:
-        await refresh_token_crud.revoke_family(db=db, family_id=refresh_token_db.family_id)
+        await refresh_token_crud.update_orm(db=db, family_id=refresh_token_db.family_id, obj_in={"revoked": True})
         raise RefreshTokenReusedException(family_id=refresh_token_db.family_id, logger=logger)
 
     if refresh_token_db.expires_at <= datetime.now():
         raise TokenExpiredException(log_message=f"Refresh token `{refresh_token_db.id}` expired", logger=logger)
 
-    await refresh_token_crud.revoke(db=db, id=refresh_token_db.id)
+    await refresh_token_crud.update_orm(db=db, id=refresh_token_db.id, obj_in={"revoked": True})
 
     token: TokenResponse = await issue_token_pair(
         db=db, user_id=refresh_token_db.user_id, family_id=refresh_token_db.family_id
@@ -98,4 +101,4 @@ async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str) -> None:
     if refresh_token_db is None:
         return
 
-    await refresh_token_crud.revoke_family(db=db, family_id=refresh_token_db.family_id)
+    await refresh_token_crud.update_orm(db=db, family_id=refresh_token_db.family_id, obj_in={"revoked": True})
