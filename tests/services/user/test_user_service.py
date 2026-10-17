@@ -83,6 +83,52 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     assert created_user_db.external_users[0].username == "stenbot"
 
 
+@pytest.mark.parametrize(
+    "username, avatar, expected_username, expected_avatar",
+    [
+        (
+            "jd",
+            "https://t.me/i/userpic/320/johndoe.jpg",
+            "telegram_1111111111",
+            "https://t.me/i/userpic/320/johndoe.jpg",
+        ),
+        ("j" * 65, "ab", "telegram_1111111111", None),
+        ("johndoe", "https://t.me/" + "p" * 2560, "johndoe", None),
+    ],
+    ids=["username_too_short", "username_too_long_and_avatar_too_short", "avatar_too_long"],
+)
+async def test_create_user_profile_out_of_bounds(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    username: str,
+    avatar: str,
+    expected_username: str,
+    expected_avatar: str | None,
+):
+    # Arrange
+    identity = ProviderIdentity(
+        provider=ProviderType.TELEGRAM,
+        external_id="1111111111",
+        username=username,
+        first_name="Sten",
+        last_name=None,
+        avatar=avatar,
+        email=None,
+    )
+
+    # Act
+    user_db: UserModel | None = await create_user(db=db_transaction, identity=identity)
+    await db_transaction.commit()
+
+    # Assert
+    # a username users.username cannot hold falls back, and an avatar users.avatar cannot hold is dropped
+    created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
+    assert created_user_db.username == expected_username
+    assert created_user_db.avatar == expected_avatar
+    assert created_user_db.external_users[0].username == username
+    assert created_user_db.external_users[0].avatar == avatar
+
+
 async def test_create_user_long_external_id(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     external_id: str = "1" * 100

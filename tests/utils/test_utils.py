@@ -9,7 +9,7 @@ from app.schemas.accounting.transaction import (
     TransactionType,
 )
 from app.schemas.base import EntityStatusType
-from app.utils.utils import hash_secret
+from app.utils import utils
 
 
 def test_hash_equality():
@@ -55,7 +55,7 @@ def test_hash_after_mutation():
 
 def test_hash_secret():
     # Act
-    secret_hash: str = hash_secret(secret="one_time_code")
+    secret_hash: str = utils.hash_secret(secret="one_time_code")
 
     # Assert
     assert secret_hash == "03b411ef0f044a8472f1b7de95e53f992c9bf7131f6c15cc7a29c83f2a09f91c"

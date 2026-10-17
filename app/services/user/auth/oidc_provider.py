@@ -39,6 +39,12 @@ class OIDCProvider:
         )
         return client
 
+    @staticmethod
+    def __read_text_claim(*, claims: dict, name: str) -> str | None:
+        claim: object = claims.get(name)
+        text_claim: str | None = claim if isinstance(claim, str) else None
+        return text_claim
+
     @property
     def __callback_url(self) -> str:
         callback_url: str = f"{settings.public_base_url}/user/auth/callback/{self.provider.value}"
@@ -82,14 +88,19 @@ class OIDCProvider:
             logger.warning(f"{self.provider.value} sign-in rejected: no ID token in the token response")
             return None
 
-        email: str | None = claims.get("email") if claims.get("email_verified") is True else None
+        external_id: str | None = self.__read_text_claim(claims=claims, name="sub")
+        if external_id is None:
+            logger.warning(f"{self.provider.value} sign-in rejected: no string sub in the ID token")
+            return None
+
+        email: str | None = self.__read_text_claim(claims=claims, name="email")
         identity = ProviderIdentity(
             provider=self.provider,
-            external_id=claims["sub"],
-            username=claims.get("preferred_username"),
-            first_name=claims.get("given_name"),
-            last_name=claims.get("family_name"),
-            avatar=claims.get("picture"),
-            email=email,
+            external_id=external_id,
+            username=self.__read_text_claim(claims=claims, name="preferred_username"),
+            first_name=self.__read_text_claim(claims=claims, name="given_name"),
+            last_name=self.__read_text_claim(claims=claims, name="family_name"),
+            avatar=self.__read_text_claim(claims=claims, name="picture"),
+            email=email if claims.get("email_verified") is True else None,
         )
         return identity

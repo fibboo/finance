@@ -558,6 +558,7 @@ async def test_callback_provider_error(db: AsyncSession, db_transaction: AsyncSe
     await db.refresh(request_db)
     assert request_db.code_hash is None
     assert request_db.user_id is None
+    assert request_db.used is True
 
 
 @pytest.mark.parametrize(
@@ -625,6 +626,7 @@ async def test_callback_invalid_id_token(
 
     await db.refresh(request_db)
     assert request_db.code_hash is None
+    assert request_db.used is True
 
 
 async def test_callback_wrong_signing_key(
@@ -955,8 +957,7 @@ async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSess
     assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
 
 
-@pytest.mark.parametrize("grant_type", ["authorization_code", "refresh_token"])
-async def test_grant_token(db: AsyncSession, db_transaction: AsyncSession, grant_type: str):
+async def test_grant_token_authorization_code(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_db: UserModel = await user_crud.create(
         db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
@@ -988,7 +989,7 @@ async def test_grant_token(db: AsyncSession, db_transaction: AsyncSession, grant
         commit=True,
     )
     token_request = TokenRequest(
-        grant_type=grant_type,
+        grant_type="authorization_code",
         code="one_time_code",
         redirect_uri="https://finance.test/auth/callback",
         code_verifier="client_code_verifier_of_at_least_43_characters",
@@ -1004,16 +1005,188 @@ async def test_grant_token(db: AsyncSession, db_transaction: AsyncSession, grant
     claims: dict = jwt.decode(token.access_token, OctKey.import_key(settings.jwt_secret), algorithms=["HS256"]).claims
     assert UUID(claims["sub"]) == user_db.id
 
-    # both grants revoke the presented token; only the refresh grant keeps its family
+    # the presented token is revoked and the new token starts a family of its own
     await db.refresh(old_token_db)
     assert old_token_db.revoked is True
 
     new_token_hash: str = hashlib.sha256(token.refresh_token.encode("utf-8")).hexdigest()
     new_token_db: RefreshTokenModel = await refresh_token_crud.get(db=db, token_hash=new_token_hash)
-    assert (new_token_db.family_id == old_token_db.family_id) is (grant_type == "refresh_token")
+    assert new_token_db.family_id != old_token_db.family_id
 
     request_db: AuthorizationRequestModel = await authorization_request_crud.get(db=db)
-    assert request_db.used is (grant_type == "authorization_code")
+    assert request_db.used is True
+
+
+async def test_grant_token_refresh_token(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    old_token_db: RefreshTokenModel = await refresh_token_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "token_hash": hashlib.sha256(b"old_refresh_token").hexdigest(),
+            "family_id": uuid4(),
+            "expires_at": datetime.now() + timedelta(days=1),
+        },
+        commit=True,
+    )
+
+    # Act
+    token: TokenPair = await auth_service.grant_token(
+        db=db_transaction, token_request=TokenRequest(grant_type="refresh_token"), refresh_token="old_refresh_token"
+    )
+    await db_transaction.commit()
+
+    # Assert
+    claims: dict = jwt.decode(token.access_token, OctKey.import_key(settings.jwt_secret), algorithms=["HS256"]).claims
+    assert UUID(claims["sub"]) == user_db.id
+
+    # the presented token is revoked and the new token stays in its family
+    await db.refresh(old_token_db)
+    assert old_token_db.revoked is True
+
+    new_token_hash: str = hashlib.sha256(token.refresh_token.encode("utf-8")).hexdigest()
+    new_token_db: RefreshTokenModel = await refresh_token_crud.get(db=db, token_hash=new_token_hash)
+    assert new_token_db.family_id == old_token_db.family_id
+
+
+async def test_grant_token_refresh_token_without_cookie(db: AsyncSession, db_transaction: AsyncSession):
+    # Act / Assert
+    with pytest.raises(InvalidTokenException) as exc:
+        await auth_service.grant_token(
+            db=db_transaction, token_request=TokenRequest(grant_type="refresh_token"), refresh_token=None
+        )
+
+    assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
+
+
+async def test_callback_invalid_optional_claims(
+    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, telegram_signing_key: ECKey
+):
+    # Arrange
+    await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+    # names of the wrong type, a username too long for users.username and a picture too long for users.avatar
+    id_token: str = jwt.encode(
+        {"alg": "ES256", "kid": "telegram-test-key"},
+        {
+            "iss": "https://oauth.telegram.org",
+            "aud": "123456789",
+            "sub": "1234123412341234123",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+            "nonce": "nonce",
+            "given_name": 42,
+            "family_name": ["Doe"],
+            "preferred_username": "j" * 65,
+            "picture": "https://t.me/" + "p" * 2560,
+        },
+        telegram_signing_key,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth.telegram.org/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "id_token": id_token,
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert "code" in parse_qs(urlsplit(redirect_url).query)
+
+    user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id="1234123412341234123", provider=ProviderType.TELEGRAM
+    )
+    assert user_db.username == "telegram_1234123412341234123"
+    assert user_db.avatar is None
+    assert user_db.external_users[0].username == "j" * 65
+    assert user_db.external_users[0].first_name is None
+    assert user_db.external_users[0].last_name is None
+
+
+async def test_callback_subject_not_string(
+    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, telegram_signing_key: ECKey
+):
+    # Arrange
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+    id_token: str = jwt.encode(
+        {"alg": "ES256", "kid": "telegram-test-key"},
+        {
+            "iss": "https://oauth.telegram.org",
+            "aud": "123456789",
+            "sub": 1234123412341234123,
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+            "nonce": "nonce",
+        },
+        telegram_signing_key,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth.telegram.org/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "id_token": id_token,
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        callback_request=CallbackRequest(state="state", code="provider_code", error=None),
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert parse_qs(urlsplit(redirect_url).query) == {"error": ["server_error"], "state": ["client_state"]}
+
+    users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
+    assert len(users_db) == 0
+
+    await db.refresh(request_db)
+    assert request_db.used is True
 
 
 async def test_callback_no_id_token(
@@ -1278,6 +1451,7 @@ async def test_callback_no_free_username(
     await db.refresh(request_db)
     assert request_db.code_hash is None
     assert request_db.user_id is None
+    assert request_db.used is True
 
 
 async def test_start_link_ok(db: AsyncSession, db_transaction: AsyncSession, google_signing_key: RSAKey):

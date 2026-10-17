@@ -25,14 +25,14 @@ from app.schemas.user.external_user import ExternalUserCreate
 from app.schemas.user.identity import ProviderIdentity
 from app.schemas.user.user import User, UserCreate
 from app.services.accounting import account_service
-from app.utils.utils import hash_secret
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
 
 def _build_fallback_username(*, identity: ProviderIdentity) -> str:
     external_id: str = (
-        identity.external_id if len(identity.external_id) <= 32 else hash_secret(secret=identity.external_id)[:32]
+        identity.external_id if len(identity.external_id) <= 32 else utils.hash_secret(secret=identity.external_id)[:32]
     )
     fallback_username: str = f"{identity.provider.value.lower()}_{external_id}"
     return fallback_username
@@ -47,17 +47,20 @@ def build_username(*, identity: ProviderIdentity) -> str:
 
 
 async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserModel | None:
-    username: str = build_username(identity=identity)
+    provider_username: str = build_username(identity=identity)
+    fallback_username: str = _build_fallback_username(identity=identity)
+    username: str = provider_username if 3 <= len(provider_username) <= 64 else fallback_username
     username_owner_db: UserModel | None = await user_crud.get_or_none(db=db, username=username)
-    if username_owner_db is not None and identity.username is not None:
-        username = _build_fallback_username(identity=identity)
+    if username_owner_db is not None and username != fallback_username:
+        username = fallback_username
         username_owner_db = await user_crud.get_or_none(db=db, username=username)
 
     if username_owner_db is not None:
         logger.warning(f"{identity.provider.value} sign-in rejected: no free username for the new user")
         return None
 
-    user_create = UserCreate(username=username, avatar=identity.avatar, registration_provider=identity.provider)
+    avatar: str | None = identity.avatar if identity.avatar is not None and 3 <= len(identity.avatar) <= 2560 else None
+    user_create = UserCreate(username=username, avatar=avatar, registration_provider=identity.provider)
 
     try:
         user_db: UserModel = await user_crud.create(db=db, obj_in=user_create)
@@ -66,7 +69,7 @@ async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserMo
         raise IntegrityException(entity=UserModel, exception=exc, logger=logger)
 
     external_user_db: ExternalUserModel = await add_external_user(
-        db=db, user_id=user_db.id, identity=identity, username=build_username(identity=identity)
+        db=db, user_id=user_db.id, identity=identity, username=provider_username
     )
     user_db.external_users = [external_user_db]
 

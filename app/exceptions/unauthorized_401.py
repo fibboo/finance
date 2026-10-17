@@ -79,6 +79,6 @@ class InvalidAuthData(UnauthorizedException):
             message="Invalid auth data",
             log_message=log_message,
             logger=logger,
-            log_level=LogLevelType.ERROR,
+            log_level=LogLevelType.WARNING,
             error_code=ErrorCodeType.INVALID_AUTH_DATA,
         )

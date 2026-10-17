@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import cookies
-from app.api.deps import get_db_transaction, get_grant_refresh_token, get_refresh_token, get_user_id
+from app.api.deps import get_db_transaction, get_refresh_token, get_user_id
 from app.schemas.user.authorization_request import (
     AuthorizationUrlResponse,
     AuthorizeRequest,
@@ -95,7 +95,7 @@ async def token(
     *,
     response: Response,
     data: Annotated[TokenRequest, Form()],
-    refresh_token: str | None = Depends(get_grant_refresh_token),
+    refresh_token: str | None = Depends(get_refresh_token),
     db: AsyncSession = Depends(get_db_transaction, scope="function"),
 ) -> TokenResponse:
     """Exchange a one-time code with its PKCE verifier, or the refresh token cookie, for a new access token.
