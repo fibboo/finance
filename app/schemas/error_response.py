@@ -23,6 +23,7 @@ class ErrorCodeType(str, Enum):
     BASE_CURRENCY_NOT_SET = "BASE_CURRENCY_NOT_SET"
     BASE_CURRENCY_ALREADY_SET = "BASE_CURRENCY_ALREADY_SET"
     REDIRECT_URI_NOT_ALLOWED = "REDIRECT_URI_NOT_ALLOWED"
+    PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
 
 
 class ErrorResponse(BaseModel):
@@ -32,7 +33,7 @@ class ErrorResponse(BaseModel):
 
 responses = {
     status.HTTP_418_IM_A_TEAPOT: {
-        "description": "Custom errors with possible codes: 400, 401, 403, 404, 409, 501",
+        "description": "Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502",
         "model": ErrorResponse,
     }
 }

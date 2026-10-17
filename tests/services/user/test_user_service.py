@@ -45,6 +45,62 @@ async def test_create_user_without_base_currency(db: AsyncSession, db_transactio
     assert len(accounts_db) == 0
 
 
+async def test_create_user_username_taken(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    await user_crud.create(
+        db=db, obj_in=UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    identity = ProviderIdentity(
+        provider=ProviderType.TELEGRAM,
+        subject="1111111111",
+        username="stenbot",
+        first_name="Sten",
+        last_name=None,
+        avatar=None,
+        email=None,
+    )
+
+    # Act
+    user_db: UserModel | None = await create_user(db=db_transaction, identity=identity)
+    await db_transaction.commit()
+
+    # Assert
+    created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
+    assert created_user_db.username == "telegram_1111111111"
+    assert created_user_db.external_users[0].username == "telegram_1111111111"
+
+
+async def test_create_user_no_free_username(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    await user_crud.create_batch(
+        db=db,
+        objs_in=[
+            UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM),
+            UserCreate(username="telegram_1111111111", registration_provider=ProviderType.TELEGRAM),
+        ],
+        commit=True,
+    )
+    identity = ProviderIdentity(
+        provider=ProviderType.TELEGRAM,
+        subject="1111111111",
+        username="stenbot",
+        first_name="Sten",
+        last_name=None,
+        avatar=None,
+        email=None,
+    )
+
+    # Act
+    user_db: UserModel | None = await create_user(db=db_transaction, identity=identity)
+    await db_transaction.commit()
+
+    # Assert
+    assert user_db is None
+
+    users_db: list[UserModel] = await user_crud.get_batch(db=db)
+    assert len(users_db) == 2
+
+
 async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM)

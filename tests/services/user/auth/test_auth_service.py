@@ -11,11 +11,13 @@ from joserfc.jwk import ECKey, OctKey
 from pytest_httpx import HTTPXMock
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.configs.settings import settings
 from app.crud.user.authorization_request import authorization_request_crud
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
+from app.exceptions.bad_gateway_502 import ProviderUnavailable
 from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException, TokenExpiredException
 from app.exceptions.unprocessable_422 import RedirectUriNotAllowed
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
@@ -75,11 +77,49 @@ async def test_authorize_redirect_uri_not_allowed(db: AsyncSession, db_transacti
             code_challenge="challenge",
             client_state="client_state",
         )
+    await db_transaction.commit()
 
     assert exc.value.error_code == ErrorCodeType.REDIRECT_URI_NOT_ALLOWED
 
     requests_db: list[AuthorizationRequestModel] = await authorization_request_crud.get_batch(db=db)
     assert len(requests_db) == 0
+
+
+@pytest.mark.parametrize(
+    "discovery_response",
+    [
+        {"status_code": 503},
+        {"content": b"<html>Service Unavailable</html>"},
+        {
+            "json": {
+                "issuer": "https://oauth.telegram.org",
+                "token_endpoint": "https://oauth.telegram.org/token",
+                "jwks_uri": "https://oauth.telegram.org/.well-known/jwks.json",
+            }
+        },
+    ],
+    ids=["unavailable", "not_json", "no_authorization_endpoint"],
+)
+async def test_authorize_provider_unavailable(
+    db_transaction: AsyncSession, httpx_mock: HTTPXMock, discovery_response: dict
+):
+    # Arrange
+    httpx_mock.add_response(
+        method="GET", url="https://oauth.telegram.org/.well-known/openid-configuration", **discovery_response
+    )
+
+    # Act / Assert
+    with pytest.raises(ProviderUnavailable) as exc:
+        await auth_service.authorize(
+            db=db_transaction,
+            provider=ProviderType.TELEGRAM,
+            redirect_uri="finance://auth/callback",
+            code_challenge="challenge",
+            client_state="client_state",
+        )
+
+    assert exc.value.status_code == status.HTTP_502_BAD_GATEWAY
+    assert exc.value.error_code == ErrorCodeType.PROVIDER_UNAVAILABLE
 
 
 async def test_callback_creates_user(
@@ -508,6 +548,7 @@ async def test_callback_invalid_state(
         await auth_service.callback(
             db=db_transaction, provider=ProviderType.TELEGRAM, state=state, code="provider_code", error=None
         )
+    await db_transaction.commit()
 
     assert exc.value.error_code == ErrorCodeType.INVALID_AUTH_DATA
 
@@ -600,6 +641,7 @@ async def test_exchange_code_invalid(
         await auth_service.exchange_code(
             db=db_transaction, code=code, redirect_uri=redirect_uri, code_verifier=code_verifier
         )
+    await db_transaction.commit()
 
     assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
 
@@ -639,3 +681,164 @@ async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSess
         )
 
     assert exc.value.error_code == ErrorCodeType.TOKEN_EXPIRED
+
+
+async def test_callback_no_id_token(
+    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, telegram_signing_key: ECKey
+):
+    # Arrange
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "finance://auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth.telegram.org/token",
+        json={"access_token": "provider_access_token", "token_type": "Bearer", "expires_in": 3600},
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert parse_qs(urlsplit(redirect_url).query) == {"error": ["server_error"], "state": ["client_state"]}
+
+    users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
+    assert len(users_db) == 0
+
+    await db.refresh(request_db)
+    assert request_db.code_hash is None
+
+
+async def test_callback_discovery_without_issuer(db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock):
+    # Arrange
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "finance://auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+    httpx_mock.add_response(
+        method="GET",
+        url="https://oauth.telegram.org/.well-known/openid-configuration",
+        json={
+            "authorization_endpoint": "https://oauth.telegram.org/auth",
+            "token_endpoint": "https://oauth.telegram.org/token",
+            "jwks_uri": "https://oauth.telegram.org/.well-known/jwks.json",
+        },
+        is_reusable=True,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth.telegram.org/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "id_token": "header.payload.signature",
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert parse_qs(urlsplit(redirect_url).query) == {"error": ["server_error"], "state": ["client_state"]}
+
+    users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
+    assert len(users_db) == 0
+
+    await db.refresh(request_db)
+    assert request_db.code_hash is None
+
+
+async def test_callback_no_free_username(
+    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, telegram_signing_key: ECKey
+):
+    # Arrange
+    # both the provider username and the fallback username belong to other users
+    await user_crud.create_batch(
+        db=db,
+        objs_in=[
+            UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM),
+            UserCreate(username="telegram_1234123412341234123", registration_provider=ProviderType.TELEGRAM),
+        ],
+        commit=True,
+    )
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "finance://auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+    id_token: str = jwt.encode(
+        {"alg": "ES256", "kid": "telegram-test-key"},
+        {
+            "iss": "https://oauth.telegram.org",
+            "aud": "123456789",
+            "sub": "1234123412341234123",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+            "nonce": "nonce",
+            "preferred_username": "johndoe",
+        },
+        telegram_signing_key,
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://oauth.telegram.org/token",
+        json={
+            "access_token": "provider_access_token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "id_token": id_token,
+        },
+    )
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert parse_qs(urlsplit(redirect_url).query) == {"error": ["server_error"], "state": ["client_state"]}
+
+    users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
+    assert len(users_db) == 2
+
+    await db.refresh(request_db)
+    assert request_db.code_hash is None
+    assert request_db.user_id is None

@@ -1,6 +1,3 @@
-from uuid import UUID
-
-from sqlalchemy import update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -20,11 +17,6 @@ class CRUDAuthorizationRequest(CRUDBase[AuthorizationRequest, AuthorizationReque
             db=db, with_for_update=True, code_hash=code_hash
         )
         return authorization_request
-
-    async def mark_used(self, *, db: AsyncSession, id: UUID) -> None:  # noqa: A002
-        query: Update = update(self.model).where(self.model.id == id).values(used=True)
-        await db.execute(query)
-        await db.flush()
 
 
 authorization_request_crud = CRUDAuthorizationRequest(model=AuthorizationRequest)

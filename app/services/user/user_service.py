@@ -19,11 +19,17 @@ from app.services.accounting import account_service
 logger = get_logger(logger_name=__name__)
 
 
-async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserModel:
-    if identity.username is not None:
-        username: str = identity.username
-    else:
-        username: str = f"{identity.provider.value.lower()}_{identity.subject}"
+async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserModel | None:
+    fallback_username: str = f"{identity.provider.value.lower()}_{identity.subject}"
+    username: str = identity.username if identity.username is not None else fallback_username
+    username_owner_db: UserModel | None = await user_crud.get_or_none(db=db, username=username)
+    if username_owner_db is not None and username != fallback_username:
+        username = fallback_username
+        username_owner_db = await user_crud.get_or_none(db=db, username=username)
+
+    if username_owner_db is not None:
+        logger.warning(f"{identity.provider.value} sign-in rejected: no free username for the new user")
+        return None
 
     user_create = UserCreate(username=username, avatar=identity.avatar, registration_provider=identity.provider)
 

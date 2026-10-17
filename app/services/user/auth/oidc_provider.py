@@ -4,6 +4,7 @@ from joserfc.errors import JoseError
 
 from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
+from app.exceptions.bad_gateway_502 import ProviderUnavailable
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.identity import ProviderIdentity
 
@@ -37,6 +38,15 @@ class OIDCProvider:
 
     async def create_authorization_url(self, *, state: str, nonce: str, code_verifier: str) -> str:
         client: StarletteOAuth2App = self.__build_client()
+        try:
+            metadata: dict = await client.load_server_metadata()
+
+        except (httpx.HTTPError, ValueError) as exc:
+            raise ProviderUnavailable(provider=self.provider, reason=f"{type(exc).__name__} {exc}", logger=logger)
+
+        if "authorization_endpoint" not in metadata:
+            raise ProviderUnavailable(provider=self.provider, reason="no authorization_endpoint", logger=logger)
+
         authorization: dict[str, str] = await client.create_authorization_url(
             redirect_uri=self.__callback_url, state=state, nonce=nonce, code_verifier=code_verifier
         )
@@ -45,7 +55,6 @@ class OIDCProvider:
 
     async def fetch_identity(self, *, code: str, code_verifier: str, nonce: str) -> ProviderIdentity | None:
         client: StarletteOAuth2App = self.__build_client()
-
         try:
             token: dict = await client.fetch_access_token(
                 redirect_uri=self.__callback_url, code=code, code_verifier=code_verifier
@@ -55,10 +64,14 @@ class OIDCProvider:
                 "iss": {"essential": True, "value": metadata["issuer"]},
                 "aud": {"essential": True, "value": self.__client_id},
             }
-            claims: dict = await client.parse_id_token(token=token, nonce=nonce, claims_options=claims_options)
+            claims: dict | None = await client.parse_id_token(token=token, nonce=nonce, claims_options=claims_options)
 
-        except (OAuthError, JoseError, httpx.HTTPError) as exc:
+        except (OAuthError, JoseError, httpx.HTTPError, KeyError) as exc:
             logger.warning(f"{self.provider.value} sign-in rejected: {type(exc).__name__} {exc}")
+            return None
+
+        if claims is None:
+            logger.warning(f"{self.provider.value} sign-in rejected: no ID token in the token response")
             return None
 
         identity = ProviderIdentity(

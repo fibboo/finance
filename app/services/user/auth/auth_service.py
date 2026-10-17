@@ -1,4 +1,3 @@
-import hashlib
 import secrets
 from datetime import datetime, timedelta
 
@@ -21,16 +20,12 @@ from app.schemas.user.token import TokenResponse
 from app.services.user import token_service, user_service
 from app.services.user.auth.oidc_provider import OIDCProvider
 from app.services.user.auth.providers import providers
+from app.utils.utils import hash_secret
 
 logger = get_logger(logger_name=__name__)
 
 AUTHORIZATION_REQUEST_LIFETIME = timedelta(minutes=10)
 AUTHORIZATION_CODE_LIFETIME = timedelta(minutes=1)
-
-
-def _hash_code(*, code: str) -> str:
-    code_hash: str = hashlib.sha256(code.encode("utf-8")).hexdigest()
-    return code_hash
 
 
 async def authorize(
@@ -90,12 +85,16 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
         db=db, external_id=identity.subject, provider=provider
     )
     if user_db is None:
-        user_db: UserModel = await user_service.create_user(db=db, identity=identity)
+        user_db: UserModel | None = await user_service.create_user(db=db, identity=identity)
+        if user_db is None:
+            error_params: dict[str, str] = {"error": "server_error", "state": request_db.client_state}
+            error_url: str = add_params_to_uri(request_db.client_redirect_uri, error_params)
+            return error_url
 
     authorization_code: str = secrets.token_urlsafe(32)
     authorization_request_update = AuthorizationRequestUpdate(
         user_id=user_db.id,
-        code_hash=_hash_code(code=authorization_code),
+        code_hash=hash_secret(secret=authorization_code),
         expires_at=datetime.now() + AUTHORIZATION_CODE_LIFETIME,
     )
     await authorization_request_crud.update_orm(db=db, obj_in=authorization_request_update, id=request_db.id)
@@ -107,7 +106,7 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
 
 async def exchange_code(*, db: AsyncSession, code: str, redirect_uri: str, code_verifier: str) -> TokenResponse:
     request_db: AuthorizationRequestModel | None = await authorization_request_crud.get_by_code_hash(
-        db=db, code_hash=_hash_code(code=code)
+        db=db, code_hash=hash_secret(secret=code)
     )
     if request_db is None or request_db.used:
         raise InvalidTokenException(log_message="Unknown or used authorization code", logger=logger)
@@ -122,7 +121,7 @@ async def exchange_code(*, db: AsyncSession, code: str, redirect_uri: str, code_
     if not secrets.compare_digest(code_challenge, request_db.client_code_challenge):
         raise InvalidTokenException(log_message=f"PKCE verification failed for `{request_db.id}`", logger=logger)
 
-    await authorization_request_crud.mark_used(db=db, id=request_db.id)
+    await authorization_request_crud.update_orm(db=db, obj_in={"used": True}, id=request_db.id)
 
     token: TokenResponse = await token_service.issue_token_pair(db=db, user_id=request_db.user_id)
     return token

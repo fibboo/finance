@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Self
 from uuid import UUID
 
 from pydantic import BaseModel, model_validator
@@ -27,7 +27,7 @@ class TokenRequest(BaseModel):
     refresh_token: str | None = None
 
     @model_validator(mode="after")
-    def check_grant_fields(self) -> "TokenRequest":
+    def check_grant_fields(self) -> Self:
         if self.grant_type == "authorization_code":
             required: dict[str, str | None] = {
                 "code": self.code,
