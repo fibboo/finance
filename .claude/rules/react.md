@@ -80,6 +80,7 @@ The frontend is a responsive, mobile-first single-page app. It is built from Rea
 - Each component that needs styles has one colocated `<file>.module.css`. Class names are camelCase.
 - Colors, spacing, radii, font sizes and breakpoints are CSS custom properties in `frontend/src/styles/tokens.css`, with the dark theme overriding the same names. A module uses `var(--token)`, never a raw color, pixel size or font.
 - Styles are mobile-first: base rules for the smallest screen, then `min-width` media or container queries. Sizes use `rem`. Touch targets are at least 44 by 44 pixels.
+- Mobile-first is the order the styles are written in, not a target that stops at the phone. Every screen is finished for desktop too: wide layouts use the space with columns or a side panel instead of a stretched phone column, text lines keep a readable maximum width, and hover and focus states exist for pointer and keyboard. A screen is checked at a phone width and at a desktop width before its PR is opened.
 - No inline `style` except for a value computed at runtime, such as a progress width.
 
 ## Accessibility
