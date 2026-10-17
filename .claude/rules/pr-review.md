@@ -67,11 +67,14 @@ Grade it **P2** and treat it as blocking: the fix is to return the model, to mov
 
 Each of the following is a finding when the diff adds it (`.claude/rules/python.md` **Endpoints** and **Imports**):
 
-- a route handler that does anything beyond handing the request to the service layer, calling one HTTP helper from `app/api/` with the result and returning it, such as branching, computing or building a schema from a model;
-- an HTTP-only step, such as setting or clearing a cookie or building a redirect response, done inside a service or written out in the handler instead of in a helper in `app/api/`;
+- a route handler that does anything beyond handing the request to the service layer, calling one cookie helper from `app/api/` with the result and returning it, such as branching, computing or building a response schema;
+- a dependency in `deps.py` that makes a business decision instead of checking the request itself (authentication, `Origin`, reading a cookie or a header);
+- setting or clearing a cookie done inside a service or written out in the handler instead of in a helper in `app/api/`;
 - a handler with more than two query parameters that takes them one by one instead of as one model (`Annotated[Model, Query()]` for a new handler, or an existing model taken as `Depends()`), or that checks their values outside that model.
 
-Grade it **P2** and treat it as blocking: the fix is to move the decision into the service, the HTTP step into a helper in `app/api/`, or the parameters into a query parameter model.
+Grade it **P2** and treat it as blocking: the fix is to move the decision into the service, the cookie step into a helper in `app/api/`, or the parameters into a query parameter model.
+
+Two forms are not this finding: a transaction handler that takes its processor from `factory.get_processor` and calls it, and a redirect done by declaring `response_class=RedirectResponse` and returning the URL the service gives.
 
 A function or constant of one of our modules of plain functions (a service, `utils`, `cookies`), or an endpoint module's `router`, imported by name instead of through its module is a finding too. Grade it **P3**. `get_logger` and the other names python.md **Imports** lists are imported by name and are not this finding.
 
