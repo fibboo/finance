@@ -12,7 +12,7 @@ from app.configs.settings import settings
 from app.crud.user.refresh_token import refresh_token_crud
 from app.exceptions.unauthorized_401 import InvalidTokenException, RefreshTokenReusedException, TokenExpiredException
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
-from app.schemas.user.token import RefreshTokenCreate, TokenResponse
+from app.schemas.user.token import RefreshTokenCreate, TokenPair
 from app.utils.utils import hash_secret
 
 logger = get_logger(logger_name=__name__)
@@ -31,7 +31,7 @@ def _encode_access_token(*, user_id: UUID, issued_at: int) -> str:
     return access_token
 
 
-async def issue_token_pair(*, db: AsyncSession, user_id: UUID, family_id: UUID | None = None) -> TokenResponse:
+async def issue_token_pair(*, db: AsyncSession, user_id: UUID, family_id: UUID | None = None) -> TokenPair:
     now: datetime = datetime.now()
     refresh_token: str = secrets.token_urlsafe(48)
     refresh_token_create = RefreshTokenCreate(
@@ -42,9 +42,8 @@ async def issue_token_pair(*, db: AsyncSession, user_id: UUID, family_id: UUID |
     )
     await refresh_token_crud.create(db=db, obj_in=refresh_token_create)
 
-    token = TokenResponse(
+    token = TokenPair(
         access_token=_encode_access_token(user_id=user_id, issued_at=int(now.timestamp())),
-        token_type="Bearer",
         expires_in=settings.access_token_expire_seconds,
         refresh_token=refresh_token,
     )
@@ -69,7 +68,10 @@ def verify_access_token(*, access_token: str) -> UUID:
     return user_id
 
 
-async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str) -> TokenResponse:
+async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str | None) -> TokenPair:
+    if refresh_token is None:
+        raise InvalidTokenException(log_message="Refresh token cookie missing", logger=logger)
+
     token_hash: str = hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:
@@ -84,13 +86,16 @@ async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str) -> Token
 
     await refresh_token_crud.update_orm(db=db, id=refresh_token_db.id, obj_in={"revoked": True})
 
-    token: TokenResponse = await issue_token_pair(
+    token: TokenPair = await issue_token_pair(
         db=db, user_id=refresh_token_db.user_id, family_id=refresh_token_db.family_id
     )
     return token
 
 
-async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str) -> None:
+async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str | None) -> None:
+    if refresh_token is None:
+        return
+
     token_hash: str = hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:

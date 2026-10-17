@@ -16,7 +16,7 @@ from app.models.user.user import User as UserModel
 from app.schemas.user.authorization_request import AuthorizationRequestCreate, AuthorizationRequestUpdate
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.identity import ProviderIdentity
-from app.schemas.user.token import TokenResponse
+from app.schemas.user.token import TokenPair
 from app.services.user import token_service, user_service
 from app.services.user.auth.oidc_provider import OIDCProvider
 from app.services.user.auth.providers import providers
@@ -104,7 +104,7 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     return redirect_url
 
 
-async def exchange_code(*, db: AsyncSession, code: str, redirect_uri: str, code_verifier: str) -> TokenResponse:
+async def exchange_code(*, db: AsyncSession, code: str, redirect_uri: str, code_verifier: str) -> TokenPair:
     request_db: AuthorizationRequestModel | None = await authorization_request_crud.get_by_code_hash(
         db=db, code_hash=hash_secret(secret=code)
     )
@@ -120,5 +120,5 @@ async def exchange_code(*, db: AsyncSession, code: str, redirect_uri: str, code_
 
     await authorization_request_crud.update_orm(db=db, obj_in={"used": True}, id=request_db.id)
 
-    token: TokenResponse = await token_service.issue_token_pair(db=db, user_id=request_db.user_id)
+    token: TokenPair = await token_service.issue_token_pair(db=db, user_id=request_db.user_id)
     return token

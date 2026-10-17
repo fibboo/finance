@@ -101,3 +101,14 @@ class AccountTypeMismatchException(ForbiddenException):
             log_level=LogLevelType.ERROR,
             error_code=ErrorCodeType.ACCOUNT_TYPE_MISMATCH,
         )
+
+
+class OriginNotAllowed(ForbiddenException):
+    def __init__(self, *, origin: str, logger: logging.Logger):
+        super().__init__(
+            message="Origin not allowed",
+            log_message=f"Origin `{origin}` is not in the allowed origins",
+            logger=logger,
+            log_level=LogLevelType.WARNING,
+            error_code=ErrorCodeType.ORIGIN_NOT_ALLOWED,
+        )

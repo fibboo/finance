@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     app_title: str
     public_base_url: str
     allowed_redirect_uris: list[str]
+    allowed_origins: list[str]
 
     jwt_secret: str
     access_token_expire_seconds: int

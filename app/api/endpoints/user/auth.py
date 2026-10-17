@@ -1,12 +1,13 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db_transaction
+from app.api.cookies import delete_refresh_token_cookie, set_refresh_token_cookie
+from app.api.deps import get_db_transaction, get_refresh_token
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.token import TokenRequest, TokenResponse
+from app.schemas.user.token import TokenPair, TokenRequest, TokenResponse
 from app.services.user import token_service
 from app.services.user.auth import auth_service
 
@@ -48,24 +49,38 @@ async def callback(
 
 @router.post("/token")
 async def token(
-    *, data: Annotated[TokenRequest, Form()], db: AsyncSession = Depends(get_db_transaction)
+    *,
+    response: Response,
+    data: Annotated[TokenRequest, Form()],
+    refresh_token: str | None = Depends(get_refresh_token),
+    db: AsyncSession = Depends(get_db_transaction),
 ) -> TokenResponse:
-    """Exchange a one-time code with its PKCE verifier, or a refresh token, for a new token pair.
+    """Exchange a one-time code with its PKCE verifier, or the refresh token cookie, for a new access token.
 
-    A presented refresh token is revoked."""
+    The new refresh token is set as an HttpOnly cookie. A presented refresh token is revoked."""
     if data.grant_type == "authorization_code":
-        token_response: TokenResponse = await auth_service.exchange_code(
+        token_pair: TokenPair = await auth_service.exchange_code(
             db=db, code=data.code, redirect_uri=data.redirect_uri, code_verifier=data.code_verifier
         )
     else:
-        token_response: TokenResponse = await token_service.rotate_refresh_token(
-            db=db, refresh_token=data.refresh_token
-        )
+        token_pair: TokenPair = await token_service.rotate_refresh_token(db=db, refresh_token=refresh_token)
 
+    set_refresh_token_cookie(response=response, refresh_token=token_pair.refresh_token)
+    token_response = TokenResponse(
+        access_token=token_pair.access_token, token_type="Bearer", expires_in=token_pair.expires_in
+    )
     return token_response
 
 
 @router.post("/revoke")
-async def revoke(*, refresh_token: str = Form(), db: AsyncSession = Depends(get_db_transaction)) -> None:
-    """Revoke a refresh token and every token rotated from it. Always succeeds, as RFC 7009 requires."""
+async def revoke(
+    *,
+    response: Response,
+    refresh_token: str | None = Depends(get_refresh_token),
+    db: AsyncSession = Depends(get_db_transaction),
+) -> None:
+    """Revoke the refresh token cookie and every token rotated from it, and clear the cookie.
+
+    Always succeeds, as RFC 7009 requires."""
     await token_service.revoke_refresh_token(db=db, refresh_token=refresh_token)
+    delete_refresh_token_cookie(response=response)

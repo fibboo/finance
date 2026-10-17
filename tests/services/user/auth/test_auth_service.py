@@ -24,7 +24,7 @@ from app.models.user.authorization_request import AuthorizationRequest as Author
 from app.models.user.user import User as UserModel
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.token import TokenResponse
+from app.schemas.user.token import TokenPair
 from app.schemas.user.user import UserCreate
 from app.services.user.auth import auth_service
 
@@ -37,7 +37,7 @@ async def test_authorize_ok(db: AsyncSession, db_transaction: AsyncSession, tele
     authorization_url: str = await auth_service.authorize(
         db=db_transaction,
         provider=ProviderType.TELEGRAM,
-        redirect_uri="finance://auth/callback",
+        redirect_uri="https://finance.test/auth/callback",
         code_challenge=client_code_challenge,
         client_state="client_state",
     )
@@ -46,7 +46,7 @@ async def test_authorize_ok(db: AsyncSession, db_transaction: AsyncSession, tele
     # Assert
     request_db: AuthorizationRequestModel = await authorization_request_crud.get(db=db)
     assert request_db.provider == ProviderType.TELEGRAM
-    assert request_db.client_redirect_uri == "finance://auth/callback"
+    assert request_db.client_redirect_uri == "https://finance.test/auth/callback"
     assert request_db.client_state == "client_state"
     assert request_db.client_code_challenge == client_code_challenge
     assert request_db.expires_at > datetime.now()
@@ -113,7 +113,7 @@ async def test_authorize_provider_unavailable(
         await auth_service.authorize(
             db=db_transaction,
             provider=ProviderType.TELEGRAM,
-            redirect_uri="finance://auth/callback",
+            redirect_uri="https://finance.test/auth/callback",
             code_challenge="challenge",
             client_state="client_state",
         )
@@ -133,7 +133,7 @@ async def test_callback_creates_user(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -177,7 +177,7 @@ async def test_callback_creates_user(
 
     # Assert
     url = urlsplit(redirect_url)
-    assert f"{url.scheme}://{url.netloc}{url.path}" == "finance://auth/callback"
+    assert f"{url.scheme}://{url.netloc}{url.path}" == "https://finance.test/auth/callback"
     params: dict[str, list[str]] = parse_qs(url.query)
     assert params["state"] == ["client_state"]
 
@@ -224,7 +224,7 @@ async def test_callback_existing_user(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -280,7 +280,7 @@ async def test_callback_without_username(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -333,7 +333,7 @@ async def test_callback_provider_error(db: AsyncSession, db_transaction: AsyncSe
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback?source=app",
+            "client_redirect_uri": "https://finance.test/auth/callback?source=app",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -349,7 +349,7 @@ async def test_callback_provider_error(db: AsyncSession, db_transaction: AsyncSe
 
     # Assert
     url = urlsplit(redirect_url)
-    assert f"{url.scheme}://{url.netloc}{url.path}" == "finance://auth/callback"
+    assert f"{url.scheme}://{url.netloc}{url.path}" == "https://finance.test/auth/callback"
     assert parse_qs(url.query) == {"source": ["app"], "error": ["access_denied"], "state": ["client_state"]}
 
     users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
@@ -386,7 +386,7 @@ async def test_callback_invalid_id_token(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -436,7 +436,7 @@ async def test_callback_wrong_signing_key(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -490,7 +490,7 @@ async def test_callback_token_endpoint_error(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -534,7 +534,7 @@ async def test_callback_invalid_state(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + expires_in,
@@ -568,7 +568,7 @@ async def test_exchange_code_ok(db: AsyncSession, db_transaction: AsyncSession):
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": create_s256_code_challenge("client_code_verifier_of_at_least_43_characters"),
             "expires_at": datetime.now() + timedelta(minutes=1),
@@ -579,10 +579,10 @@ async def test_exchange_code_ok(db: AsyncSession, db_transaction: AsyncSession):
     )
 
     # Act
-    token: TokenResponse = await auth_service.exchange_code(
+    token: TokenPair = await auth_service.exchange_code(
         db=db_transaction,
         code="one_time_code",
-        redirect_uri="finance://auth/callback",
+        redirect_uri="https://finance.test/auth/callback",
         code_verifier="client_code_verifier_of_at_least_43_characters",
     )
     await db_transaction.commit()
@@ -599,15 +599,20 @@ async def test_exchange_code_ok(db: AsyncSession, db_transaction: AsyncSession):
 @pytest.mark.parametrize(
     "code, redirect_uri, code_verifier, used",
     [
-        ("unknown_code", "finance://auth/callback", "client_code_verifier_of_at_least_43_characters", False),
-        ("one_time_code", "finance://auth/callback", "client_code_verifier_of_at_least_43_characters", True),
+        ("unknown_code", "https://finance.test/auth/callback", "client_code_verifier_of_at_least_43_characters", False),
+        ("one_time_code", "https://finance.test/auth/callback", "client_code_verifier_of_at_least_43_characters", True),
         (
             "one_time_code",
-            "https://finance.test/auth/callback",
+            "https://finance.test/other/callback",
             "client_code_verifier_of_at_least_43_characters",
             False,
         ),
-        ("one_time_code", "finance://auth/callback", "another_code_verifier_of_at_least_43_characters", False),
+        (
+            "one_time_code",
+            "https://finance.test/auth/callback",
+            "another_code_verifier_of_at_least_43_characters",
+            False,
+        ),
     ],
     ids=["unknown_code", "used_code", "redirect_uri_mismatch", "wrong_code_verifier"],
 )
@@ -625,7 +630,7 @@ async def test_exchange_code_invalid(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": create_s256_code_challenge("client_code_verifier_of_at_least_43_characters"),
             "expires_at": datetime.now() + timedelta(minutes=1),
@@ -661,7 +666,7 @@ async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSess
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": create_s256_code_challenge("client_code_verifier_of_at_least_43_characters"),
             "expires_at": datetime.now() - timedelta(seconds=1),
@@ -676,7 +681,7 @@ async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSess
         await auth_service.exchange_code(
             db=db_transaction,
             code="one_time_code",
-            redirect_uri="finance://auth/callback",
+            redirect_uri="https://finance.test/auth/callback",
             code_verifier="client_code_verifier_of_at_least_43_characters",
         )
 
@@ -694,7 +699,7 @@ async def test_callback_no_id_token(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -732,7 +737,7 @@ async def test_callback_discovery_without_issuer(db: AsyncSession, db_transactio
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
@@ -895,7 +900,7 @@ async def test_callback_no_free_username(
             "state": "state",
             "nonce": "nonce",
             "provider_code_verifier": "provider_code_verifier",
-            "client_redirect_uri": "finance://auth/callback",
+            "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
             "expires_at": datetime.now() + timedelta(minutes=10),
