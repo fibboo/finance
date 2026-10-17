@@ -70,13 +70,6 @@ async def get_refresh_token(
     return refresh_token
 
 
-async def get_required_refresh_token(*, refresh_token: str | None = Depends(get_refresh_token)) -> str:
-    if refresh_token is None:
-        raise InvalidTokenException(log_message="Refresh token cookie missing", logger=logger)
-
-    return refresh_token
-
-
 async def get_grant_refresh_token(
     *, data: Annotated[TokenRequest, Form()], refresh_token: str | None = Depends(get_refresh_token)
 ) -> str | None:

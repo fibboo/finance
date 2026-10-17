@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.cookies import delete_refresh_token_cookie, set_refresh_token_cookie
-from app.api.deps import get_db_transaction, get_grant_refresh_token, get_required_refresh_token
+from app.api.deps import get_db_transaction, get_grant_refresh_token, get_refresh_token
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair, TokenRequest, TokenResponse
 from app.services.user import token_service
@@ -80,11 +80,11 @@ async def token(
 async def revoke(
     *,
     response: Response,
-    refresh_token: str = Depends(get_required_refresh_token),
+    refresh_token: str | None = Depends(get_refresh_token),
     db: AsyncSession = Depends(get_db_transaction, scope="function"),
 ) -> None:
     """Revoke the refresh token cookie and every token rotated from it, and clear the cookie.
 
-    An unknown token succeeds, as RFC 7009 requires. A request without the cookie answers 401."""
+    Always succeeds, as RFC 7009 requires: an unknown token or a request without the cookie only clears it."""
     await token_service.revoke_refresh_token(db=db, refresh_token=refresh_token)
     delete_refresh_token_cookie(response=response)

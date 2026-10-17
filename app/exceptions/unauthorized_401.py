@@ -43,28 +43,6 @@ class RefreshTokenRejectedException(UnauthorizedException):
     pass
 
 
-class InvalidRefreshTokenException(RefreshTokenRejectedException):
-    def __init__(self, *, log_message: str, logger: logging.Logger):
-        super().__init__(
-            message="Invalid token",
-            log_message=log_message,
-            logger=logger,
-            log_level=LogLevelType.DEBUG,
-            error_code=ErrorCodeType.INVALID_TOKEN,
-        )
-
-
-class RefreshTokenExpiredException(RefreshTokenRejectedException):
-    def __init__(self, *, log_message: str, logger: logging.Logger):
-        super().__init__(
-            message="Token expired",
-            log_message=log_message,
-            logger=logger,
-            log_level=LogLevelType.DEBUG,
-            error_code=ErrorCodeType.TOKEN_EXPIRED,
-        )
-
-
 class RefreshTokenReusedException(RefreshTokenRejectedException):
     def __init__(self, *, family_id: UUID, logger: logging.Logger):
         super().__init__(
@@ -85,6 +63,14 @@ class TokenExpiredException(UnauthorizedException):
             log_level=LogLevelType.DEBUG,
             error_code=ErrorCodeType.TOKEN_EXPIRED,
         )
+
+
+class InvalidRefreshTokenException(RefreshTokenRejectedException, InvalidTokenException):
+    pass
+
+
+class RefreshTokenExpiredException(RefreshTokenRejectedException, TokenExpiredException):
+    pass
 
 
 class InvalidAuthData(UnauthorizedException):

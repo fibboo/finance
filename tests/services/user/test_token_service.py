@@ -293,3 +293,30 @@ async def test_revoke_refresh_token_unknown(db: AsyncSession, db_transaction: As
     # Assert
     tokens_db: list[RefreshTokenModel] = await refresh_token_crud.get_batch(db=db)
     assert len(tokens_db) == 0
+
+
+async def test_revoke_refresh_token_no_cookie(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+    await refresh_token_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "token_hash": hashlib.sha256(b"active_refresh_token").hexdigest(),
+            "family_id": uuid4(),
+            "expires_at": datetime.now() + timedelta(days=1),
+        },
+        commit=True,
+    )
+
+    # Act
+    await token_service.revoke_refresh_token(db=db_transaction, refresh_token=None)
+    await db_transaction.commit()
+
+    # Assert
+    tokens_db: list[RefreshTokenModel] = await refresh_token_crud.get_batch(db=db, user_id=user_db.id)
+    assert len(tokens_db) == 1
+    assert tokens_db[0].revoked is False

@@ -95,7 +95,10 @@ async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str) -> Token
     return token
 
 
-async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str) -> None:
+async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str | None) -> None:
+    if refresh_token is None:
+        return
+
     token_hash: str = hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:

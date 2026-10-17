@@ -11,7 +11,6 @@ from app.api.deps import (
     get_grant_refresh_token,
     get_onboarded_user_id,
     get_refresh_token,
-    get_required_refresh_token,
     get_user_id,
 )
 from app.configs.settings import settings
@@ -115,23 +114,6 @@ async def test_get_refresh_token_origin_not_allowed():
 
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.error_code == ErrorCodeType.ORIGIN_NOT_ALLOWED
-
-
-async def test_get_required_refresh_token_ok():
-    # Act
-    result: str = await get_required_refresh_token(refresh_token="refresh_token_from_cookie")
-
-    # Assert
-    assert result == "refresh_token_from_cookie"
-
-
-async def test_get_required_refresh_token_no_cookie():
-    # Act / Assert
-    with pytest.raises(InvalidTokenException) as exc:
-        await get_required_refresh_token(refresh_token=None)
-
-    assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
-    assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
 
 
 @pytest.mark.parametrize(
