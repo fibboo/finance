@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_db_transaction, get_onboarded_user_id, get_user_id
+from app.api.deps import DbTransaction, get_db, get_onboarded_user_id, get_user_id
 from app.schemas.accounting.transaction import (
     Transaction,
     TransactionCreateRequest,
@@ -23,7 +23,7 @@ async def create_transaction(
     *,
     create_data: TransactionCreateRequest,
     user_id: UUID = Depends(get_onboarded_user_id),
-    db: AsyncSession = Depends(get_db_transaction),
+    db: DbTransaction,
 ) -> Transaction:
     """
     Creates a new transaction.
@@ -76,7 +76,7 @@ async def delete_transaction(
     transaction_id: UUID,
     transaction_type: TransactionType,
     user_id: UUID = Depends(get_user_id),
-    db: AsyncSession = Depends(get_db_transaction),
+    db: DbTransaction,
 ) -> Transaction:
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=transaction_type

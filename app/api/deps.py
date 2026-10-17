@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Cookie, Depends, Header
@@ -42,6 +43,9 @@ async def get_db_transaction() -> AsyncSession:
         await session.close()
 
 
+DbTransaction = Annotated[AsyncSession, Depends(get_db_transaction, scope="function")]
+
+
 async def get_user_id(*, credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> UUID:
     if credentials is None:
         raise InvalidTokenException(log_message="Bearer access token missing", logger=logger)
@@ -50,9 +54,7 @@ async def get_user_id(*, credentials: HTTPAuthorizationCredentials | None = Depe
     return user_id
 
 
-async def get_onboarded_user_id(
-    *, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db_transaction)
-) -> UUID:
+async def get_onboarded_user_id(*, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> UUID:
     await user_service.get_user_base_currency(db=db, user_id=user_id)
     return user_id
 
