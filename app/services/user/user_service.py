@@ -31,8 +31,10 @@ logger = get_logger(logger_name=__name__)
 
 
 def _build_fallback_username(*, identity: ProviderIdentity) -> str:
-    subject: str = identity.subject if len(identity.subject) <= 32 else hash_secret(secret=identity.subject)[:32]
-    fallback_username: str = f"{identity.provider.value.lower()}_{subject}"
+    external_id: str = (
+        identity.external_id if len(identity.external_id) <= 32 else hash_secret(secret=identity.external_id)[:32]
+    )
+    fallback_username: str = f"{identity.provider.value.lower()}_{external_id}"
     return fallback_username
 
 
@@ -75,14 +77,7 @@ async def add_external_user(
     *, db: AsyncSession, user_id: UUID, identity: ProviderIdentity, username: str
 ) -> ExternalUserModel:
     external_user_create = ExternalUserCreate(
-        user_id=user_id,
-        provider=identity.provider,
-        external_id=identity.subject,
-        username=username,
-        first_name=identity.first_name,
-        last_name=identity.last_name,
-        avatar=identity.avatar,
-        email=identity.email,
+        **identity.model_dump(exclude={"username"}), user_id=user_id, username=username
     )
     try:
         external_user_db: ExternalUserModel = await external_user_crud.create(db=db, obj_in=external_user_create)

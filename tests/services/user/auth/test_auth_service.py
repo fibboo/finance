@@ -1332,7 +1332,7 @@ async def test_callback_link_issues_code(
     assert request_db.user_id is None
     assert request_db.used is False
     assert request_db.link_identity["provider"] == ProviderType.GOOGLE.value
-    assert request_db.link_identity["subject"] == "110169484474386276334"
+    assert request_db.link_identity["external_id"] == "110169484474386276334"
     assert request_db.link_identity["first_name"] == "John"
     assert request_db.link_identity["email"] == "john.doe@gmail.com"
 
@@ -1547,7 +1547,7 @@ async def test_complete_link_ok(db: AsyncSession, db_transaction: AsyncSession):
             "link_user_id": user_db.id,
             "link_identity": {
                 "provider": "GOOGLE",
-                "subject": "110169484474386276334",
+                "external_id": "110169484474386276334",
                 "username": None,
                 "first_name": "John",
                 "last_name": None,
@@ -1628,7 +1628,7 @@ async def test_complete_link_invalid(
             "link_user_id": user_db.id,
             "link_identity": {
                 "provider": "GOOGLE",
-                "subject": "110169484474386276334",
+                "external_id": "110169484474386276334",
                 "username": None,
                 "first_name": "John",
                 "last_name": None,
@@ -1701,7 +1701,7 @@ async def test_complete_link_already_linked_to_same_user(db: AsyncSession, db_tr
             "link_user_id": user_db.id,
             "link_identity": {
                 "provider": "GOOGLE",
-                "subject": "110169484474386276334",
+                "external_id": "110169484474386276334",
                 "username": None,
                 "first_name": "John",
                 "last_name": None,
@@ -1774,7 +1774,7 @@ async def test_complete_link_provider_linked_meanwhile(db: AsyncSession, db_tran
             "link_user_id": user_db.id,
             "link_identity": {
                 "provider": "GOOGLE",
-                "subject": "110169484474386276334",
+                "external_id": "110169484474386276334",
                 "username": None,
                 "first_name": "John",
                 "last_name": None,
@@ -1848,7 +1848,7 @@ async def test_complete_link_identity_linked_meanwhile(db: AsyncSession, db_tran
             "link_user_id": user_db.id,
             "link_identity": {
                 "provider": "GOOGLE",
-                "subject": "110169484474386276334",
+                "external_id": "110169484474386276334",
                 "username": None,
                 "first_name": "John",
                 "last_name": None,
@@ -1908,7 +1908,7 @@ async def test_exchange_code_link_code(db: AsyncSession, db_transaction: AsyncSe
             "link_user_id": user_db.id,
             "link_identity": {
                 "provider": "GOOGLE",
-                "subject": "110169484474386276334",
+                "external_id": "110169484474386276334",
                 "username": None,
                 "first_name": "John",
                 "last_name": None,

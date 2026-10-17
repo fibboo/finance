@@ -34,7 +34,7 @@ async def test_create_user_without_base_currency(db: AsyncSession, db_transactio
     # Arrange
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject="1111111111",
+        external_id="1111111111",
         username="stenbot",
         first_name="Sten",
         last_name=None,
@@ -65,7 +65,7 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     )
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject="1111111111",
+        external_id="1111111111",
         username="stenbot",
         first_name="Sten",
         last_name=None,
@@ -83,12 +83,12 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     assert created_user_db.external_users[0].username == "stenbot"
 
 
-async def test_create_user_long_subject(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_user_long_external_id(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    subject: str = "1" * 100
+    external_id: str = "1" * 100
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject=subject,
+        external_id=external_id,
         username=None,
         first_name="Sten",
         last_name=None,
@@ -102,9 +102,9 @@ async def test_create_user_long_subject(db: AsyncSession, db_transaction: AsyncS
 
     # Assert
     created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
-    assert created_user_db.username == f"telegram_{hashlib.sha256(subject.encode()).hexdigest()[:32]}"
+    assert created_user_db.username == f"telegram_{hashlib.sha256(external_id.encode()).hexdigest()[:32]}"
     assert created_user_db.external_users[0].username == created_user_db.username
-    assert created_user_db.external_users[0].external_id == subject
+    assert created_user_db.external_users[0].external_id == external_id
 
 
 async def test_create_user_no_free_username(db: AsyncSession, db_transaction: AsyncSession):
@@ -119,7 +119,7 @@ async def test_create_user_no_free_username(db: AsyncSession, db_transaction: As
     )
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject="1111111111",
+        external_id="1111111111",
         username="stenbot",
         first_name="Sten",
         last_name=None,
@@ -274,7 +274,7 @@ async def test_add_external_user_conflict(
     )
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject=external_id,
+        external_id=external_id,
         username="stenbot",
         first_name=None,
         last_name=None,

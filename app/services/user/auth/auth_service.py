@@ -130,7 +130,7 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
         return server_error_url
 
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
-        db=db, external_id=identity.subject, provider=provider
+        db=db, external_id=identity.external_id, provider=provider
     )
     is_link: bool = request_db.link_user_id is not None
     if is_link and user_db is not None and user_db.id != request_db.link_user_id:
@@ -198,7 +198,7 @@ async def complete_link(
     await authorization_request_crud.update_orm(db=db, obj_in={"used": True, "link_identity": None}, id=request_db.id)
 
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
-        db=db, external_id=identity.subject, provider=provider
+        db=db, external_id=identity.external_id, provider=provider
     )
     if user_db is not None and user_db.id != user_id:
         raise IdentityLinkedToAnotherUser(user_id=user_id, provider=provider, logger=logger)

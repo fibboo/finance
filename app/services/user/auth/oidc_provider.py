@@ -85,7 +85,7 @@ class OIDCProvider:
         email: str | None = claims.get("email") if claims.get("email_verified") is True else None
         identity = ProviderIdentity(
             provider=self.provider,
-            subject=claims["sub"],
+            external_id=claims["sub"],
             username=claims.get("preferred_username"),
             first_name=claims.get("given_name"),
             last_name=claims.get("family_name"),
