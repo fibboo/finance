@@ -29,7 +29,7 @@ class AuthorizationRequest(Base):
     client_code_challenge: Mapped[str] = mapped_column(String, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
-    user_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=True)
+    user_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(User.id), nullable=True, index=True)
     code_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
     used: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
 

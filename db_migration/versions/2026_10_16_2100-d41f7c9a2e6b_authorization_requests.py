@@ -39,7 +39,9 @@ def upgrade() -> None:
     sa.UniqueConstraint('code_hash'),
     sa.UniqueConstraint('state')
     )
+    op.create_index(op.f('ix_authorization_requests_user_id'), 'authorization_requests', ['user_id'], unique=False)
 
 
 def downgrade() -> None:
+    op.drop_index(op.f('ix_authorization_requests_user_id'), table_name='authorization_requests')
     op.drop_table('authorization_requests')

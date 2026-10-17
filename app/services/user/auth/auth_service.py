@@ -9,7 +9,7 @@ from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
 from app.crud.user.authorization_request import authorization_request_crud
 from app.crud.user.user import user_crud
-from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException, TokenExpiredException
+from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException
 from app.exceptions.unprocessable_422 import RedirectUriNotAllowed
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
 from app.models.user.user import User as UserModel
@@ -26,6 +26,11 @@ logger = get_logger(logger_name=__name__)
 
 AUTHORIZATION_REQUEST_LIFETIME = timedelta(minutes=10)
 AUTHORIZATION_CODE_LIFETIME = timedelta(minutes=1)
+
+
+def _build_client_url(*, request_db: AuthorizationRequestModel, params: dict[str, str]) -> str:
+    client_url: str = add_params_to_uri(request_db.client_redirect_uri, params | {"state": request_db.client_state})
+    return client_url
 
 
 async def authorize(
@@ -68,18 +73,16 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
 
     if error is not None or code is None:
         error_code: str = error if error is not None else "invalid_request"
-        error_params: dict[str, str] = {"error": error_code, "state": request_db.client_state}
-        error_url: str = add_params_to_uri(request_db.client_redirect_uri, error_params)
+        error_url: str = _build_client_url(request_db=request_db, params={"error": error_code})
         return error_url
 
     oidc_provider: OIDCProvider = providers[provider]
     identity: ProviderIdentity | None = await oidc_provider.fetch_identity(
         code=code, code_verifier=request_db.provider_code_verifier, nonce=request_db.nonce
     )
+    server_error_url: str = _build_client_url(request_db=request_db, params={"error": "server_error"})
     if identity is None:
-        error_params: dict[str, str] = {"error": "server_error", "state": request_db.client_state}
-        error_url: str = add_params_to_uri(request_db.client_redirect_uri, error_params)
-        return error_url
+        return server_error_url
 
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
         db=db, external_id=identity.subject, provider=provider
@@ -87,9 +90,7 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     if user_db is None:
         user_db: UserModel | None = await user_service.create_user(db=db, identity=identity)
         if user_db is None:
-            error_params: dict[str, str] = {"error": "server_error", "state": request_db.client_state}
-            error_url: str = add_params_to_uri(request_db.client_redirect_uri, error_params)
-            return error_url
+            return server_error_url
 
     authorization_code: str = secrets.token_urlsafe(32)
     authorization_request_update = AuthorizationRequestUpdate(
@@ -99,8 +100,7 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     )
     await authorization_request_crud.update_orm(db=db, obj_in=authorization_request_update, id=request_db.id)
 
-    redirect_params: dict[str, str] = {"code": authorization_code, "state": request_db.client_state}
-    redirect_url: str = add_params_to_uri(request_db.client_redirect_uri, redirect_params)
+    redirect_url: str = _build_client_url(request_db=request_db, params={"code": authorization_code})
     return redirect_url
 
 
@@ -108,11 +108,8 @@ async def exchange_code(*, db: AsyncSession, code: str, redirect_uri: str, code_
     request_db: AuthorizationRequestModel | None = await authorization_request_crud.get_by_code_hash(
         db=db, code_hash=hash_secret(secret=code)
     )
-    if request_db is None or request_db.used:
-        raise InvalidTokenException(log_message="Unknown or used authorization code", logger=logger)
-
-    if request_db.expires_at <= datetime.now():
-        raise TokenExpiredException(log_message=f"Authorization code of `{request_db.id}` expired", logger=logger)
+    if request_db is None or request_db.used or request_db.expires_at <= datetime.now():
+        raise InvalidTokenException(log_message="Unknown, used or expired authorization code", logger=logger)
 
     if request_db.client_redirect_uri != redirect_uri:
         raise InvalidTokenException(log_message=f"Redirect URI mismatch for `{request_db.id}`", logger=logger)

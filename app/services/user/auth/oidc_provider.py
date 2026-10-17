@@ -66,7 +66,7 @@ class OIDCProvider:
             }
             claims: dict | None = await client.parse_id_token(token=token, nonce=nonce, claims_options=claims_options)
 
-        except (OAuthError, JoseError, httpx.HTTPError, KeyError) as exc:
+        except (OAuthError, JoseError, httpx.HTTPError, KeyError, ValueError, RuntimeError) as exc:
             logger.warning(f"{self.provider.value} sign-in rejected: {type(exc).__name__} {exc}")
             return None
 

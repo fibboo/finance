@@ -15,12 +15,14 @@ from app.schemas.user.external_user import ExternalUserCreate
 from app.schemas.user.identity import ProviderIdentity
 from app.schemas.user.user import User, UserCreate
 from app.services.accounting import account_service
+from app.utils.utils import hash_secret
 
 logger = get_logger(logger_name=__name__)
 
 
 async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserModel | None:
-    fallback_username: str = f"{identity.provider.value.lower()}_{identity.subject}"
+    subject: str = identity.subject if len(identity.subject) <= 32 else hash_secret(secret=identity.subject)[:32]
+    fallback_username: str = f"{identity.provider.value.lower()}_{subject}"
     username: str = identity.username if identity.username is not None else fallback_username
     username_owner_db: UserModel | None = await user_crud.get_or_none(db=db, username=username)
     if username_owner_db is not None and username != fallback_username:
@@ -43,7 +45,7 @@ async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserMo
         user_id=user_db.id,
         provider=identity.provider,
         external_id=identity.subject,
-        username=username,
+        username=identity.username if identity.username is not None else fallback_username,
         first_name=identity.first_name,
         last_name=identity.last_name,
         avatar=identity.avatar,

@@ -1,3 +1,5 @@
+import hashlib
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -67,7 +69,31 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     # Assert
     created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
     assert created_user_db.username == "telegram_1111111111"
-    assert created_user_db.external_users[0].username == "telegram_1111111111"
+    assert created_user_db.external_users[0].username == "stenbot"
+
+
+async def test_create_user_long_subject(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    subject: str = "1" * 100
+    identity = ProviderIdentity(
+        provider=ProviderType.TELEGRAM,
+        subject=subject,
+        username=None,
+        first_name="Sten",
+        last_name=None,
+        avatar=None,
+        email=None,
+    )
+
+    # Act
+    user_db: UserModel | None = await create_user(db=db_transaction, identity=identity)
+    await db_transaction.commit()
+
+    # Assert
+    created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
+    assert created_user_db.username == f"telegram_{hashlib.sha256(subject.encode()).hexdigest()[:32]}"
+    assert created_user_db.external_users[0].username == created_user_db.username
+    assert created_user_db.external_users[0].external_id == subject
 
 
 async def test_create_user_no_free_username(db: AsyncSession, db_transaction: AsyncSession):

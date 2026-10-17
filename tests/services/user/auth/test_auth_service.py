@@ -18,7 +18,7 @@ from app.crud.user.authorization_request import authorization_request_crud
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
 from app.exceptions.bad_gateway_502 import ProviderUnavailable
-from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException, TokenExpiredException
+from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException
 from app.exceptions.unprocessable_422 import RedirectUriNotAllowed
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
 from app.models.user.user import User as UserModel
@@ -672,7 +672,7 @@ async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSess
     )
 
     # Act / Assert
-    with pytest.raises(TokenExpiredException) as exc:
+    with pytest.raises(InvalidTokenException) as exc:
         await auth_service.exchange_code(
             db=db_transaction,
             code="one_time_code",
@@ -680,7 +680,7 @@ async def test_exchange_code_expired(db: AsyncSession, db_transaction: AsyncSess
             code_verifier="client_code_verifier_of_at_least_43_characters",
         )
 
-    assert exc.value.error_code == ErrorCodeType.TOKEN_EXPIRED
+    assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
 
 
 async def test_callback_no_id_token(
@@ -763,6 +763,105 @@ async def test_callback_discovery_without_issuer(db: AsyncSession, db_transactio
     # Act
     redirect_url: str = await auth_service.callback(
         db=db_transaction, provider=ProviderType.TELEGRAM, state="state", code="provider_code", error=None
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert parse_qs(urlsplit(redirect_url).query) == {"error": ["server_error"], "state": ["client_state"]}
+
+    users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
+    assert len(users_db) == 0
+
+    await db.refresh(request_db)
+    assert request_db.code_hash is None
+
+
+@pytest.mark.parametrize(
+    "discovery, jwks, token_response",
+    [
+        (
+            {"text": "<html>maintenance</html>"},
+            None,
+            {"json": {"access_token": "provider_access_token", "token_type": "Bearer", "expires_in": 3600}},
+        ),
+        (
+            {
+                "json": {
+                    "issuer": "https://oauth.telegram.org",
+                    "authorization_endpoint": "https://oauth.telegram.org/auth",
+                    "token_endpoint": "https://oauth.telegram.org/token",
+                    "jwks_uri": "https://oauth.telegram.org/.well-known/jwks.json",
+                }
+            },
+            None,
+            {"text": "<html>maintenance</html>"},
+        ),
+        (
+            {
+                "json": {
+                    "issuer": "https://oauth.telegram.org",
+                    "authorization_endpoint": "https://oauth.telegram.org/auth",
+                    "token_endpoint": "https://oauth.telegram.org/token",
+                    "jwks_uri": "https://oauth.telegram.org/.well-known/jwks.json",
+                }
+            },
+            {"text": "<html>maintenance</html>"},
+            {"json": {"access_token": "provider_access_token", "token_type": "Bearer", "id_token": "a.b.c"}},
+        ),
+        (
+            {
+                "json": {
+                    "issuer": "https://oauth.telegram.org",
+                    "authorization_endpoint": "https://oauth.telegram.org/auth",
+                    "token_endpoint": "https://oauth.telegram.org/token",
+                }
+            },
+            None,
+            {"json": {"access_token": "provider_access_token", "token_type": "Bearer", "id_token": "a.b.c"}},
+        ),
+    ],
+    ids=["discovery_not_json", "token_response_not_json", "jwks_not_json", "discovery_without_jwks_uri"],
+)
+async def test_callback_broken_provider_response(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    httpx_mock: HTTPXMock,
+    discovery: dict,
+    jwks: dict | None,
+    token_response: dict,
+):
+    # Arrange
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "finance://auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + timedelta(minutes=10),
+        },
+        commit=True,
+    )
+    httpx_mock.add_response(
+        method="GET",
+        url="https://oauth.telegram.org/.well-known/openid-configuration",
+        is_reusable=True,
+        **discovery,
+    )
+    httpx_mock.add_response(method="POST", url="https://oauth.telegram.org/token", is_optional=True, **token_response)
+    if jwks is not None:
+        httpx_mock.add_response(method="GET", url="https://oauth.telegram.org/.well-known/jwks.json", **jwks)
+
+    # Act
+    redirect_url: str = await auth_service.callback(
+        db=db_transaction,
+        provider=ProviderType.TELEGRAM,
+        state="state",
+        code="provider_code",
+        error=None,
     )
     await db_transaction.commit()
 
