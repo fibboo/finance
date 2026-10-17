@@ -1,4 +1,3 @@
-import hashlib
 import secrets
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
@@ -14,15 +13,11 @@ from app.crud.user.refresh_token import refresh_token_crud
 from app.exceptions.unauthorized_401 import InvalidTokenException, RefreshTokenReusedException, TokenExpiredException
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.schemas.user.token import RefreshTokenCreate, TokenResponse
+from app.utils.utils import hash_secret
 
 logger = get_logger(logger_name=__name__)
 
 JWT_ALGORITHM = "HS256"
-
-
-def _hash_refresh_token(*, refresh_token: str) -> str:
-    token_hash: str = hashlib.sha256(refresh_token.encode("utf-8")).hexdigest()
-    return token_hash
 
 
 def _encode_access_token(*, user_id: UUID, issued_at: int) -> str:
@@ -41,7 +36,7 @@ async def issue_token_pair(*, db: AsyncSession, user_id: UUID, family_id: UUID |
     refresh_token: str = secrets.token_urlsafe(48)
     refresh_token_create = RefreshTokenCreate(
         user_id=user_id,
-        token_hash=_hash_refresh_token(refresh_token=refresh_token),
+        token_hash=hash_secret(secret=refresh_token),
         family_id=family_id if family_id is not None else uuid4(),
         expires_at=now + timedelta(seconds=settings.refresh_token_expire_seconds),
     )
@@ -75,7 +70,7 @@ def verify_access_token(*, access_token: str) -> UUID:
 
 
 async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str) -> TokenResponse:
-    token_hash: str = _hash_refresh_token(refresh_token=refresh_token)
+    token_hash: str = hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:
         raise InvalidTokenException(log_message="Unknown refresh token", logger=logger)
@@ -96,7 +91,7 @@ async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str) -> Token
 
 
 async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str) -> None:
-    token_hash: str = _hash_refresh_token(refresh_token=refresh_token)
+    token_hash: str = hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:
         return
