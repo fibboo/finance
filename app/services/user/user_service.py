@@ -134,6 +134,15 @@ async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: C
     return updated_user
 
 
+async def get_user(*, db: AsyncSession, user_id: UUID) -> User:
+    user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_id)
+    if user_db is None:
+        raise EntityNotFound(entity=UserModel, search_params={"id": user_id}, logger=logger)
+
+    user: User = User.model_validate(user_db)
+    return user
+
+
 async def get_user_base_currency(*, db: AsyncSession, user_id: UUID) -> CurrencyType:
     user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_id)
     if user_db is None:
