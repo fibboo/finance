@@ -64,3 +64,7 @@ What source and destination mean depends on the transaction type:
 - **Expense**: `source_*` is the amount withdrawn from the account, and `destination_*` is the amount in the seller's or recipient's currency.
 - **Income**: `source_*` is the incoming amount in the original currency, and `destination_*` is the amount credited to the receiving account.
 - **Transfer**: `source_*` is the withdrawal from one account, and `destination_*` is the deposit to the other account.
+
+## Migrations
+
+The application has not been deployed yet, so `db_migration/versions/` holds one initial revision. Until the first deploy, a schema change deletes it and regenerates it with `alembic revision --autogenerate` against an empty database instead of adding a revision on top, since there is no data to migrate. From the first deploy on, every schema change adds a new revision.

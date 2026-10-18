@@ -21,7 +21,7 @@ from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountType
-from app.schemas.accounting.category import CategoryCreate, CategoryType
+from app.schemas.accounting.category import CategoryCreate
 from app.schemas.accounting.income_source import IncomeSourceCreate
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import (
@@ -93,7 +93,7 @@ async def test_get_transactions(db: AsyncSession):
     }
     account_checking_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
-    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.GENERAL)
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food")
     category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
 
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
