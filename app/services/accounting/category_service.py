@@ -20,6 +20,25 @@ from app.schemas.accounting.category import (
 
 logger = get_logger(logger_name=__name__)
 
+DEFAULT_CATEGORIES: frozendict[str, CategoryType] = frozendict(
+    {
+        "Groceries": CategoryType.VARIABLE,
+        "Eating out": CategoryType.VARIABLE,
+        "Transport": CategoryType.VARIABLE,
+        "Entertainment": CategoryType.VARIABLE,
+        "Household": CategoryType.VARIABLE,
+        "Rent": CategoryType.FIXED,
+        "Utilities": CategoryType.FIXED,
+        "Subscriptions": CategoryType.FIXED,
+        "Travel": CategoryType.PERIODIC,
+        "Devices": CategoryType.PERIODIC,
+        "Home & furniture": CategoryType.PERIODIC,
+        "Health": CategoryType.PERIODIC,
+        "Clothing": CategoryType.PERIODIC,
+        "Gifts": CategoryType.PERIODIC,
+    }
+)
+
 
 async def create_category(*, db: AsyncSession, create_data: CategoryCreateRequest, user_id: UUID) -> Category:
     obj_in: CategoryCreate = CategoryCreate(**create_data.model_dump(), user_id=user_id)
@@ -33,9 +52,12 @@ async def create_category(*, db: AsyncSession, create_data: CategoryCreateReques
     return category
 
 
-async def create_default_category(*, db: AsyncSession, user_id: UUID) -> None:
-    create_data: CategoryCreate = CategoryCreate(name="General", type=CategoryType.VARIABLE, user_id=user_id)
-    await category_crud.create(db=db, obj_in=create_data)
+async def create_default_categories(*, db: AsyncSession, user_id: UUID) -> None:
+    create_data: list[CategoryCreate] = []
+    for name, category_type in DEFAULT_CATEGORIES.items():
+        create_data.append(CategoryCreate(name=name, type=category_type, user_id=user_id))
+
+    await category_crud.create_batch(db=db, objs_in=create_data)
 
 
 async def get_categories(*, db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:

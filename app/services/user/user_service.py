@@ -130,7 +130,7 @@ async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: C
         raise BaseCurrencyAlreadySet(user_id=user_id, logger=logger)
 
     await account_service.create_default_account(db=db, user_id=user_id, base_currency=base_currency)
-    await category_service.create_default_category(db=db, user_id=user_id)
+    await category_service.create_default_categories(db=db, user_id=user_id)
 
     updated_user: User = User.model_validate(updated_user_db)
     return updated_user

@@ -68,6 +68,35 @@ async def test_create_category_with_existing_name(db: AsyncSession, db_transacti
     assert len(transactions) == 1
 
 
+async def test_create_default_categories(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # Act
+    await category_service.create_default_categories(db=db_transaction, user_id=user_id)
+    await db_transaction.commit()
+
+    # Assert
+    categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_id)
+    category_types: dict[str, CategoryType] = {category_db.name: category_db.type for category_db in categories_db}
+    assert category_types == {
+        "Groceries": CategoryType.VARIABLE,
+        "Eating out": CategoryType.VARIABLE,
+        "Transport": CategoryType.VARIABLE,
+        "Entertainment": CategoryType.VARIABLE,
+        "Household": CategoryType.VARIABLE,
+        "Rent": CategoryType.FIXED,
+        "Utilities": CategoryType.FIXED,
+        "Subscriptions": CategoryType.FIXED,
+        "Travel": CategoryType.PERIODIC,
+        "Devices": CategoryType.PERIODIC,
+        "Home & furniture": CategoryType.PERIODIC,
+        "Health": CategoryType.PERIODIC,
+        "Clothing": CategoryType.PERIODIC,
+        "Gifts": CategoryType.PERIODIC,
+    }
+
+
 async def test_get_categories(db: AsyncSession):
     # Arrange
     user_id = uuid4()
