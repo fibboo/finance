@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, func, String, UUID
+from sqlalchemy import DateTime, Enum, ForeignKey, func, String, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.models.accounting.currency import Currency
 from app.models.base import Base
-from app.schemas.base import CurrencyType
 from app.schemas.user.external_user import ProviderType
 
 
@@ -19,10 +19,7 @@ class User(Base):
         Enum(ProviderType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
         nullable=False,
     )
-    base_currency: Mapped[CurrencyType | None] = mapped_column(
-        Enum(CurrencyType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
-        nullable=True,
-    )
+    base_currency: Mapped[str | None] = mapped_column(String(3), ForeignKey(Currency.code), nullable=True)
 
     external_users: Mapped[list["ExternalUser"]] = relationship("ExternalUser", lazy="joined")  # noqa: F821
 

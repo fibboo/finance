@@ -1,4 +1,7 @@
 from enum import Enum
+from typing import Annotated, TypeAlias
+
+from pydantic import StringConstraints
 
 
 class EntityStatusType(str, Enum):
@@ -6,10 +9,4 @@ class EntityStatusType(str, Enum):
     DELETED = "DELETED"
 
 
-class CurrencyType(str, Enum):
-    USD = "USD"
-    EUR = "EUR"
-    RSD = "RSD"
-    GEL = "GEL"
-    TRY = "TRY"
-    RUB = "RUB"
+CurrencyCode: TypeAlias = Annotated[str, StringConstraints(min_length=3, max_length=3)]

@@ -1,7 +1,18 @@
 import pytest_asyncio
+from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.models.accounting.currency import Currency
 from app.models.base import Base
+
+CURRENCIES: list[dict[str, str]] = [
+    {"code": "USD", "name": "US Dollar"},
+    {"code": "EUR", "name": "Euro"},
+    {"code": "RSD", "name": "Serbian Dinar"},
+    {"code": "GEL", "name": "Georgian Lari"},
+    {"code": "TRY", "name": "Turkish Lira"},
+    {"code": "RUB", "name": "Russian Ruble"},
+]
 
 
 @pytest_asyncio.fixture
@@ -11,6 +22,7 @@ async def engine(postgresql):
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(insert(Currency), CURRENCIES)
 
     yield engine
     await engine.dispose()

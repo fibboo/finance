@@ -31,7 +31,7 @@ from app.schemas.accounting.transaction import (
     TransactionType,
     TransferRequest,
 )
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
@@ -44,13 +44,13 @@ async def test_get_transactions(db: AsyncSession):
     # Arrange
     base_date: date = date.today() - timedelta(days=30)
     user_create_data: UserCreate = UserCreate(
-        username="test 1", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test 1", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     wrong_user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     account_create_data: dict = {
         "user_id": wrong_user_db.id,
         "name": "Income EUR",
-        "currency": CurrencyType.EUR,
+        "currency": "EUR",
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9526"),
     }
@@ -63,9 +63,9 @@ async def test_get_transactions(db: AsyncSession):
         income_create_data: IncomeRequest = IncomeRequest(
             transaction_date=base_date + timedelta(days=10 + i),
             source_amount=Decimal("105") * i,
-            source_currency=CurrencyType.USD,
+            source_currency="USD",
             destination_amount=Decimal("100"),
-            destination_currency=CurrencyType.EUR,
+            destination_currency="EUR",
             to_account_id=account_db.id,
             income_source_id=income_source_db.id,
             income_period=date(2025, 1, 1),
@@ -76,7 +76,7 @@ async def test_get_transactions(db: AsyncSession):
         await transaction_processor.create(data=income_create_data)
 
     user_create_data: UserCreate = UserCreate(
-        username="test 2", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test 2", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -84,7 +84,7 @@ async def test_get_transactions(db: AsyncSession):
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "balance": Decimal("2000"),
         "base_currency_rate": Decimal("1"),
     }
@@ -100,9 +100,9 @@ async def test_get_transactions(db: AsyncSession):
         expense_create_data: ExpenseRequest = ExpenseRequest(
             transaction_date=base_date + timedelta(days=1),
             source_amount=Decimal("100"),
-            source_currency=CurrencyType.USD,
+            source_currency="USD",
             destination_amount=Decimal("11100"),
-            destination_currency=CurrencyType.RSD,
+            destination_currency="RSD",
             from_account_id=account_checking_db.id,
             category_id=category_db.id,
             location_id=location_db.id,
@@ -120,7 +120,7 @@ async def test_get_transactions(db: AsyncSession):
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Income EUR",
-        "currency": CurrencyType.EUR,
+        "currency": "EUR",
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9526"),
     }
@@ -134,9 +134,9 @@ async def test_get_transactions(db: AsyncSession):
     income_create_data: IncomeRequest = IncomeRequest(
         transaction_date=base_date + timedelta(days=2),
         source_amount=Decimal("1050"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("1000"),
-        destination_currency=CurrencyType.EUR,
+        destination_currency="EUR",
         to_account_id=account_income_db.id,
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
@@ -149,8 +149,8 @@ async def test_get_transactions(db: AsyncSession):
     transfer_create_data: TransferRequest = TransferRequest(
         transaction_date=base_date + timedelta(days=3),
         source_amount=Decimal("100"),
-        source_currency=CurrencyType.EUR,
-        destination_currency=CurrencyType.USD,
+        source_currency="EUR",
+        destination_currency="USD",
         destination_amount=Decimal("105"),
         from_account_id=account_income_db.id,
         to_account_id=account_checking_db.id,
@@ -269,7 +269,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     # Arrange
     base_date: date = date.today() - timedelta(days=30)
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -277,7 +277,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "balance": Decimal("2000"),
         "base_currency_rate": Decimal("1"),
     }
@@ -285,7 +285,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Income USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "balance": Decimal("0"),
         "base_currency_rate": Decimal("1"),
     }
@@ -293,7 +293,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Old income USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "balance": Decimal("0"),
         "base_currency_rate": Decimal("1"),
     }
@@ -301,7 +301,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Old checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "balance": Decimal("0"),
         "base_currency_rate": Decimal("1"),
     }
@@ -325,9 +325,9 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=base_date + timedelta(days=1),
         source_amount=Decimal("100"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("100"),
-        destination_currency=CurrencyType.USD,
+        destination_currency="USD",
         from_account_id=account_checking_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -340,9 +340,9 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     income_create_data: IncomeRequest = IncomeRequest(
         transaction_date=base_date + timedelta(days=2),
         source_amount=Decimal("1000"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("1000"),
-        destination_currency=CurrencyType.USD,
+        destination_currency="USD",
         to_account_id=account_income_db.id,
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
@@ -355,9 +355,9 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     income_create_data: IncomeRequest = IncomeRequest(
         transaction_date=base_date + timedelta(days=3),
         source_amount=Decimal("300"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("300"),
-        destination_currency=CurrencyType.USD,
+        destination_currency="USD",
         to_account_id=account_deleted_income_db.id,
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
@@ -370,8 +370,8 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     transfer_create_data: TransferRequest = TransferRequest(
         transaction_date=base_date + timedelta(days=4),
         source_amount=Decimal("300"),
-        source_currency=CurrencyType.USD,
-        destination_currency=CurrencyType.USD,
+        source_currency="USD",
+        destination_currency="USD",
         destination_amount=Decimal("300"),
         from_account_id=account_deleted_income_db.id,
         to_account_id=account_checking_db.id,
@@ -384,8 +384,8 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     transfer_create_data: TransferRequest = TransferRequest(
         transaction_date=base_date + timedelta(days=5),
         source_amount=Decimal("500"),
-        source_currency=CurrencyType.USD,
-        destination_currency=CurrencyType.USD,
+        source_currency="USD",
+        destination_currency="USD",
         destination_amount=Decimal("500"),
         from_account_id=account_income_db.id,
         to_account_id=account_deleted_checking_db.id,
@@ -398,9 +398,9 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=base_date + timedelta(days=6),
         source_amount=Decimal("500"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("500"),
-        destination_currency=CurrencyType.USD,
+        destination_currency="USD",
         from_account_id=account_deleted_checking_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -487,13 +487,13 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
 async def test_get_transaction_ok(db: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test 1", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test 1", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     account_create_data: dict = {
         "user_id": user_db.id,
         "name": "Income EUR",
-        "currency": CurrencyType.EUR,
+        "currency": "EUR",
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9526"),
     }
@@ -505,9 +505,9 @@ async def test_get_transaction_ok(db: AsyncSession):
     income_create_data: IncomeRequest = IncomeRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("105"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("100"),
-        destination_currency=CurrencyType.EUR,
+        destination_currency="EUR",
         to_account_id=account_db.id,
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
@@ -548,13 +548,13 @@ async def test_get_transaction_not_found(db: AsyncSession):
 async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test 1", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test 1", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     account_create_data: dict = {
         "user_id": user_db.id,
         "name": "Income EUR",
-        "currency": CurrencyType.EUR,
+        "currency": "EUR",
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9526"),
     }
@@ -566,9 +566,9 @@ async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
     income_create_data: IncomeRequest = IncomeRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("105"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("100"),
-        destination_currency=CurrencyType.EUR,
+        destination_currency="EUR",
         to_account_id=account_db.id,
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),

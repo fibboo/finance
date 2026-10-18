@@ -18,7 +18,8 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.transaction import Transaction, TransactionCreate, TransactionCreateRequest, TransactionType
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import CurrencyCode, EntityStatusType
+from app.services.accounting import currency_service
 from app.services.user import user_service
 
 logger = get_logger(logger_name=__name__)
@@ -28,7 +29,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     def __init__(self, *, db: AsyncSession, user_id: UUID):
         self.db: AsyncSession = db
         self.user_id: UUID = user_id
-        self.base_currency: CurrencyType | None = None
+        self.base_currency: CurrencyCode | None = None
 
     @property
     @abstractmethod
@@ -126,6 +127,8 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
     async def create(self, *, data: T) -> Transaction:
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
+        await currency_service.get_currency(db=self.db, code=data.source_currency)
+        await currency_service.get_currency(db=self.db, code=data.destination_currency)
 
         transaction_data: TransactionCreate = await self._prepare_transaction(data=data)
         try:

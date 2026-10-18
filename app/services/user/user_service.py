@@ -20,7 +20,7 @@ from app.models.user.external_user import (
     USER_PROVIDER_CONSTRAINT,
 )
 from app.models.user.user import User as UserModel
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyCode
 from app.schemas.user.external_user import ExternalUserCreate
 from app.schemas.user.identity import ProviderIdentity
 from app.schemas.user.user import (
@@ -31,7 +31,7 @@ from app.schemas.user.user import (
     USERNAME_MAX_LENGTH,
     USERNAME_MIN_LENGTH,
 )
-from app.services.accounting import account_service, category_service
+from app.services.accounting import account_service, category_service, currency_service
 from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
@@ -109,10 +109,12 @@ async def add_external_user(
     return external_user_db
 
 
-async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyType) -> User:
+async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyCode) -> User:
     user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_id)
     if user_db is None:
         raise EntityNotFound(entity=UserModel, search_params={"id": user_id}, logger=logger)
+
+    await currency_service.get_currency(db=db, code=base_currency)
 
     if user_db.base_currency == base_currency:
         user: User = User.model_validate(user_db)
@@ -143,7 +145,7 @@ async def get_user(*, db: AsyncSession, user_id: UUID) -> User:
     return user
 
 
-async def get_user_base_currency(*, db: AsyncSession, user_id: UUID) -> CurrencyType:
+async def get_user_base_currency(*, db: AsyncSession, user_id: UUID) -> CurrencyCode:
     user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_id)
     if user_db is None:
         raise EntityNotFound(entity=UserModel, search_params={"id": user_id}, logger=logger)
