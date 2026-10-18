@@ -20,7 +20,6 @@ from app.models.accounting.income_source import IncomeSource as IncomeSourceMode
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.category import CategoryCreate
 from app.schemas.accounting.income_source import IncomeSourceCreate
 from app.schemas.accounting.location import LocationCreate
@@ -52,7 +51,6 @@ async def test_get_transactions(db: AsyncSession):
         "user_id": wrong_user_db.id,
         "name": "Income EUR",
         "currency": CurrencyType.EUR,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9526"),
     }
@@ -87,7 +85,6 @@ async def test_get_transactions(db: AsyncSession):
         "user_id": user_id,
         "name": "Checking USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.CHECKING,
         "balance": Decimal("2000"),
         "base_currency_rate": Decimal("1"),
     }
@@ -124,7 +121,6 @@ async def test_get_transactions(db: AsyncSession):
         "user_id": user_id,
         "name": "Income EUR",
         "currency": CurrencyType.EUR,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9526"),
     }
@@ -282,7 +278,6 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         "user_id": user_id,
         "name": "Checking USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.CHECKING,
         "balance": Decimal("2000"),
         "base_currency_rate": Decimal("1"),
     }
@@ -291,7 +286,6 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         "user_id": user_id,
         "name": "Income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("0"),
         "base_currency_rate": Decimal("1"),
     }
@@ -300,7 +294,6 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         "user_id": user_id,
         "name": "Old income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("0"),
         "base_currency_rate": Decimal("1"),
     }
@@ -309,7 +302,6 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         "user_id": user_id,
         "name": "Old checking USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.CHECKING,
         "balance": Decimal("0"),
         "base_currency_rate": Decimal("1"),
     }
@@ -502,7 +494,6 @@ async def test_get_transaction_ok(db: AsyncSession):
         "user_id": user_db.id,
         "name": "Income EUR",
         "currency": CurrencyType.EUR,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9526"),
     }
@@ -564,7 +555,6 @@ async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
         "user_id": user_db.id,
         "name": "Income EUR",
         "currency": CurrencyType.EUR,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9526"),
     }

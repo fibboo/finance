@@ -17,7 +17,7 @@ from app.exceptions.unprocessable_422 import UnprocessableException
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountCreate, AccountType
+from app.schemas.accounting.account import AccountCreate
 from app.schemas.accounting.transaction import Transaction, TransactionType, TransferRequest
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
@@ -38,7 +38,6 @@ async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction:
         "user_id": user_db.id,
         "name": "Income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.INCOME,
         "base_currency_rate": Decimal("1"),
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
@@ -46,7 +45,7 @@ async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction:
     base_currency_from_rate_before: Decimal = copy(account_from_db.base_currency_rate)
 
     account_to_create_data: AccountCreate = AccountCreate(
-        user_id=user_db.id, name="Checking USD", currency=CurrencyType.USD, account_type=AccountType.CHECKING
+        user_id=user_db.id, name="Checking USD", currency=CurrencyType.USD
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
@@ -112,7 +111,6 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
         "user_id": user_db.id,
         "name": "Income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.INCOME,
         "base_currency_rate": Decimal("1"),
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
@@ -120,7 +118,7 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
     base_currency_from_rate_before: Decimal = copy(account_from_db.base_currency_rate)
 
     account_to_create_data: AccountCreate = AccountCreate(
-        user_id=user_db.id, name="Checking EUR", currency=CurrencyType.EUR, account_type=AccountType.CHECKING
+        user_id=user_db.id, name="Checking EUR", currency=CurrencyType.EUR
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
@@ -188,7 +186,6 @@ async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction
         "user_id": user_db.id,
         "name": "Income EUR",
         "currency": CurrencyType.EUR,
-        "account_type": AccountType.INCOME,
         "base_currency_rate": Decimal("0.9524"),
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
@@ -196,7 +193,7 @@ async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction
     base_currency_from_rate_before: Decimal = copy(account_from_db.base_currency_rate)
 
     account_to_create_data: AccountCreate = AccountCreate(
-        user_id=user_db.id, name="Checking USD", currency=CurrencyType.USD, account_type=AccountType.CHECKING
+        user_id=user_db.id, name="Checking USD", currency=CurrencyType.USD
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
@@ -262,7 +259,6 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
         "user_id": user_db.id,
         "name": "Income EUR",
         "currency": CurrencyType.EUR,
-        "account_type": AccountType.INCOME,
         "base_currency_rate": Decimal("0.9524"),
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
@@ -273,7 +269,6 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
         "user_id": user_db.id,
         "name": "Expense RSD",
         "currency": CurrencyType.RSD,
-        "account_type": AccountType.CHECKING,
         "balance": Decimal("11100"),
         "base_currency_rate": Decimal("111"),
     }
@@ -342,7 +337,6 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
         "user_id": user_db.id,
         "name": "Income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.INCOME,
         "base_currency_rate": Decimal("1"),
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
@@ -350,7 +344,7 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
     base_currency_from_rate_before: Decimal = copy(account_from_db.base_currency_rate)
 
     account_to_create_data: AccountCreate = AccountCreate(
-        user_id=user_db.id, name="Checking EUR", currency=CurrencyType.EUR, account_type=AccountType.CHECKING
+        user_id=user_db.id, name="Checking EUR", currency=CurrencyType.EUR
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
@@ -404,7 +398,6 @@ async def test_create_transfer_other_to_other_not_base_rate(db: AsyncSession, db
         "user_id": user_db.id,
         "name": "Income RSD",
         "currency": CurrencyType.RSD,
-        "account_type": AccountType.INCOME,
         "base_currency_rate": Decimal("117"),
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
@@ -412,7 +405,7 @@ async def test_create_transfer_other_to_other_not_base_rate(db: AsyncSession, db
     base_currency_from_rate_before: Decimal = copy(account_from_db.base_currency_rate)
 
     account_to_create_data: AccountCreate = AccountCreate(
-        user_id=user_db.id, name="Checking EUR", currency=CurrencyType.EUR, account_type=AccountType.CHECKING
+        user_id=user_db.id, name="Checking EUR", currency=CurrencyType.EUR
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
@@ -465,7 +458,6 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
         "user_id": user_db.id,
         "name": "Income EUR",
         "currency": CurrencyType.EUR,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("0.9524"),
     }
@@ -477,7 +469,6 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
         "user_id": user_db.id,
         "name": "Expense RSD",
         "currency": CurrencyType.RSD,
-        "account_type": AccountType.CHECKING,
         "balance": Decimal("11100"),
         "base_currency_rate": Decimal("111.0000"),
     }
@@ -540,14 +531,13 @@ async def test_create_transfer_to_account_of_other_user(db: AsyncSession, db_tra
         "user_id": user_db.id,
         "name": "Income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.INCOME,
         "base_currency_rate": Decimal("1"),
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
     account_from_balance_before: Decimal = copy(account_from_db.balance)
 
     account_to_create_data: AccountCreate = AccountCreate(
-        user_id=other_user_db.id, name="Checking USD", currency=CurrencyType.USD, account_type=AccountType.CHECKING
+        user_id=other_user_db.id, name="Checking USD", currency=CurrencyType.USD
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
@@ -595,7 +585,6 @@ async def test_create_transfer_deleted_account(
         "user_id": user_db.id,
         "name": "Income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("1"),
         "base_currency_rate": Decimal("1"),
         "status": EntityStatusType.DELETED if is_from_account_deleted else EntityStatusType.ACTIVE,
@@ -606,7 +595,6 @@ async def test_create_transfer_deleted_account(
         "user_id": user_db.id,
         "name": "Checking USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.CHECKING,
         "status": EntityStatusType.ACTIVE if is_from_account_deleted else EntityStatusType.DELETED,
     }
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
@@ -655,14 +643,13 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
         "user_id": user_db.id,
         "name": "Income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.INCOME,
         "balance": Decimal("1"),
         "base_currency_rate": Decimal("1"),
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
 
     account_to_create_data: AccountCreate = AccountCreate(
-        user_id=user_db.id, name="Checking USD", currency=CurrencyType.USD, account_type=AccountType.CHECKING
+        user_id=user_db.id, name="Checking USD", currency=CurrencyType.USD
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     deleted_account_db: AccountModel = account_from_db if is_from_account_deleted else account_to_db
@@ -724,7 +711,6 @@ async def test_create_transfer_opposite_concurrent_no_deadlock(
         "user_id": user_db.id,
         "name": "Checking USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.CHECKING,
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("1"),
     }
@@ -733,7 +719,6 @@ async def test_create_transfer_opposite_concurrent_no_deadlock(
         "user_id": user_db.id,
         "name": "Savings USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.CHECKING,
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("1"),
     }

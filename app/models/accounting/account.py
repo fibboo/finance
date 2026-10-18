@@ -7,7 +7,6 @@ from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
-from app.schemas.accounting.account import AccountType
 from app.schemas.base import CurrencyType, EntityStatusType
 
 
@@ -37,10 +36,6 @@ class Account(Base):
         nullable=False,
     )
     base_currency_rate: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
-    account_type: Mapped[AccountType] = mapped_column(
-        Enum(AccountType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
-        nullable=False,
-    )
     status: Mapped[EntityStatusType] = mapped_column(
         Enum(
             EntityStatusType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]

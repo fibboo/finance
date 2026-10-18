@@ -5,8 +5,6 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
-from app.schemas.accounting.account import AccountType
-from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
 
@@ -82,22 +80,6 @@ class CurrencyMismatchException(ForbiddenException):
             logger=logger,
             log_level=LogLevelType.ERROR,
             error_code=ErrorCodeType.CURRENCY_MISMATCH,
-        )
-
-
-class AccountTypeMismatchException(ForbiddenException):
-    def __init__(
-        self, *, account_id: UUID, transaction_type: TransactionType, account_type: AccountType, logger: logging.Logger
-    ):
-        super().__init__(
-            message="Account and transaction type mismatch",
-            log_message=(
-                f"Transaction type {transaction_type} is not allowed for "
-                f"account `{account_id}` with type {account_type}"
-            ),
-            logger=logger,
-            log_level=LogLevelType.ERROR,
-            error_code=ErrorCodeType.ACCOUNT_TYPE_MISMATCH,
         )
 
 

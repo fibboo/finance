@@ -127,7 +127,7 @@ async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: C
     if updated_user_db is None:
         raise BaseCurrencyAlreadySet(user_id=user_id, logger=logger)
 
-    await account_service.create_standard_accounts(db=db, user_id=user_id, base_currency=base_currency)
+    await account_service.create_default_account(db=db, user_id=user_id, base_currency=base_currency)
     await category_service.create_default_category(db=db, user_id=user_id)
 
     updated_user: User = User.model_validate(updated_user_db)

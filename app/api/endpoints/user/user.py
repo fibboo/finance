@@ -24,6 +24,6 @@ async def set_base_currency(
     user_id: UUID = Depends(get_user_id),
     db: DbTransaction,
 ) -> User:
-    """Choose the base currency once after the first sign-in. Creates the standard accounts in that currency."""
+    """Choose the base currency once after the first sign-in. Creates the Wallet account in that currency."""
     user: User = await user_service.set_base_currency(db=db, user_id=user_id, base_currency=data.base_currency)
     return user

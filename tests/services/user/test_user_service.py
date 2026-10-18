@@ -20,7 +20,6 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.category import Category as CategoryModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountType
 from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ExternalUserCreate, ProviderType
@@ -206,10 +205,9 @@ async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSessi
     assert user_db.base_currency == CurrencyType.EUR
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
-    assert len(accounts_db) == len(AccountType)
-    assert {account_db.account_type for account_db in accounts_db} == set(AccountType)
-    for account_db in accounts_db:
-        assert account_db.currency == CurrencyType.EUR
+    assert len(accounts_db) == 1
+    assert accounts_db[0].name == "Wallet"
+    assert accounts_db[0].currency == CurrencyType.EUR
 
     categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
     assert len(categories_db) == 1
