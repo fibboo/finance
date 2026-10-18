@@ -64,6 +64,8 @@ The `postgres` service runs PostgreSQL 18, which keeps its data under `/var/lib/
 docker compose down -v
 ```
 
+A database migrated before the Alembic revisions were squashed into one initial revision fails `alembic upgrade head` with `Can't locate revision`; recreate it the same way.
+
 ---
 
 ## API Documentation
