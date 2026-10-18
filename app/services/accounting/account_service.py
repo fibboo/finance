@@ -15,7 +15,6 @@ from app.schemas.accounting.account import (
     AccountCreate,
     AccountCreateRequest,
     AccountRequest,
-    AccountType,
     AccountUpdate,
 )
 from app.schemas.base import CurrencyType, EntityStatusType
@@ -35,18 +34,9 @@ async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest,
     return account
 
 
-async def create_standard_accounts(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyType) -> None:
-    create_data: list[AccountCreate] = []
-    for account_type in AccountType:
-        create_data.append(
-            AccountCreate(
-                name=f"{account_type.value.title()} {base_currency.value}",
-                currency=base_currency,
-                account_type=account_type,
-                user_id=user_id,
-            )
-        )
-    await account_crud.create_batch(db=db, objs_in=create_data)
+async def create_default_account(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyType) -> None:
+    create_data = AccountCreate(name="Wallet", currency=base_currency, user_id=user_id)
+    await account_crud.create(db=db, obj_in=create_data)
 
 
 async def get_accounts(*, db: AsyncSession, request: AccountRequest, user_id: UUID) -> Page[Account]:
