@@ -571,6 +571,80 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     assert account_db_after.base_currency_rate == Decimal("1")
 
 
+@pytest.mark.parametrize(
+    "currency, balance, base_currency_rate, amount, expected_rate",
+    [
+        ("USD", Decimal("100"), Decimal("1"), Decimal("50"), Decimal("1")),
+        ("EUR", Decimal("110"), Decimal("1.1"), Decimal("55"), Decimal("1.1")),
+    ],
+)
+async def test_delete_expense_of_account_without_rate_sets_rate(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    currency: str,
+    balance: Decimal,
+    base_currency_rate: Decimal,
+    amount: Decimal,
+    expected_rate: Decimal,
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": f"Card {currency}",
+        "currency": currency,
+        "balance": balance,
+        "base_currency_rate": base_currency_rate,
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.VARIABLE)
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=amount,
+        source_currency=currency,
+        destination_amount=amount,
+        destination_currency=currency,
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    transaction_before: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db.commit()
+
+    # deleting an earlier income emptied the account, which left it at balance 0 and rate 0
+    await account_crud.update_orm(
+        db=db, obj_in={"balance": Decimal("0"), "base_currency_rate": Decimal("0")}, id=account_db.id, commit=True
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    await transaction_processor.delete(transaction_id=transaction_before.id)
+    await db_transaction.commit()
+    await db_transaction.close()
+
+    # Assert
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == amount
+    assert account_db_after.base_currency_rate == expected_rate
+
+
 async def test_delete_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     transaction_id: UUID = uuid4()

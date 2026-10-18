@@ -130,8 +130,8 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         return quantized_rate
 
     @staticmethod
-    def _get_first_rate(*, transaction_db: TransactionModel) -> Decimal:
-        first_rate: Decimal = transaction_db.destination_amount / transaction_db.base_currency_amount
+    def _get_first_rate(*, amount: Decimal, base_currency_amount: Decimal) -> Decimal:
+        first_rate: Decimal = amount / base_currency_amount
         first_rate: Decimal = TransactionProcessor._quantize_rate(rate=first_rate)
         return first_rate
 
@@ -149,7 +149,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         elif account_db.currency == base_currency:
             new_base_rate: Decimal = Decimal("1")
         elif account_db.base_currency_rate == 0 or account_db.balance <= 0 < new_balance:
-            new_base_rate: Decimal = TransactionProcessor._get_first_rate(transaction_db=transaction_db)
+            new_base_rate: Decimal = TransactionProcessor._get_first_rate(
+                amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount
+            )
         elif account_db.balance > 0 and new_balance > 0:
             new_base_balance: Decimal = account_db.balance / account_db.base_currency_rate + base_currency_delta
             if new_base_balance > 0:
@@ -162,13 +164,42 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         new_base_rate: Decimal = TransactionProcessor._quantize_rate(rate=new_base_rate)
         return new_base_rate
 
+    @staticmethod
+    def __get_debit_rate(
+        *,
+        account_db: AccountModel,
+        transaction_db: TransactionModel,
+        new_balance: Decimal,
+        base_currency: CurrencyCode | None,
+    ) -> Decimal:
+        if account_db.base_currency_rate != 0 or new_balance == 0:
+            new_base_rate: Decimal = account_db.base_currency_rate
+        elif account_db.currency == base_currency:
+            new_base_rate: Decimal = Decimal("1")
+        else:
+            new_base_rate: Decimal = TransactionProcessor._get_first_rate(
+                amount=transaction_db.source_amount, base_currency_amount=transaction_db.base_currency_amount
+            )
+
+        return new_base_rate
+
     async def _update_from_account(self, *, transaction_db: TransactionModel) -> None:
         if transaction_db.from_account_id is None:
             return
 
         delta: Decimal = self._get_from_account_delta(transaction_db=transaction_db)
         new_balance: Decimal = transaction_db.from_account.balance + delta
-        await account_crud.update_orm(db=self.db, id=transaction_db.from_account_id, obj_in={"balance": new_balance})
+        new_base_rate: Decimal = self.__get_debit_rate(
+            account_db=transaction_db.from_account,
+            transaction_db=transaction_db,
+            new_balance=new_balance,
+            base_currency=self.base_currency,
+        )
+        await account_crud.update_orm(
+            db=self.db,
+            id=transaction_db.from_account_id,
+            obj_in={"balance": new_balance, "base_currency_rate": new_base_rate},
+        )
 
     async def _update_to_account(self, *, transaction_db: TransactionModel) -> None:
         if transaction_db.to_account_id is None:
@@ -219,6 +250,8 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             raise EntityNotFound(
                 entity=TransactionModel, search_params={"id": transaction_id, "user_id": self.user_id}, logger=logger
             )
+
+        self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
 
         transaction_accounts_db: list[AccountModel] = self._get_transaction_accounts(transaction_db=transaction_db)
         account_ids: list[UUID] = [account_db.id for account_db in transaction_accounts_db]

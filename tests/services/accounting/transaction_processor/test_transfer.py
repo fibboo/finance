@@ -558,6 +558,64 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
     assert account_db_to_after.base_currency_rate == Decimal("111.0000") == base_currency_to_rate_before
 
 
+async def test_delete_transfer_from_account_without_rate_sets_rate(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("110"),
+        "base_currency_rate": Decimal("1.1"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: dict = {"user_id": user_db.id, "name": "Wallet", "currency": "USD"}
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("55"),
+        source_currency="EUR",
+        destination_currency="USD",
+        destination_amount=Decimal("50"),
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    transaction_before: Transaction = await transaction_processor.create(data=transfer_create_data)
+    await db.commit()
+
+    # deleting an earlier income emptied the source account, which left it at balance 0 and rate 0
+    await account_crud.update_orm(
+        db=db, obj_in={"balance": Decimal("0"), "base_currency_rate": Decimal("0")}, id=account_from_db.id, commit=True
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
+    )
+    await transaction_processor.delete(transaction_id=transaction_before.id)
+    await db_transaction.commit()
+    await db_transaction.close()
+
+    # Assert
+    account_db_from_after: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_db_from_after.balance == Decimal("55")
+    assert account_db_from_after.base_currency_rate == Decimal("1.1")
+
+    account_db_to_after: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_db_to_after.balance == Decimal("0")
+    assert account_db_to_after.base_currency_rate == Decimal("0")
+
+
 async def test_create_transfer_to_account_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(

@@ -80,7 +80,9 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
         if new_balance != 0 and has_known_rate:
             new_base_rate: Decimal = account_db.base_currency_rate
         elif new_balance != 0 and account_db.currency != self.base_currency:
-            new_base_rate: Decimal = self._get_first_rate(transaction_db=transaction_db)
+            new_base_rate: Decimal = self._get_first_rate(
+                amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount
+            )
         else:
             new_base_rate: Decimal = self._get_credit_rate(
                 account_db=account_db,
