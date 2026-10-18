@@ -51,7 +51,9 @@ Every category has a required type that classifies the spending it holds: VARIAB
 
 ## Deleted accounts
 
-Deleting an account is a soft delete: `account_service.delete_account` sets its status to DELETED, and only an account with a zero balance can be deleted. Account names are unique among a user's active accounts only. `account_unique_user_id_name` (`app/models/accounting/account.py`) is a partial unique index over the rows whose status is ACTIVE, so a deleted account frees its name for create and update, while two active accounts still cannot share one. The index keeps the name of the former constraint, so a violation still answers 409 `INTEGRITY_ERROR` through `IntegrityException` with the same log message.
+Every delete in the API is a soft delete and answers 200 with the deleted object, its status DELETED, so the client can update its cache and offer an undo without another request. Transactions, accounts and categories follow it.
+
+Deleting an account is a soft delete: `account_service.delete_account` sets its status to DELETED and returns the account, and only an account with a zero balance can be deleted. Account names are unique among a user's active accounts only. `account_unique_user_id_name` (`app/models/accounting/account.py`) is a partial unique index over the rows whose status is ACTIVE, so a deleted account frees its name for create and update, while two active accounts still cannot share one. The index keeps the name of the former constraint, so a violation still answers 409 `INTEGRITY_ERROR` through `IntegrityException` with the same log message.
 
 `POST /accounting/accounts/{account_id}/restore` (`account_service.restore_account`) turns a deleted account back into an active one. It locks the user's account with that id and status DELETED, as `delete_account` locks an active one, so an unknown or already active account answers 404 `ENTITY_NOT_FOUND`. A deleted account always has a zero balance, so restoring changes only the status. When an active account already holds the name, the partial index refuses the restore with 409 `INTEGRITY_ERROR`, and the user renames the active account first.
 
