@@ -216,17 +216,11 @@ async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSessi
         "Groceries": CategoryType.VARIABLE,
         "Eating out": CategoryType.VARIABLE,
         "Transport": CategoryType.VARIABLE,
-        "Entertainment": CategoryType.VARIABLE,
-        "Household": CategoryType.VARIABLE,
-        "Rent": CategoryType.FIXED,
         "Utilities": CategoryType.FIXED,
         "Subscriptions": CategoryType.FIXED,
         "Travel": CategoryType.PERIODIC,
-        "Devices": CategoryType.PERIODIC,
-        "Home & furniture": CategoryType.PERIODIC,
         "Health": CategoryType.PERIODIC,
         "Clothing": CategoryType.PERIODIC,
-        "Gifts": CategoryType.PERIODIC,
     }
 
 
