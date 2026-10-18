@@ -17,6 +17,7 @@ from app.schemas.accounting.category import (
     CategoryType,
     CategoryUpdate,
 )
+from app.schemas.base import EntityStatusType
 
 logger = get_logger(logger_name=__name__)
 
@@ -61,8 +62,9 @@ async def get_categories(*, db: AsyncSession, request: CategoryRequest, user_id:
 
 
 async def get_category(*, db: AsyncSession, category_id: UUID, user_id: UUID) -> Category:
-    category_db: CategoryModel | None = await category_crud.get_or_none(db=db, id=category_id, user_id=user_id)
-
+    category_db: CategoryModel | None = await category_crud.get_or_none(
+        db=db, id=category_id, user_id=user_id, status=EntityStatusType.ACTIVE
+    )
     if category_db is None:
         raise EntityNotFound(entity=CategoryModel, search_params={"id": category_id, "user_id": user_id}, logger=logger)
 
@@ -75,7 +77,7 @@ async def update_category(
 ) -> Category:
     try:
         category_db: CategoryModel | None = await category_crud.update_orm(
-            db=db, obj_in=update_data, id=category_id, user_id=user_id
+            db=db, obj_in=update_data, id=category_id, user_id=user_id, status=EntityStatusType.ACTIVE
         )
     except IntegrityError as exc:
         raise IntegrityException(entity=CategoryModel, exception=exc, logger=logger)
@@ -83,5 +85,20 @@ async def update_category(
     if category_db is None:
         raise EntityNotFound(entity=CategoryModel, search_params={"id": category_id, "user_id": user_id}, logger=logger)
 
+    category: Category = Category.model_validate(category_db)
+    return category
+
+
+async def delete_category(*, db: AsyncSession, category_id: UUID, user_id: UUID) -> Category:
+    category_db: CategoryModel | None = await category_crud.get_or_none(
+        db=db, id=category_id, user_id=user_id, status=EntityStatusType.ACTIVE, with_for_update=True
+    )
+    if category_db is None:
+        raise EntityNotFound(entity=CategoryModel, search_params={"id": category_id, "user_id": user_id}, logger=logger)
+
+    obj_in: dict = {"status": EntityStatusType.DELETED.value}
+    category_db: CategoryModel = await category_crud.update_orm(
+        db=db, obj_in=obj_in, id=category_id, user_id=user_id, status=EntityStatusType.ACTIVE
+    )
     category: Category = Category.model_validate(category_db)
     return category

@@ -7,6 +7,7 @@ from fastapi import Query
 from fastapi_pagination import Params
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
+from app.schemas.base import EntityStatusType
 from app.utils import utils
 
 
@@ -46,6 +47,7 @@ class CategoryUpdate(CategoryBase):
 class Category(CategoryBase):
     id: UUID  # noqa: A003
     user_id: UUID
+    status: EntityStatusType
     created_at: datetime
     updated_at: datetime
 

@@ -52,12 +52,13 @@ async def update_account(
     return account
 
 
-@router.delete("/{account_id}", status_code=200)
-async def delete_account(*, account_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> None:
+@router.delete("/{account_id}")
+async def delete_account(*, account_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Account:
     """
     Deleting account is possible only if balance is 0
     """
-    await account_service.delete_account(db=db, account_id=account_id, user_id=user_id)
+    account: Account = await account_service.delete_account(db=db, account_id=account_id, user_id=user_id)
+    return account
 
 
 @router.post("/{account_id}/restore")

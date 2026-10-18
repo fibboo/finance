@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: bec5e88e8044
+Revision ID: 1538dafce38d
 Revises: 
-Create Date: 2026-10-18 16:56:43.653082
+Create Date: 2026-10-18 17:01:58.177735
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'bec5e88e8044'
+revision: str = '1538dafce38d'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -26,12 +26,14 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=64), nullable=False),
     sa.Column('description', sa.String(length=4096), nullable=True),
     sa.Column('type', sa.Enum('VARIABLE', 'FIXED', 'PERIODIC', name='categorytype', native_enum=False), nullable=False),
+    sa.Column('status', sa.Enum('ACTIVE', 'DELETED', name='entitystatustype', native_enum=False), server_default='ACTIVE', nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id', 'name', name='category_unique_user_id_name')
+    sa.PrimaryKeyConstraint('id')
     )
+    op.create_index('category_unique_user_id_name', 'categories', ['user_id', 'name'], unique=True, postgresql_where=sa.text("status = 'ACTIVE'"))
     op.create_index(op.f('ix_categories_name'), 'categories', ['name'], unique=False)
+    op.create_index(op.f('ix_categories_status'), 'categories', ['status'], unique=False)
     op.create_index(op.f('ix_categories_type'), 'categories', ['type'], unique=False)
     op.create_index(op.f('ix_categories_user_id'), 'categories', ['user_id'], unique=False)
     op.create_table('currencies',
@@ -276,6 +278,8 @@ def downgrade() -> None:
     op.drop_table('currencies')
     op.drop_index(op.f('ix_categories_user_id'), table_name='categories')
     op.drop_index(op.f('ix_categories_type'), table_name='categories')
+    op.drop_index(op.f('ix_categories_status'), table_name='categories')
     op.drop_index(op.f('ix_categories_name'), table_name='categories')
+    op.drop_index('category_unique_user_id_name', table_name='categories', postgresql_where=sa.text("status = 'ACTIVE'"))
     op.drop_table('categories')
     # ### end Alembic commands ###

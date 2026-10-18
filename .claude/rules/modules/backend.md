@@ -51,11 +51,17 @@ Every category has a required type that classifies the spending it holds: VARIAB
 
 ## Deleted accounts
 
-Deleting an account is a soft delete: `account_service.delete_account` sets its status to DELETED, and only an account with a zero balance can be deleted. Account names are unique among a user's active accounts only. `account_unique_user_id_name` (`app/models/accounting/account.py`) is a partial unique index over the rows whose status is ACTIVE, so a deleted account frees its name for create and update, while two active accounts still cannot share one. The index keeps the name of the former constraint, so a violation still answers 409 `INTEGRITY_ERROR` through `IntegrityException` with the same log message.
+Every delete in the API is a soft delete and answers 200 with the deleted object, its status DELETED, so the client can update its cache and offer an undo without another request. Transactions, accounts and categories follow it.
+
+Deleting an account is a soft delete: `account_service.delete_account` sets its status to DELETED and returns the account, and only an account with a zero balance can be deleted. Account names are unique among a user's active accounts only. `account_unique_user_id_name` (`app/models/accounting/account.py`) is a partial unique index over the rows whose status is ACTIVE, so a deleted account frees its name for create and update, while two active accounts still cannot share one. The index keeps the name of the former constraint, so a violation still answers 409 `INTEGRITY_ERROR` through `IntegrityException` with the same log message.
 
 `POST /accounting/accounts/{account_id}/restore` (`account_service.restore_account`) turns a deleted account back into an active one. It locks the user's account with that id and status DELETED, as `delete_account` locks an active one, so an unknown or already active account answers 404 `ENTITY_NOT_FOUND`. A deleted account always has a zero balance, so restoring changes only the status. When an active account already holds the name, the partial index refuses the restore with 409 `INTEGRITY_ERROR`, and the user renames the active account first.
 
 A transaction that touches a deleted account can be neither created nor deleted until the account is restored: both would change the balance of an account the user cannot see. The two account validations of the base processor (`app/services/accounting/transaction_processor/base.py`) answer 403 `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN` on creation, which covers all three types and both sides of a transfer. `delete` asks the subclass for the accounts the transaction references (`_get_transaction_accounts`) and refuses before it marks the transaction deleted. A future transaction edit follows the same rule.
+
+## Deleted categories
+
+`DELETE /accounting/categories/{category_id}` (`category_service.delete_category`) is a soft delete, like an account's: it locks the user's active category with that id, sets its status to DELETED and returns it, so an unknown or already deleted category answers 404 `ENTITY_NOT_FOUND`. The list, `get_category` and `update_category` see active categories only. The expense processor checks the category through `get_category`, so an expense with a deleted category answers 404, while the expenses that already reference it keep it and still return it. Category names are unique among a user's active categories only: `category_unique_user_id_name` (`app/models/accounting/category.py`) is a partial unique index over the ACTIVE rows that keeps the name of the former constraint, so a deleted category frees its name and a violation still answers 409 `INTEGRITY_ERROR`. A deleted category cannot be restored.
 
 ## Transaction amounts
 
