@@ -12,6 +12,8 @@ class EnvironmentType(str, Enum):
 class Settings(BaseSettings):
     environment: EnvironmentType
     app_title: str
+    public_base_url: str
+    allowed_redirect_uris: list[str]
 
     jwt_secret: str
     access_token_expire_seconds: int
@@ -34,3 +36,13 @@ class DatabaseSettings(BaseSettings):
 
 
 database_settings = DatabaseSettings()
+
+
+class TelegramSettings(BaseSettings):
+    client_id: str
+    client_secret: str
+
+    model_config = SettingsConfigDict(env_prefix="telegram_", env_file=".env", extra="ignore")
+
+
+telegram_settings = TelegramSettings()

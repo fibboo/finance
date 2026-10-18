@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class TokenResponse(BaseModel):
@@ -17,3 +17,28 @@ class RefreshTokenCreate(BaseModel):
     token_hash: str
     family_id: UUID
     expires_at: datetime
+
+
+class TokenRequest(BaseModel):
+    grant_type: Literal["authorization_code", "refresh_token"]
+    code: str | None = None
+    redirect_uri: str | None = None
+    code_verifier: str | None = None
+    refresh_token: str | None = None
+
+    @model_validator(mode="after")
+    def check_grant_fields(self) -> Self:
+        if self.grant_type == "authorization_code":
+            required: dict[str, str | None] = {
+                "code": self.code,
+                "redirect_uri": self.redirect_uri,
+                "code_verifier": self.code_verifier,
+            }
+        else:
+            required: dict[str, str | None] = {"refresh_token": self.refresh_token}
+
+        missing: list[str] = [name for name, value in required.items() if value is None]
+        if len(missing) > 0:
+            raise ValueError(f"{self.grant_type} grant requires {', '.join(missing)}")
+
+        return self

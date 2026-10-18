@@ -25,3 +25,13 @@ class UnprocessableException(AppBaseException):
             log_level=log_level,
             error_code=error_code,
         )
+
+
+class RedirectUriNotAllowed(UnprocessableException):
+    def __init__(self, *, redirect_uri: str, logger: logging.Logger):
+        super().__init__(
+            message="Redirect URI not allowed",
+            log_message=f"Redirect URI `{redirect_uri}` is not in the allowed redirect URIs",
+            logger=logger,
+            error_code=ErrorCodeType.REDIRECT_URI_NOT_ALLOWED,
+        )
