@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.configs.logging_settings import get_logger
 from app.exceptions.not_implemented_501 import NotImplementedException
 from app.schemas.accounting.transaction import TransactionType
+from app.services.accounting.transaction_processor.adjustment import Adjustment
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 from app.services.accounting.transaction_processor.expense import Expense
 from app.services.accounting.transaction_processor.income import Income
@@ -17,6 +18,7 @@ TRANSACTION_PROCESSORS: frozendict[TransactionType, type[TransactionProcessor]] 
         TransactionType.EXPENSE: Expense,
         TransactionType.INCOME: Income,
         TransactionType.TRANSFER: Transfer,
+        TransactionType.ADJUSTMENT: Adjustment,
     }
 )
 

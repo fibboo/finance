@@ -84,6 +84,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         pass
 
     async def _update_from_account(self, *, transaction_db: TransactionModel) -> None:
+        if transaction_db.from_account_id is None:
+            return
+
         delta = (
             transaction_db.source_amount
             if transaction_db.status == EntityStatusType.DELETED
@@ -93,6 +96,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         await account_crud.update_orm(db=self.db, id=transaction_db.from_account_id, obj_in={"balance": new_balance})
 
     async def _update_to_account(self, *, transaction_db: TransactionModel) -> None:
+        if transaction_db.to_account_id is None:
+            return
+
         delta = (
             -transaction_db.destination_amount
             if transaction_db.status == EntityStatusType.DELETED
@@ -104,7 +110,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         elif transaction_db.to_account.currency == self.base_currency:
             new_base_rate: Decimal = Decimal("1")
         elif transaction_db.to_account.base_currency_rate == 0:
-            new_base_rate: Decimal = transaction_db.destination_amount / transaction_db.source_amount
+            new_base_rate: Decimal = transaction_db.destination_amount / transaction_db.base_currency_amount
         else:
             current_base_balance: Decimal = (
                 transaction_db.to_account.balance / transaction_db.to_account.base_currency_rate
@@ -127,10 +133,10 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
     async def create(self, *, data: T) -> Transaction:
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
-        await currency_service.get_currency(db=self.db, code=data.source_currency)
-        await currency_service.get_currency(db=self.db, code=data.destination_currency)
 
         transaction_data: TransactionCreate = await self._prepare_transaction(data=data)
+        await currency_service.get_currency(db=self.db, code=transaction_data.source_currency)
+        await currency_service.get_currency(db=self.db, code=transaction_data.destination_currency)
         try:
             transaction_db: TransactionModel = await self._transaction_crud.create(db=self.db, obj_in=transaction_data)
 

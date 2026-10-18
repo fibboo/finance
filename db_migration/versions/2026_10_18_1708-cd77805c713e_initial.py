@@ -1,8 +1,8 @@
-"""Initial
+"""initial
 
-Revision ID: 1538dafce38d
+Revision ID: cd77805c713e
 Revises: 
-Create Date: 2026-10-18 17:01:58.177735
+Create Date: 2026-10-18 17:08:46.229583
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '1538dafce38d'
+revision: str = 'cd77805c713e'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -105,7 +105,7 @@ def upgrade() -> None:
     sa.Column('source_currency', sa.String(length=3), nullable=False),
     sa.Column('destination_amount', sa.Numeric(), nullable=False),
     sa.Column('destination_currency', sa.String(length=3), nullable=False),
-    sa.Column('transaction_type', sa.Enum('EXPENSE', 'INCOME', 'TRANSFER', name='transactiontype', native_enum=False), nullable=False),
+    sa.Column('transaction_type', sa.Enum('EXPENSE', 'INCOME', 'TRANSFER', 'ADJUSTMENT', name='transactiontype', native_enum=False), nullable=False),
     sa.Column('status', sa.Enum('ACTIVE', 'DELETED', name='entitystatustype', native_enum=False), server_default='ACTIVE', nullable=False),
     sa.Column('comment', sa.String(length=256), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
@@ -192,6 +192,18 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_refresh_tokens_family_id'), 'refresh_tokens', ['family_id'], unique=False)
     op.create_index(op.f('ix_refresh_tokens_user_id'), 'refresh_tokens', ['user_id'], unique=False)
+    op.create_table('transactions_adjustment',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('from_account_id', sa.UUID(), nullable=True),
+    sa.Column('to_account_id', sa.UUID(), nullable=True),
+    sa.CheckConstraint('(from_account_id IS NULL) <> (to_account_id IS NULL)', name='transaction_adjustment_one_account'),
+    sa.ForeignKeyConstraint(['from_account_id'], ['accounts.id'], ),
+    sa.ForeignKeyConstraint(['id'], ['transactions.id'], ),
+    sa.ForeignKeyConstraint(['to_account_id'], ['accounts.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_transactions_adjustment_from_account_id'), 'transactions_adjustment', ['from_account_id'], unique=False)
+    op.create_index(op.f('ix_transactions_adjustment_to_account_id'), 'transactions_adjustment', ['to_account_id'], unique=False)
     op.create_table('transactions_expense',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('from_account_id', sa.UUID(), nullable=False),
@@ -246,6 +258,9 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_transactions_expense_from_account_id'), table_name='transactions_expense')
     op.drop_index(op.f('ix_transactions_expense_category_id'), table_name='transactions_expense')
     op.drop_table('transactions_expense')
+    op.drop_index(op.f('ix_transactions_adjustment_to_account_id'), table_name='transactions_adjustment')
+    op.drop_index(op.f('ix_transactions_adjustment_from_account_id'), table_name='transactions_adjustment')
+    op.drop_table('transactions_adjustment')
     op.drop_index(op.f('ix_refresh_tokens_user_id'), table_name='refresh_tokens')
     op.drop_index(op.f('ix_refresh_tokens_family_id'), table_name='refresh_tokens')
     op.drop_table('refresh_tokens')

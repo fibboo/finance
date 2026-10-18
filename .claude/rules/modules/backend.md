@@ -78,6 +78,11 @@ What source and destination mean depends on the transaction type:
 - **Expense**: `source_*` is the amount withdrawn from the account, and `destination_*` is the amount in the seller's or recipient's currency.
 - **Income**: `source_*` is the incoming amount in the original currency, and `destination_*` is the amount credited to the receiving account.
 - **Transfer**: `source_*` is the withdrawal from one account, and `destination_*` is the deposit to the other account.
+- **Adjustment**: `source_*` and `destination_*` are both the difference between the new and the old balance, in the account currency.
+
+## Balance adjustments
+
+An ADJUSTMENT transaction (`transaction_processor/adjustment.py`) sets an account to the balance the user enters: the starting balance after onboarding, or the real one when the account drifts from the bank. The request carries `account_id` and `new_balance`, not amounts; the processor locks the account, computes the difference and stores it as both amounts. Amounts are positive, so the direction is the side: `transactions_adjustment` has a nullable `from_account_id` and `to_account_id`, a check constraint keeps exactly one of them set, and an increase fills `to_account_id` while a decrease fills `from_account_id`. That lets the base processor's balance and rate updates apply unchanged; they skip the side a transaction does not have. A new balance equal to the current one answers 422 `ACCOUNT_BALANCE_UNCHANGED`. `base_currency_amount` is the difference itself for a base currency account and the difference divided by the account rate when the account has one; an account outside the base currency without a rate takes it from the request, and answers 403 `NO_ACCOUNT_BASE_CURRENCY_RATE` without it. The first credit to an account without a rate sets the rate to `destination_amount / base_currency_amount`, which is the same ratio incomes and transfers had before. Adjustments are neither income nor expense: reports that sum incomes and expenses read only those two types. An adjustment is deleted like any other transaction, which moves the balance back.
 
 ## Migrations
 

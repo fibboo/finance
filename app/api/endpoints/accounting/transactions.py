@@ -43,6 +43,10 @@ async def create_transaction(
     `destination_*` refers to the credited amount in **the receiving account**.
     - **Transfers:** `source_*` refers to **the withdrawal from one account**.
     `destination_*` refers to the deposit to **another account**.
+    - **Adjustments:** the request carries the account and its `new_balance`. `source_*` and `destination_*` are both
+    the difference from the current balance in the account currency, on `to_account` for an increase and on
+    `from_account` for a decrease. `base_currency_amount` is required only for an account outside the base currency
+    that has no base currency rate yet.
     """
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=create_data.transaction_type

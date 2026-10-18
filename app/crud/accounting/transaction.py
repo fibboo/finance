@@ -9,13 +9,21 @@ from sqlalchemy.orm import selectinload, with_polymorphic
 from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase
 from app.models.accounting.account import Account
-from app.models.accounting.transaction import ExpenseTransaction, IncomeTransaction, Transaction, TransferTransaction
+from app.models.accounting.transaction import (
+    AdjustmentTransaction,
+    ExpenseTransaction,
+    IncomeTransaction,
+    Transaction,
+    TransferTransaction,
+)
 from app.schemas.accounting.transaction import OrderDirectionType, OrderFieldType, TransactionCreate, TransactionRequest
 from app.schemas.base import EntityStatusType
 
 logger = get_logger(logger_name=__name__)
 
-TransactionModel = with_polymorphic(Transaction, [ExpenseTransaction, IncomeTransaction, TransferTransaction])
+TransactionModel = with_polymorphic(
+    Transaction, [ExpenseTransaction, IncomeTransaction, TransferTransaction, AdjustmentTransaction]
+)
 
 
 class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionCreate]):
@@ -29,6 +37,8 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
             selectinload(TransactionModel.IncomeTransaction.income_source),
             selectinload(TransactionModel.TransferTransaction.from_account),
             selectinload(TransactionModel.TransferTransaction.to_account),
+            selectinload(TransactionModel.AdjustmentTransaction.from_account),
+            selectinload(TransactionModel.AdjustmentTransaction.to_account),
         )
         return query
 
@@ -37,13 +47,18 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
         expense = ExpenseTransaction.__table__.c
         income = IncomeTransaction.__table__.c
         transfer = TransferTransaction.__table__.c
+        adjustment = AdjustmentTransaction.__table__.c
         transfer_account_matches: ColumnElement[bool] = or_(
             transfer.from_account_id.in_(account_ids), transfer.to_account_id.in_(account_ids)
+        )
+        adjustment_account_matches: ColumnElement[bool] = or_(
+            adjustment.from_account_id.in_(account_ids), adjustment.to_account_id.in_(account_ids)
         )
         transaction_ids: CompoundSelect = union(
             select(expense.id).where(expense.from_account_id.in_(account_ids)),
             select(income.id).where(income.to_account_id.in_(account_ids)),
             select(transfer.id).where(transfer_account_matches),
+            select(adjustment.id).where(adjustment_account_matches),
         )
         return transaction_ids
 
@@ -137,3 +152,12 @@ class CRUDTransferTransaction(CRUDBase[Transfer, TransactionCreate, TransactionC
 
 
 transfer_transaction_crud = CRUDTransferTransaction(model=TransferTransaction)
+
+Adjustment = with_polymorphic(Transaction, [AdjustmentTransaction])
+
+
+class CRUDAdjustmentTransaction(CRUDBase[Adjustment, TransactionCreate, TransactionCreate]):
+    pass
+
+
+adjustment_transaction_crud = CRUDAdjustmentTransaction(model=AdjustmentTransaction)

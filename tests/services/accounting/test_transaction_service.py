@@ -24,6 +24,7 @@ from app.schemas.accounting.category import CategoryCreate, CategoryType
 from app.schemas.accounting.income_source import IncomeSourceCreate
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import (
+    AdjustmentRequest,
     ExpenseRequest,
     IncomeRequest,
     Transaction,
@@ -482,6 +483,89 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         income.id,
         expense.id,
     ]
+
+
+async def test_get_transactions_adjustments(db: AsyncSession):
+    # Arrange
+    base_date: date = date.today() - timedelta(days=30)
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {"user_id": user_id, "name": "Wallet", "currency": "USD"}
+    account_wallet_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Card",
+        "currency": "USD",
+        "balance": Decimal("500"),
+        "base_currency_rate": Decimal("1"),
+    }
+    account_card_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name="Best Job")
+    income_source_db: IncomeSourceModel = await income_source_crud.create(
+        db=db, obj_in=income_source_create_data, commit=True
+    )
+
+    # an increase of the wallet and a decrease of the card, next to an income to the card
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=base_date + timedelta(days=1), account_id=account_wallet_db.id, new_balance=Decimal("300")
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    wallet_increase: Transaction = await transaction_processor.create(data=adjustment_create_data)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=base_date + timedelta(days=2), account_id=account_card_db.id, new_balance=Decimal("200")
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    card_decrease: Transaction = await transaction_processor.create(data=adjustment_create_data)
+
+    income_create_data: IncomeRequest = IncomeRequest(
+        transaction_date=base_date + timedelta(days=3),
+        source_amount=Decimal("1000"),
+        source_currency="USD",
+        destination_amount=Decimal("1000"),
+        destination_currency="USD",
+        to_account_id=account_card_db.id,
+        income_source_id=income_source_db.id,
+        income_period=date(2025, 1, 1),
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
+    )
+    income: Transaction = await transaction_processor.create(data=income_create_data)
+    await db.commit()
+    await db.close()
+
+    request_wallet: TransactionRequest = TransactionRequest(account_ids=[account_wallet_db.id])
+    request_card: TransactionRequest = TransactionRequest(account_ids=[account_card_db.id])
+    request_adjustments: TransactionRequest = TransactionRequest(transaction_types=[TransactionType.ADJUSTMENT])
+
+    # Act
+    transactions_wallet: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_wallet, user_id=user_id
+    )
+    transactions_card: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_card, user_id=user_id
+    )
+    transactions_adjustments: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_adjustments, user_id=user_id
+    )
+
+    # Assert
+    assert [item.id for item in transactions_wallet.items] == [wallet_increase.id]
+    assert transactions_wallet.items[0].to_account is not None
+    assert transactions_wallet.items[0].to_account.id == account_wallet_db.id
+    assert [item.id for item in transactions_card.items] == [income.id, card_decrease.id]
+    assert transactions_card.items[1].from_account is not None
+    assert transactions_card.items[1].from_account.id == account_card_db.id
+    assert [item.id for item in transactions_adjustments.items] == [card_decrease.id, wallet_increase.id]
 
 
 async def test_get_transaction_ok(db: AsyncSession):
