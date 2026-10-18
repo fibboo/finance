@@ -16,6 +16,7 @@ from app.schemas.accounting.category import (
     CategoryCreate,
     CategoryCreateRequest,
     CategoryRequest,
+    CategoryType,
     CategoryUpdate,
 )
 from app.schemas.error_response import ErrorCodeType
@@ -25,7 +26,7 @@ from app.services.accounting import category_service
 async def test_create_category_ok(db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1")
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1", type=CategoryType.VARIABLE)
 
     # Act
     category: Category = await category_service.create_category(
@@ -39,6 +40,7 @@ async def test_create_category_ok(db_transaction: AsyncSession):
     assert category.user_id == user_id
     assert category.name == create_data.name
     assert category.description == create_data.description
+    assert category.type == CategoryType.VARIABLE
     assert category.created_at is not None
     assert category.updated_at is not None
 
@@ -46,7 +48,7 @@ async def test_create_category_ok(db_transaction: AsyncSession):
 async def test_create_category_with_existing_name(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1")
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1", type=CategoryType.VARIABLE)
     await category_service.create_category(db=db, create_data=create_data, user_id=user_id)
     await db.commit()
 
@@ -70,7 +72,7 @@ async def test_get_categories(db: AsyncSession):
     # Arrange
     user_id = uuid4()
     for i in range(3):
-        create_data: CategoryCreateRequest = CategoryCreateRequest(name=f"Category {i}")
+        create_data: CategoryCreateRequest = CategoryCreateRequest(name=f"Category {i}", type=CategoryType.VARIABLE)
         await category_service.create_category(db=db, create_data=create_data, user_id=user_id)
     await db.commit()
 
@@ -111,11 +113,35 @@ async def test_get_categories(db: AsyncSession):
     assert len(categories_not_found.items) == 0
 
 
+async def test_get_categories_by_types(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    await category_crud.create(
+        db=db, obj_in=CategoryCreate(name="Groceries", type=CategoryType.VARIABLE, user_id=user_id), commit=True
+    )
+    await category_crud.create(
+        db=db, obj_in=CategoryCreate(name="Rent", type=CategoryType.FIXED, user_id=user_id), commit=True
+    )
+    await category_crud.create(
+        db=db, obj_in=CategoryCreate(name="Travel", type=CategoryType.PERIODIC, user_id=user_id), commit=True
+    )
+
+    request = CategoryRequest(types=[CategoryType.FIXED, CategoryType.PERIODIC])
+
+    # Act
+    categories: Page[Category] = await category_service.get_categories(db=db, request=request, user_id=user_id)
+
+    # Assert
+    assert categories.total == 2
+    assert [category.name for category in categories.items] == ["Rent", "Travel"]
+    assert [category.type for category in categories.items] == [CategoryType.FIXED, CategoryType.PERIODIC]
+
+
 async def test_get_categories_more_than_twenty(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     for i in range(25):
-        create_data = CategoryCreate(name=f"Category {i:02}", user_id=user_id)
+        create_data = CategoryCreate(name=f"Category {i:02}", type=CategoryType.VARIABLE, user_id=user_id)
         await category_crud.create(db=db, obj_in=create_data, commit=True)
 
     request = CategoryRequest(size=10, page=3)
@@ -132,7 +158,7 @@ async def test_get_categories_more_than_twenty(db: AsyncSession):
 async def test_get_category_ok(db: AsyncSession):
     # Arrange
     user_id = uuid4()
-    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1")
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1", type=CategoryType.VARIABLE)
     category_created: Category = await category_service.create_category(db=db, create_data=create_data, user_id=user_id)
     await db.commit()
 
@@ -170,11 +196,13 @@ async def test_get_category_not_found(db: AsyncSession):
 async def test_update_category_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
-    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1")
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1", type=CategoryType.VARIABLE)
     category_created: Category = await category_service.create_category(db=db, create_data=create_data, user_id=user_id)
     await db.commit()
 
-    category_update = CategoryUpdate(name="Category updated", description="Category description updated")
+    category_update = CategoryUpdate(
+        name="Category updated", description="Category description updated", type=CategoryType.FIXED
+    )
 
     # Act
     category: Category = await category_service.update_category(
@@ -188,6 +216,7 @@ async def test_update_category_ok(db: AsyncSession, db_transaction: AsyncSession
     assert category.user_id == category_created.user_id
     assert category.name == category_update.name
     assert category.description == category_update.description
+    assert category.type == CategoryType.FIXED
     assert category.created_at == category_created.created_at
     assert category.updated_at != category_created.updated_at
 
@@ -200,7 +229,9 @@ async def test_update_category_not_found(db: AsyncSession, db_transaction: Async
     user_id = uuid4()
     category_id = uuid4()
 
-    category_update = CategoryUpdate(name="Category updated", description="Category description updated")
+    category_update = CategoryUpdate(
+        name="Category updated", description="Category description updated", type=CategoryType.FIXED
+    )
 
     # Act
     with pytest.raises(EntityNotFound) as exc:
@@ -224,16 +255,18 @@ async def test_update_category_not_found(db: AsyncSession, db_transaction: Async
 async def test_update_category_double(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id = uuid4()
-    create_data_1: CategoryCreateRequest = CategoryCreateRequest(name="Category 1")
+    create_data_1: CategoryCreateRequest = CategoryCreateRequest(name="Category 1", type=CategoryType.VARIABLE)
     category_created_1: Category = await category_service.create_category(
         db=db, create_data=create_data_1, user_id=user_id
     )
 
-    create_data_2: CategoryCreateRequest = CategoryCreateRequest(name="Category 2")
+    create_data_2: CategoryCreateRequest = CategoryCreateRequest(name="Category 2", type=CategoryType.VARIABLE)
     await category_service.create_category(db=db, create_data=create_data_2, user_id=user_id)
     await db.commit()
 
-    category_update: CategoryUpdate = CategoryUpdate(name="Category 2", description="Category description updated")
+    category_update: CategoryUpdate = CategoryUpdate(
+        name="Category 2", description="Category description updated", type=CategoryType.VARIABLE
+    )
 
     # Act
     with pytest.raises(IntegrityException) as exc:

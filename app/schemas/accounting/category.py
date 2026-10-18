@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
@@ -9,9 +10,25 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 from app.utils import utils
 
 
+class CategoryType(str, Enum):
+    VARIABLE = "VARIABLE"
+    FIXED = "FIXED"
+    PERIODIC = "PERIODIC"
+
+
+CATEGORY_TYPE_LABELS: frozendict[CategoryType, str] = frozendict(
+    {
+        CategoryType.VARIABLE: "Variable",
+        CategoryType.FIXED: "Fixed",
+        CategoryType.PERIODIC: "Periodic",
+    }
+)
+
+
 class CategoryBase(BaseModel):
     name: Annotated[str, StringConstraints(min_length=3, max_length=64)]
     description: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
+    type: CategoryType  # noqa: A003
 
 
 class CategoryCreateRequest(CategoryBase):
@@ -40,6 +57,7 @@ class CategoryRequest(Params):
     size: int = Query(20, ge=1, le=100, description="Page size")
 
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
+    types: list[CategoryType] = Query([])
 
     def __hash__(self):
         data = self.model_dump()

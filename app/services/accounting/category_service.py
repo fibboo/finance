@@ -14,6 +14,7 @@ from app.schemas.accounting.category import (
     CategoryCreate,
     CategoryCreateRequest,
     CategoryRequest,
+    CategoryType,
     CategoryUpdate,
 )
 
@@ -33,7 +34,7 @@ async def create_category(*, db: AsyncSession, create_data: CategoryCreateReques
 
 
 async def create_default_category(*, db: AsyncSession, user_id: UUID) -> None:
-    create_data: CategoryCreate = CategoryCreate(name="General", user_id=user_id)
+    create_data: CategoryCreate = CategoryCreate(name="General", type=CategoryType.VARIABLE, user_id=user_id)
     await category_crud.create(db=db, obj_in=create_data)
 
 
