@@ -149,8 +149,12 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
                 entity=TransactionModel, search_params={"id": transaction_id, "user_id": self.user_id}, logger=logger
             )
 
-        accounts_db: list[AccountModel] = self._get_transaction_accounts(transaction_db=transaction_db)
-        for account_db in accounts_db:
+        transaction_accounts_db: list[AccountModel] = self._get_transaction_accounts(transaction_db=transaction_db)
+        account_ids: list[UUID] = [account_db.id for account_db in transaction_accounts_db]
+        accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
+            db=self.db, ids=account_ids, user_id=self.user_id
+        )
+        for account_db in accounts_db.values():
             if account_db.status == EntityStatusType.DELETED:
                 raise DeletedAccountTransactionForbidden(account_id=account_db.id, logger=logger)
 

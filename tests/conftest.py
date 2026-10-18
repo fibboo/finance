@@ -38,3 +38,14 @@ async def db_transaction(engine):
     finally:
         await session.commit()
         await session.close()
+
+
+@pytest_asyncio.fixture
+async def other_db_transaction(engine):
+    session_maker = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
+    try:
+        async with session_maker.begin() as session:
+            yield session
+    finally:
+        await session.commit()
+        await session.close()

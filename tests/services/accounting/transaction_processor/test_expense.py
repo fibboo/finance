@@ -1,10 +1,11 @@
+import asyncio
 from copy import copy
 from datetime import date
 from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -671,3 +672,72 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     assert transaction_db.status == EntityStatusType.ACTIVE
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("-1")
+
+
+async def test_create_expense_concurrent_keeps_both_balance_changes(
+    db: AsyncSession, db_transaction: AsyncSession, other_db_transaction: AsyncSession
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Checking USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.CHECKING,
+        "balance": Decimal("100"),
+        "base_currency_rate": Decimal("1"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food")
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("10"),
+        source_currency=CurrencyType.USD,
+        destination_amount=Decimal("10"),
+        destination_currency=CurrencyType.USD,
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+    first_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    second_processor: TransactionProcessor = factory.get_processor(
+        db=other_db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    waiting_on_lock_query: TextClause = text(
+        "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'"
+    )
+
+    # Act
+    await first_processor.create(data=expense_create_data)
+    second_create: asyncio.Task = asyncio.create_task(second_processor.create(data=expense_create_data))
+
+    async with asyncio.timeout(5):
+        while not second_create.done() and await db.scalar(waiting_on_lock_query) == 0:
+            await db.execute(text("SELECT pg_stat_clear_snapshot()"))
+            await asyncio.sleep(0.01)
+
+    await db_transaction.commit()
+    await second_create
+    await other_db_transaction.commit()
+
+    # Assert
+    await db.commit()
+    account_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_after)
+    assert account_after.balance == Decimal("80")
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 2

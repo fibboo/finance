@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDIncomeTransaction, income_transaction_crud
@@ -45,9 +47,10 @@ class Income(TransactionProcessor[IncomeRequest]):
             )
 
     async def _prepare_transaction(self, *, data: IncomeRequest) -> TransactionCreate:
-        to_account_db: AccountModel | None = await account_crud.get_or_none(
-            db=self.db, id=data.to_account_id, user_id=self.user_id
+        accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
+            db=self.db, ids=[data.to_account_id], user_id=self.user_id
         )
+        to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
         await income_service.get_income_source(db=self.db, income_source_id=data.income_source_id, user_id=self.user_id)

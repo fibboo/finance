@@ -1,4 +1,5 @@
 from decimal import Decimal, ROUND_HALF_EVEN
+from uuid import UUID
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
@@ -45,12 +46,11 @@ class Transfer(TransactionProcessor[TransferRequest]):
                 raise NoAccountBaseCurrencyRate(account_id=to_account_db.id, logger=logger)
 
     async def _prepare_transaction(self, *, data: TransferRequest) -> TransactionCreate:
-        from_account_db: AccountModel | None = await account_crud.get_or_none(
-            db=self.db, id=data.from_account_id, user_id=self.user_id
+        accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
+            db=self.db, ids=[data.from_account_id, data.to_account_id], user_id=self.user_id
         )
-        to_account_db: AccountModel | None = await account_crud.get_or_none(
-            db=self.db, id=data.to_account_id, user_id=self.user_id
-        )
+        from_account_db: AccountModel | None = accounts_db.get(data.from_account_id)
+        to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
 
         is_source_base_currency: bool = data.source_currency == self.base_currency
