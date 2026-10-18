@@ -47,6 +47,8 @@ Deleting an account is a soft delete: `account_service.delete_account` sets its 
 
 `POST /accounting/accounts/{account_id}/restore` (`account_service.restore_account`) turns a deleted account back into an active one. It locks the user's account with that id and status DELETED, as `delete_account` locks an active one, so an unknown or already active account answers 404 `ENTITY_NOT_FOUND`. A deleted account always has a zero balance, so restoring changes only the status. When an active account already holds the name, the partial index refuses the restore with 409 `INTEGRITY_ERROR`, and the user renames the active account first.
 
+A transaction that touches a deleted account can be neither created nor deleted until the account is restored: both would change the balance of an account the user cannot see. The two account validations of the base processor (`app/services/accounting/transaction_processor/base.py`) answer 403 `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN` on creation, which covers all three types and both sides of a transfer. `delete` asks the subclass for the accounts the transaction references (`_get_transaction_accounts`) and refuses before it marks the transaction deleted. A future transaction edit follows the same rule.
+
 ## Transaction amounts
 
 Every transaction (`app/models/accounting/transaction.py`) stores the money it moves in five fields:

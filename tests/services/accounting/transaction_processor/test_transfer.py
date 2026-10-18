@@ -10,7 +10,7 @@ from starlette import status
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.user.user import user_crud
-from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
+from app.exceptions.forbidden_403 import DeletedAccountTransactionForbidden, NoAccountBaseCurrencyRate
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import UnprocessableException
 from app.models.accounting.account import Account as AccountModel
@@ -578,3 +578,133 @@ async def test_create_transfer_to_account_of_other_user(db: AsyncSession, db_tra
     assert account_from.balance == account_from_balance_before
     account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_to.balance == account_to_balance_before
+
+
+@pytest.mark.parametrize("is_from_account_deleted", [True, False])
+async def test_create_transfer_deleted_account(
+    db: AsyncSession, db_transaction: AsyncSession, is_from_account_deleted: bool
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Income USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.INCOME,
+        "balance": Decimal("1"),
+        "base_currency_rate": Decimal("1"),
+        "status": EntityStatusType.DELETED if is_from_account_deleted else EntityStatusType.ACTIVE,
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Checking USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.CHECKING,
+        "status": EntityStatusType.ACTIVE if is_from_account_deleted else EntityStatusType.DELETED,
+    }
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+    deleted_account_db: AccountModel = account_from_db if is_from_account_deleted else account_to_db
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency=CurrencyType.USD,
+        destination_currency=CurrencyType.USD,
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+        comment="test",
+    )
+    # Act / Assert
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    with pytest.raises(DeletedAccountTransactionForbidden) as exc:
+        await transaction_processor.create(data=transfer_create_data)
+        await db_transaction.commit()
+
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
+    assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
+    assert exc.value.log_message == (
+        f"Account `{deleted_account_db.id}` is deleted. Restore it to create or delete its transactions"
+    )
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_from.balance == Decimal("1")
+    account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to.balance == Decimal("0")
+
+
+@pytest.mark.parametrize("is_from_account_deleted", [True, False])
+async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSession, is_from_account_deleted: bool):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Income USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.INCOME,
+        "balance": Decimal("1"),
+        "base_currency_rate": Decimal("1"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: AccountCreate = AccountCreate(
+        user_id=user_db.id, name="Checking USD", currency=CurrencyType.USD, account_type=AccountType.CHECKING
+    )
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+    deleted_account_db: AccountModel = account_from_db if is_from_account_deleted else account_to_db
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency=CurrencyType.USD,
+        destination_currency=CurrencyType.USD,
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+        comment="test",
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    transaction_before: Transaction = await transaction_processor.create(data=transfer_create_data)
+    await db.commit()
+
+    await account_crud.update_orm(
+        db=db, id=deleted_account_db.id, obj_in={"status": EntityStatusType.DELETED.value}, commit=True
+    )
+    await db.close()
+
+    # Act / Assert
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
+    )
+    with pytest.raises(DeletedAccountTransactionForbidden) as exc:
+        await transaction_processor.delete(transaction_id=transaction_before.id)
+        await db_transaction.commit()
+
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
+    assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
+    assert exc.value.log_message == (
+        f"Account `{deleted_account_db.id}` is deleted. Restore it to create or delete its transactions"
+    )
+
+    transaction_db: TransactionModel = await db.scalar(
+        select(TransactionModel).where(TransactionModel.id == transaction_before.id)
+    )
+    assert transaction_db.status == EntityStatusType.ACTIVE
+    account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_from.balance == Decimal("0")
+    account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to.balance == Decimal("1")
