@@ -59,7 +59,7 @@ Each of the following is a finding when the diff adds it (`.claude/rules/python.
 - a crud method that returns a pydantic schema;
 - a crud method that commits, or a call in application code that sets the `commit` flag of a `CRUDBase` method (a test's arrange step committing its rows through the plain `db` with `commit=True` is not a finding);
 - a `commit()` or a `begin()` block in a service or endpoint, or a write such code performs around the crud with `db.add` or its own insert, update or delete;
-- an endpoint that writes but depends on `get_db` instead of `get_db_transaction`.
+- an endpoint that writes but depends on `get_db` instead of taking `db: DbTransaction`.
 
 Grade it **P2** and treat it as blocking: the fix is to return the model, to move the write into the crud, or to let the request transaction commit.
 

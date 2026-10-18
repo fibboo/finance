@@ -3,11 +3,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, Query, Response
 from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.api import cookies
-from app.api.deps import get_db_transaction, get_refresh_token, get_user_id
+from app.api.deps import DbTransaction, get_refresh_token, get_user_id
 from app.schemas.user.authorization_request import (
     AuthorizationUrlResponse,
     AuthorizeRequest,
@@ -32,7 +31,7 @@ async def authorize(
     *,
     provider: ProviderType,
     authorize_request: Annotated[AuthorizeRequest, Query()],
-    db: AsyncSession = Depends(get_db_transaction),
+    db: DbTransaction,
 ) -> str:
     """Start signing in with a provider. Redirects to the provider's sign-in page."""
     authorization_url: str = await auth_service.authorize(db=db, provider=provider, authorize_request=authorize_request)
@@ -45,7 +44,7 @@ async def link(
     provider: ProviderType,
     authorize_request: Annotated[AuthorizeRequest, Query()],
     user_id: UUID = Depends(get_user_id),
-    db: AsyncSession = Depends(get_db_transaction),
+    db: DbTransaction,
 ) -> AuthorizationUrlResponse:
     """Start linking another provider to the signed-in user. Returns the provider's sign-in URL to open.
 
@@ -63,7 +62,7 @@ async def complete_link(
     provider: ProviderType,
     data: LinkCompleteRequest,
     user_id: UUID = Depends(get_user_id),
-    db: AsyncSession = Depends(get_db_transaction),
+    db: DbTransaction,
 ) -> None:
     """Finish linking a provider: present the one-time code from the link callback with its PKCE verifier."""
     await auth_service.complete_link(
@@ -77,9 +76,7 @@ async def complete_link(
 
 
 @router.delete("/link/{provider}")
-async def unlink(
-    *, provider: ProviderType, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db_transaction)
-) -> None:
+async def unlink(*, provider: ProviderType, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> None:
     """Unlink a provider from the signed-in user. The last linked provider cannot be unlinked."""
     await auth_service.unlink(db=db, user_id=user_id, provider=provider)
 
@@ -94,7 +91,7 @@ async def callback(
     *,
     provider: ProviderType,
     callback_request: Annotated[CallbackRequest, Query()],
-    db: AsyncSession = Depends(get_db_transaction),
+    db: DbTransaction,
 ) -> str:
     """The provider's redirect target. Redirects to the client with a one-time code, or with `error`."""
     redirect_url: str = await auth_service.callback(db=db, provider=provider, callback_request=callback_request)
@@ -107,7 +104,7 @@ async def token(
     response: Response,
     data: Annotated[TokenRequest, Form()],
     refresh_token: str | None = Depends(get_refresh_token),
-    db: AsyncSession = Depends(get_db_transaction, scope="function"),
+    db: DbTransaction,
 ) -> TokenResponse:
     """Exchange a one-time code with its PKCE verifier, or the refresh token cookie, for a new access token.
 
@@ -122,7 +119,7 @@ async def revoke(
     *,
     response: Response,
     refresh_token: str | None = Depends(get_refresh_token),
-    db: AsyncSession = Depends(get_db_transaction, scope="function"),
+    db: DbTransaction,
 ) -> None:
     """Revoke the refresh token cookie and every token rotated from it, and clear the cookie.
 
