@@ -1,3 +1,4 @@
+import re
 import secrets
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -25,19 +26,38 @@ from app.models.user.authorization_request import AuthorizationRequest as Author
 from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.user import User as UserModel
 from app.schemas.error_response import ErrorCodeType
-from app.schemas.user.authorization_request import AuthorizationRequestCreate, AuthorizationRequestUpdate
+from app.schemas.user.authorization_request import (
+    AuthorizationRequestCreate,
+    AuthorizationRequestUpdate,
+    AuthorizationUrlResponse,
+    AuthorizeRequest,
+    CallbackRequest,
+)
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.identity import ProviderIdentity
-from app.schemas.user.token import TokenPair
+from app.schemas.user.token import TokenPair, TokenRequest
 from app.services.user import token_service, user_service
 from app.services.user.auth.oidc_provider import OIDCProvider
 from app.services.user.auth.providers import providers
-from app.utils.utils import hash_secret
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
 AUTHORIZATION_REQUEST_LIFETIME = timedelta(minutes=10)
 AUTHORIZATION_CODE_LIFETIME = timedelta(minutes=1)
+CLIENT_ERROR_PATTERN: re.Pattern[str] = re.compile(r"[\x20-\x21\x23-\x5B\x5D-\x7E]{1,128}")
+
+
+def _build_client_error_code(*, error: str | None) -> str:
+    if error is not None and CLIENT_ERROR_PATTERN.fullmatch(error) is not None:
+        return error
+
+    return "invalid_request"
+
+
+def _check_redirect_uri(*, redirect_uri: str) -> None:
+    if redirect_uri not in settings.allowed_redirect_uris:
+        raise RedirectUriNotAllowed(redirect_uri=redirect_uri, logger=logger)
 
 
 def _build_client_url(*, request_db: AuthorizationRequestModel, params: dict[str, str]) -> str:
@@ -49,7 +69,7 @@ async def _get_verified_code_request(
     *, db: AsyncSession, code: str, redirect_uri: str, code_verifier: str
 ) -> AuthorizationRequestModel:
     request_db: AuthorizationRequestModel | None = await authorization_request_crud.get_by_code_hash(
-        db=db, code_hash=hash_secret(secret=code)
+        db=db, code_hash=utils.hash_secret(secret=code)
     )
     if request_db is None or request_db.used or request_db.expires_at <= datetime.now():
         raise InvalidTokenException(log_message="Unknown, used or expired authorization code", logger=logger)
@@ -64,33 +84,23 @@ async def _get_verified_code_request(
     return request_db
 
 
-async def authorize(
-    *,
-    db: AsyncSession,
-    provider: ProviderType,
-    redirect_uri: str,
-    code_challenge: str,
-    client_state: str,
-    link_user_id: UUID | None = None,
+async def _reject_callback(*, db: AsyncSession, request_db: AuthorizationRequestModel, error_code: str) -> str:
+    await authorization_request_crud.update_orm(db=db, obj_in={"used": True}, id=request_db.id)
+    error_url: str = _build_client_url(request_db=request_db, params={"error": error_code})
+    return error_url
+
+
+async def _create_authorization_url(
+    *, db: AsyncSession, provider: ProviderType, authorize_request: AuthorizeRequest, link_user_id: UUID | None
 ) -> str:
-    if redirect_uri not in settings.allowed_redirect_uris:
-        raise RedirectUriNotAllowed(redirect_uri=redirect_uri, logger=logger)
-
-    if link_user_id is not None:
-        linked_db: ExternalUserModel | None = await external_user_crud.get_or_none(
-            db=db, user_id=link_user_id, provider=provider
-        )
-        if linked_db is not None:
-            raise ProviderAlreadyLinked(user_id=link_user_id, provider=provider, logger=logger)
-
     authorization_request_create = AuthorizationRequestCreate(
         provider=provider,
         state=secrets.token_urlsafe(32),
         nonce=secrets.token_urlsafe(32),
         provider_code_verifier=secrets.token_urlsafe(48),
-        client_redirect_uri=redirect_uri,
-        client_state=client_state,
-        client_code_challenge=code_challenge,
+        client_redirect_uri=authorize_request.redirect_uri,
+        client_state=authorize_request.state,
+        client_code_challenge=authorize_request.code_challenge,
         expires_at=datetime.now() + AUTHORIZATION_REQUEST_LIFETIME,
         link_user_id=link_user_id,
     )
@@ -105,8 +115,35 @@ async def authorize(
     return authorization_url
 
 
-async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code: str | None, error: str | None) -> str:
-    request_db: AuthorizationRequestModel | None = await authorization_request_crud.get_by_state(db=db, state=state)
+async def authorize(*, db: AsyncSession, provider: ProviderType, authorize_request: AuthorizeRequest) -> str:
+    _check_redirect_uri(redirect_uri=authorize_request.redirect_uri)
+    authorization_url: str = await _create_authorization_url(
+        db=db, provider=provider, authorize_request=authorize_request, link_user_id=None
+    )
+    return authorization_url
+
+
+async def start_link(
+    *, db: AsyncSession, user_id: UUID, provider: ProviderType, authorize_request: AuthorizeRequest
+) -> AuthorizationUrlResponse:
+    _check_redirect_uri(redirect_uri=authorize_request.redirect_uri)
+    linked_db: ExternalUserModel | None = await external_user_crud.get_or_none(
+        db=db, user_id=user_id, provider=provider
+    )
+    if linked_db is not None:
+        raise ProviderAlreadyLinked(user_id=user_id, provider=provider, logger=logger)
+
+    authorization_url: str = await _create_authorization_url(
+        db=db, provider=provider, authorize_request=authorize_request, link_user_id=user_id
+    )
+    authorization_url_response = AuthorizationUrlResponse(authorization_url=authorization_url)
+    return authorization_url_response
+
+
+async def callback(*, db: AsyncSession, provider: ProviderType, callback_request: CallbackRequest) -> str:
+    request_db: AuthorizationRequestModel | None = await authorization_request_crud.get_by_state(
+        db=db, state=callback_request.state
+    )
     if request_db is None or request_db.provider != provider:
         raise InvalidAuthData(log_message=f"Unknown {provider.value} authorization state", logger=logger)
 
@@ -116,17 +153,17 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     if request_db.expires_at <= datetime.now():
         raise InvalidAuthData(log_message=f"Authorization request `{request_db.id}` expired", logger=logger)
 
-    if error is not None or code is None:
-        error_code: str = error if error is not None else "invalid_request"
-        error_url: str = _build_client_url(request_db=request_db, params={"error": error_code})
+    if callback_request.error is not None or callback_request.code is None:
+        error_code: str = _build_client_error_code(error=callback_request.error)
+        error_url: str = await _reject_callback(db=db, request_db=request_db, error_code=error_code)
         return error_url
 
     oidc_provider: OIDCProvider = providers[provider]
     identity: ProviderIdentity | None = await oidc_provider.fetch_identity(
-        code=code, code_verifier=request_db.provider_code_verifier, nonce=request_db.nonce
+        code=callback_request.code, code_verifier=request_db.provider_code_verifier, nonce=request_db.nonce
     )
-    server_error_url: str = _build_client_url(request_db=request_db, params={"error": "server_error"})
     if identity is None:
+        server_error_url: str = await _reject_callback(db=db, request_db=request_db, error_code="server_error")
         return server_error_url
 
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
@@ -134,11 +171,8 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     )
     is_link: bool = request_db.link_user_id is not None
     if is_link and user_db is not None and user_db.id != request_db.link_user_id:
-        await authorization_request_crud.update_orm(
-            db=db, obj_in={"used": True, "link_identity": None}, id=request_db.id
-        )
-        error_url: str = _build_client_url(
-            request_db=request_db, params={"error": ErrorCodeType.IDENTITY_LINKED_TO_ANOTHER_USER.value}
+        error_url: str = await _reject_callback(
+            db=db, request_db=request_db, error_code=ErrorCodeType.IDENTITY_LINKED_TO_ANOTHER_USER.value
         )
         return error_url
 
@@ -147,16 +181,18 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
             user_db: UserModel | None = await user_service.create_user(db=db, identity=identity)
 
         except ConflictException as exc:
+            server_error_url: str = _build_client_url(request_db=request_db, params={"error": "server_error"})
             raise ClientRedirect(url=server_error_url, exception=exc)
 
         if user_db is None:
+            server_error_url: str = await _reject_callback(db=db, request_db=request_db, error_code="server_error")
             return server_error_url
 
     authorization_code: str = secrets.token_urlsafe(32)
     authorization_request_update = AuthorizationRequestUpdate(
         user_id=None if is_link else user_db.id,
         link_identity=identity.model_dump(mode="json") if is_link else None,
-        code_hash=hash_secret(secret=authorization_code),
+        code_hash=utils.hash_secret(secret=authorization_code),
         expires_at=datetime.now() + AUTHORIZATION_CODE_LIFETIME,
     )
     await authorization_request_crud.update_orm(db=db, obj_in=authorization_request_update, id=request_db.id)
@@ -165,11 +201,19 @@ async def callback(*, db: AsyncSession, provider: ProviderType, state: str, code
     return redirect_url
 
 
-async def exchange_code(
-    *, db: AsyncSession, code: str, redirect_uri: str, code_verifier: str, refresh_token: str | None = None
-) -> TokenPair:
+async def grant_token(*, db: AsyncSession, token_request: TokenRequest, refresh_token: str | None) -> TokenPair:
+    if token_request.grant_type == "refresh_token":
+        if refresh_token is None:
+            raise InvalidTokenException(log_message="Refresh token cookie missing", logger=logger)
+
+        refreshed_token: TokenPair = await token_service.rotate_refresh_token(db=db, refresh_token=refresh_token)
+        return refreshed_token
+
     request_db: AuthorizationRequestModel = await _get_verified_code_request(
-        db=db, code=code, redirect_uri=redirect_uri, code_verifier=code_verifier
+        db=db,
+        code=token_request.code,
+        redirect_uri=token_request.redirect_uri,
+        code_verifier=token_request.code_verifier,
     )
     if request_db.link_user_id is not None:
         raise InvalidTokenException(

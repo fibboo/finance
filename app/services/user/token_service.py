@@ -19,7 +19,7 @@ from app.exceptions.unauthorized_401 import (
 )
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.schemas.user.token import RefreshTokenCreate, TokenPair
-from app.utils.utils import hash_secret
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -42,7 +42,7 @@ async def issue_token_pair(*, db: AsyncSession, user_id: UUID, family_id: UUID |
     refresh_token: str = secrets.token_urlsafe(48)
     refresh_token_create = RefreshTokenCreate(
         user_id=user_id,
-        token_hash=hash_secret(secret=refresh_token),
+        token_hash=utils.hash_secret(secret=refresh_token),
         family_id=family_id if family_id is not None else uuid4(),
         expires_at=now + timedelta(seconds=settings.refresh_token_expire_seconds),
     )
@@ -75,7 +75,7 @@ def verify_access_token(*, access_token: str) -> UUID:
 
 
 async def rotate_refresh_token(*, db: AsyncSession, refresh_token: str) -> TokenPair:
-    token_hash: str = hash_secret(secret=refresh_token)
+    token_hash: str = utils.hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:
         raise InvalidRefreshTokenException(log_message="Unknown refresh token", logger=logger)
@@ -99,7 +99,7 @@ async def revoke_refresh_token(*, db: AsyncSession, refresh_token: str | None) -
     if refresh_token is None:
         return
 
-    token_hash: str = hash_secret(secret=refresh_token)
+    token_hash: str = utils.hash_secret(secret=refresh_token)
     refresh_token_db: RefreshTokenModel | None = await refresh_token_crud.get_by_hash(db=db, token_hash=token_hash)
     if refresh_token_db is None:
         return

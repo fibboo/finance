@@ -1,17 +1,15 @@
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import Cookie, Depends, Form, Header
+from fastapi import Cookie, Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.cookies import REFRESH_TOKEN_COOKIE
+from app.api import cookies
 from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
 from app.db.postgres import session_maker
 from app.exceptions.forbidden_403 import OriginNotAllowed
 from app.exceptions.unauthorized_401 import InvalidTokenException, RefreshTokenReusedException
-from app.schemas.user.token import TokenRequest
 from app.services.user import token_service, user_service
 
 logger = get_logger(logger_name=__name__)
@@ -62,18 +60,9 @@ async def get_onboarded_user_id(
 async def get_refresh_token(
     *,
     origin: str | None = Header(default=None),
-    refresh_token: str | None = Cookie(default=None, alias=REFRESH_TOKEN_COOKIE),
+    refresh_token: str | None = Cookie(default=None, alias=cookies.REFRESH_TOKEN_COOKIE),
 ) -> str | None:
     if origin is not None and origin not in settings.allowed_origins:
         raise OriginNotAllowed(origin=origin, logger=logger)
-
-    return refresh_token
-
-
-async def get_grant_refresh_token(
-    *, data: Annotated[TokenRequest, Form()], refresh_token: str | None = Depends(get_refresh_token)
-) -> str | None:
-    if data.grant_type == "refresh_token" and refresh_token is None:
-        raise InvalidTokenException(log_message="Refresh token cookie missing", logger=logger)
 
     return refresh_token

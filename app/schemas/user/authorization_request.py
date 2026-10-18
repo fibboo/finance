@@ -1,9 +1,23 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
 
 from app.schemas.user.external_user import ProviderType
+
+
+class AuthorizeRequest(BaseModel):
+    redirect_uri: str
+    code_challenge: constr(pattern=r"^[A-Za-z0-9_-]{43}$")
+    code_challenge_method: Literal["S256"]
+    state: constr(min_length=1, max_length=512)
+
+
+class CallbackRequest(BaseModel):
+    state: constr(min_length=1, max_length=512)
+    code: str | None = None
+    error: str | None = None
 
 
 class AuthorizationRequestCreate(BaseModel):

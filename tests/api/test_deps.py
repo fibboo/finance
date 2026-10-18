@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.api.deps import (
-    get_grant_refresh_token,
     get_onboarded_user_id,
     get_refresh_token,
     get_user_id,
@@ -22,7 +21,6 @@ from app.models.user.user import User as UserModel
 from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.token import TokenRequest
 from app.schemas.user.user import UserCreate
 
 
@@ -114,36 +112,3 @@ async def test_get_refresh_token_origin_not_allowed():
 
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.error_code == ErrorCodeType.ORIGIN_NOT_ALLOWED
-
-
-@pytest.mark.parametrize(
-    "data, refresh_token",
-    [
-        (TokenRequest(grant_type="refresh_token"), "refresh_token_from_cookie"),
-        (
-            TokenRequest(
-                grant_type="authorization_code",
-                code="one_time_code",
-                redirect_uri="https://finance.test/auth/callback",
-                code_verifier="client_code_verifier_of_at_least_43_characters",
-            ),
-            None,
-        ),
-    ],
-    ids=["refresh_grant_with_cookie", "code_grant_without_cookie"],
-)
-async def test_get_grant_refresh_token_ok(data: TokenRequest, refresh_token: str | None):
-    # Act
-    result: str | None = await get_grant_refresh_token(data=data, refresh_token=refresh_token)
-
-    # Assert
-    assert result == refresh_token
-
-
-async def test_get_grant_refresh_token_refresh_grant_without_cookie():
-    # Act / Assert
-    with pytest.raises(InvalidTokenException) as exc:
-        await get_grant_refresh_token(data=TokenRequest(grant_type="refresh_token"), refresh_token=None)
-
-    assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
-    assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
