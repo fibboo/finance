@@ -18,3 +18,8 @@ async def test_get_accounting_dictionaries(db: AsyncSession):
         DictionaryItem(key="TRY", label="Turkish Lira"),
         DictionaryItem(key="USD", label="US Dollar"),
     ]
+    assert dictionaries.category_types == [
+        DictionaryItem(key="VARIABLE", label="Variable"),
+        DictionaryItem(key="FIXED", label="Fixed"),
+        DictionaryItem(key="PERIODIC", label="Periodic"),
+    ]

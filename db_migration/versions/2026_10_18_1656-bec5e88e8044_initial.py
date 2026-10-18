@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: 39d6d9ddd986
+Revision ID: bec5e88e8044
 Revises: 
-Create Date: 2026-10-18 16:54:21.246957
+Create Date: 2026-10-18 16:56:43.653082
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '39d6d9ddd986'
+revision: str = 'bec5e88e8044'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,12 +25,14 @@ def upgrade() -> None:
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('name', sa.String(length=64), nullable=False),
     sa.Column('description', sa.String(length=4096), nullable=True),
+    sa.Column('type', sa.Enum('VARIABLE', 'FIXED', 'PERIODIC', name='categorytype', native_enum=False), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id', 'name', name='category_unique_user_id_name')
     )
     op.create_index(op.f('ix_categories_name'), 'categories', ['name'], unique=False)
+    op.create_index(op.f('ix_categories_type'), 'categories', ['type'], unique=False)
     op.create_index(op.f('ix_categories_user_id'), 'categories', ['user_id'], unique=False)
     op.create_table('currencies',
     sa.Column('code', sa.String(length=3), nullable=False),
@@ -273,6 +275,7 @@ def downgrade() -> None:
     op.drop_table('income_sources')
     op.drop_table('currencies')
     op.drop_index(op.f('ix_categories_user_id'), table_name='categories')
+    op.drop_index(op.f('ix_categories_type'), table_name='categories')
     op.drop_index(op.f('ix_categories_name'), table_name='categories')
     op.drop_table('categories')
     # ### end Alembic commands ###

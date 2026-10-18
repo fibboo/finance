@@ -24,6 +24,10 @@ class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
                 )
             )
 
+        if len(request.types) > 0:
+            types: list[str] = [category_type.value for category_type in request.types]
+            query = query.where(self.model.type.in_(types))
+
         paginated_categories = await apaginate(db, query, request)
         return paginated_categories
 

@@ -8,3 +8,4 @@ class DictionaryItem(BaseModel):
 
 class AccountingDictionaries(BaseModel):
     currencies: list[DictionaryItem]
+    category_types: list[DictionaryItem]
