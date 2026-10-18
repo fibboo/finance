@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: ba992cc34f11
+Revision ID: e489ab5c3128
 Revises: 
-Create Date: 2026-10-18 16:47:31.974697
+Create Date: 2026-10-18 16:49:59.288322
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'ba992cc34f11'
+revision: str = 'e489ab5c3128'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -49,6 +49,22 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_categories_name'), 'categories', ['name'], unique=False)
     op.create_index(op.f('ix_categories_user_id'), 'categories', ['user_id'], unique=False)
+    op.create_table('currencies',
+    sa.Column('code', sa.String(length=3), nullable=False),
+    sa.Column('name', sa.String(length=64), nullable=False),
+    sa.PrimaryKeyConstraint('code')
+    )
+    op.bulk_insert(
+        sa.table('currencies', sa.column('code', sa.String), sa.column('name', sa.String)),
+        [
+            {'code': 'USD', 'name': 'US Dollar'},
+            {'code': 'EUR', 'name': 'Euro'},
+            {'code': 'RSD', 'name': 'Serbian Dinar'},
+            {'code': 'GEL', 'name': 'Georgian Lari'},
+            {'code': 'TRY', 'name': 'Turkish Lira'},
+            {'code': 'RUB', 'name': 'Russian Ruble'},
+        ],
+    )
     op.create_table('income_sources',
     sa.Column('id', sa.UUID(), server_default=sa.text('uuidv7()'), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
@@ -246,6 +262,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_income_sources_user_id'), table_name='income_sources')
     op.drop_index(op.f('ix_income_sources_name'), table_name='income_sources')
     op.drop_table('income_sources')
+    op.drop_table('currencies')
     op.drop_index(op.f('ix_categories_user_id'), table_name='categories')
     op.drop_index(op.f('ix_categories_name'), table_name='categories')
     op.drop_table('categories')
