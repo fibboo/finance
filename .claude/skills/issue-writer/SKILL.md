@@ -106,6 +106,18 @@ Rules:
   - **Code change** (logic refactoring, no schema changes): a `###` sub-heading per logical aspect when there is more than one, otherwise 2–3 sentences. No code blocks.
   - **Bug**: `### Root cause` and `### Fix` sub-headings. Put a traceback excerpt (the last 5–10 relevant lines) under the root cause, and the proposed fix in 1–2 sentences under the fix.
 - **Container issues**: do NOT describe the sub-issues in the body; they are linked through the sub-issues API.
+- **Mockups section**: required in an issue that adds or changes a screen, and in a Container that has such sub-issues; see **Mockups**.
+
+## Mockups
+
+An issue that adds or changes a screen is drafted only after its mockup is agreed. Issues without a screen are not held back by this, so in a Container the backend sub-issues may be drafted and created first and the frontend ones after the agreement.
+
+1. **Agree the mockup.** Propose a few variants of every affected screen on a design canvas or whatever mockup tool the host offers, and iterate with the user until one is agreed. Each screen is drawn in the dark and the light theme, at phone width and, where it has a desktop layout, at desktop width.
+2. **Export it.** Render every agreed screen to PNG at twice its pixel size (phone 390 px wide, desktop 1280 px wide), for example with a headless browser screenshot. File names are `<screen>-<width>-<theme>.png`, such as `home-phone-dark.png`.
+3. **Store it in the `assets` branch.** It is an orphan branch that shares no history with `main`, holds no code and is never merged (`CLAUDE.md` **Git Conventions**). Each issue has a folder named by its number with the screens it touches; a Container's folder holds every screen of the feature, so one PNG may sit in two folders. Work on it in a separate worktree (`git worktree add <dir> assets`), so the working checkout never leaves its own branch, then commit and push.
+4. **Show it in the issue.** The body ends with a `## Mockups` section: a table with the columns Screen, Dark and Light and one row per screen, each image an `<img>` with a `width` (240 for a phone screen, 480 for a desktop one) and an `alt` text, pointing at `https://github.com/fibboo/finance/blob/assets/<issue_number>/<file>.png?raw=true`. The body never links the design canvas, which other readers cannot open.
+
+The folder is named by the issue number, which exists only after the issue is created. So the draft shows the Mockups section with `<issue_number>` in its links; after creating the issue, push the PNGs into its folder and edit the body to put the number in. A later change to an agreed screen replaces the PNG under the same name, so the links stay valid.
 
 ## Git Conventions
 
@@ -135,7 +147,7 @@ Prepare body files as described in **Approval and Body Files**.
 3. Estimate whether the work will exceed the 500-change limit by thinking through the number of affected files, schema changes, new classes or models, and wiring. Count with the exclusions from `.claude/rules/common.md`: excluded files are not a factor, and everything else is, including the model and schema changes that go with a migration. If the estimate is borderline, lean towards splitting.
 4. If it exceeds the limit, plan a Container with sub-issues titled in the `PR N of M` format. Otherwise plan a single issue.
 5. **Investigate the repository** for the files the plan names: every file in Affected Scope must be confirmed to exist (or tagged `[new]`).
-6. **Compose the full draft**: title, the complete body with every section filled in, labels and parent. For a Container, compose the parent draft and every sub-issue draft.
+6. **Compose the full draft**: title, the complete body with every section filled in, labels and parent. For a Container, compose the parent draft and every sub-issue draft. For an issue that adds or changes a screen, agree and export its mockup first (**Mockups**) and end the body with the Mockups section.
 7. **Present the draft for approval** with `EnterPlanMode`, in this format:
 
    ```
@@ -153,7 +165,8 @@ Prepare body files as described in **Approval and Body Files**.
 8. **Call `ExitPlanMode`** and wait for explicit approval given after the complete draft was shown. If the user asks for changes, revise the draft and call `ExitPlanMode` again. Do NOT run any GitHub write command until that draft is approved.
 9. Create the issue (see Commands), assigned to `@me`. Always run the project item-add command, take `.id` from its response and set the status to `Todo`. If creation succeeded but a later step failed, resume from the existing issue rather than creating a duplicate.
 10. For a Container: create each sub-issue in order using step 9, including assignment, project item-add and status `Todo` for every child. Link each child to the Container, then verify the links.
-11. Report back with the issue numbers as Markdown links: `[#<number>](<url>)`.
+11. For every created issue with a Mockups section: push its PNGs to its folder in the `assets` branch and edit its body to put its number into the image links.
+12. Report back with the issue numbers as Markdown links: `[#<number>](<url>)`.
 
 ### Updating an existing issue
 
@@ -174,7 +187,7 @@ Refining turns a raw idea into an implementation plan. It is the update path plu
 3. **Verify what is uncertain instead of asserting it.** Where the right solution is not obvious, run the affected tests, run a script, or exercise the code path as described in the Commands section of `CLAUDE.md`. What a run proves goes into the plan; what a run disproves must not.
 4. Judge the scope against the 500-change limit. If the plan would exceed it, propose the Container split and its sub-issues instead of writing an oversized plan.
 5. Ask about every ambiguity the investigation could not resolve, in one `AskUserQuestion` call. Do not repeat questions already answered in the conversation.
-6. Compose the complete description in the standard structure, choosing the Implementation Steps format that fits the work.
+6. Compose the complete description in the standard structure, choosing the Implementation Steps format that fits the work. If the plan adds or changes a screen, agree and export its mockup first, push the PNGs to the issue's folder in the `assets` branch and end the description with the Mockups section (**Mockups**).
 7. Present the full replacement draft with `EnterPlanMode` / `ExitPlanMode` and wait for explicit approval given after that complete draft was shown.
 8. Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Never change the status.
 9. Post a comment summarizing what was planned and what was verified: which components the plan touches, and which claims a run confirmed.
@@ -193,6 +206,7 @@ Before finalizing a **new** issue, verify:
 - [ ] Container issues have no PR noted in the body
 - [ ] **No issue body references a parent or child issue number**
 - [ ] Sub-issues verified as linked to the parent
+- [ ] An issue that adds or changes a screen was drafted after its mockup was agreed, and ends with a Mockups section whose images load from its folder in the `assets` branch, with no link to the design canvas
 
 Before finalizing an **update**, verify:
 - [ ] Fetched the current issue before composing the update
