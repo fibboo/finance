@@ -9,4 +9,4 @@ class EntityStatusType(str, Enum):
     DELETED = "DELETED"
 
 
-CurrencyCode: TypeAlias = Annotated[str, StringConstraints(min_length=3, max_length=3)]
+CurrencyCode: TypeAlias = Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")]
