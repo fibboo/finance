@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: 44b44a14b82f
+Revision ID: 1ccea9b24aff
 Revises: 
-Create Date: 2026-10-18 13:57:24.682546
+Create Date: 2026-10-18 14:51:38.807749
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '44b44a14b82f'
+revision: str = '1ccea9b24aff'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -43,14 +43,12 @@ def upgrade() -> None:
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('name', sa.String(length=64), nullable=False),
     sa.Column('description', sa.String(length=4096), nullable=True),
-    sa.Column('type', sa.Enum('GENERAL', 'TARGET', name='categorytype', native_enum=False), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id', 'name', name='category_unique_user_id_name')
     )
     op.create_index(op.f('ix_categories_name'), 'categories', ['name'], unique=False)
-    op.create_index(op.f('ix_categories_type'), 'categories', ['type'], unique=False)
     op.create_index(op.f('ix_categories_user_id'), 'categories', ['user_id'], unique=False)
     op.create_table('income_sources',
     sa.Column('id', sa.UUID(), server_default=sa.text('uuidv7()'), nullable=False),
@@ -250,7 +248,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_income_sources_name'), table_name='income_sources')
     op.drop_table('income_sources')
     op.drop_index(op.f('ix_categories_user_id'), table_name='categories')
-    op.drop_index(op.f('ix_categories_type'), table_name='categories')
     op.drop_index(op.f('ix_categories_name'), table_name='categories')
     op.drop_table('categories')
     op.drop_index(op.f('ix_accounts_user_id'), table_name='accounts')
