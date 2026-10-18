@@ -2,7 +2,7 @@
 line-length = 120
 target-version = ["py315"]
 include = '\.pyi?$'
-extend-exclude = '(^|/)(db_migration)(/|$)'
+extend-exclude = '^/db_migration/'
 
 
 [tool.isort]
@@ -10,4 +10,4 @@ profile = "black"
 line_length = 120
 combine_as_imports = true
 force_alphabetical_sort_within_sections = true
-extend_skip = ["db_migration"]
+extend_skip_glob = ["db_migration/*"]
