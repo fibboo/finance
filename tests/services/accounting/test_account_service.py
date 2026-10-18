@@ -334,12 +334,11 @@ async def test_restore_account_not_found(db_transaction: AsyncSession):
     user_id: UUID = uuid4()
     account_id: UUID = uuid4()
 
-    # Act
+    # Act / Assert
     with pytest.raises(EntityNotFound) as exc:
         await account_service.restore_account(db=db_transaction, account_id=account_id, user_id=user_id)
         await db_transaction.commit()
 
-    # Assert
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.message == "Entity not found"
     search_params = {"id": account_id, "user_id": user_id}
@@ -357,12 +356,11 @@ async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSes
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
-    # Act
+    # Act / Assert
     with pytest.raises(EntityNotFound) as exc:
         await account_service.restore_account(db=db_transaction, account_id=account_created.id, user_id=user_id)
         await db_transaction.commit()
 
-    # Assert
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
@@ -381,12 +379,11 @@ async def test_restore_account_name_taken(db: AsyncSession, db_transaction: Asyn
     await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
-    # Act
+    # Act / Assert
     with pytest.raises(IntegrityException) as exc:
         await account_service.restore_account(db=db_transaction, account_id=deleted_account.id, user_id=user_id)
         await db_transaction.commit()
 
-    # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.message == "Entity integrity error"
     assert exc.value.log_message == "Account integrity error: 23505 on accounts.account_unique_user_id_name"
