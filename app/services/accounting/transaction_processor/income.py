@@ -6,6 +6,7 @@ from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import IncomeTransaction as IncomeTransactionModel
 from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.transaction import IncomeRequest, Transaction, TransactionCreate, TransactionType
+from app.services.accounting import income_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(logger_name=__name__)
@@ -48,6 +49,8 @@ class Income(TransactionProcessor[IncomeRequest]):
             db=self.db, id=data.to_account_id, user_id=self.user_id
         )
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
+
+        await income_service.get_income_source(db=self.db, income_source_id=data.income_source_id, user_id=self.user_id)
 
         transaction_data: TransactionCreate = TransactionCreate(
             **data.model_dump(), user_id=self.user_id, base_currency_amount=data.source_amount

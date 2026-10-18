@@ -325,8 +325,9 @@ async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession
     assert account.balance == Decimal("0")
     assert account.status == EntityStatusType.ACTIVE
 
-    accounts: list[Account] = await account_service.get_accounts(db=db, user_id=user_id)
-    assert [account.id for account in accounts] == [account_created.id]
+    request: AccountRequest = AccountRequest()
+    accounts: Page[Account] = await account_service.get_accounts(db=db, request=request, user_id=user_id)
+    assert [account.id for account in accounts.items] == [account_created.id]
 
 
 async def test_restore_account_not_found(db_transaction: AsyncSession):

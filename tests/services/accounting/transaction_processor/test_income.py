@@ -12,7 +12,6 @@ from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.income_source import income_source_crud
 from app.crud.user.user import user_crud
-from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import (
     AccountTypeMismatchException,
     CurrencyMismatchException,
@@ -411,13 +410,18 @@ async def test_create_income_account_type_mismatch(db: AsyncSession, db_transact
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
-async def test_create_income_integrity_error(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_income_income_source_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
         username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
+
+    other_user_create_data: UserCreate = UserCreate(
+        username="other", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    other_user_db: UserModel = await user_crud.create(db=db, obj_in=other_user_create_data, commit=True)
 
     account_create_data: AccountCreate = AccountCreate(
         user_id=user_id, name="Income USD", currency=CurrencyType.USD, account_type=AccountType.INCOME
@@ -426,7 +430,10 @@ async def test_create_income_integrity_error(db: AsyncSession, db_transaction: A
     account_balance_before: Decimal = copy(account_db.balance)
     base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
 
-    income_source_id: UUID = uuid4()
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=other_user_db.id, name="Best Job")
+    income_source_db: IncomeSourceModel = await income_source_crud.create(
+        db=db, obj_in=income_source_create_data, commit=True
+    )
     income_create_data: IncomeRequest = IncomeRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
@@ -434,27 +441,27 @@ async def test_create_income_integrity_error(db: AsyncSession, db_transaction: A
         destination_amount=Decimal("1"),
         destination_currency=CurrencyType.USD,
         to_account_id=account_db.id,
-        income_source_id=income_source_id,
+        income_source_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
     )
-    with pytest.raises(IntegrityException) as exc:
+    with pytest.raises(EntityNotFound) as exc:
         await transaction_processor.create(data=income_create_data)
         await db_transaction.commit()
 
     # Assert
-    assert exc.value.status_code == status.HTTP_409_CONFLICT
-    assert exc.value.message == "Entity integrity error"
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.message == "Entity not found"
     assert (
         exc.value.log_message
-        == "Transaction integrity error: 23503 on transactions_income.transactions_income_income_source_id_fkey"
+        == f"IncomeSource not found by {{'id': UUID('{income_source_db.id}'), 'user_id': UUID('{user_id}')}}"
     )
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.ERROR
-    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 0
