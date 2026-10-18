@@ -6,6 +6,7 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.category import category_crud
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import (
@@ -15,6 +16,7 @@ from app.exceptions.conflict_409 import (
     ProviderAlreadyLinked,
 )
 from app.models.accounting.account import Account as AccountModel
+from app.models.accounting.category import Category as CategoryModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountType
 from app.schemas.base import CurrencyType
@@ -206,6 +208,10 @@ async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSessi
     for account_db in accounts_db:
         assert account_db.currency == CurrencyType.EUR
 
+    categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
+    assert len(categories_db) == 1
+    assert categories_db[0].name == "General"
+
 
 async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
@@ -230,6 +236,9 @@ async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: A
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 0
 
+    categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
+    assert len(categories_db) == 0
+
 
 async def test_set_base_currency_same_currency_again(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
@@ -248,6 +257,9 @@ async def test_set_base_currency_same_currency_again(db: AsyncSession, db_transa
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 0
+
+    categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
+    assert len(categories_db) == 0
 
 
 async def test_get_user_base_currency(db: AsyncSession):

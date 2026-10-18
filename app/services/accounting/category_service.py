@@ -32,6 +32,11 @@ async def create_category(*, db: AsyncSession, create_data: CategoryCreateReques
     return category
 
 
+async def create_default_category(*, db: AsyncSession, user_id: UUID) -> None:
+    create_data: CategoryCreate = CategoryCreate(name="General", user_id=user_id)
+    await category_crud.create(db=db, obj_in=create_data)
+
+
 async def get_categories(*, db: AsyncSession, request: CategoryRequest, user_id: UUID) -> Page[Category]:
     categories_db: Page[CategoryModel] = await category_crud.get_categories(db=db, request=request, user_id=user_id)
     categories: Page[Category] = Page[Category].model_validate(categories_db)
