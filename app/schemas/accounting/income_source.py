@@ -1,15 +1,16 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, ConfigDict, constr
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.utils import utils
 
 
 class IncomeSourceBase(BaseModel):
-    name: constr(min_length=3, max_length=64)
-    description: constr(min_length=3, max_length=256) | None = None
+    name: Annotated[str, StringConstraints(min_length=3, max_length=64)]
+    description: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
 
 
 class IncomeSourceCreateRequest(IncomeSourceBase):

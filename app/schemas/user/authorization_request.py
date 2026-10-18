@@ -1,21 +1,23 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal, TypeAlias
 from uuid import UUID
 
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, StringConstraints
 
 from app.schemas.user.external_user import ProviderType
+
+OAuthState: TypeAlias = Annotated[str, StringConstraints(min_length=1, max_length=512)]
 
 
 class AuthorizeRequest(BaseModel):
     redirect_uri: str
-    code_challenge: constr(pattern=r"^[A-Za-z0-9_-]{43}$")
+    code_challenge: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{43}$")]
     code_challenge_method: Literal["S256"]
-    state: constr(min_length=1, max_length=512)
+    state: OAuthState
 
 
 class CallbackRequest(BaseModel):
-    state: constr(min_length=1, max_length=512)
+    state: OAuthState
     code: str | None = None
     error: str | None = None
 

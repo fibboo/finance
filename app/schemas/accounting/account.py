@@ -1,8 +1,9 @@
 from decimal import Decimal
 from enum import Enum
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, constr
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.schemas.base import CurrencyType, EntityStatusType
 
@@ -15,8 +16,8 @@ class AccountType(str, Enum):
 
 
 class AccountBase(BaseModel):
-    name: constr(min_length=3, max_length=64)
-    description: constr(min_length=3, max_length=4096) | None = None
+    name: Annotated[str, StringConstraints(min_length=3, max_length=64)]
+    description: Annotated[str, StringConstraints(min_length=3, max_length=4096)] | None = None
 
 
 class AccountCreateRequest(AccountBase):
