@@ -469,7 +469,7 @@ async def test_create_adjustment_other_currency_without_rate_and_base_amount(
 @pytest.mark.parametrize(
     "new_balance, base_currency_amount, base_currency_rate",
     [
-        (Decimal("500.00"), Decimal("540.00"), Decimal("0.9259")),
+        (Decimal("500.00"), Decimal("540.00"), Decimal("0.9259259259")),
         (Decimal("-450.00"), Decimal("500.00"), Decimal("0.9000")),
     ],
 )

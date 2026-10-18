@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_EVEN
+from decimal import Decimal
 from uuid import UUID
 
 from app.configs.logging_settings import get_logger
@@ -57,9 +57,7 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
             if data.base_currency_amount is not None:
                 raise BaseCurrencyAmountNotAllowed(account_id=account_db.id, logger=logger)
 
-            base_currency_amount: Decimal = amount / account_db.base_currency_rate
-            base_currency_amount: Decimal = base_currency_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
-            base_currency_amount: Decimal = max(base_currency_amount, Decimal("0.01"))
+            base_currency_amount: Decimal = self._quantize_amount(amount=amount / account_db.base_currency_rate)
         elif data.base_currency_amount is not None:
             base_currency_amount: Decimal = data.base_currency_amount
         else:
@@ -73,23 +71,18 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
         transaction_db: AdjustmentTransactionModel,
         account_db: AccountModel,
         delta: Decimal,
-        base_currency_delta: Decimal,
     ) -> None:
         new_balance: Decimal = account_db.balance + delta
         has_known_rate: bool = self.__has_known_rate(account_db=account_db)
-        if new_balance != 0 and has_known_rate:
+        if new_balance == 0:
+            new_base_rate: Decimal = Decimal("0")
+        elif has_known_rate:
             new_base_rate: Decimal = account_db.base_currency_rate
-        elif new_balance != 0 and account_db.currency != self.base_currency:
+        elif account_db.currency == self.base_currency:
+            new_base_rate: Decimal = Decimal("1")
+        else:
             new_base_rate: Decimal = self._get_first_rate(
                 amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount
-            )
-        else:
-            new_base_rate: Decimal = self._get_credit_rate(
-                account_db=account_db,
-                transaction_db=transaction_db,
-                new_balance=new_balance,
-                base_currency_delta=base_currency_delta,
-                base_currency=self.base_currency,
             )
 
         await account_crud.update_orm(
@@ -129,23 +122,11 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
             return
 
         delta: Decimal = self._get_from_account_delta(transaction_db=transaction_db)
-        base_currency_delta: Decimal = self._get_from_account_base_currency_delta(transaction_db=transaction_db)
-        await self.__update_account(
-            transaction_db=transaction_db,
-            account_db=transaction_db.from_account,
-            delta=delta,
-            base_currency_delta=base_currency_delta,
-        )
+        await self.__update_account(transaction_db=transaction_db, account_db=transaction_db.from_account, delta=delta)
 
     async def _update_to_account(self, *, transaction_db: AdjustmentTransactionModel) -> None:
         if transaction_db.to_account_id is None:
             return
 
         delta: Decimal = self._get_to_account_delta(transaction_db=transaction_db)
-        base_currency_delta: Decimal = self._get_to_account_base_currency_delta(transaction_db=transaction_db)
-        await self.__update_account(
-            transaction_db=transaction_db,
-            account_db=transaction_db.to_account,
-            delta=delta,
-            base_currency_delta=base_currency_delta,
-        )
+        await self.__update_account(transaction_db=transaction_db, account_db=transaction_db.to_account, delta=delta)
