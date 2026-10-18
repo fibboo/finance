@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.endpoints.accounting import account, categories, income_sources, locations, transactions
-from app.api.endpoints.user import auth
+from app.api.endpoints.user import auth, user
 from app.schemas.error_response import responses
 
 api_router = APIRouter(responses=responses)
@@ -17,5 +17,6 @@ api_router.include_router(accounting_router)
 
 user_router = APIRouter(prefix="/user")
 user_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
+user_router.include_router(user.router, tags=["User"])
 
 api_router.include_router(user_router)

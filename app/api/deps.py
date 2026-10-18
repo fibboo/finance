@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.configs.logging_settings import get_logger
 from app.db.postgres import session_maker
 from app.exceptions.unauthorized_401 import InvalidTokenException, RefreshTokenReusedException
-from app.services.user import token_service
+from app.services.user import token_service, user_service
 
 logger = get_logger(logger_name=__name__)
 
@@ -44,4 +44,11 @@ async def get_user_id(*, credentials: HTTPAuthorizationCredentials | None = Depe
         raise InvalidTokenException(log_message="Bearer access token missing", logger=logger)
 
     user_id: UUID = token_service.verify_access_token(access_token=credentials.credentials)
+    return user_id
+
+
+async def get_onboarded_user_id(
+    *, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db_transaction)
+) -> UUID:
+    await user_service.get_user_base_currency(db=db, user_id=user_id)
     return user_id

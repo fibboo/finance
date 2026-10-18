@@ -1,4 +1,5 @@
 import logging
+from uuid import UUID
 
 from asyncpg import PostgresError
 from sqlalchemy.exc import IntegrityError
@@ -43,6 +44,28 @@ class IntegrityException(ConflictException):
             message="Entity integrity error",
             log_message=f"{entity.__name__} integrity error: {driver_error.sqlstate} on {failed_on}",
             error_code=ErrorCodeType.INTEGRITY_ERROR,
+            logger=logger,
+            log_level=LogLevelType.ERROR,
+        )
+
+
+class BaseCurrencyNotSet(ConflictException):
+    def __init__(self, *, user_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Base currency is not set",
+            log_message=f"User `{user_id}` has not chosen a base currency yet",
+            error_code=ErrorCodeType.BASE_CURRENCY_NOT_SET,
+            logger=logger,
+            log_level=LogLevelType.INFO,
+        )
+
+
+class BaseCurrencyAlreadySet(ConflictException):
+    def __init__(self, *, user_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Base currency is already set",
+            log_message=f"User `{user_id}` already has a base currency",
+            error_code=ErrorCodeType.BASE_CURRENCY_ALREADY_SET,
             logger=logger,
             log_level=LogLevelType.ERROR,
         )

@@ -4,12 +4,19 @@ import pytest
 from fastapi.security import HTTPAuthorizationCredentials
 from joserfc import jwt
 from joserfc.jwk import OctKey
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from app.api.deps import get_user_id
+from app.api.deps import get_onboarded_user_id, get_user_id
 from app.configs.settings import settings
+from app.crud.user.user import user_crud
+from app.exceptions.conflict_409 import BaseCurrencyNotSet
 from app.exceptions.unauthorized_401 import InvalidTokenException
+from app.models.user.user import User as UserModel
+from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
+from app.schemas.user.external_user import ProviderType
+from app.schemas.user.user import UserCreate
 
 
 async def test_get_user_id_valid_token():
@@ -46,3 +53,31 @@ async def test_get_user_id_malformed_token():
 
     assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
     assert exc.value.error_code == ErrorCodeType.INVALID_TOKEN
+
+
+async def test_get_onboarded_user_id_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+
+    # Act
+    result: UUID = await get_onboarded_user_id(user_id=user_db.id, db=db_transaction)
+    await db_transaction.commit()
+
+    # Assert
+    assert result == user_db.id
+
+
+async def test_get_onboarded_user_id_base_currency_not_set(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+
+    # Act / Assert
+    with pytest.raises(BaseCurrencyNotSet) as exc:
+        await get_onboarded_user_id(user_id=user_db.id, db=db_transaction)
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_NOT_SET
