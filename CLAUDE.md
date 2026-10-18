@@ -70,6 +70,8 @@ isort <changed_files>      || docker compose run --rm backend isort <changed_fil
 
 Tests run through `tests/Dockerfile`, and `pytest.ini` sets the environment with fake values. The pytest-postgresql database is the one real service a suite starts. Every other external service stays mocked.
 
+`tests/db_migration/test_migrations.py` applies the Alembic revisions to an empty pytest-postgresql database, fails on any difference from the models, and runs the downgrade, so a model change needs a matching revision.
+
 **Scoping rules: always apply both levels.**
 1. **Module level**: only run tests for modules whose source files changed.
 2. **File level**: within that module, pass only the test paths that correspond to the changed source files. Do not run the full suite when a subset is enough. If no test maps to the changed files (for example, only config or rule files changed), skip tests entirely.
