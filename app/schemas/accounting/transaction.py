@@ -20,7 +20,7 @@ from app.schemas.accounting.account import Account
 from app.schemas.accounting.category import Category
 from app.schemas.accounting.income_source import IncomeSource
 from app.schemas.accounting.location import Location
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import CurrencyCode, EntityStatusType
 from app.utils import utils
 
 PositiveAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), decimal_places=2)]
@@ -36,9 +36,9 @@ class TransactionBase(BaseModel):
     transaction_date: date
     comment: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
     source_amount: PositiveAmount
-    source_currency: CurrencyType
+    source_currency: CurrencyCode
     destination_amount: PositiveAmount
-    destination_currency: CurrencyType
+    destination_currency: CurrencyCode
     transaction_type: TransactionType
 
 

@@ -20,7 +20,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.category import Category as CategoryModel
 from app.models.user.user import User as UserModel
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ExternalUserCreate, ProviderType
 from app.schemas.user.identity import ProviderIdentity
@@ -194,36 +194,55 @@ async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSessi
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
 
     # Act
-    user: User = await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency=CurrencyType.EUR)
+    user: User = await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency="EUR")
     await db_transaction.commit()
 
     # Assert
     assert user.id == user_db.id
-    assert user.base_currency == CurrencyType.EUR
+    assert user.base_currency == "EUR"
 
     await db.refresh(user_db)
-    assert user_db.base_currency == CurrencyType.EUR
+    assert user_db.base_currency == "EUR"
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 1
     assert accounts_db[0].name == "Wallet"
-    assert accounts_db[0].currency == CurrencyType.EUR
+    assert accounts_db[0].currency == "EUR"
 
     categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
     assert len(categories_db) == 1
     assert categories_db[0].name == "General"
 
 
+async def test_set_base_currency_unknown_currency(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+
+    # Act / Assert
+    with pytest.raises(EntityNotFound) as exc:
+        await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency="XXX")
+
+    await db_transaction.rollback()
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    await db.refresh(user_db)
+    assert user_db.base_currency is None
+
+    accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
+    assert len(accounts_db) == 0
+
+
 async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
 
     # Act / Assert
     with pytest.raises(BaseCurrencyAlreadySet) as exc:
-        await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency=CurrencyType.EUR)
+        await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency="EUR")
 
     await db_transaction.rollback()
 
@@ -232,7 +251,7 @@ async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: A
     assert exc.value.log_level == LogLevelType.ERROR
 
     await db.refresh(user_db)
-    assert user_db.base_currency == CurrencyType.USD
+    assert user_db.base_currency == "USD"
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 0
@@ -243,18 +262,16 @@ async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: A
 
 async def test_set_base_currency_same_currency_again(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
 
     # Act
-    user: User = await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency=CurrencyType.USD)
+    user: User = await set_base_currency(db=db_transaction, user_id=user_db.id, base_currency="USD")
     await db_transaction.commit()
 
     # Assert
     assert user.id == user_db.id
-    assert user.base_currency == CurrencyType.USD
+    assert user.base_currency == "USD"
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 0
@@ -301,16 +318,16 @@ async def test_get_user_not_found(db: AsyncSession):
 async def test_get_user_base_currency(db: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     await db.commit()
 
     # Act
-    base_currency: CurrencyType = await get_user_base_currency(db=db, user_id=user_db.id)
+    base_currency: CurrencyCode = await get_user_base_currency(db=db, user_id=user_db.id)
 
     # Assert
-    assert base_currency == CurrencyType.USD
+    assert base_currency == "USD"
 
 
 async def test_get_user_base_currency_not_set(db: AsyncSession, db_transaction: AsyncSession):

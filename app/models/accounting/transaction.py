@@ -8,11 +8,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.accounting.account import Account
 from app.models.accounting.category import Category
+from app.models.accounting.currency import Currency
 from app.models.accounting.income_source import IncomeSource
 from app.models.accounting.location import Location
 from app.models.base import Base
 from app.schemas.accounting.transaction import TransactionType
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import EntityStatusType
 
 
 class Transaction(Base):
@@ -27,15 +28,9 @@ class Transaction(Base):
     base_currency_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
 
     source_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False, index=True)
-    source_currency: Mapped[CurrencyType] = mapped_column(
-        Enum(CurrencyType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
-        nullable=False,
-    )
+    source_currency: Mapped[str] = mapped_column(String(3), ForeignKey(Currency.code), nullable=False)
     destination_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
-    destination_currency: Mapped[CurrencyType] = mapped_column(
-        Enum(CurrencyType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
-        nullable=False,
-    )
+    destination_currency: Mapped[str] = mapped_column(String(3), ForeignKey(Currency.code), nullable=False)
 
     transaction_type: Mapped[TransactionType] = mapped_column(
         Enum(TransactionType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),

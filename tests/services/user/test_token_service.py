@@ -19,7 +19,6 @@ from app.exceptions.unauthorized_401 import (
 )
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
-from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair
@@ -29,9 +28,7 @@ from app.services.user import token_service
 
 async def test_issue_token_pair(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
 
     # Act
@@ -111,9 +108,7 @@ async def test_verify_access_token_malformed():
 
 async def test_rotate_refresh_token_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
     family_id: UUID = uuid4()
     old_token_db: RefreshTokenModel = await refresh_token_crud.create(
@@ -147,9 +142,7 @@ async def test_rotate_refresh_token_ok(db: AsyncSession, db_transaction: AsyncSe
 
 async def test_rotate_refresh_token_reused_revokes_family(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
     family_id: UUID = uuid4()
     other_family_id: UUID = uuid4()
@@ -210,9 +203,7 @@ async def test_rotate_refresh_token_unknown(db: AsyncSession, db_transaction: As
 
 async def test_rotate_refresh_token_expired(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
     expired_token_db: RefreshTokenModel = await refresh_token_crud.create(
         db=db,
@@ -239,9 +230,7 @@ async def test_rotate_refresh_token_expired(db: AsyncSession, db_transaction: As
 
 async def test_revoke_refresh_token_revokes_family(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
     family_id: UUID = uuid4()
     other_family_id: UUID = uuid4()
@@ -297,9 +286,7 @@ async def test_revoke_refresh_token_unknown(db: AsyncSession, db_transaction: As
 
 async def test_revoke_refresh_token_no_cookie(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
     await refresh_token_crud.create(
         db=db,

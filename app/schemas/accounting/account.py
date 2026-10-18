@@ -6,7 +6,7 @@ from fastapi import Query
 from fastapi_pagination import Params
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import CurrencyCode, EntityStatusType
 
 
 class AccountBase(BaseModel):
@@ -15,7 +15,7 @@ class AccountBase(BaseModel):
 
 
 class AccountCreateRequest(AccountBase):
-    currency: CurrencyType
+    currency: CurrencyCode
 
 
 class AccountCreate(AccountCreateRequest):
@@ -31,7 +31,7 @@ class Account(AccountBase):
     user_id: UUID
 
     balance: Decimal
-    currency: CurrencyType
+    currency: CurrencyCode
     base_currency_rate: Decimal
     status: EntityStatusType
 

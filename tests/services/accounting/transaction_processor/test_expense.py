@@ -28,7 +28,7 @@ from app.schemas.accounting.account import AccountCreate
 from app.schemas.accounting.category import CategoryCreate
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionType
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import User as UserModel, UserCreate
@@ -39,7 +39,7 @@ from app.services.accounting.transaction_processor.base import TransactionProces
 async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -47,7 +47,7 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -63,9 +63,9 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -83,9 +83,9 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     assert transaction.transaction_date == expense_create_data.transaction_date
     assert transaction.comment is None
     assert transaction.source_amount == Decimal("1")
-    assert transaction.source_currency == CurrencyType.USD
+    assert transaction.source_currency == "USD"
     assert transaction.destination_amount == Decimal("111")
-    assert transaction.destination_currency == CurrencyType.RSD
+    assert transaction.destination_currency == "RSD"
     assert transaction.base_currency_amount == Decimal("1")
 
     assert transaction.from_account_id == account_db.id
@@ -109,7 +109,7 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
 async def test_create_expense_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -124,9 +124,9 @@ async def test_create_expense_account_not_found(db: AsyncSession, db_transaction
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=from_account_id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -154,12 +154,12 @@ async def test_create_expense_account_not_found(db: AsyncSession, db_transaction
 async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
-    account_create_data: AccountCreate = AccountCreate(user_id=user_id, name="Income USD", currency=CurrencyType.USD)
+    account_create_data: AccountCreate = AccountCreate(user_id=user_id, name="Income USD", currency="USD")
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
     base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
@@ -173,9 +173,9 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -206,7 +206,7 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
 async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -214,7 +214,7 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -230,9 +230,9 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.RSD,
+        source_currency="RSD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -263,23 +263,76 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
     assert account_db_after.base_currency_rate == base_currency_rate_before
 
 
+async def test_create_expense_unknown_destination_currency(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Wallet",
+        "currency": "USD",
+        "balance": Decimal("100"),
+        "base_currency_rate": Decimal("1"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food")
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency="USD",
+        destination_amount=Decimal("1"),
+        destination_currency="XXX",
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_processor.create(data=expense_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.log_message == "Currency not found by {'code': 'XXX'}"
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("100")
+
+
 async def test_create_expense_category_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
     other_user_create_data: UserCreate = UserCreate(
-        username="other", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="other", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     other_user_db: UserModel = await user_crud.create(db=db, obj_in=other_user_create_data, commit=True)
 
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -295,9 +348,9 @@ async def test_create_expense_category_of_other_user(db: AsyncSession, db_transa
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -332,20 +385,20 @@ async def test_create_expense_category_of_other_user(db: AsyncSession, db_transa
 async def test_create_expense_location_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
     other_user_create_data: UserCreate = UserCreate(
-        username="other", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="other", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     other_user_db: UserModel = await user_crud.create(db=db, obj_in=other_user_create_data, commit=True)
 
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -361,9 +414,9 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -398,7 +451,7 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
 async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -406,7 +459,7 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -420,9 +473,9 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -485,7 +538,7 @@ async def test_delete_not_found(db: AsyncSession, db_transaction: AsyncSession):
 async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -493,7 +546,7 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "base_currency_rate": Decimal("1"),
         "status": EntityStatusType.DELETED,
     }
@@ -508,9 +561,9 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -541,7 +594,7 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
 async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -549,7 +602,7 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -563,9 +616,9 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("111"),
-        destination_currency=CurrencyType.RSD,
+        destination_currency="RSD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -608,7 +661,7 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
@@ -616,7 +669,7 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
     account_create_data: dict = {
         "user_id": user_id,
         "name": "Checking USD",
-        "currency": CurrencyType.USD,
+        "currency": "USD",
         "balance": Decimal("100"),
         "base_currency_rate": Decimal("1"),
     }
@@ -631,9 +684,9 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("10"),
-        source_currency=CurrencyType.USD,
+        source_currency="USD",
         destination_amount=Decimal("10"),
-        destination_currency=CurrencyType.USD,
+        destination_currency="USD",
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,

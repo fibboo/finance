@@ -12,7 +12,7 @@ from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.account import Account, AccountCreateRequest, AccountRequest, AccountUpdate
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import account_service
 
@@ -21,7 +21,7 @@ async def test_create_account_ok(db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     create_data: AccountCreateRequest = AccountCreateRequest(
-        name="test name", description="test description", currency=CurrencyType.USD
+        name="test name", description="test description", currency="USD"
     )
     # Act
     account: Account = await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
@@ -38,11 +38,29 @@ async def test_create_account_ok(db_transaction: AsyncSession):
     assert account.status == EntityStatusType.ACTIVE
 
 
+async def test_create_account_unknown_currency(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency="XXX")
+
+    # Act / Assert
+    with pytest.raises(EntityNotFound) as exc:
+        await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
+
+    await db_transaction.rollback()
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    accounts_db: list[AccountModel] = (await db.scalars(select(AccountModel))).all()
+    assert len(accounts_db) == 0
+
+
 async def test_create_account_existing_name(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     create_data: AccountCreateRequest = AccountCreateRequest(
-        name="test name", description="test description", currency=CurrencyType.USD
+        name="test name", description="test description", currency="USD"
     )
     await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
@@ -69,9 +87,9 @@ async def test_get_accounts(db: AsyncSession):
 
     # 25 accounts, more than the 10 the removed per-user limit allowed
     for i in range(25):
-        create_data: AccountCreateRequest = AccountCreateRequest(name=f"Account {i:02}", currency=CurrencyType.USD)
+        create_data: AccountCreateRequest = AccountCreateRequest(name=f"Account {i:02}", currency="USD")
         await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
-    deleted_create_data: AccountCreateRequest = AccountCreateRequest(name="Account deleted", currency=CurrencyType.USD)
+    deleted_create_data: AccountCreateRequest = AccountCreateRequest(name="Account deleted", currency="USD")
     deleted_account: Account = await account_service.create_account(
         db=db, user_id=user_id, create_data=deleted_create_data
     )
@@ -111,7 +129,7 @@ async def test_get_account_ok(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     create_data: AccountCreateRequest = AccountCreateRequest(
-        name="test name", description="test description", currency=CurrencyType.USD
+        name="test name", description="test description", currency="USD"
     )
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
@@ -154,7 +172,7 @@ async def test_update_account_ok(db: AsyncSession, db_transaction: AsyncSession)
     # Arrange
     user_id: UUID = uuid4()
     create_data: AccountCreateRequest = AccountCreateRequest(
-        name="test name", description="test description", currency=CurrencyType.USD
+        name="test name", description="test description", currency="USD"
     )
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
@@ -207,10 +225,10 @@ async def test_update_account_not_found(db: AsyncSession, db_transaction: AsyncS
 async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data_1: AccountCreateRequest = AccountCreateRequest(name="Account 1", currency=CurrencyType.USD)
+    create_data_1: AccountCreateRequest = AccountCreateRequest(name="Account 1", currency="USD")
     account_created_1: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_1)
 
-    create_data_2: AccountCreateRequest = AccountCreateRequest(name="Account 2", currency=CurrencyType.USD)
+    create_data_2: AccountCreateRequest = AccountCreateRequest(name="Account 2", currency="USD")
     await account_service.create_account(db=db, user_id=user_id, create_data=create_data_2)
     await db.commit()
 
@@ -238,7 +256,7 @@ async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSess
 async def test_create_account_name_of_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency=CurrencyType.USD)
+    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency="USD")
     deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
     await db.commit()
@@ -264,10 +282,10 @@ async def test_create_account_name_of_deleted_account(db: AsyncSession, db_trans
 async def test_update_account_name_of_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data_1: AccountCreateRequest = AccountCreateRequest(name="Account 1", currency=CurrencyType.USD)
+    create_data_1: AccountCreateRequest = AccountCreateRequest(name="Account 1", currency="USD")
     account_created_1: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_1)
 
-    create_data_2: AccountCreateRequest = AccountCreateRequest(name="Account 2", currency=CurrencyType.USD)
+    create_data_2: AccountCreateRequest = AccountCreateRequest(name="Account 2", currency="USD")
     account_created_2: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_2)
     await account_service.delete_account(db=db, account_id=account_created_2.id, user_id=user_id)
     await db.commit()
@@ -289,7 +307,7 @@ async def test_update_account_name_of_deleted_account(db: AsyncSession, db_trans
 async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency=CurrencyType.USD)
+    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency="USD")
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=account_created.id, user_id=user_id)
     await db.commit()
@@ -332,7 +350,7 @@ async def test_restore_account_not_found(db_transaction: AsyncSession):
 async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency=CurrencyType.USD)
+    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency="USD")
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
@@ -351,7 +369,7 @@ async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSes
 async def test_restore_account_name_taken(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency=CurrencyType.USD)
+    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency="USD")
     deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
     await account_service.create_account(db=db, user_id=user_id, create_data=create_data)

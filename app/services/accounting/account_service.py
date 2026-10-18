@@ -17,12 +17,15 @@ from app.schemas.accounting.account import (
     AccountRequest,
     AccountUpdate,
 )
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import CurrencyCode, EntityStatusType
+from app.services.accounting import currency_service
 
 logger = get_logger(logger_name=__name__)
 
 
 async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID) -> Account:
+    await currency_service.get_currency(db=db, code=create_data.currency)
+
     create_data: AccountCreate = AccountCreate(**create_data.model_dump(), user_id=user_id)
     try:
         account_db: AccountModel = await account_crud.create(db=db, obj_in=create_data)
@@ -34,7 +37,7 @@ async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest,
     return account
 
 
-async def create_default_account(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyType) -> None:
+async def create_default_account(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyCode) -> None:
     create_data = AccountCreate(name="Wallet", currency=base_currency, user_id=user_id)
     await account_crud.create(db=db, obj_in=create_data)
 

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyCode
 from app.schemas.user.external_user import ExternalUser, ProviderType
 
 USERNAME_MIN_LENGTH = 3
@@ -16,7 +16,7 @@ class UserBase(BaseModel):
     username: Annotated[str, StringConstraints(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH)]
     avatar: Annotated[str, StringConstraints(min_length=AVATAR_MIN_LENGTH, max_length=AVATAR_MAX_LENGTH)] | None = None
     registration_provider: ProviderType
-    base_currency: CurrencyType | None = None
+    base_currency: CurrencyCode | None = None
 
 
 class UserCreate(UserBase):
@@ -28,7 +28,7 @@ class UserUpdate(UserBase):
 
 
 class BaseCurrencySet(BaseModel):
-    base_currency: CurrencyType
+    base_currency: CurrencyCode
 
 
 class User(UserBase):

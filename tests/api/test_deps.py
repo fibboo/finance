@@ -18,7 +18,6 @@ from app.exceptions.conflict_409 import BaseCurrencyNotSet
 from app.exceptions.forbidden_403 import OriginNotAllowed
 from app.exceptions.unauthorized_401 import InvalidTokenException
 from app.models.user.user import User as UserModel
-from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
@@ -62,9 +61,7 @@ async def test_get_user_id_malformed_token():
 
 async def test_get_onboarded_user_id_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    user_create = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
-    )
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
 
     # Act

@@ -2,12 +2,13 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, func, Index, Numeric, String, text
+from sqlalchemy import DateTime, Enum, ForeignKey, func, Index, Numeric, String, text
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.models.accounting.currency import Currency
 from app.models.base import Base
-from app.schemas.base import CurrencyType, EntityStatusType
+from app.schemas.base import EntityStatusType
 
 
 class Account(Base):
@@ -31,10 +32,7 @@ class Account(Base):
     description: Mapped[str | None] = mapped_column(String(4096), nullable=True)
 
     balance: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
-    currency: Mapped[CurrencyType] = mapped_column(
-        Enum(CurrencyType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
-        nullable=False,
-    )
+    currency: Mapped[str] = mapped_column(String(3), ForeignKey(Currency.code), nullable=False)
     base_currency_rate: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
     status: Mapped[EntityStatusType] = mapped_column(
         Enum(

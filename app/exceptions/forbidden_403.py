@@ -5,7 +5,7 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
-from app.schemas.base import CurrencyType
+from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
 
 
@@ -67,8 +67,8 @@ class CurrencyMismatchException(ForbiddenException):
         self,
         *,
         account_id: UUID,
-        transaction_currency: CurrencyType,
-        account_currency: CurrencyType,
+        transaction_currency: CurrencyCode,
+        account_currency: CurrencyCode,
         logger: logging.Logger,
     ):
         super().__init__(
