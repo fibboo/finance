@@ -1,11 +1,13 @@
 from typing import Annotated, Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.cookies import delete_refresh_token_cookie, set_refresh_token_cookie
-from app.api.deps import get_db_transaction, get_grant_refresh_token, get_refresh_token
+from app.api.deps import get_db_transaction, get_grant_refresh_token, get_refresh_token, get_user_id
+from app.schemas.user.authorization_request import AuthorizationUrlResponse, LinkCompleteRequest
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair, TokenRequest, TokenResponse
 from app.services.user import token_service
@@ -30,6 +32,60 @@ async def authorize(
     )
     response = RedirectResponse(url=authorization_url)
     return response
+
+
+@router.post("/link/{provider}")
+async def link(
+    *,
+    provider: ProviderType,
+    redirect_uri: str,
+    code_challenge: str,
+    code_challenge_method: Literal["S256"],
+    state: str,
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db_transaction),
+) -> AuthorizationUrlResponse:
+    """Start linking another provider to the signed-in user. Returns the provider's sign-in URL to open.
+
+    The callback then redirects to the client with a one-time code, or with `error`. The client finishes the link
+    with `POST /user/auth/link/{provider}/complete`."""
+    authorization_url: str = await auth_service.authorize(
+        db=db,
+        provider=provider,
+        redirect_uri=redirect_uri,
+        code_challenge=code_challenge,
+        client_state=state,
+        link_user_id=user_id,
+    )
+    response = AuthorizationUrlResponse(authorization_url=authorization_url)
+    return response
+
+
+@router.post("/link/{provider}/complete")
+async def complete_link(
+    *,
+    provider: ProviderType,
+    data: LinkCompleteRequest,
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db_transaction),
+) -> None:
+    """Finish linking a provider: present the one-time code from the link callback with its PKCE verifier."""
+    await auth_service.complete_link(
+        db=db,
+        user_id=user_id,
+        provider=provider,
+        code=data.code,
+        redirect_uri=data.redirect_uri,
+        code_verifier=data.code_verifier,
+    )
+
+
+@router.delete("/link/{provider}")
+async def unlink(
+    *, provider: ProviderType, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db_transaction)
+) -> None:
+    """Unlink a provider from the signed-in user. The last linked provider cannot be unlinked."""
+    await auth_service.unlink(db=db, user_id=user_id, provider=provider)
 
 
 @router.get("/callback/{provider}")

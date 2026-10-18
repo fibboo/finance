@@ -6,8 +6,14 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
+from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
-from app.exceptions.conflict_409 import BaseCurrencyAlreadySet, BaseCurrencyNotSet
+from app.exceptions.conflict_409 import (
+    BaseCurrencyAlreadySet,
+    BaseCurrencyNotSet,
+    IdentityLinkedToAnotherUser,
+    ProviderAlreadyLinked,
+)
 from app.models.accounting.account import Account as AccountModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountType
@@ -16,14 +22,19 @@ from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.identity import ProviderIdentity
 from app.schemas.user.user import User, UserCreate
-from app.services.user.user_service import create_user, get_user_base_currency, set_base_currency
+from app.services.user.user_service import (
+    add_external_user,
+    create_user,
+    get_user_base_currency,
+    set_base_currency,
+)
 
 
 async def test_create_user_without_base_currency(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject="1111111111",
+        external_id="1111111111",
         username="stenbot",
         first_name="Sten",
         last_name=None,
@@ -54,7 +65,7 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     )
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject="1111111111",
+        external_id="1111111111",
         username="stenbot",
         first_name="Sten",
         last_name=None,
@@ -72,12 +83,12 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     assert created_user_db.external_users[0].username == "stenbot"
 
 
-async def test_create_user_long_subject(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_user_long_external_id(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    subject: str = "1" * 100
+    external_id: str = "1" * 100
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject=subject,
+        external_id=external_id,
         username=None,
         first_name="Sten",
         last_name=None,
@@ -91,9 +102,9 @@ async def test_create_user_long_subject(db: AsyncSession, db_transaction: AsyncS
 
     # Assert
     created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
-    assert created_user_db.username == f"telegram_{hashlib.sha256(subject.encode()).hexdigest()[:32]}"
+    assert created_user_db.username == f"telegram_{hashlib.sha256(external_id.encode()).hexdigest()[:32]}"
     assert created_user_db.external_users[0].username == created_user_db.username
-    assert created_user_db.external_users[0].external_id == subject
+    assert created_user_db.external_users[0].external_id == external_id
 
 
 async def test_create_user_no_free_username(db: AsyncSession, db_transaction: AsyncSession):
@@ -108,7 +119,7 @@ async def test_create_user_no_free_username(db: AsyncSession, db_transaction: As
     )
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        subject="1111111111",
+        external_id="1111111111",
         username="stenbot",
         first_name="Sten",
         last_name=None,
@@ -222,3 +233,59 @@ async def test_get_user_base_currency_not_set(db: AsyncSession, db_transaction: 
     assert exc.value.status_code == status.HTTP_409_CONFLICT
     assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_NOT_SET
     assert exc.value.log_level == LogLevelType.INFO
+
+
+@pytest.mark.parametrize(
+    "user_index, external_id, expected_exception",
+    [(2, "1111111111", IdentityLinkedToAnotherUser), (0, "2222222222", ProviderAlreadyLinked)],
+    ids=["identity_of_another_user", "provider_already_linked"],
+)
+async def test_add_external_user_conflict(
+    db: AsyncSession, db_transaction: AsyncSession, user_index: int, external_id: str, expected_exception: type
+):
+    # Arrange
+    # stenbot already has a Telegram identity, janedoe owns Telegram identity 1111111111, johndoe has none
+    users_db: list[UserModel] = await user_crud.create_batch(
+        db=db,
+        objs_in=[
+            UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM),
+            UserCreate(username="janedoe", registration_provider=ProviderType.TELEGRAM),
+            UserCreate(username="johndoe", registration_provider=ProviderType.GOOGLE),
+        ],
+        commit=True,
+    )
+    await external_user_crud.create_batch(
+        db=db,
+        objs_in=[
+            {
+                "user_id": users_db[0].id,
+                "provider": ProviderType.TELEGRAM,
+                "external_id": "3333333333",
+                "username": "stenbot",
+            },
+            {
+                "user_id": users_db[1].id,
+                "provider": ProviderType.TELEGRAM,
+                "external_id": "1111111111",
+                "username": "janedoe",
+            },
+        ],
+        commit=True,
+    )
+    identity = ProviderIdentity(
+        provider=ProviderType.TELEGRAM,
+        external_id=external_id,
+        username="stenbot",
+        first_name=None,
+        last_name=None,
+        avatar=None,
+        email=None,
+    )
+
+    # Act / Assert
+    with pytest.raises(expected_exception) as exc:
+        await add_external_user(
+            db=db_transaction, user_id=users_db[user_index].id, identity=identity, username="stenbot"
+        )
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT

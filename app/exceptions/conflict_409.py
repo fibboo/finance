@@ -9,6 +9,7 @@ from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
 from app.models.base import Base
 from app.schemas.error_response import ErrorCodeType
+from app.schemas.user.external_user import ProviderType
 
 
 class ConflictException(AppBaseException):
@@ -68,4 +69,37 @@ class BaseCurrencyAlreadySet(ConflictException):
             error_code=ErrorCodeType.BASE_CURRENCY_ALREADY_SET,
             logger=logger,
             log_level=LogLevelType.ERROR,
+        )
+
+
+class ProviderAlreadyLinked(ConflictException):
+    def __init__(self, *, user_id: UUID, provider: ProviderType, logger: logging.Logger):
+        super().__init__(
+            message="Provider is already linked",
+            log_message=f"User `{user_id}` already has a {provider.value} identity",
+            error_code=ErrorCodeType.PROVIDER_ALREADY_LINKED,
+            logger=logger,
+            log_level=LogLevelType.INFO,
+        )
+
+
+class LastIdentityUnlinkForbidden(ConflictException):
+    def __init__(self, *, user_id: UUID, provider: ProviderType, logger: logging.Logger):
+        super().__init__(
+            message="The last sign-in provider cannot be unlinked",
+            log_message=f"User `{user_id}` tried to unlink {provider.value}, the last identity",
+            error_code=ErrorCodeType.LAST_IDENTITY_UNLINK_FORBIDDEN,
+            logger=logger,
+            log_level=LogLevelType.INFO,
+        )
+
+
+class IdentityLinkedToAnotherUser(ConflictException):
+    def __init__(self, *, user_id: UUID, provider: ProviderType, logger: logging.Logger):
+        super().__init__(
+            message="The identity is linked to another user",
+            log_message=f"The {provider.value} identity linked for user `{user_id}` belongs to another user",
+            error_code=ErrorCodeType.IDENTITY_LINKED_TO_ANOTHER_USER,
+            logger=logger,
+            log_level=LogLevelType.WARNING,
         )
