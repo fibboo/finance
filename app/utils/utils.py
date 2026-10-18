@@ -1,3 +1,4 @@
+import hashlib
 from typing import Any
 
 from pydantic import BaseModel
@@ -22,3 +23,8 @@ def make_hashable(*, value: Any) -> tuple:
 
     else:
         return value
+
+
+def hash_secret(*, secret: str) -> str:
+    secret_hash: str = hashlib.sha256(secret.encode("utf-8")).hexdigest()
+    return secret_hash

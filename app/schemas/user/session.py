@@ -1,10 +1,6 @@
-from datetime import datetime
-from uuid import UUID
-
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.user import User
 
 
 class AuthData(BaseModel):
@@ -23,30 +19,3 @@ class AuthData(BaseModel):
     avatar: str | None = None
     profile_url: str | None = None
     email: str | None = None
-
-
-class UserSessionBase(BaseModel):
-    user_id: UUID
-    expires_at: datetime
-    provider: ProviderType
-
-    access_token: str | None = None
-    token_type: str | None = None
-    expires_in: int | None = None
-    refresh_token: str | None = None
-    scope: str | None = None
-
-
-class UserSessionCreate(UserSessionBase):
-    pass
-
-
-class UserSessionUpdate(UserSessionBase):
-    pass
-
-
-class Session(UserSessionBase):
-    id: UUID  # noqa: A003
-    user: User
-
-    model_config = ConfigDict(from_attributes=True)

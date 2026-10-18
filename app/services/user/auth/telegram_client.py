@@ -61,7 +61,7 @@ class AuthTelegramClient(AuthClient):
         auth_data: AuthData = AuthData(
             access_token=telegram_hash,
             token_type="telegramHash",
-            expires_in=settings.session_expire_seconds,
+            expires_in=settings.access_token_expire_seconds,
             scope="write-message+auth",
             user_identifier=telegram_id,
             external_id=telegram_id,

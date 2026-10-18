@@ -28,14 +28,36 @@ class UnauthorizedException(AppBaseException):
         )
 
 
-class SessionExpiredException(UnauthorizedException):
-    def __init__(self, *, token: UUID, logger: logging.Logger):
+class InvalidTokenException(UnauthorizedException):
+    def __init__(self, *, log_message: str, logger: logging.Logger):
         super().__init__(
-            message="Session expired",
-            log_message=f"Session with token `{token}` expired",
+            message="Invalid token",
+            log_message=log_message,
             logger=logger,
             log_level=LogLevelType.DEBUG,
-            error_code=ErrorCodeType.SESSION_EXPIRED,
+            error_code=ErrorCodeType.INVALID_TOKEN,
+        )
+
+
+class RefreshTokenReusedException(UnauthorizedException):
+    def __init__(self, *, family_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Invalid token",
+            log_message=f"Revoked refresh token of family `{family_id}` reused, family revoked",
+            logger=logger,
+            log_level=LogLevelType.WARNING,
+            error_code=ErrorCodeType.INVALID_TOKEN,
+        )
+
+
+class TokenExpiredException(UnauthorizedException):
+    def __init__(self, *, log_message: str, logger: logging.Logger):
+        super().__init__(
+            message="Token expired",
+            log_message=log_message,
+            logger=logger,
+            log_level=LogLevelType.DEBUG,
+            error_code=ErrorCodeType.TOKEN_EXPIRED,
         )
 
 

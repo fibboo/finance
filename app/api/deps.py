@@ -1,15 +1,17 @@
 from uuid import UUID
 
-from fastapi import Depends, Header
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
-from app.crud.user.session import user_session_crud
 from app.db.postgres import session_maker
-from app.exceptions.unauthorized_401 import SessionExpiredException
-from app.models.user.session import Session as SessionModel
+from app.exceptions.unauthorized_401 import InvalidTokenException, RefreshTokenReusedException
+from app.services.user import token_service
 
 logger = get_logger(logger_name=__name__)
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def get_db() -> AsyncSession:
@@ -25,20 +27,21 @@ async def get_db() -> AsyncSession:
 async def get_db_transaction() -> AsyncSession:
     try:
         async with session_maker.begin() as session:
-            yield session
+            try:
+                yield session
+
+            except RefreshTokenReusedException:
+                await session.commit()
+                raise
 
     finally:
         await session.commit()
         await session.close()
 
 
-async def get_user_id(*, x_auth_token: UUID = Header(...), db: AsyncSession = Depends(get_db)) -> UUID:
-    session_db: SessionModel | None = await user_session_crud.get_active_session_by_id(db=db, session_id=x_auth_token)
-    if session_db is None:
-        raise SessionExpiredException(token=x_auth_token, logger=logger)
+async def get_user_id(*, credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> UUID:
+    if credentials is None:
+        raise InvalidTokenException(log_message="Bearer access token missing", logger=logger)
 
-    return session_db.user_id
-
-
-def get_token(*, x_auth_token: UUID = Header(...)) -> UUID:
-    return x_auth_token
+    user_id: UUID = token_service.verify_access_token(access_token=credentials.credentials)
+    return user_id
