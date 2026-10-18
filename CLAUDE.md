@@ -26,7 +26,7 @@ Setup, permission modes and Git troubleshooting: `docs/agent-setup.md`. Tool nam
 
 ## Project Overview
 
-Finance is a personal finance service: accounts, categories, locations, income sources, and income, expense and transfer transactions. Users sign in through Telegram. A FastAPI backend sits at the repository root. A frontend is planned under `frontend/`.
+Finance is a personal finance service: accounts, categories, locations, income sources, and income, expense and transfer transactions. Users sign in through Telegram or Google. A FastAPI backend sits at the repository root. A frontend is planned under `frontend/`.
 
 Tech stack: Python 3.15, FastAPI, SQLAlchemy 2 (async, asyncpg), Pydantic 2, pydantic-settings, PostgreSQL, Alembic, Docker, pytest with pytest-postgresql and pytest-xdist.
 
@@ -49,7 +49,7 @@ Packages under `app/` are split by layer, and each layer is split by domain (`ac
 - `models/`: SQLAlchemy models on `models/base.py`.
 - `schemas/`: Pydantic schemas, plus `error_response.py` (`ErrorResponse`, `ErrorCodeType`).
 - `exceptions/`: the `AppBaseException` hierarchy (`exceptions/base.py`), one file per HTTP status. Each exception carries its status code, message, log message, logger and log level. The handler in `app/main.py` logs it and turns it into an `ErrorResponse`.
-- `configs/`: `settings.py` holds the `settings`, `database_settings` and `telegram_settings` (the OIDC client id and secret from BotFather) instances. `logging_settings.py` holds `get_logger` and `LogLevelType`.
+- `configs/`: `settings.py` holds the `settings`, `database_settings`, `telegram_settings` (the OIDC client id and secret from BotFather) and `google_settings` (the OAuth client id and secret from Google Cloud) instances. `logging_settings.py` holds `get_logger` and `LogLevelType`.
 - `db/postgres.py`: the async engine and `session_maker`.
 - `utils/`: small pure helpers.
 

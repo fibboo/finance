@@ -13,13 +13,21 @@ logger = get_logger(logger_name=__name__)
 
 class OIDCProvider:
     def __init__(
-        self, *, provider: ProviderType, client_id: str, client_secret: str, server_metadata_url: str, scope: str
+        self,
+        *,
+        provider: ProviderType,
+        client_id: str,
+        client_secret: str,
+        server_metadata_url: str,
+        scope: str,
+        issuer_aliases: tuple[str, ...] = (),
     ):
         self.provider = provider
         self.__client_id = client_id
         self.__client_secret = client_secret
         self.__server_metadata_url = server_metadata_url
         self.__scope = scope
+        self.__issuer_aliases = issuer_aliases
 
     def __build_client(self) -> StarletteOAuth2App:
         client: StarletteOAuth2App = OAuth().register(
@@ -61,7 +69,7 @@ class OIDCProvider:
             )
             metadata: dict = await client.load_server_metadata()
             claims_options: dict[str, dict] = {
-                "iss": {"essential": True, "value": metadata["issuer"]},
+                "iss": {"essential": True, "values": [metadata["issuer"], *self.__issuer_aliases]},
                 "aud": {"essential": True, "value": self.__client_id},
             }
             claims: dict | None = await client.parse_id_token(token=token, nonce=nonce, claims_options=claims_options)
@@ -74,6 +82,7 @@ class OIDCProvider:
             logger.warning(f"{self.provider.value} sign-in rejected: no ID token in the token response")
             return None
 
+        email: str | None = claims.get("email") if claims.get("email_verified") is True else None
         identity = ProviderIdentity(
             provider=self.provider,
             subject=claims["sub"],
@@ -81,6 +90,6 @@ class OIDCProvider:
             first_name=claims.get("given_name"),
             last_name=claims.get("family_name"),
             avatar=claims.get("picture"),
-            email=claims.get("email"),
+            email=email,
         )
         return identity
