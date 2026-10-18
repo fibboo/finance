@@ -620,7 +620,7 @@ async def test_create_transfer_deleted_account(
         to_account_id=account_to_db.id,
         comment="test",
     )
-    # Act
+    # Act / Assert
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
     )
@@ -628,7 +628,6 @@ async def test_create_transfer_deleted_account(
         await transaction_processor.create(data=transfer_create_data)
         await db_transaction.commit()
 
-    # Assert
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
     assert exc.value.log_message == (
@@ -687,7 +686,7 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     )
     await db.close()
 
-    # Act
+    # Act / Assert
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
@@ -695,7 +694,6 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
         await transaction_processor.delete(transaction_id=transaction_before.id)
         await db_transaction.commit()
 
-    # Assert
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
     assert exc.value.log_message == (
