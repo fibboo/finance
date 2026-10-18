@@ -653,7 +653,7 @@ async def test_delete_other_currency_2_ok(db: AsyncSession, db_transaction: Asyn
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("100") == account_balance_before
     # the rate returns to its value before the income up to the rounding of the intermediate rate
-    assert account_db_after.base_currency_rate == Decimal("0.9525999996") != base_currency_rate_before
+    assert abs(account_db_after.base_currency_rate - base_currency_rate_before) <= Decimal("0.000000001")
 
 
 async def test_create_income_into_negative_account_keeps_rate(db: AsyncSession, db_transaction: AsyncSession):

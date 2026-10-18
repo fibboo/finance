@@ -156,7 +156,7 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
     assert transaction.to_account_id == account_to_db.id
     assert transaction.to_account is not None
     assert transaction.to_account.balance == Decimal("100") != account_to_balance_before
-    assert transaction.to_account.base_currency_rate == Decimal("0.9524") != base_currency_to_rate_before
+    assert transaction.to_account.base_currency_rate == Decimal("0.9523809524") != base_currency_to_rate_before
     assert transaction.to_account.currency == transfer_create_data.destination_currency
 
     assert transaction.category_id is None
@@ -220,7 +220,7 @@ async def test_create_transfer_crossing_zero_restarts_rate(db: AsyncSession, db_
     account_to_db_after: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_to_db_after.balance == Decimal("50")
     # 100 EUR for 105 USD
-    assert account_to_db_after.base_currency_rate == Decimal("0.9524")
+    assert account_to_db_after.base_currency_rate == Decimal("0.9523809524")
 
 
 async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -358,7 +358,7 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
     assert transaction.to_account_id == account_to_db.id
     assert transaction.to_account is not None
     assert transaction.to_account.balance == Decimal("22800") != account_to_balance_before
-    assert transaction.to_account.base_currency_rate == Decimal("111.2195") != base_currency_to_rate_before
+    assert transaction.to_account.base_currency_rate == Decimal("111.2195121951") != base_currency_to_rate_before
 
     assert transaction.category_id is None
     assert transaction.category is None

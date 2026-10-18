@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_EVEN
 from uuid import UUID
 
 from app.crud.accounting.account import account_crud
@@ -40,6 +40,7 @@ class Expense(TransactionProcessor[ExpenseRequest]):
         await location_service.get_location(db=self.db, location_id=data.location_id, user_id=self.user_id)
 
         base_currency_amount: Decimal = data.source_amount / from_account.base_currency_rate
+        base_currency_amount: Decimal = base_currency_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
         transaction_data: TransactionCreate = TransactionCreate(
             **data.model_dump(), user_id=self.user_id, base_currency_amount=base_currency_amount
         )

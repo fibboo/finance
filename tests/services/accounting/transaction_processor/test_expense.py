@@ -106,6 +106,54 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     assert len(transactions) == 1
 
 
+async def test_create_expense_other_currency_rounds_base_amount(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    # 100 EUR at this rate is 104.9999999979... USD, more than the two places an amount keeps
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Wallet EUR",
+        "currency": "EUR",
+        "balance": Decimal("200"),
+        "base_currency_rate": Decimal("0.9523809524"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.VARIABLE)
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("100"),
+        source_currency="EUR",
+        destination_amount=Decimal("100"),
+        destination_currency="EUR",
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.base_currency_amount == Decimal("105.00")
+    assert transaction.from_account.balance == Decimal("100")
+    assert transaction.from_account.base_currency_rate == Decimal("0.9523809524")
+
+
 async def test_create_expense_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
