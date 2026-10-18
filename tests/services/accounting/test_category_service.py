@@ -19,6 +19,7 @@ from app.schemas.accounting.category import (
     CategoryType,
     CategoryUpdate,
 )
+from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import category_service
 
@@ -307,3 +308,175 @@ async def test_update_category_double(db: AsyncSession, db_transaction: AsyncSes
 
     transactions: list[CategoryModel] = (await db.scalars(select(CategoryModel))).all()
     assert len(transactions) == 2
+
+
+async def test_create_category_with_name_of_deleted_category(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    deleted_category_create_data: dict = {
+        "user_id": user_id,
+        "name": "Category 1",
+        "type": CategoryType.VARIABLE,
+        "status": EntityStatusType.DELETED,
+    }
+    deleted_category_db: CategoryModel = await category_crud.create(
+        db=db, obj_in=deleted_category_create_data, commit=True
+    )
+
+    create_data: CategoryCreateRequest = CategoryCreateRequest(name="Category 1", type=CategoryType.FIXED)
+
+    # Act
+    category: Category = await category_service.create_category(
+        db=db_transaction, create_data=create_data, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert category.id != deleted_category_db.id
+    assert category.name == create_data.name
+    assert category.status == EntityStatusType.ACTIVE
+
+    categories_db: list[CategoryModel] = (
+        await db.scalars(select(CategoryModel).where(CategoryModel.name == create_data.name))
+    ).all()
+    assert sorted(category_db.status for category_db in categories_db) == [
+        EntityStatusType.ACTIVE,
+        EntityStatusType.DELETED,
+    ]
+
+
+async def test_get_categories_without_deleted(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    active_category_create_data: dict = {"user_id": user_id, "name": "Active", "type": CategoryType.VARIABLE}
+    await category_crud.create(db=db, obj_in=active_category_create_data, commit=True)
+
+    deleted_category_create_data: dict = {
+        "user_id": user_id,
+        "name": "Deleted",
+        "type": CategoryType.VARIABLE,
+        "status": EntityStatusType.DELETED,
+    }
+    await category_crud.create(db=db, obj_in=deleted_category_create_data, commit=True)
+
+    request: CategoryRequest = CategoryRequest()
+
+    # Act
+    categories: Page[Category] = await category_service.get_categories(db=db, request=request, user_id=user_id)
+
+    # Assert
+    assert categories.total == 1
+    assert [category.name for category in categories.items] == ["Active"]
+
+
+async def test_get_category_deleted(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    category_create_data: dict = {
+        "user_id": user_id,
+        "name": "Category 1",
+        "type": CategoryType.VARIABLE,
+        "status": EntityStatusType.DELETED,
+    }
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await category_service.get_category(db=db, category_id=category_db.id, user_id=user_id)
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+
+async def test_update_category_deleted(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    category_create_data: dict = {
+        "user_id": user_id,
+        "name": "Category 1",
+        "type": CategoryType.VARIABLE,
+        "status": EntityStatusType.DELETED,
+    }
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    category_update: CategoryUpdate = CategoryUpdate(name="Category updated", type=CategoryType.FIXED)
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await category_service.update_category(
+            db=db_transaction, category_id=category_db.id, update_data=category_update, user_id=user_id
+        )
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    category_db_after: CategoryModel = await category_crud.get(db=db, id=category_db.id)
+    assert category_db_after.name == "Category 1"
+    assert category_db_after.type == CategoryType.VARIABLE
+
+
+async def test_delete_category_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    category_create_data: dict = {"user_id": user_id, "name": "Category 1", "type": CategoryType.VARIABLE}
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    # Act
+    category: Category = await category_service.delete_category(
+        db=db_transaction, category_id=category_db.id, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert category.id == category_db.id
+    assert category.status == EntityStatusType.DELETED
+
+    await db.refresh(category_db)
+    assert category_db.status == EntityStatusType.DELETED
+
+
+async def test_delete_category_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    category_create_data: dict = {"user_id": uuid4(), "name": "Category 1", "type": CategoryType.VARIABLE}
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await category_service.delete_category(db=db_transaction, category_id=category_db.id, user_id=user_id)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.message == "Entity not found"
+    search_params = {"id": category_db.id, "user_id": user_id}
+    assert exc.value.log_message == f"{CategoryModel.__name__} not found by {search_params}"
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    category_db_after: CategoryModel = await category_crud.get(db=db, id=category_db.id)
+    assert category_db_after.status == EntityStatusType.ACTIVE
+
+
+async def test_delete_category_already_deleted(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    category_create_data: dict = {
+        "user_id": user_id,
+        "name": "Category 1",
+        "type": CategoryType.VARIABLE,
+        "status": EntityStatusType.DELETED,
+    }
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await category_service.delete_category(db=db_transaction, category_id=category_db.id, user_id=user_id)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND

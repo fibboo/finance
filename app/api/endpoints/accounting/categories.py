@@ -50,3 +50,12 @@ async def update_category(
         db=db, category_id=category_id, update_data=update_data, user_id=user_id
     )
     return category
+
+
+@router.delete("/{category_id}")
+async def delete_category(*, category_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Category:
+    """
+    Deleted category is hidden from the list and cannot be used by a new expense; existing expenses keep it
+    """
+    category: Category = await category_service.delete_category(db=db, category_id=category_id, user_id=user_id)
+    return category

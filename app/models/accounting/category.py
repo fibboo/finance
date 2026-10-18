@@ -1,17 +1,26 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, func, String, UniqueConstraint
+from sqlalchemy import DateTime, Enum, func, Index, String, text
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 from app.schemas.accounting.category import CategoryType
+from app.schemas.base import EntityStatusType
 
 
 class Category(Base):
     __tablename__ = "categories"
-    __table_args__ = (UniqueConstraint("user_id", "name", name="category_unique_user_id_name"),)
+    __table_args__ = (
+        Index(
+            "category_unique_user_id_name",
+            "user_id",
+            "name",
+            unique=True,
+            postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}'"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(  # noqa: A003
         DB_UUID, primary_key=True, server_default=func.uuidv7(monotonic=True)
@@ -23,6 +32,14 @@ class Category(Base):
     type: Mapped[CategoryType] = mapped_column(  # noqa: A003
         Enum(CategoryType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
         nullable=False,
+        index=True,
+    )
+    status: Mapped[EntityStatusType] = mapped_column(
+        Enum(
+            EntityStatusType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]
+        ),
+        nullable=False,
+        server_default=EntityStatusType.ACTIVE.value,
         index=True,
     )
 
