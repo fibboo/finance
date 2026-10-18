@@ -2,14 +2,16 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import asc, desc, select, Select
+from sqlalchemy import asc, desc, or_, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, with_polymorphic
 
 from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase
+from app.models.accounting.account import Account
 from app.models.accounting.transaction import ExpenseTransaction, IncomeTransaction, Transaction, TransferTransaction
 from app.schemas.accounting.transaction import OrderDirectionType, OrderFieldType, TransactionCreate, TransactionRequest
+from app.schemas.base import EntityStatusType
 
 logger = get_logger(logger_name=__name__)
 
@@ -56,6 +58,19 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
         if len(request.statuses) > 0:
             statuses = [s.value for s in request.statuses]
             query = query.where(TransactionModel.status.in_(statuses))
+
+        account_id_columns = [
+            TransactionModel.ExpenseTransaction.from_account_id,
+            TransactionModel.IncomeTransaction.to_account_id,
+            TransactionModel.TransferTransaction.from_account_id,
+            TransactionModel.TransferTransaction.to_account_id,
+        ]
+        if len(request.account_ids) > 0:
+            query = query.where(or_(*[column.in_(request.account_ids) for column in account_id_columns]))
+
+        if request.is_deleted_accounts_only:
+            deleted_account_ids: Select = select(Account.id).where(Account.status == EntityStatusType.DELETED)
+            query = query.where(or_(*[column.in_(deleted_account_ids) for column in account_id_columns]))
 
         order_fields_map = {
             OrderFieldType.CREATED_AT: TransactionModel.created_at,

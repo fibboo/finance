@@ -167,6 +167,9 @@ class TransactionRequest(Params):
     transaction_types: list[TransactionType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 
+    account_ids: list[UUID] = []
+    is_deleted_accounts_only: bool = False
+
     @model_validator(mode="after")
     def fill_default_dates(self) -> TransactionRequest:
         today: date = datetime.now().date()
