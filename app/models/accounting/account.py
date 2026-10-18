@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, func, Numeric, String, UniqueConstraint
+from sqlalchemy import DateTime, Enum, func, Index, Numeric, String, text
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,7 +13,15 @@ from app.schemas.base import CurrencyType, EntityStatusType
 
 class Account(Base):
     __tablename__ = "accounts"
-    __table_args__ = (UniqueConstraint("user_id", "name", name="account_unique_user_id_name"),)
+    __table_args__ = (
+        Index(
+            "account_unique_user_id_name",
+            "user_id",
+            "name",
+            unique=True,
+            postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}'"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(  # noqa: A003
         DB_UUID, primary_key=True, server_default=func.uuidv7(monotonic=True)

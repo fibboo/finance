@@ -244,3 +244,60 @@ async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSess
 
     transactions: list[AccountModel] = (await db.scalars(select(AccountModel))).all()
     assert len(transactions) == 2
+
+
+async def test_create_account_name_of_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        name="test name", currency=CurrencyType.USD, account_type=AccountType.INCOME
+    )
+    deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
+    await db.commit()
+
+    # Act
+    account: Account = await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert account.id != deleted_account.id
+    assert account.name == create_data.name
+    assert account.status == EntityStatusType.ACTIVE
+
+    accounts_db: list[AccountModel] = (
+        await db.scalars(select(AccountModel).where(AccountModel.name == create_data.name))
+    ).all()
+    assert sorted(account_db.status for account_db in accounts_db) == [
+        EntityStatusType.ACTIVE,
+        EntityStatusType.DELETED,
+    ]
+
+
+async def test_update_account_name_of_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data_1: AccountCreateRequest = AccountCreateRequest(
+        name="Account 1", currency=CurrencyType.USD, account_type=AccountType.INCOME
+    )
+    account_created_1: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_1)
+
+    create_data_2: AccountCreateRequest = AccountCreateRequest(
+        name="Account 2", currency=CurrencyType.USD, account_type=AccountType.INCOME
+    )
+    account_created_2: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_2)
+    await account_service.delete_account(db=db, account_id=account_created_2.id, user_id=user_id)
+    await db.commit()
+
+    update_data: AccountUpdate = AccountUpdate(name="Account 2")
+
+    # Act
+    account: Account = await account_service.update_account(
+        db=db_transaction, account_id=account_created_1.id, user_id=user_id, update_data=update_data
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert account.id == account_created_1.id
+    assert account.name == update_data.name
+    assert account.status == EntityStatusType.ACTIVE
