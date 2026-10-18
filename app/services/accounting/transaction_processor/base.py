@@ -107,22 +107,19 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         return delta
 
     @staticmethod
-    def _get_from_account_base_currency_delta(*, transaction_db: TransactionModel) -> Decimal:
+    def __get_to_account_base_currency_delta(*, transaction_db: TransactionModel) -> Decimal:
         if transaction_db.status == EntityStatusType.DELETED:
-            base_currency_delta: Decimal = transaction_db.base_currency_amount
-        else:
             base_currency_delta: Decimal = -transaction_db.base_currency_amount
+        else:
+            base_currency_delta: Decimal = transaction_db.base_currency_amount
 
         return base_currency_delta
 
     @staticmethod
-    def _get_to_account_base_currency_delta(*, transaction_db: TransactionModel) -> Decimal:
-        if transaction_db.status == EntityStatusType.DELETED:
-            base_currency_delta: Decimal = -transaction_db.base_currency_amount
-        else:
-            base_currency_delta: Decimal = transaction_db.base_currency_amount
-
-        return base_currency_delta
+    def _quantize_amount(*, amount: Decimal) -> Decimal:
+        quantized_amount: Decimal = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+        quantized_amount: Decimal = max(quantized_amount, Decimal("0.01"))
+        return quantized_amount
 
     @staticmethod
     def _quantize_rate(*, rate: Decimal) -> Decimal:
@@ -136,7 +133,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         return first_rate
 
     @staticmethod
-    def _get_credit_rate(
+    def __get_credit_rate(
         *,
         account_db: AccountModel,
         transaction_db: TransactionModel,
@@ -206,9 +203,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             return
 
         delta: Decimal = self._get_to_account_delta(transaction_db=transaction_db)
-        base_currency_delta: Decimal = self._get_to_account_base_currency_delta(transaction_db=transaction_db)
+        base_currency_delta: Decimal = self.__get_to_account_base_currency_delta(transaction_db=transaction_db)
         new_balance: Decimal = transaction_db.to_account.balance + delta
-        new_base_rate: Decimal = self._get_credit_rate(
+        new_base_rate: Decimal = self.__get_credit_rate(
             account_db=transaction_db.to_account,
             transaction_db=transaction_db,
             new_balance=new_balance,

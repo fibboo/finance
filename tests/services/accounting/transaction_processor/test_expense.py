@@ -106,7 +106,23 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     assert len(transactions) == 1
 
 
-async def test_create_expense_other_currency_rounds_base_amount(db: AsyncSession, db_transaction: AsyncSession):
+# 100 EUR at 0.9523809524 is 104.9999999979... USD, more than the two places an amount keeps,
+# and 0.50 RSD at 117 is 0.0042... USD, which rounds below a cent and is kept at 0.01
+@pytest.mark.parametrize(
+    "currency, base_currency_rate, amount, expected_base_currency_amount",
+    [
+        ("EUR", Decimal("0.9523809524"), Decimal("100"), Decimal("105.00")),
+        ("RSD", Decimal("117"), Decimal("0.50"), Decimal("0.01")),
+    ],
+)
+async def test_create_expense_other_currency_rounds_base_amount(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    currency: str,
+    base_currency_rate: Decimal,
+    amount: Decimal,
+    expected_base_currency_amount: Decimal,
+):
     # Arrange
     user_create_data: UserCreate = UserCreate(
         username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
@@ -114,13 +130,12 @@ async def test_create_expense_other_currency_rounds_base_amount(db: AsyncSession
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
-    # 100 EUR at this rate is 104.9999999979... USD, more than the two places an amount keeps
     account_create_data: dict = {
         "user_id": user_id,
-        "name": "Wallet EUR",
-        "currency": "EUR",
+        "name": f"Wallet {currency}",
+        "currency": currency,
         "balance": Decimal("200"),
-        "base_currency_rate": Decimal("0.9523809524"),
+        "base_currency_rate": base_currency_rate,
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -132,10 +147,10 @@ async def test_create_expense_other_currency_rounds_base_amount(db: AsyncSession
 
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
-        source_amount=Decimal("100"),
-        source_currency="EUR",
-        destination_amount=Decimal("100"),
-        destination_currency="EUR",
+        source_amount=amount,
+        source_currency=currency,
+        destination_amount=amount,
+        destination_currency=currency,
         from_account_id=account_db.id,
         category_id=category_db.id,
         location_id=location_db.id,
@@ -149,9 +164,9 @@ async def test_create_expense_other_currency_rounds_base_amount(db: AsyncSession
     await db_transaction.commit()
 
     # Assert
-    assert transaction.base_currency_amount == Decimal("105.00")
-    assert transaction.from_account.balance == Decimal("100")
-    assert transaction.from_account.base_currency_rate == Decimal("0.9523809524")
+    assert transaction.base_currency_amount == expected_base_currency_amount
+    assert transaction.from_account.balance == Decimal("200") - amount
+    assert transaction.from_account.base_currency_rate == base_currency_rate
 
 
 async def test_create_expense_account_not_found(db: AsyncSession, db_transaction: AsyncSession):

@@ -365,6 +365,55 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
     assert transaction.location_id is None
     assert transaction.location is None
 
+
+async def test_create_transfer_other_to_other_tiny_amount_keeps_a_cent(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Wallet RSD",
+        "currency": "RSD",
+        "balance": Decimal("1000"),
+        "base_currency_rate": Decimal("117"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Wallet EUR",
+        "currency": "EUR",
+        "balance": Decimal("100"),
+        "base_currency_rate": Decimal("0.9"),
+    }
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+
+    # 0.50 RSD at 117 is 0.0042... USD, which rounds below a cent
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("0.50"),
+        source_currency="RSD",
+        destination_currency="EUR",
+        destination_amount=Decimal("0.01"),
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.base_currency_amount == Decimal("0.01")
+    assert transaction.from_account.balance == Decimal("999.50")
+    assert transaction.to_account.balance == Decimal("100.01")
+
     assert transaction.income_source_id is None
     assert transaction.income_source is None
 

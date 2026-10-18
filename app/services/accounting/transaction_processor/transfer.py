@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_EVEN
+from decimal import Decimal
 from uuid import UUID
 
 from app.configs.logging_settings import get_logger
@@ -63,13 +63,15 @@ class Transfer(TransactionProcessor[TransferRequest]):
             base_currency_amount: Decimal = data.source_amount
 
         elif not is_source_base_currency and is_destination_base_currency:
-            destination_amount: Decimal = data.source_amount / from_account_db.base_currency_rate
-            data.destination_amount = destination_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+            data.destination_amount = self._quantize_amount(
+                amount=data.source_amount / from_account_db.base_currency_rate
+            )
             base_currency_amount: Decimal = data.destination_amount
 
         else:
-            base_currency_amount: Decimal = data.source_amount / from_account_db.base_currency_rate
-            base_currency_amount: Decimal = base_currency_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+            base_currency_amount: Decimal = self._quantize_amount(
+                amount=data.source_amount / from_account_db.base_currency_rate
+            )
 
         transaction_data: TransactionCreate = TransactionCreate(
             **data.model_dump(), user_id=self.user_id, base_currency_amount=base_currency_amount
