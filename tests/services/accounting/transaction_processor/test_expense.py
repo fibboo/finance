@@ -352,9 +352,7 @@ async def test_create_expense_category_of_other_user(db: AsyncSession, db_transa
     account_balance_before: Decimal = copy(account_db.balance)
     base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
 
-    category_create_data: CategoryCreate = CategoryCreate(
-        user_id=other_user_db.id, name="Food", type=CategoryType.GENERAL
-    )
+    category_create_data: CategoryCreate = CategoryCreate(user_id=other_user_db.id, name="Food")
     category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
 
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
@@ -421,7 +419,7 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
     account_balance_before: Decimal = copy(account_db.balance)
     base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
 
-    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.GENERAL)
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food")
     category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
 
     location_create_data: LocationCreate = LocationCreate(user_id=other_user_db.id, name="Some shop")
