@@ -126,7 +126,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
     @staticmethod
     def _quantize_rate(*, rate: Decimal) -> Decimal:
-        quantized_rate: Decimal = rate.quantize(Decimal("0.0001"), rounding=ROUND_HALF_EVEN)
+        quantized_rate: Decimal = rate.quantize(Decimal("0.0000000001"), rounding=ROUND_HALF_EVEN)
         return quantized_rate
 
     @staticmethod
