@@ -265,8 +265,8 @@ async def test_set_base_currency_same_currency_again(db: AsyncSession, db_transa
     assert len(categories_db) == 0
 
 
-@pytest.mark.parametrize("base_currency", [CurrencyType.USD, None], ids=["onboarded", "not_onboarded"])
-async def test_get_user(db: AsyncSession, base_currency: CurrencyType | None):
+@pytest.mark.parametrize("base_currency", ["USD", None], ids=["onboarded", "not_onboarded"])
+async def test_get_user(db: AsyncSession, base_currency: str | None):
     # Arrange
     user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency=base_currency)
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
