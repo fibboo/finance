@@ -1,9 +1,10 @@
+import asyncio
 from copy import copy
 from datetime import date
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -708,3 +709,94 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     assert account_from.balance == Decimal("0")
     account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_to.balance == Decimal("1")
+
+
+async def test_create_transfer_opposite_concurrent_no_deadlock(
+    db: AsyncSession, db_transaction: AsyncSession, other_db_transaction: AsyncSession
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    first_account_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Checking USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.CHECKING,
+        "balance": Decimal("100"),
+        "base_currency_rate": Decimal("1"),
+    }
+    first_account_db: AccountModel = await account_crud.create(db=db, obj_in=first_account_create_data, commit=True)
+    second_account_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Savings USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.CHECKING,
+        "balance": Decimal("100"),
+        "base_currency_rate": Decimal("1"),
+    }
+    second_account_db: AccountModel = await account_crud.create(db=db, obj_in=second_account_create_data, commit=True)
+    lower_account_db, higher_account_db = sorted([first_account_db, second_account_db], key=lambda account: account.id)
+
+    lower_to_higher_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("10"),
+        source_currency=CurrencyType.USD,
+        destination_currency=CurrencyType.USD,
+        from_account_id=lower_account_db.id,
+        to_account_id=higher_account_db.id,
+    )
+    higher_to_lower_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("30"),
+        source_currency=CurrencyType.USD,
+        destination_currency=CurrencyType.USD,
+        from_account_id=higher_account_db.id,
+        to_account_id=lower_account_db.id,
+    )
+    first_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=lower_to_higher_data.transaction_type
+    )
+    second_processor: TransactionProcessor = factory.get_processor(
+        db=other_db_transaction, user_id=user_db.id, transaction_type=higher_to_lower_data.transaction_type
+    )
+    waiting_on_lock_query: TextClause = text(
+        "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'"
+    )
+
+    # holding the lower account queues the first transfer on it, so locking from-then-to would deadlock
+    await account_crud.get(db=db, id=lower_account_db.id, with_for_update=True)
+
+    # Act
+    first_create: asyncio.Task = asyncio.create_task(first_processor.create(data=lower_to_higher_data))
+
+    async with asyncio.timeout(5):
+        while not first_create.done() and await db.scalar(waiting_on_lock_query) < 1:
+            await db.execute(text("SELECT pg_stat_clear_snapshot()"))
+            await asyncio.sleep(0.01)
+
+    second_create: asyncio.Task = asyncio.create_task(second_processor.create(data=higher_to_lower_data))
+
+    async with asyncio.timeout(5):
+        while not second_create.done() and await db.scalar(waiting_on_lock_query) < 2:
+            await db.execute(text("SELECT pg_stat_clear_snapshot()"))
+            await asyncio.sleep(0.01)
+
+    await db.commit()
+    await first_create
+    await db_transaction.commit()
+    await second_create
+    await other_db_transaction.commit()
+
+    # Assert
+    lower_account_after: AccountModel = await account_crud.get(db=db, id=lower_account_db.id)
+    await db.refresh(lower_account_after)
+    higher_account_after: AccountModel = await account_crud.get(db=db, id=higher_account_db.id)
+    await db.refresh(higher_account_after)
+    assert lower_account_after.balance == Decimal("120")
+    assert higher_account_after.balance == Decimal("80")
+
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 2
