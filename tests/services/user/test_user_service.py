@@ -211,9 +211,17 @@ async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSessi
     assert accounts_db[0].currency == "EUR"
 
     categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
-    assert len(categories_db) == 1
-    assert categories_db[0].name == "General"
-    assert categories_db[0].type == CategoryType.VARIABLE
+    category_types: dict[str, CategoryType] = {category_db.name: category_db.type for category_db in categories_db}
+    assert category_types == {
+        "Groceries": CategoryType.VARIABLE,
+        "Eating out": CategoryType.VARIABLE,
+        "Transport": CategoryType.VARIABLE,
+        "Utilities": CategoryType.FIXED,
+        "Subscriptions": CategoryType.FIXED,
+        "Travel": CategoryType.PERIODIC,
+        "Health": CategoryType.PERIODIC,
+        "Clothing": CategoryType.PERIODIC,
+    }
 
 
 async def test_set_base_currency_unknown_currency(db: AsyncSession, db_transaction: AsyncSession):
