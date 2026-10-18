@@ -19,7 +19,6 @@ class Settings(BaseSettings):
     jwt_secret: str
     access_token_expire_seconds: int
     refresh_token_expire_seconds: int
-    max_accounts_per_user: int
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

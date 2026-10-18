@@ -7,9 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.configs.logging_settings import LogLevelType
-from app.configs.settings import settings
 from app.exceptions.conflict_409 import IntegrityException
-from app.exceptions.forbidden_403 import MaxAccountsReached
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.account import Account, AccountCreateRequest, AccountType, AccountUpdate
@@ -63,43 +61,6 @@ async def test_create_account_existing_name(db: AsyncSession, db_transaction: As
 
     transactions: list[AccountModel] = (await db.scalars(select(AccountModel))).all()
     assert len(transactions) == 1
-
-
-async def test_create_account_max_limit(db: AsyncSession, db_transaction: AsyncSession, monkeypatch):
-    # Arrange
-    user_id: UUID = uuid4()
-
-    monkeypatch.setattr(settings, "max_accounts_per_user", 2)
-    for i in range(settings.max_accounts_per_user):
-        create_data: AccountCreateRequest = AccountCreateRequest(
-            name=f"test name {i}",
-            description=f"test description {i}",
-            currency=CurrencyType.USD,
-            account_type=AccountType.INCOME,
-        )
-        await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
-    await db.commit()
-
-    create_data: AccountCreateRequest = AccountCreateRequest(
-        name="test name", description="test description", currency=CurrencyType.USD, account_type=AccountType.INCOME
-    )
-
-    # Act
-    with pytest.raises(MaxAccountsReached) as exc:
-        await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
-        await db_transaction.commit()
-
-    # Assert
-    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
-    assert exc.value.message == "Max accounts per user"
-    assert exc.value.log_message == (
-        f"Max number of accounts ({settings.max_accounts_per_user}) " f"reached for user_id `{user_id}`"
-    )
-    assert exc.value.log_level == LogLevelType.ERROR
-    assert exc.value.error_code == ErrorCodeType.MAX_ACCOUNTS_PER_USER
-
-    transactions: list[AccountModel] = (await db.scalars(select(AccountModel))).all()
-    assert len(transactions) == 2
 
 
 async def test_get_accounts(db: AsyncSession):
