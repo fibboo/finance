@@ -301,3 +301,97 @@ async def test_update_account_name_of_deleted_account(db: AsyncSession, db_trans
     assert account.id == account_created_1.id
     assert account.name == update_data.name
     assert account.status == EntityStatusType.ACTIVE
+
+
+async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        name="test name", currency=CurrencyType.USD, account_type=AccountType.INCOME
+    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await account_service.delete_account(db=db, account_id=account_created.id, user_id=user_id)
+    await db.commit()
+
+    # Act
+    account: Account = await account_service.restore_account(
+        db=db_transaction, account_id=account_created.id, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert account.id == account_created.id
+    assert account.name == account_created.name
+    assert account.balance == Decimal("0")
+    assert account.status == EntityStatusType.ACTIVE
+
+    accounts: list[Account] = await account_service.get_accounts(db=db, user_id=user_id)
+    assert [account.id for account in accounts] == [account_created.id]
+
+
+async def test_restore_account_not_found(db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    account_id: UUID = uuid4()
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await account_service.restore_account(db=db_transaction, account_id=account_id, user_id=user_id)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.message == "Entity not found"
+    search_params = {"id": account_id, "user_id": user_id}
+    assert exc.value.log_message == f"{AccountModel.__name__} not found by {search_params}"
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+
+async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        name="test name", currency=CurrencyType.USD, account_type=AccountType.INCOME
+    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await db.commit()
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await account_service.restore_account(db=db_transaction, account_id=account_created.id, user_id=user_id)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
+    assert account_db.status == EntityStatusType.ACTIVE
+
+
+async def test_restore_account_name_taken(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        name="test name", currency=CurrencyType.USD, account_type=AccountType.INCOME
+    )
+    deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
+    await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await db.commit()
+
+    # Act
+    with pytest.raises(IntegrityException) as exc:
+        await account_service.restore_account(db=db_transaction, account_id=deleted_account.id, user_id=user_id)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.message == "Entity integrity error"
+    assert exc.value.log_message == "Account integrity error: 23505 on accounts.account_unique_user_id_name"
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
+
+    account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == deleted_account.id))
+    assert account_db.status == EntityStatusType.DELETED
