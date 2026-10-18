@@ -1,4 +1,5 @@
 import hashlib
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,18 +16,20 @@ from app.exceptions.conflict_409 import (
     IdentityLinkedToAnotherUser,
     ProviderAlreadyLinked,
 )
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.category import Category as CategoryModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountType
 from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
-from app.schemas.user.external_user import ProviderType
+from app.schemas.user.external_user import ExternalUserCreate, ProviderType
 from app.schemas.user.identity import ProviderIdentity
 from app.schemas.user.user import User, UserCreate
 from app.services.user.user_service import (
     add_external_user,
     create_user,
+    get_user,
     get_user_base_currency,
     set_base_currency,
 )
@@ -260,6 +263,41 @@ async def test_set_base_currency_same_currency_again(db: AsyncSession, db_transa
 
     categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
     assert len(categories_db) == 0
+
+
+@pytest.mark.parametrize("base_currency", ["USD", None], ids=["onboarded", "not_onboarded"])
+async def test_get_user(db: AsyncSession, base_currency: str | None):
+    # Arrange
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency=base_currency)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+    external_user_create = ExternalUserCreate(
+        user_id=user_db.id, provider=ProviderType.TELEGRAM, external_id="1111111111", username="test"
+    )
+    await external_user_crud.create(db=db, obj_in=external_user_create, commit=True)
+    db.expunge_all()
+
+    # Act
+    user: User = await get_user(db=db, user_id=user_db.id)
+
+    # Assert
+    assert user.id == user_db.id
+    assert user.username == "test"
+    assert user.base_currency == base_currency
+    assert len(user.external_users) == 1
+    assert user.external_users[0].provider == ProviderType.TELEGRAM
+    assert user.external_users[0].external_id == "1111111111"
+
+
+async def test_get_user_not_found(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # Act / Assert
+    with pytest.raises(EntityNotFound) as exc:
+        await get_user(db=db, user_id=user_id)
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
 async def test_get_user_base_currency(db: AsyncSession):
