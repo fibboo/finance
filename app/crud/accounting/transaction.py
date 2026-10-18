@@ -2,14 +2,16 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import asc, desc, select, Select
+from sqlalchemy import asc, ColumnElement, CompoundSelect, desc, or_, select, Select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, with_polymorphic
 
 from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase
+from app.models.accounting.account import Account
 from app.models.accounting.transaction import ExpenseTransaction, IncomeTransaction, Transaction, TransferTransaction
 from app.schemas.accounting.transaction import OrderDirectionType, OrderFieldType, TransactionCreate, TransactionRequest
+from app.schemas.base import EntityStatusType
 
 logger = get_logger(logger_name=__name__)
 
@@ -29,6 +31,21 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
             selectinload(TransactionModel.TransferTransaction.to_account),
         )
         return query
+
+    @staticmethod
+    def __get_account_transaction_ids(*, account_ids: list[UUID] | Select) -> CompoundSelect:
+        expense = ExpenseTransaction.__table__.c
+        income = IncomeTransaction.__table__.c
+        transfer = TransferTransaction.__table__.c
+        transfer_account_matches: ColumnElement[bool] = or_(
+            transfer.from_account_id.in_(account_ids), transfer.to_account_id.in_(account_ids)
+        )
+        transaction_ids: CompoundSelect = union(
+            select(expense.id).where(expense.from_account_id.in_(account_ids)),
+            select(income.id).where(income.to_account_id.in_(account_ids)),
+            select(transfer.id).where(transfer_account_matches),
+        )
+        return transaction_ids
 
     async def get_transactions(
         self, *, db: AsyncSession, request: TransactionRequest, user_id: UUID
@@ -56,6 +73,17 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
         if len(request.statuses) > 0:
             statuses = [s.value for s in request.statuses]
             query = query.where(TransactionModel.status.in_(statuses))
+
+        if len(request.account_ids) > 0:
+            transaction_ids: CompoundSelect = self.__get_account_transaction_ids(account_ids=request.account_ids)
+            query = query.where(TransactionModel.id.in_(transaction_ids))
+
+        if request.is_deleted_accounts_only:
+            deleted_account_ids: Select = select(Account.id).where(
+                Account.user_id == user_id, Account.status == EntityStatusType.DELETED
+            )
+            transaction_ids: CompoundSelect = self.__get_account_transaction_ids(account_ids=deleted_account_ids)
+            query = query.where(TransactionModel.id.in_(transaction_ids))
 
         order_fields_map = {
             OrderFieldType.CREATED_AT: TransactionModel.created_at,

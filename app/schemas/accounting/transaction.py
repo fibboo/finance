@@ -1,12 +1,20 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
-from typing import Annotated, TypeAlias
+from typing import Annotated, Any, TypeAlias
 from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, StringConstraints
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+    StringConstraints,
+    WithJsonSchema,
+)
 
 from app.schemas.accounting.account import Account
 from app.schemas.accounting.category import Category
@@ -149,13 +157,29 @@ class Order(BaseModel):
     field: OrderFieldType
     ordering: OrderDirectionType | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def parse_query_value(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            field, _, ordering = value.partition(":")
+            return {"field": field, "ordering": ordering or None}
+
+        return value
+
+
+ORDER_QUERY_PATTERN: str = (
+    f"^({'|'.join(field.value for field in OrderFieldType)})"
+    f"(:({'|'.join(direction.value for direction in OrderDirectionType)}))?$"
+)
+OrderQueryValue: TypeAlias = Annotated[Order, WithJsonSchema({"type": "string", "pattern": ORDER_QUERY_PATTERN})]
+
 
 class TransactionRequest(Params):
     page: int = Query(1, ge=1, description="Page number")
     size: int = Query(20, ge=1, le=100, description="Page size")
-    orders: list[Order] = [
-        Order(field=OrderFieldType.TRANSACTION_DATE, ordering=OrderDirectionType.DESC),
-        Order(field=OrderFieldType.CREATED_AT, ordering=OrderDirectionType.DESC),
+    orders: Annotated[list[OrderQueryValue], Field(validate_default=True)] = [
+        f"{OrderFieldType.TRANSACTION_DATE.value}:{OrderDirectionType.DESC.value}",
+        f"{OrderFieldType.CREATED_AT.value}:{OrderDirectionType.DESC.value}",
     ]
 
     base_currency_amount_from: Annotated[Decimal, Field(ge=Decimal("0"), decimal_places=2)] | None = None
@@ -166,6 +190,9 @@ class TransactionRequest(Params):
 
     transaction_types: list[TransactionType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
+
+    account_ids: Annotated[list[UUID], Field(max_length=100)] = []
+    is_deleted_accounts_only: bool = False
 
     @model_validator(mode="after")
     def fill_default_dates(self) -> TransactionRequest:

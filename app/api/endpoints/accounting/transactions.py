@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,8 +53,17 @@ async def create_transaction(
 
 @router.get("")
 async def get_transactions(
-    *, request: TransactionRequest = Depends(), user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *,
+    request: Annotated[TransactionRequest, Query()],
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
 ) -> Page[Transaction]:
+    """
+    Lists the user's transactions page by page.
+
+    `date_from` defaults to 90 days before today and `date_to` to today. To see the whole history of an account,
+    send an earlier `date_from` together with `account_ids` or `is_deleted_accounts_only`.
+    """
     transactions: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request, user_id=user_id
     )
