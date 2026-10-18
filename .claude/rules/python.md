@@ -41,6 +41,14 @@ These rules apply to new and changed code. Existing code that does not follow th
 - Don't use comprehensions or generator expressions when they would push the line past the configured line length. Use a regular `for` loop instead.
 - Prefer explicit conditions (`len(x) > 0`, `x is not None`) over truthy/falsy checks. Use truthy/falsy only when the falsy semantics are really needed.
 
+## Imports
+
+These rules cover the code in `app/`. A test imports the functions it tests by name.
+
+- A module of plain functions of ours (a service, `utils`, `cookies`) is imported as a module, and its functions and constants are reached through it: `from app.api import cookies`, then `cookies.delete_refresh_token_cookie(...)` or `cookies.REFRESH_TOKEN_COOKIE`.
+- An endpoint module is imported as a module too, and its `router` is read through it, as `app/api/api.py` does (`auth.router`).
+- Classes, instances (crud objects, settings), enums, exceptions, schemas and the FastAPI dependencies in `deps.py` are imported by name, as the code already does. So is `get_logger`, as **Logging** prescribes.
+
 ## Configuration
 
 - Use pydantic `BaseSettings` for all settings.
@@ -107,6 +115,14 @@ These rules apply to new and changed code. Existing code that does not follow th
 - Any method that never touches `self` must be a `@staticmethod`. Call sites keep using `self.__method(...)`.
 - The pure calculator that `.claude/rules/common.md` lets any private helper call is a `@staticmethod` with no state and no side effects.
 
+## Endpoints
+
+- A route handler takes its parameters and dependencies, hands the request to the service layer and returns the result. It has no logic of its own: no branching, no computation and no building of a response schema. Every business decision about the request belongs to the service layer. Handing over is one call into it, such as a service function, or the transaction processor that `factory.get_processor` returns (`app/services/accounting/transaction_processor/`).
+- A dependency in `app/api/deps.py` may check the request itself: authenticate it, check its `Origin`, read a cookie or a header. It makes no business decision; that stays in the service layer.
+- A cookie exists only in HTTP, so setting or clearing it is done by a helper in `app/api/`. The handler may call one such helper with the service layer's result before it returns.
+- A redirect needs no helper. The route declares `response_class=RedirectResponse`, and the handler returns the URL the service layer gives it.
+- A handler with more than two query parameters takes them as one Pydantic model. A new handler uses FastAPI's query parameter models (`Annotated[Model, Query()]`). An existing model taken as `Depends()`, as the pagination `TransactionRequest` is, is allowed too. Validation of their values (a fixed value, a format, a length) lives in that model, and the handler passes the model to the service as it is. Path parameters and dependencies are not counted.
+
 ## Database Access
 
 - **A crud returns models or plain values.** It returns an ORM model, a list or page of them, or a plain value (`bool`, `int`, `UUID`, a SQLAlchemy `Row` of an aggregate or column projection). It never returns a pydantic schema. Turning a model into a schema is serialization, which is the service's job. This does not cover a schema passed to a crud as input, which the crud modules already accept.
@@ -116,7 +132,7 @@ These rules apply to new and changed code. Existing code that does not follow th
 ## Tests
 
 - **A client is never the subject of a test.** A client is code whose only job is to talk to an external service, such as the Telegram API over httpx. Testing it only restates the call it makes. The test passes because the assertion was copied from the implementation, fails on any harmless rewrite that sends the same request differently, and proves nothing about behaviour, because what the service really answers is only observable against the live service. Request building, retry and timeout wiring, response-to-schema mapping and client reuse are all that kind of code. The framework is the same case: asserting FastAPI routing, `TestClient` status codes or Pydantic validation describes someone else's code. A rule of ours that happens to live in a client stays tested, for example the ID token checks of `iss`, `aud` and `nonce` in `oidc_provider.py`, with the external service mocked.
-- **An endpoint is never the subject of a test,** whether it is driven through a request or called directly. A route handler only passes its arguments to the service it delegates to and returns the answer, so anything it could be asserted to do is what that service does. Test the service instead. A dependency of ours (`deps.py`) carries logic of its own and is tested as such.
+- **An endpoint is never the subject of a test,** whether it is driven through a request or called directly. A route handler only passes its arguments to the service it delegates to and returns the answer, so anything it could be asserted to do is what that service does. Test the service instead. This covers the route handler only: the helpers in `app/api/` (`cookies`) and the dependencies in `deps.py` are our code and are tested directly.
 - **A definition is never the subject of a test.** An enum's members and values, a constant, a settings default or a schema's list of fields are declared, not computed. A test that reads one back only copies the declaration. A definition is tested only through the behaviour that uses it, and a test whose act is nothing but reading the definition is deleted.
 - **Only external resources are mocked.** A test may replace only a service outside this repository: the Telegram API and any other HTTP service. Our own classes, crud modules and functions are never mocked, and neither is the thing the test asserts on. A test that patches a crud and then asserts the mock was awaited proves the code calls what the test put there, not that the code works. Overriding one settings field for the duration of a test (see **Configuration** above) is not a mock: it changes a value the code reads, not the code that reads it.
 - **The database is real.** Tests run against a PostgreSQL database started by pytest-postgresql, with the schema built from the models' metadata in `tests/conftest.py`. Tests reach it through the `db` and `db_transaction` session fixtures, never through the engine and never through a mocked crud or session. The fixtures mirror how the code gets its session. Where production runs the code inside `get_db_transaction`, the test passes `db_transaction` and commits it in the act, as the dependency does at the end of a request. Rows the test needs are inserted and committed through the plain `db`, with the `commit=True` flag of the `CRUDBase` methods, which exists for exactly this. Assertions on the database are also read through the plain `db`, a separate session, so they only see what was actually committed. A test that needs two transactions in a row stores the first one's outcome as rows in arrange, since a transaction opened with `begin()` accepts nothing after its commit.
