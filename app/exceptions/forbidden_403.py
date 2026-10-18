@@ -4,7 +4,7 @@ from uuid import UUID
 from starlette import status
 
 from app.configs.logging_settings import LogLevelType
-from app.configs.settings import EnvironmentType, settings
+from app.configs.settings import settings
 from app.exceptions.base import AppBaseException
 from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.transaction import TransactionType
@@ -29,17 +29,6 @@ class ForbiddenException(AppBaseException):
             logger=logger,
             log_level=log_level,
             error_code=error_code,
-        )
-
-
-class EnvironmentMismatch(ForbiddenException):
-    def __init__(self, *, required_env: EnvironmentType, logger: logging.Logger):
-        super().__init__(
-            message="Environment mismatch",
-            log_message=f"For this action {required_env} environment required",
-            logger=logger,
-            log_level=LogLevelType.ERROR,
-            error_code=ErrorCodeType.ENVIRONMENT_MISMATCH,
         )
 
 

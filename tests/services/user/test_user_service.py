@@ -12,25 +12,15 @@ from app.schemas.accounting.account import AccountType
 from app.schemas.base import CurrencyType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
-from app.schemas.user.session import AuthData
 from app.schemas.user.user import User, UserCreate
 from app.services.user.user_service import create_user, get_user_base_currency, set_base_currency
 
 
 async def test_create_user_without_base_currency(db: AsyncSession, db_transaction: AsyncSession):
-    # Arrange
-    auth_data = AuthData(
-        access_token="access",
-        token_type="bearer",
-        expires_in=3600,
-        scope="openid",
-        provider=ProviderType.TELEGRAM,
-        external_id="1111111111",
-        username="stenbot",
-    )
-
     # Act
-    user_db: UserModel = await create_user(db=db_transaction, auth_data=auth_data)
+    user_db: UserModel = await create_user(
+        db=db_transaction, provider=ProviderType.TELEGRAM, external_id="1111111111", username="stenbot"
+    )
     await db_transaction.commit()
 
     # Assert
