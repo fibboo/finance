@@ -494,7 +494,7 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
-    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.GENERAL)
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food")
     category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
 
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
@@ -550,7 +550,7 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
-    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.GENERAL)
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food")
     category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
 
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
