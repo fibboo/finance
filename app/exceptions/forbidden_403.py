@@ -4,7 +4,6 @@ from uuid import UUID
 from starlette import status
 
 from app.configs.logging_settings import LogLevelType
-from app.configs.settings import settings
 from app.exceptions.base import AppBaseException
 from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.transaction import TransactionType
@@ -29,18 +28,6 @@ class ForbiddenException(AppBaseException):
             logger=logger,
             log_level=log_level,
             error_code=error_code,
-        )
-
-
-class MaxAccountsReached(ForbiddenException):
-    def __init__(self, *, user_id: UUID, logger: logging.Logger):
-        super().__init__(
-            message="Max accounts per user",
-            log_message=f"Max number of accounts ({settings.max_accounts_per_user}) "
-            f"reached for user_id `{user_id}`",
-            logger=logger,
-            log_level=LogLevelType.ERROR,
-            error_code=ErrorCodeType.MAX_ACCOUNTS_PER_USER,
         )
 
 
