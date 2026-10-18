@@ -41,6 +41,10 @@ A signed-in user links another provider with `POST /user/auth/link/{provider}`. 
 
 A user is created without a base currency (`users.base_currency` is nullable), so that signing in needs nothing but the provider's answer. The client chooses it once afterwards with `PUT /user/me/base_currency` (`user_service.set_base_currency`), which also creates the standard accounts in that currency. It cannot be changed: a second call with another currency answers 409 `BASE_CURRENCY_ALREADY_SET`, because every stored `base_currency_amount` is in that currency. The update only matches a row whose currency is still null, so two concurrent calls cannot both create the standard accounts. A repeated call with the stored currency returns the user unchanged, so a client can retry it safely. Until it is set, `user_service.get_user_base_currency` answers 409 `BASE_CURRENCY_NOT_SET`, which tells the client to show onboarding. Reads keep working, but creating an account, category, location, income source or transaction is refused with that 409: the create endpoints take the user id from `get_onboarded_user_id` (`app/api/deps.py`), which asks `get_user_base_currency` first. So a user has no accounts until the base currency is set, and the standard accounts it creates cannot collide with an existing account name.
 
+## Deleted accounts
+
+Deleting an account is a soft delete: `account_service.delete_account` sets its status to DELETED, and only an account with a zero balance can be deleted. Account names are unique among a user's active accounts only. `account_unique_user_id_name` (`app/models/accounting/account.py`) is a partial unique index over the rows whose status is ACTIVE, so a deleted account frees its name for create and update, while two active accounts still cannot share one. The index keeps the name of the former constraint, so a violation still answers 409 `INTEGRITY_ERROR` through `IntegrityException` with the same log message.
+
 ## Transaction amounts
 
 Every transaction (`app/models/accounting/transaction.py`) stores the money it moves in five fields:

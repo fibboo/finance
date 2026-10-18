@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: fd2c33b5e88c
+Revision ID: 44b44a14b82f
 Revises: 
-Create Date: 2026-10-17 19:56:34.305565
+Create Date: 2026-10-18 13:57:24.682546
 
 """
 from typing import Sequence, Union
@@ -11,9 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-
 # revision identifiers, used by Alembic.
-revision: str = 'fd2c33b5e88c'
+revision: str = '44b44a14b82f'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -33,9 +32,9 @@ def upgrade() -> None:
     sa.Column('status', sa.Enum('ACTIVE', 'DELETED', name='entitystatustype', native_enum=False), server_default='ACTIVE', nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id', 'name', name='account_unique_user_id_name')
+    sa.PrimaryKeyConstraint('id')
     )
+    op.create_index('account_unique_user_id_name', 'accounts', ['user_id', 'name'], unique=True, postgresql_where=sa.text("status = 'ACTIVE'"))
     op.create_index(op.f('ix_accounts_name'), 'accounts', ['name'], unique=False)
     op.create_index(op.f('ix_accounts_status'), 'accounts', ['status'], unique=False)
     op.create_index(op.f('ix_accounts_user_id'), 'accounts', ['user_id'], unique=False)
@@ -257,5 +256,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_accounts_user_id'), table_name='accounts')
     op.drop_index(op.f('ix_accounts_status'), table_name='accounts')
     op.drop_index(op.f('ix_accounts_name'), table_name='accounts')
+    op.drop_index('account_unique_user_id_name', table_name='accounts', postgresql_where=sa.text("status = 'ACTIVE'"))
     op.drop_table('accounts')
     # ### end Alembic commands ###
