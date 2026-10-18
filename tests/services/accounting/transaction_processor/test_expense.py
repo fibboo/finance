@@ -382,7 +382,10 @@ async def test_create_expense_category_of_other_user(db: AsyncSession, db_transa
     # Assert
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.message == "Entity not found"
-    assert exc.value.log_message == f"Category not found by {{'id': UUID('{category_db.id}')}}"
+    assert (
+        exc.value.log_message
+        == f"Category not found by {{'id': UUID('{category_db.id}'), 'user_id': UUID('{user_id}')}}"
+    )
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
@@ -446,7 +449,10 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
     # Assert
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.message == "Entity not found"
-    assert exc.value.log_message == f"Location not found by {{'id': UUID('{location_db.id}')}}"
+    assert (
+        exc.value.log_message
+        == f"Location not found by {{'id': UUID('{location_db.id}'), 'user_id': UUID('{user_id}')}}"
+    )
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.ERROR
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND

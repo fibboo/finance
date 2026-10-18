@@ -2,17 +2,13 @@ from decimal import Decimal
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
-from app.crud.accounting.category import category_crud
-from app.crud.accounting.location import location_crud
 from app.crud.accounting.transaction import CRUDExpenseTransaction, expense_transaction_crud
 from app.exceptions.forbidden_403 import AccountTypeMismatchException
-from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
-from app.models.accounting.category import Category as CategoryModel
-from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import ExpenseTransaction as ExpenseTransactionModel
 from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionCreate, TransactionType
+from app.services.accounting import category_service, location_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(logger_name=__name__)
@@ -56,17 +52,8 @@ class Expense(TransactionProcessor[ExpenseRequest]):
         )
         await self._validate_transaction_from_account(data=data, from_account_db=from_account)
 
-        category_db: CategoryModel | None = await category_crud.get_or_none(
-            db=self.db, id=data.category_id, user_id=self.user_id
-        )
-        if category_db is None:
-            raise EntityNotFound(entity=CategoryModel, search_params={"id": data.category_id}, logger=logger)
-
-        location_db: LocationModel | None = await location_crud.get_or_none(
-            db=self.db, id=data.location_id, user_id=self.user_id
-        )
-        if location_db is None:
-            raise EntityNotFound(entity=LocationModel, search_params={"id": data.location_id}, logger=logger)
+        await category_service.get_category(db=self.db, category_id=data.category_id, user_id=self.user_id)
+        await location_service.get_location(db=self.db, location_id=data.location_id, user_id=self.user_id)
 
         base_currency_amount: Decimal = data.source_amount / from_account.base_currency_rate
         transaction_data: TransactionCreate = TransactionCreate(
