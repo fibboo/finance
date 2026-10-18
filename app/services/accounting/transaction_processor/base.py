@@ -83,6 +83,11 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     async def _prepare_transaction(self, *, data: T) -> TransactionCreate:
         pass
 
+    @staticmethod
+    def _get_request_currencies(*, data: T) -> list[CurrencyCode]:
+        currencies: list[CurrencyCode] = sorted({data.source_currency, data.destination_currency})
+        return currencies
+
     async def _update_from_account(self, *, transaction_db: TransactionModel) -> None:
         if transaction_db.from_account_id is None:
             return
@@ -134,9 +139,11 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     async def create(self, *, data: T) -> Transaction:
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
 
+        currencies: list[CurrencyCode] = self._get_request_currencies(data=data)
+        for currency in currencies:
+            await currency_service.get_currency(db=self.db, code=currency)
+
         transaction_data: TransactionCreate = await self._prepare_transaction(data=data)
-        await currency_service.get_currency(db=self.db, code=transaction_data.source_currency)
-        await currency_service.get_currency(db=self.db, code=transaction_data.destination_currency)
         try:
             transaction_db: TransactionModel = await self._transaction_crud.create(db=self.db, obj_in=transaction_data)
 

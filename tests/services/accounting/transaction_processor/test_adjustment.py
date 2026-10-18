@@ -203,6 +203,95 @@ async def test_create_adjustment_other_currency_without_rate_ok(db: AsyncSession
     assert account_db_after.base_currency_rate == Decimal("0.9000")
 
 
+async def test_create_adjustment_other_currency_tiny_difference_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Wallet RSD",
+        "currency": "RSD",
+        "balance": Decimal("1000"),
+        "base_currency_rate": Decimal("117"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 10), account_id=account_db.id, new_balance=Decimal("1000.01")
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=adjustment_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    # 0.01 / 117 rounds to 0.00, so the smallest positive amount is stored
+    assert transaction.source_amount == Decimal("0.01")
+    assert transaction.base_currency_amount == Decimal("0.01")
+    assert transaction.to_account_id == account_db.id
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("1000.01")
+
+
+@pytest.mark.parametrize(
+    "currency, base_currency_amount, base_currency_rate",
+    [
+        ("USD", None, Decimal("1")),
+        ("EUR", Decimal("500.00"), Decimal("0.9000")),
+    ],
+)
+async def test_create_adjustment_decrease_without_rate_ok(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    currency: str,
+    base_currency_amount: Decimal | None,
+    base_currency_rate: Decimal,
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {"user_id": user_id, "name": "Card", "currency": currency}
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 10),
+        account_id=account_db.id,
+        new_balance=Decimal("-450.00"),
+        base_currency_amount=base_currency_amount,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=adjustment_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.source_amount == Decimal("450.00")
+    assert transaction.from_account_id == account_db.id
+    assert transaction.to_account_id is None
+
+    # the account gets a rate, so expenses and transfers can debit it
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("-450.00")
+    assert account_db_after.base_currency_rate == base_currency_rate
+
+
 async def test_create_adjustment_other_currency_without_rate_and_base_amount(
     db: AsyncSession, db_transaction: AsyncSession
 ):
@@ -352,6 +441,7 @@ async def test_create_adjustment_deleted_account(db: AsyncSession, db_transactio
     [
         (Decimal("0"), Decimal("1250.00")),
         (Decimal("1000"), Decimal("400.00")),
+        (Decimal("0"), Decimal("-500.00")),
     ],
 )
 async def test_delete_adjustment_ok(
@@ -396,3 +486,4 @@ async def test_delete_adjustment_ok(
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == balance_before
+    assert account_db_after.base_currency_rate == account_create_data["base_currency_rate"]

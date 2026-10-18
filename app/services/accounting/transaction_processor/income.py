@@ -4,7 +4,7 @@ from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDIncomeTransaction, income_transaction_crud
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import IncomeTransaction as IncomeTransactionModel
-from app.schemas.accounting.transaction import IncomeRequest, Transaction, TransactionCreate, TransactionType
+from app.schemas.accounting.transaction import IncomeRequest, TransactionCreate, TransactionType
 from app.services.accounting import income_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
@@ -42,5 +42,5 @@ class Income(TransactionProcessor[IncomeRequest]):
         )
         return transaction_data
 
-    async def _update_from_account(self, *, transaction_db: Transaction, is_delete: bool = False) -> None:
+    async def _update_from_account(self, *, transaction_db: IncomeTransactionModel) -> None:
         pass
