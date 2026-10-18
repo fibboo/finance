@@ -122,7 +122,7 @@ These rules cover the code in `app/`. A test imports the functions it tests by n
 - A dependency in `app/api/deps.py` may check the request itself: authenticate it, check its `Origin`, read a cookie or a header. It makes no business decision; that stays in the service layer.
 - A cookie exists only in HTTP, so setting or clearing it is done by a helper in `app/api/`. The handler may call one such helper with the service layer's result before it returns.
 - A redirect needs no helper. The route declares `response_class=RedirectResponse`, and the handler returns the URL the service layer gives it.
-- A handler with more than two query parameters takes them as one Pydantic model. A new handler uses FastAPI's query parameter models (`Annotated[Model, Query()]`). An existing model taken as `Depends()`, as the pagination `TransactionRequest` is, is allowed too. Validation of their values (a fixed value, a format, a length) lives in that model, and the handler passes the model to the service as it is. Path parameters and dependencies are not counted.
+- A handler with more than two query parameters takes them as one Pydantic model. A new handler uses FastAPI's query parameter models (`Annotated[Model, Query()]`). An existing model taken as `Depends()`, as `CategoryRequest` is, is allowed too. Validation of their values (a fixed value, a format, a length) lives in that model, and the handler passes the model to the service as it is. Path parameters and dependencies are not counted.
 
 ## Database Access
 

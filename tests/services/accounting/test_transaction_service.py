@@ -181,6 +181,7 @@ async def test_get_transactions(db: AsyncSession):
         date_from=base_date + timedelta(days=3), date_to=base_date + timedelta(days=3)
     )
     request_transaction_type: TransactionRequest = TransactionRequest(transaction_types=[TransactionType.TRANSFER])
+    request_amount_asc: TransactionRequest = TransactionRequest(orders=["base_currency_amount:asc"])
 
     # Act
     transactions_p1: Page[Transaction] = await transaction_service.get_transactions(
@@ -212,6 +213,9 @@ async def test_get_transactions(db: AsyncSession):
     )
     transactions_transaction_type: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request_transaction_type, user_id=user_id
+    )
+    transactions_amount_asc: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_amount_asc, user_id=user_id
     )
 
     # Assert
@@ -259,6 +263,10 @@ async def test_get_transactions(db: AsyncSession):
     assert transactions_transaction_type.total == 1
     assert len(transactions_transaction_type.items) == 1
     assert transactions_transaction_type.items[0].transaction_type == TransactionType.TRANSFER
+
+    amounts_asc: list[Decimal] = [item.base_currency_amount for item in transactions_amount_asc.items]
+    assert transactions_amount_asc.total == 3
+    assert amounts_asc == sorted(amounts_asc)
 
 
 async def test_get_transactions_by_accounts(db: AsyncSession):
