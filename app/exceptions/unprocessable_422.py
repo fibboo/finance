@@ -53,7 +53,10 @@ class BaseCurrencyAmountNotAllowed(UnprocessableException):
     def __init__(self, *, account_id: UUID, logger: logging.Logger):
         super().__init__(
             message="Base currency amount not allowed",
-            log_message=f"Account `{account_id}` has a base currency rate, so it takes no base_currency_amount",
+            log_message=(
+                f"Account `{account_id}` does not need a base_currency_amount: "
+                f"it is in the base currency or already has a rate"
+            ),
             logger=logger,
             error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED,
         )

@@ -171,6 +171,58 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
     assert len(transactions) == 1
 
 
+async def test_create_transfer_crossing_zero_restarts_rate(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Income USD",
+        "currency": "USD",
+        "balance": Decimal("1000"),
+        "base_currency_rate": Decimal("1"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("-50"),
+        "base_currency_rate": Decimal("1.1"),
+    }
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("105"),
+        source_currency="USD",
+        destination_currency="EUR",
+        destination_amount=Decimal("100"),
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.base_currency_amount == Decimal("105")
+
+    account_to_db_after: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to_db_after.balance == Decimal("50")
+    # 100 EUR for 105 USD
+    assert account_to_db_after.base_currency_rate == Decimal("0.9524")
+
+
 async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(

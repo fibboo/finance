@@ -106,6 +106,51 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
         return delta
 
+    @staticmethod
+    def _get_from_account_base_currency_delta(*, transaction_db: TransactionModel) -> Decimal:
+        if transaction_db.status == EntityStatusType.DELETED:
+            base_currency_delta: Decimal = transaction_db.base_currency_amount
+        else:
+            base_currency_delta: Decimal = -transaction_db.base_currency_amount
+
+        return base_currency_delta
+
+    @staticmethod
+    def _get_to_account_base_currency_delta(*, transaction_db: TransactionModel) -> Decimal:
+        if transaction_db.status == EntityStatusType.DELETED:
+            base_currency_delta: Decimal = -transaction_db.base_currency_amount
+        else:
+            base_currency_delta: Decimal = transaction_db.base_currency_amount
+
+        return base_currency_delta
+
+    @staticmethod
+    def _get_credit_rate(
+        *,
+        account_db: AccountModel,
+        transaction_db: TransactionModel,
+        new_balance: Decimal,
+        base_currency_delta: Decimal,
+        base_currency: CurrencyCode | None,
+    ) -> Decimal:
+        if new_balance == 0:
+            new_base_rate: Decimal = Decimal("0")
+        elif account_db.currency == base_currency:
+            new_base_rate: Decimal = Decimal("1")
+        elif account_db.base_currency_rate == 0 or account_db.balance <= 0 < new_balance:
+            new_base_rate: Decimal = transaction_db.destination_amount / transaction_db.base_currency_amount
+        elif account_db.balance > 0 and new_balance > 0:
+            new_base_balance: Decimal = account_db.balance / account_db.base_currency_rate + base_currency_delta
+            if new_base_balance > 0:
+                new_base_rate: Decimal = new_balance / new_base_balance
+            else:
+                new_base_rate: Decimal = account_db.base_currency_rate
+        else:
+            new_base_rate: Decimal = account_db.base_currency_rate
+
+        new_base_rate: Decimal = new_base_rate.quantize(Decimal("0.0001"), rounding=ROUND_HALF_EVEN)
+        return new_base_rate
+
     async def _update_from_account(self, *, transaction_db: TransactionModel) -> None:
         if transaction_db.from_account_id is None:
             return
@@ -119,27 +164,16 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             return
 
         delta: Decimal = self._get_to_account_delta(transaction_db=transaction_db)
+        base_currency_delta: Decimal = self._get_to_account_base_currency_delta(transaction_db=transaction_db)
         new_balance: Decimal = transaction_db.to_account.balance + delta
-        if new_balance == 0:
-            new_base_rate: Decimal = Decimal("0")
-        elif transaction_db.to_account.currency == self.base_currency:
-            new_base_rate: Decimal = Decimal("1")
-        elif transaction_db.to_account.base_currency_rate == 0:
-            new_base_rate: Decimal = transaction_db.destination_amount / transaction_db.base_currency_amount
-        else:
-            current_base_balance: Decimal = (
-                transaction_db.to_account.balance / transaction_db.to_account.base_currency_rate
-            )
-            delta = (
-                -transaction_db.base_currency_amount
-                if transaction_db.status == EntityStatusType.DELETED
-                else transaction_db.base_currency_amount
-            )
-            new_base_balance: Decimal = current_base_balance + delta
-            new_base_rate: Decimal = new_balance / new_base_balance
-
+        new_base_rate: Decimal = self._get_credit_rate(
+            account_db=transaction_db.to_account,
+            transaction_db=transaction_db,
+            new_balance=new_balance,
+            base_currency_delta=base_currency_delta,
+            base_currency=self.base_currency,
+        )
         new_balance: Decimal = new_balance.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
-        new_base_rate: Decimal = new_base_rate.quantize(Decimal("0.0001"), rounding=ROUND_HALF_EVEN)
         await account_crud.update_orm(
             db=self.db,
             id=transaction_db.to_account_id,
@@ -181,8 +215,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             db=self.db, ids=account_ids, user_id=self.user_id
         )
         for account_db in accounts_db.values():
-            if account_db.status == EntityStatusType.DELETED:
-                raise DeletedAccountTransactionForbidden(account_id=account_db.id, logger=logger)
+            self._validate_account_is_active(account_id=account_db.id, account_db=account_db)
 
         delete_update_data = {"status": EntityStatusType.DELETED}
         transaction_db: TransactionModel = await self._transaction_crud.update_api(
