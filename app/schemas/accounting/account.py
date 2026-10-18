@@ -3,6 +3,8 @@ from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
+from fastapi import Query
+from fastapi_pagination import Params
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.schemas.base import CurrencyType, EntityStatusType
@@ -44,3 +46,8 @@ class Account(AccountBase):
     status: EntityStatusType
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AccountRequest(Params):
+    page: int = Query(1, ge=1, description="Page number")
+    size: int = Query(20, ge=1, le=100, description="Page size")

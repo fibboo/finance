@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import TypeAdapter
+from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +10,14 @@ from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import AccountDeletionForbidden
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
-from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountType, AccountUpdate
+from app.schemas.accounting.account import (
+    Account,
+    AccountCreate,
+    AccountCreateRequest,
+    AccountRequest,
+    AccountType,
+    AccountUpdate,
+)
 from app.schemas.base import CurrencyType, EntityStatusType
 
 logger = get_logger(logger_name=__name__)
@@ -42,12 +49,9 @@ async def create_standard_accounts(*, db: AsyncSession, user_id: UUID, base_curr
     await account_crud.create_batch(db=db, objs_in=create_data)
 
 
-async def get_accounts(*, db: AsyncSession, user_id: UUID) -> list[Account]:
-    accounts_db: list[AccountModel] = await account_crud.get_batch(
-        db=db, user_id=user_id, status=EntityStatusType.ACTIVE
-    )
-
-    accounts: list[Account] = TypeAdapter(list[Account]).validate_python(accounts_db)
+async def get_accounts(*, db: AsyncSession, request: AccountRequest, user_id: UUID) -> Page[Account]:
+    accounts_db: Page[AccountModel] = await account_crud.get_accounts(db=db, request=request, user_id=user_id)
+    accounts: Page[Account] = Page[Account].model_validate(accounts_db)
     return accounts
 
 

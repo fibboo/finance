@@ -2,6 +2,7 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
+from fastapi_pagination import Page
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -10,7 +11,7 @@ from app.configs.logging_settings import LogLevelType
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
-from app.schemas.accounting.account import Account, AccountCreateRequest, AccountType, AccountUpdate
+from app.schemas.accounting.account import Account, AccountCreateRequest, AccountRequest, AccountType, AccountUpdate
 from app.schemas.base import CurrencyType, EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import account_service
@@ -67,32 +68,48 @@ async def test_get_accounts(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
 
-    for i in range(5):
+    # 25 accounts, more than the 10 the removed per-user limit allowed
+    for i in range(25):
         create_data: AccountCreateRequest = AccountCreateRequest(
-            name=f"test name {i}",
-            description=f"test description {i}",
-            currency=CurrencyType.USD,
-            account_type=AccountType.INCOME,
+            name=f"Account {i:02}", currency=CurrencyType.USD, account_type=AccountType.INCOME
         )
         await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    deleted_create_data: AccountCreateRequest = AccountCreateRequest(
+        name="Account deleted", currency=CurrencyType.USD, account_type=AccountType.INCOME
+    )
+    deleted_account: Account = await account_service.create_account(
+        db=db, user_id=user_id, create_data=deleted_create_data
+    )
+    await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
     await db.commit()
 
+    request_p1: AccountRequest = AccountRequest(size=10, page=1)
+    request_p3: AccountRequest = AccountRequest(size=10, page=3)
+
     # Act
-    accounts: list[Account] = await account_service.get_accounts(db=db, user_id=user_id)
+    accounts_p1: Page[Account] = await account_service.get_accounts(db=db, request=request_p1, user_id=user_id)
+    accounts_p3: Page[Account] = await account_service.get_accounts(db=db, request=request_p3, user_id=user_id)
 
     # Assert
-    assert len(accounts) == 5
+    assert accounts_p1.total == 25
+    assert accounts_p1.pages == 3
+    assert [account.name for account in accounts_p1.items] == [f"Account {i:02}" for i in range(10)]
+
+    assert accounts_p3.total == 25
+    assert [account.name for account in accounts_p3.items] == [f"Account {i:02}" for i in range(20, 25)]
 
 
 async def test_get_accounts_no_accounts(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
+    request: AccountRequest = AccountRequest()
 
     # Act
-    accounts: list[Account] = await account_service.get_accounts(db=db, user_id=user_id)
+    accounts: Page[Account] = await account_service.get_accounts(db=db, request=request, user_id=user_id)
 
     # Assert
-    assert len(accounts) == 0
+    assert accounts.total == 0
+    assert len(accounts.items) == 0
 
 
 async def test_get_account_ok(db: AsyncSession):
