@@ -17,6 +17,7 @@ from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import (
     AccountTypeMismatchException,
     CurrencyMismatchException,
+    DeletedAccountTransactionForbidden,
     NoAccountBaseCurrencyRate,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
@@ -473,3 +474,128 @@ async def test_delete_not_found(db: AsyncSession, db_transaction: AsyncSession):
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
+
+
+async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Checking USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.CHECKING,
+        "base_currency_rate": Decimal("1"),
+        "status": EntityStatusType.DELETED,
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.GENERAL)
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency=CurrencyType.USD,
+        destination_amount=Decimal("111"),
+        destination_currency=CurrencyType.RSD,
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    with pytest.raises(DeletedAccountTransactionForbidden) as exc:
+        await transaction_processor.create(data=expense_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
+    assert exc.value.message == "Transactions of a deleted account are forbidden"
+    assert exc.value.log_message == (
+        f"Account `{account_db.id}` is deleted. Restore it to create or delete its transactions"
+    )
+    assert exc.value.logger is not None
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("0")
+
+
+async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency=CurrencyType.USD
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Checking USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.CHECKING,
+        "base_currency_rate": Decimal("1"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.GENERAL)
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency=CurrencyType.USD,
+        destination_amount=Decimal("111"),
+        destination_currency=CurrencyType.RSD,
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    transaction_before: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db.commit()
+
+    await account_crud.update_orm(
+        db=db, id=account_db.id, obj_in={"status": EntityStatusType.DELETED.value}, commit=True
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    with pytest.raises(DeletedAccountTransactionForbidden) as exc:
+        await transaction_processor.delete(transaction_id=transaction_before.id)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
+    assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
+    assert exc.value.log_message == (
+        f"Account `{account_db.id}` is deleted. Restore it to create or delete its transactions"
+    )
+
+    transaction_db: TransactionModel = await db.scalar(
+        select(TransactionModel).where(TransactionModel.id == transaction_before.id)
+    )
+    assert transaction_db.status == EntityStatusType.ACTIVE
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("-1")

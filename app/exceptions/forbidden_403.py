@@ -42,6 +42,17 @@ class AccountDeletionForbidden(ForbiddenException):
         )
 
 
+class DeletedAccountTransactionForbidden(ForbiddenException):
+    def __init__(self, *, account_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Transactions of a deleted account are forbidden",
+            log_message=f"Account `{account_id}` is deleted. Restore it to create or delete its transactions",
+            logger=logger,
+            log_level=LogLevelType.ERROR,
+            error_code=ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN,
+        )
+
+
 class NoAccountBaseCurrencyRate(ForbiddenException):
     def __init__(self, *, account_id: UUID, logger: logging.Logger):
         super().__init__(

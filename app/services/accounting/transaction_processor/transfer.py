@@ -6,6 +6,7 @@ from app.crud.accounting.transaction import CRUDTransferTransaction, transfer_tr
 from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
 from app.exceptions.unprocessable_422 import UnprocessableException
 from app.models.accounting.account import Account as AccountModel
+from app.models.accounting.transaction import TransferTransaction as TransferTransactionModel
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType, TransferRequest
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
@@ -20,6 +21,11 @@ class Transfer(TransactionProcessor[TransferRequest]):
     @property
     def _transaction_crud(self) -> type[CRUDTransferTransaction]:
         return transfer_transaction_crud
+
+    @staticmethod
+    def _get_transaction_accounts(*, transaction_db: TransferTransactionModel) -> list[AccountModel]:
+        accounts_db: list[AccountModel] = [transaction_db.from_account, transaction_db.to_account]
+        return accounts_db
 
     async def __validate_transaction(
         self, *, data: TransferRequest, to_account_db: AccountModel, from_account_db: AccountModel

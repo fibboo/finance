@@ -9,7 +9,11 @@ from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.base import CRUDBase
 from app.exceptions.conflict_409 import IntegrityException
-from app.exceptions.forbidden_403 import CurrencyMismatchException, NoAccountBaseCurrencyRate
+from app.exceptions.forbidden_403 import (
+    CurrencyMismatchException,
+    DeletedAccountTransactionForbidden,
+    NoAccountBaseCurrencyRate,
+)
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
@@ -36,9 +40,17 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     def _transaction_crud(self) -> CRUDBase:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def _get_transaction_accounts(*, transaction_db: TransactionModel) -> list[AccountModel]:
+        pass
+
     async def _validate_transaction_from_account(self, *, data: T, from_account_db: AccountModel | None) -> None:
         if from_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={"id": data.from_account_id}, logger=logger)
+
+        if from_account_db.status == EntityStatusType.DELETED:
+            raise DeletedAccountTransactionForbidden(account_id=from_account_db.id, logger=logger)
 
         if from_account_db.base_currency_rate == 0:
             raise NoAccountBaseCurrencyRate(account_id=from_account_db.id, logger=logger)
@@ -54,6 +66,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     async def _validate_transaction_to_account(self, *, data: T, to_account_db: AccountModel | None) -> None:
         if to_account_db is None:
             raise EntityNotFound(entity=AccountModel, search_params={"id": data.to_account_id}, logger=logger)
+
+        if to_account_db.status == EntityStatusType.DELETED:
+            raise DeletedAccountTransactionForbidden(account_id=to_account_db.id, logger=logger)
 
         if to_account_db.currency != data.destination_currency:
             raise CurrencyMismatchException(
@@ -133,6 +148,11 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             raise EntityNotFound(
                 entity=TransactionModel, search_params={"id": transaction_id, "user_id": self.user_id}, logger=logger
             )
+
+        accounts_db: list[AccountModel] = self._get_transaction_accounts(transaction_db=transaction_db)
+        for account_db in accounts_db:
+            if account_db.status == EntityStatusType.DELETED:
+                raise DeletedAccountTransactionForbidden(account_id=account_db.id, logger=logger)
 
         delete_update_data = {"status": EntityStatusType.DELETED}
         transaction_db: TransactionModel = await self._transaction_crud.update_api(

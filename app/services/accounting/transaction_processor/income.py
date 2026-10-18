@@ -3,6 +3,7 @@ from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDIncomeTransaction, income_transaction_crud
 from app.exceptions.forbidden_403 import AccountTypeMismatchException
 from app.models.accounting.account import Account as AccountModel
+from app.models.accounting.transaction import IncomeTransaction as IncomeTransactionModel
 from app.schemas.accounting.account import AccountType
 from app.schemas.accounting.transaction import IncomeRequest, Transaction, TransactionCreate, TransactionType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
@@ -18,6 +19,11 @@ class Income(TransactionProcessor[IncomeRequest]):
     @property
     def _transaction_crud(self) -> type[CRUDIncomeTransaction]:
         return income_transaction_crud
+
+    @staticmethod
+    def _get_transaction_accounts(*, transaction_db: IncomeTransactionModel) -> list[AccountModel]:
+        accounts_db: list[AccountModel] = [transaction_db.to_account]
+        return accounts_db
 
     async def _validate_transaction_from_account(
         self, *, data: IncomeRequest, from_account_db: AccountModel | None
