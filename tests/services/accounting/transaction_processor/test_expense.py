@@ -568,7 +568,7 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("0")
-    assert account_db_after.base_currency_rate == Decimal("0")
+    assert account_db_after.base_currency_rate == Decimal("1")
 
 
 async def test_delete_not_found(db: AsyncSession, db_transaction: AsyncSession):
@@ -787,105 +787,3 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 2
-
-
-async def test_create_expense_emptying_account_resets_rate(db: AsyncSession, db_transaction: AsyncSession):
-    # Arrange
-    user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
-    )
-    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
-    user_id: UUID = user_db.id
-
-    account_create_data: dict = {
-        "user_id": user_id,
-        "name": "Card EUR",
-        "currency": "EUR",
-        "balance": Decimal("110"),
-        "base_currency_rate": Decimal("1.1"),
-    }
-    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
-
-    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.VARIABLE)
-    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
-
-    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
-    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
-
-    expense_create_data: ExpenseRequest = ExpenseRequest(
-        transaction_date=date(2025, 2, 10),
-        source_amount=Decimal("110"),
-        source_currency="EUR",
-        destination_amount=Decimal("110"),
-        destination_currency="EUR",
-        from_account_id=account_db.id,
-        category_id=category_db.id,
-        location_id=location_db.id,
-    )
-
-    # Act
-    transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
-    )
-    transaction: Transaction = await transaction_processor.create(data=expense_create_data)
-    await db_transaction.commit()
-
-    # Assert
-    assert transaction.base_currency_amount == Decimal("100")
-    assert transaction.from_account.balance == Decimal("0")
-    assert transaction.from_account.base_currency_rate == Decimal("0")
-
-
-async def test_delete_expense_of_emptied_account_sets_rate(db: AsyncSession, db_transaction: AsyncSession):
-    # Arrange
-    user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
-    )
-    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
-    user_id: UUID = user_db.id
-
-    account_create_data: dict = {
-        "user_id": user_id,
-        "name": "Card EUR",
-        "currency": "EUR",
-        "balance": Decimal("110"),
-        "base_currency_rate": Decimal("1.1"),
-    }
-    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
-
-    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.VARIABLE)
-    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
-
-    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
-    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
-
-    # the expense empties the account, so the account has rate 0 before the act
-    expense_create_data: ExpenseRequest = ExpenseRequest(
-        transaction_date=date(2025, 2, 10),
-        source_amount=Decimal("110"),
-        source_currency="EUR",
-        destination_amount=Decimal("110"),
-        destination_currency="EUR",
-        from_account_id=account_db.id,
-        category_id=category_db.id,
-        location_id=location_db.id,
-    )
-    transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
-    )
-    transaction_before: Transaction = await transaction_processor.create(data=expense_create_data)
-    await db.commit()
-    await db.close()
-
-    # Act
-    transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
-    )
-    await transaction_processor.delete(transaction_id=transaction_before.id)
-    await db_transaction.commit()
-    await db_transaction.close()
-
-    # Assert
-    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
-    assert account_db_after.balance == Decimal("110")
-    assert account_db_after.base_currency_rate == Decimal("1.1")
