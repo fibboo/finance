@@ -67,4 +67,4 @@ What source and destination mean depends on the transaction type:
 
 ## Migrations
 
-The application has not been deployed yet, so `db_migration/versions/` holds one initial revision. Until the first deploy, a schema change deletes it and regenerates it with `alembic revision --autogenerate` against an empty database instead of adding a revision on top, since there is no data to migrate. From the first deploy on, every schema change adds a new revision.
+The application has not been deployed yet, so `db_migration/versions/` holds one initial revision. Until the first deploy, a schema change deletes it and regenerates it with `alembic revision --autogenerate` against an empty database instead of adding a revision on top, since there is no data to migrate. A regenerated revision has a new id that a local database stamped with the old one cannot find, so after pulling one, reset the local database with `docker compose down -v`. From the first deploy on, every schema change adds a new revision.

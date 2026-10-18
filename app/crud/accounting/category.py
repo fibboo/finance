@@ -24,8 +24,8 @@ class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
                 )
             )
 
-        paginated_expenses = await apaginate(db, query, request)
-        return paginated_expenses
+        paginated_categories = await apaginate(db, query, request)
+        return paginated_categories
 
 
 category_crud = CRUDCategory(model=Category)
