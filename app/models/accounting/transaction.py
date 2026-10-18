@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, func, Numeric, String
+from sqlalchemy import CheckConstraint, Date, DateTime, Enum, ForeignKey, func, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -120,5 +120,29 @@ class TransferTransaction(Transaction):
     def __repr__(self):
         return (
             f"Transfer transaction (id={self.id}, base_currency_amount={self.base_currency_amount}), "
+            f"from_account={self.from_account}, to_account={self.to_account})"
+        )
+
+
+class AdjustmentTransaction(Transaction):
+    __tablename__ = "transactions_adjustment"
+    __table_args__ = (
+        CheckConstraint(
+            "(from_account_id IS NULL) <> (to_account_id IS NULL)", name="transaction_adjustment_one_account"
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(ForeignKey(Transaction.id), primary_key=True)  # noqa: A003
+    from_account_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
+    to_account_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Account.id), nullable=True, index=True)
+
+    from_account: Mapped[Account | None] = relationship(Account, foreign_keys=[from_account_id], lazy="selectin")
+    to_account: Mapped[Account | None] = relationship(Account, foreign_keys=[to_account_id], lazy="selectin")
+
+    __mapper_args__ = {"polymorphic_identity": TransactionType.ADJUSTMENT.value}
+
+    def __repr__(self):
+        return (
+            f"Adjustment transaction (id={self.id}, base_currency_amount={self.base_currency_amount}), "
             f"from_account={self.from_account}, to_account={self.to_account})"
         )

@@ -30,6 +30,7 @@ class TransactionType(str, Enum):
     EXPENSE = "EXPENSE"
     INCOME = "INCOME"
     TRANSFER = "TRANSFER"
+    ADJUSTMENT = "ADJUSTMENT"
 
 
 class TransactionBase(BaseModel):
@@ -91,7 +92,23 @@ class TransferRequest(TransactionBase):
         return transaction_type
 
 
-TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest
+class AdjustmentRequest(BaseModel):
+    transaction_type: TransactionType = TransactionType.ADJUSTMENT
+    transaction_date: date
+    comment: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
+    account_id: UUID
+    new_balance: Annotated[Decimal, Field(decimal_places=2)]
+    base_currency_amount: PositiveAmount | None = None
+
+    @field_validator("transaction_type", mode="after")
+    def validate_transaction_type(cls, transaction_type: TransactionType):
+        if transaction_type != TransactionType.ADJUSTMENT:
+            raise ValueError(f"transaction_type should be {TransactionType.ADJUSTMENT} for adjustment transactions")
+
+        return transaction_type
+
+
+TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest | AdjustmentRequest
 
 
 class TransactionCreate(TransactionBase):
@@ -117,6 +134,14 @@ class TransactionCreate(TransactionBase):
         ):
             raise ValueError(
                 f"to_account_id and from_account_id should be filled " f"for {self.transaction_type} transactions"
+            )
+
+        if self.transaction_type == TransactionType.ADJUSTMENT and (
+            (self.from_account_id is None) == (self.to_account_id is None)
+        ):
+            raise ValueError(
+                f"exactly one of from_account_id and to_account_id should be filled "
+                f"for {self.transaction_type} transactions"
             )
 
         if self.from_account_id == self.to_account_id:

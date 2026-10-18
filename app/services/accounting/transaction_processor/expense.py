@@ -5,7 +5,7 @@ from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDExpenseTransaction, expense_transaction_crud
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import ExpenseTransaction as ExpenseTransactionModel
-from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionCreate, TransactionType
+from app.schemas.accounting.transaction import ExpenseRequest, TransactionCreate, TransactionType
 from app.services.accounting import category_service, location_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
@@ -45,5 +45,5 @@ class Expense(TransactionProcessor[ExpenseRequest]):
         )
         return transaction_data
 
-    async def _update_to_account(self, *, transaction_db: Transaction, is_delete: bool = False) -> None:
+    async def _update_to_account(self, *, transaction_db: ExpenseTransactionModel) -> None:
         pass
