@@ -47,3 +47,13 @@ class AccountBalanceUnchanged(UnprocessableException):
             logger=logger,
             error_code=ErrorCodeType.ACCOUNT_BALANCE_UNCHANGED,
         )
+
+
+class BaseCurrencyAmountNotAllowed(UnprocessableException):
+    def __init__(self, *, account_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Base currency amount not allowed",
+            log_message=f"Account `{account_id}` has a base currency rate, so it takes no base_currency_amount",
+            logger=logger,
+            error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED,
+        )

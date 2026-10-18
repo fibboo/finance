@@ -12,7 +12,7 @@ from app.crud.accounting.account import account_crud
 from app.crud.user.user import user_crud
 from app.exceptions.forbidden_403 import DeletedAccountTransactionForbidden, NoAccountBaseCurrencyRate
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.unprocessable_422 import AccountBalanceUnchanged
+from app.exceptions.unprocessable_422 import AccountBalanceUnchanged, BaseCurrencyAmountNotAllowed
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
@@ -143,7 +143,6 @@ async def test_create_adjustment_other_currency_with_rate_ok(db: AsyncSession, d
         transaction_date=date(2025, 2, 10),
         account_id=account_db.id,
         new_balance=Decimal("1350.00"),
-        base_currency_amount=Decimal("1"),
     )
     await db.close()
 
@@ -155,7 +154,7 @@ async def test_create_adjustment_other_currency_with_rate_ok(db: AsyncSession, d
     await db_transaction.commit()
 
     # Assert
-    # the account rate converts the difference, so the request's base_currency_amount is ignored
+    # the account rate converts the difference
     assert transaction.source_amount == Decimal("450.00")
     assert transaction.source_currency == "EUR"
     assert transaction.destination_currency == "EUR"
@@ -240,6 +239,145 @@ async def test_create_adjustment_other_currency_tiny_difference_ok(db: AsyncSess
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("1000.01")
+    assert account_db_after.base_currency_rate == Decimal("117")
+
+
+async def test_create_adjustment_other_currency_crossing_zero_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Card RSD",
+        "currency": "RSD",
+        "balance": Decimal("-117.00"),
+        "base_currency_rate": Decimal("117"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 10), account_id=account_db.id, new_balance=Decimal("0.01")
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=adjustment_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    # 117.01 / 117 rounds to 1.00, which must not feed back into the rate
+    assert transaction.source_amount == Decimal("117.01")
+    assert transaction.base_currency_amount == Decimal("1.00")
+    assert transaction.to_account_id == account_db.id
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("0.01")
+    assert account_db_after.base_currency_rate == Decimal("117")
+
+
+async def test_create_adjustment_other_currency_decrease_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Wallet EUR",
+        "currency": "EUR",
+        "balance": Decimal("900"),
+        "base_currency_rate": Decimal("0.9"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 10), account_id=account_db.id, new_balance=Decimal("450.00")
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=adjustment_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.source_amount == Decimal("450.00")
+    assert transaction.base_currency_amount == Decimal("500.00")
+    assert transaction.from_account_id == account_db.id
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("450.00")
+    assert account_db_after.base_currency_rate == Decimal("0.9")
+
+
+@pytest.mark.parametrize(
+    "currency, balance, base_currency_rate",
+    [
+        ("USD", Decimal("0"), Decimal("0")),
+        ("EUR", Decimal("900"), Decimal("0.9")),
+    ],
+)
+async def test_create_adjustment_base_currency_amount_not_allowed(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    currency: str,
+    balance: Decimal,
+    base_currency_rate: Decimal,
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Wallet",
+        "currency": currency,
+        "balance": balance,
+        "base_currency_rate": base_currency_rate,
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 10),
+        account_id=account_db.id,
+        new_balance=Decimal("1350.00"),
+        base_currency_amount=Decimal("1"),
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    with pytest.raises(BaseCurrencyAmountNotAllowed) as exc:
+        await transaction_processor.create(data=adjustment_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.message == "Base currency amount not allowed"
+    assert exc.value.log_message == (
+        f"Account `{account_db.id}` has a base currency rate, so it takes no base_currency_amount"
+    )
+    assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == balance
 
 
 @pytest.mark.parametrize(
