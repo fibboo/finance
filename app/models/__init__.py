@@ -1,5 +1,6 @@
 from app.models.accounting.account import Account
 from app.models.accounting.category import Category
+from app.models.accounting.currency import Currency
 from app.models.accounting.income_source import IncomeSource
 from app.models.accounting.location import Location
 from app.models.accounting.transaction import ExpenseTransaction, IncomeTransaction, Transaction, TransferTransaction
