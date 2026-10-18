@@ -58,3 +58,12 @@ async def delete_account(*, account_id: UUID, user_id: UUID = Depends(get_user_i
     Deleting account is possible only if balance is 0
     """
     await account_service.delete_account(db=db, account_id=account_id, user_id=user_id)
+
+
+@router.post("/{account_id}/restore")
+async def restore_account(*, account_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Account:
+    """
+    Restoring account is possible only if no active account has its name
+    """
+    account: Account = await account_service.restore_account(db=db, account_id=account_id, user_id=user_id)
+    return account

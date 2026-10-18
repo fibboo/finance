@@ -97,3 +97,22 @@ async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -
     )
     account: Account = Account.model_validate(account_db)
     return account
+
+
+async def restore_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
+    account_db: AccountModel | None = await account_crud.get_or_none(
+        db=db, id=account_id, user_id=user_id, status=EntityStatusType.DELETED, with_for_update=True
+    )
+    if account_db is None:
+        raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
+
+    obj_in: dict = {"status": EntityStatusType.ACTIVE.value}
+    try:
+        account_db: AccountModel = await account_crud.update_orm(
+            db=db, obj_in=obj_in, id=account_id, user_id=user_id, status=EntityStatusType.DELETED
+        )
+    except IntegrityError as exc:
+        raise IntegrityException(entity=AccountModel, exception=exc, logger=logger)
+
+    account: Account = Account.model_validate(account_db)
+    return account
