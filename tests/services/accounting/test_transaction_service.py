@@ -290,13 +290,24 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     account_income_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_create_data: dict = {
         "user_id": user_id,
-        "name": "Reserve USD",
+        "name": "Old income USD",
         "currency": CurrencyType.USD,
-        "account_type": AccountType.RESERVE,
+        "account_type": AccountType.INCOME,
         "balance": Decimal("0"),
         "base_currency_rate": Decimal("1"),
     }
-    account_deleted_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    account_deleted_income_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Old checking USD",
+        "currency": CurrencyType.USD,
+        "account_type": AccountType.CHECKING,
+        "balance": Decimal("0"),
+        "base_currency_rate": Decimal("1"),
+    }
+    account_deleted_checking_db: AccountModel = await account_crud.create(
+        db=db, obj_in=account_create_data, commit=True
+    )
 
     category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.GENERAL)
     category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
@@ -307,8 +318,10 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         db=db, obj_in=income_source_create_data, commit=True
     )
 
-    # an expense from the checking account, an income to the income account
-    # and a transfer from the income account to the account deleted afterwards
+    # an expense from the checking account and an income to the income account,
+    # then the two accounts deleted afterwards take every account role and end at a zero balance:
+    # the old income account receives an income of 300 and transfers it out,
+    # the old checking account receives a transfer of 500 and spends it
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=base_date + timedelta(days=1),
         source_amount=Decimal("100"),
@@ -339,31 +352,76 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     )
     income: Transaction = await transaction_processor.create(data=income_create_data)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    income_create_data: IncomeRequest = IncomeRequest(
         transaction_date=base_date + timedelta(days=3),
+        source_amount=Decimal("300"),
+        source_currency=CurrencyType.USD,
+        destination_amount=Decimal("300"),
+        destination_currency=CurrencyType.USD,
+        to_account_id=account_deleted_income_db.id,
+        income_source_id=income_source_db.id,
+        income_period=date(2025, 1, 1),
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
+    )
+    income_to_deleted: Transaction = await transaction_processor.create(data=income_create_data)
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=base_date + timedelta(days=4),
+        source_amount=Decimal("300"),
+        source_currency=CurrencyType.USD,
+        destination_currency=CurrencyType.USD,
+        destination_amount=Decimal("300"),
+        from_account_id=account_deleted_income_db.id,
+        to_account_id=account_checking_db.id,
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=transfer_create_data.transaction_type
+    )
+    transfer_from_deleted: Transaction = await transaction_processor.create(data=transfer_create_data)
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=base_date + timedelta(days=5),
         source_amount=Decimal("500"),
         source_currency=CurrencyType.USD,
         destination_currency=CurrencyType.USD,
         destination_amount=Decimal("500"),
         from_account_id=account_income_db.id,
-        to_account_id=account_deleted_db.id,
+        to_account_id=account_deleted_checking_db.id,
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=transfer_create_data.transaction_type
     )
-    transfer: Transaction = await transaction_processor.create(data=transfer_create_data)
+    transfer_to_deleted: Transaction = await transaction_processor.create(data=transfer_create_data)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=base_date + timedelta(days=6),
+        source_amount=Decimal("500"),
+        source_currency=CurrencyType.USD,
+        destination_amount=Decimal("500"),
+        destination_currency=CurrencyType.USD,
+        from_account_id=account_deleted_checking_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    expense_from_deleted: Transaction = await transaction_processor.create(data=expense_create_data)
     await db.commit()
 
-    await account_crud.update_orm(
-        db=db, obj_in={"status": EntityStatusType.DELETED}, id=account_deleted_db.id, commit=True
-    )
+    for account_db in [account_deleted_income_db, account_deleted_checking_db]:
+        await account_crud.update_orm(db=db, obj_in={"status": EntityStatusType.DELETED}, id=account_db.id, commit=True)
     await db.close()
 
     request_checking: TransactionRequest = TransactionRequest(account_ids=[account_checking_db.id])
     request_income: TransactionRequest = TransactionRequest(account_ids=[account_income_db.id])
-    request_deleted: TransactionRequest = TransactionRequest(account_ids=[account_deleted_db.id])
-    request_checking_and_deleted: TransactionRequest = TransactionRequest(
-        account_ids=[account_checking_db.id, account_deleted_db.id]
+    request_deleted: TransactionRequest = TransactionRequest(
+        account_ids=[account_deleted_income_db.id, account_deleted_checking_db.id]
+    )
+    request_checking_and_deleted_income: TransactionRequest = TransactionRequest(
+        account_ids=[account_checking_db.id, account_deleted_income_db.id]
     )
     request_deleted_only: TransactionRequest = TransactionRequest(is_deleted_accounts_only=True)
     request_checking_deleted_only: TransactionRequest = TransactionRequest(
@@ -384,8 +442,8 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     transactions_deleted: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request_deleted, user_id=user_id
     )
-    transactions_checking_and_deleted: Page[Transaction] = await transaction_service.get_transactions(
-        db=db, request=request_checking_and_deleted, user_id=user_id
+    transactions_checking_and_deleted_income: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_checking_and_deleted_income, user_id=user_id
     )
     transactions_deleted_only: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request_deleted_only, user_id=user_id
@@ -401,15 +459,29 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     )
 
     # Assert
-    assert [item.id for item in transactions_checking.items] == [expense.id]
-    assert [item.id for item in transactions_income.items] == [transfer.id, income.id]
-    assert [item.id for item in transactions_deleted.items] == [transfer.id]
-    assert [item.id for item in transactions_checking_and_deleted.items] == [transfer.id, expense.id]
-    assert [item.id for item in transactions_deleted_only.items] == [transfer.id]
-    assert transactions_deleted_only.items[0].to_account.status == EntityStatusType.DELETED
-    assert transactions_checking_deleted_only.total == 0
-    assert [item.id for item in transactions_income_deleted_only.items] == [transfer.id]
-    assert [item.id for item in transactions_no_account_filter.items] == [transfer.id, income.id, expense.id]
+    # every list is ordered by transaction date, newest first
+    deleted_account_transaction_ids: list[UUID] = [
+        expense_from_deleted.id,
+        transfer_to_deleted.id,
+        transfer_from_deleted.id,
+        income_to_deleted.id,
+    ]
+    assert [item.id for item in transactions_checking.items] == [transfer_from_deleted.id, expense.id]
+    assert [item.id for item in transactions_income.items] == [transfer_to_deleted.id, income.id]
+    assert [item.id for item in transactions_deleted.items] == deleted_account_transaction_ids
+    assert [item.id for item in transactions_checking_and_deleted_income.items] == [
+        transfer_from_deleted.id,
+        income_to_deleted.id,
+        expense.id,
+    ]
+    assert [item.id for item in transactions_deleted_only.items] == deleted_account_transaction_ids
+    assert [item.id for item in transactions_checking_deleted_only.items] == [transfer_from_deleted.id]
+    assert [item.id for item in transactions_income_deleted_only.items] == [transfer_to_deleted.id]
+    assert [item.id for item in transactions_no_account_filter.items] == [
+        *deleted_account_transaction_ids,
+        income.id,
+        expense.id,
+    ]
 
 
 async def test_get_transaction_ok(db: AsyncSession):

@@ -167,7 +167,7 @@ class TransactionRequest(Params):
     transaction_types: list[TransactionType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 
-    account_ids: list[UUID] = []
+    account_ids: Annotated[list[UUID], Field(max_length=100)] = []
     is_deleted_accounts_only: bool = False
 
     @model_validator(mode="after")
