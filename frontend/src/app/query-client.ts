@@ -1,14 +1,13 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
 
 import { showErrorNotification } from '@/components/error-notification/error-notification-store';
+import { ApiError } from '@/lib/api-error';
 
 const STALE_TIME_MS = 60_000;
 const MAX_RETRIES = 3;
-const clientErrorSchema = z.object({ status: z.number().int().min(400).max(499) });
 
 function shouldRetry(failureCount: number, error: unknown): boolean {
-  const isClientError = clientErrorSchema.safeParse(error).success;
+  const isClientError = error instanceof ApiError && error.status >= 400 && error.status < 500;
   const shouldRetryError = !isClientError && failureCount < MAX_RETRIES;
 
   return shouldRetryError;

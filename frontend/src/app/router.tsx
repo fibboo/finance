@@ -1,6 +1,7 @@
 import { createBrowserRouter, type RouteObject } from 'react-router';
 
 import { RootErrorBoundary } from '@/app/root-error-boundary';
+import { restoreSession } from '@/features/auth/api/session';
 
 const routes: RouteObject[] = [
   {
@@ -9,14 +10,24 @@ const routes: RouteObject[] = [
     children: [
       {
         ErrorBoundary: RootErrorBoundary,
+        loader: restoreSession,
         lazy: {
-          Component: async () => (await import('@/app/app-layout')).AppLayout,
+          Component: async () =>
+            (await import('@/features/auth/components/require-session')).RequireSession,
         },
         children: [
           {
-            index: true,
             ErrorBoundary: RootErrorBoundary,
-            lazy: () => import('@/app/routes/home'),
+            lazy: {
+              Component: async () => (await import('@/app/app-layout')).AppLayout,
+            },
+            children: [
+              {
+                index: true,
+                ErrorBoundary: RootErrorBoundary,
+                lazy: () => import('@/app/routes/home'),
+              },
+            ],
           },
         ],
       },

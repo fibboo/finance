@@ -3,12 +3,11 @@ import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import styles from './account-menu.module.css';
 
 type AccountMenuProps = Readonly<{
+  avatar: ReactNode;
   children: ReactNode;
 }>;
 
-const PERSON_ICON_PATH = 'M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8M4.5 20a7.5 7.5 0 0 1 15 0';
-
-export function AccountMenu({ children }: AccountMenuProps) {
+export function AccountMenu({ avatar, children }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -65,9 +64,7 @@ export function AccountMenu({ children }: AccountMenuProps) {
             setIsOpen(!isOpen);
           }}
         >
-          <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-            <path d={PERSON_ICON_PATH} />
-          </svg>
+          {avatar}
         </button>
         {isOpen && (
           <div

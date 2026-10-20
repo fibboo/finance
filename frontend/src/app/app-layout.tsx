@@ -6,6 +6,9 @@ import { MainNavigation } from './main-navigation';
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';
 import { ThemeSwitch } from '@/components/theme-switch/theme-switch';
+import { SignOutButton } from '@/features/auth/components/sign-out-button';
+import { UserInitials } from '@/features/user/components/user-initials';
+import { UserSummary } from '@/features/user/components/user-summary';
 
 export function AppLayout() {
   return (
@@ -15,8 +18,10 @@ export function AppLayout() {
           <Logo />
         </Link>
         <div className={styles['account']}>
-          <AccountMenu>
+          <AccountMenu avatar={<UserInitials />}>
+            <UserSummary />
             <ThemeSwitch />
+            <SignOutButton />
           </AccountMenu>
         </div>
       </header>
