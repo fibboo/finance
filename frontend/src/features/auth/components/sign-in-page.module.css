@@ -116,7 +116,7 @@
 
 @media (--desktop) {
   .signInPage {
-    max-width: var(--size-sign-in);
+    max-width: var(--size-column);
     margin-inline: auto;
   }
 }
