@@ -1,39 +1,54 @@
+#Requires -Version 7
 $ErrorActionPreference = 'Stop'
 
-$ForwardedPorts = @(5173, 8080)
+$DevServerPort = 5173
+$ForwardedPorts = [ordered]@{
+    $DevServerPort = 'The dev server'
+    8080 = 'The mock sign-in server (mock-oidc)'
+}
 $WaitSeconds = 60
+$ConnectRetrySeconds = 10
 
-function Find-MdnsService([string]$ServiceType) {
+function Find-MdnsServices([string]$ServiceType) {
     $services = adb mdns services 2>$null
-    foreach ($line in $services) {
+    $addresses = foreach ($line in $services) {
         if ($line -match "$([regex]::Escape($ServiceType))\s+(\S+:\d+)") {
-            return $Matches[1]
+            $Matches[1]
         }
     }
 
-    return $null
+    return @($addresses)
 }
 
-function Wait-MdnsService([string]$ServiceType, [string]$Prompt) {
+function Wait-MdnsServices([string]$ServiceType, [string]$Prompt) {
     Write-Host $Prompt
     $deadline = (Get-Date).AddSeconds($WaitSeconds)
     while ((Get-Date) -lt $deadline) {
-        $address = Find-MdnsService $ServiceType
-        if ($address) {
-            return $address
+        $addresses = Find-MdnsServices $ServiceType
+        if ($addresses) {
+            return $addresses
         }
 
         Start-Sleep -Seconds 2
     }
 
-    throw "The phone did not show up on the network within $WaitSeconds seconds. Check that it is on the same Wi-Fi as this computer."
+    throw "The phone did not show up on the network within $WaitSeconds seconds. Check that wireless debugging is on and that the phone is on the same Wi-Fi as this computer."
 }
 
-function Connect-Phone([string]$Address) {
-    $output = adb connect $Address 2>&1 | Out-String
-    $isConnected = $output -match 'connected to'
+function Connect-AnyPhone {
+    $deadline = (Get-Date).AddSeconds($ConnectRetrySeconds)
+    while ((Get-Date) -lt $deadline) {
+        foreach ($address in Find-MdnsServices '_adb-tls-connect._tcp') {
+            $output = adb connect $address 2>&1 | Out-String
+            if ($output -match 'connected to') {
+                return $address
+            }
+        }
 
-    return $isConnected
+        Start-Sleep -Seconds 2
+    }
+
+    return $null
 }
 
 function Wait-StableDevice([string]$Serial) {
@@ -60,41 +75,51 @@ if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
     throw 'adb is not installed. Run: winget install Google.PlatformTools, then open a new terminal.'
 }
 
-$env:ADB_MDNS_AUTO_CONNECT = '0'
-adb kill-server 2>$null | Out-Null
-adb start-server 2>$null | Out-Null
-
-$connectAddress = Find-MdnsService '_adb-tls-connect._tcp'
-if (-not $connectAddress) {
-    $connectAddress = Wait-MdnsService '_adb-tls-connect._tcp' 'Turn on Developer options > Wireless debugging on the phone...'
-}
-
-if (-not (Connect-Phone $connectAddress)) {
-    $pairingAddress = Wait-MdnsService '_adb-tls-pairing._tcp' 'The phone is not paired yet. On the phone open Wireless debugging > Pair device with pairing code...'
-    $pairingCode = Read-Host 'Pairing code shown on the phone'
-    adb pair $pairingAddress $pairingCode
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Pairing failed. Open the pairing dialog again and rerun this script.'
-    }
-
-    $connectAddress = Wait-MdnsService '_adb-tls-connect._tcp' 'Waiting for the phone to accept connections...'
-    if (-not (Connect-Phone $connectAddress)) {
-        throw "Could not connect to $connectAddress."
-    }
-}
-
-Wait-StableDevice $connectAddress
-
-adb -s $connectAddress reverse --remove-all | Out-Null
-foreach ($port in $ForwardedPorts) {
-    adb -s $connectAddress reverse "tcp:$port" "tcp:$port" | Out-Null
-}
-
+$previousAutoConnect = $env:ADB_MDNS_AUTO_CONNECT
 try {
-    Invoke-WebRequest -Uri 'http://localhost:5173' -UseBasicParsing -TimeoutSec 5 | Out-Null
-} catch {
-    Write-Warning 'The dev server does not answer on http://localhost:5173. Start it with: docker compose up -d'
+    $env:ADB_MDNS_AUTO_CONNECT = '0'
+    adb kill-server 2>$null | Out-Null
+    adb start-server 2>$null | Out-Null
+
+    Wait-MdnsServices '_adb-tls-connect._tcp' 'Looking for the phone. If wireless debugging is off, turn on Developer options > Wireless debugging...' | Out-Null
+    $connectAddress = Connect-AnyPhone
+    if (-not $connectAddress) {
+        $pairingAddress = (Wait-MdnsServices '_adb-tls-pairing._tcp' 'No phone accepted the connection, so it is not paired yet. On the phone open Wireless debugging > Pair device with pairing code...')[0]
+        $pairingCode = Read-Host 'Pairing code shown on the phone'
+        adb pair $pairingAddress $pairingCode
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Pairing failed. Open the pairing dialog again and rerun this script.'
+        }
+
+        Write-Host 'Waiting for the phone to accept connections...'
+        $connectAddress = Connect-AnyPhone
+        if (-not $connectAddress) {
+            throw 'The phone was paired but did not accept a connection. Rerun this script.'
+        }
+    }
+
+    Wait-StableDevice $connectAddress
+
+    adb -s $connectAddress reverse --remove-all | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not clear the old forwards on $connectAddress. Rerun this script."
+    }
+
+    foreach ($port in $ForwardedPorts.Keys) {
+        adb -s $connectAddress reverse "tcp:$port" "tcp:$port" | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not forward port $port to $connectAddress. Rerun this script."
+        }
+    }
+} finally {
+    $env:ADB_MDNS_AUTO_CONNECT = $previousAutoConnect
 }
 
-Write-Host "Connected to $connectAddress and forwarded ports $($ForwardedPorts -join ', ')."
-Write-Host 'Open http://localhost:5173 in Chrome on the phone.'
+foreach ($service in $ForwardedPorts.GetEnumerator()) {
+    if (-not (Test-Connection -TargetName localhost -TcpPort $service.Key -TimeoutSeconds 5 -Quiet)) {
+        Write-Warning "$($service.Value) does not answer on localhost:$($service.Key). Start the app with: docker compose up -d"
+    }
+}
+
+Write-Host "Connected to $connectAddress and forwarded ports $($ForwardedPorts.Keys -join ', ')."
+Write-Host "Open http://localhost:$DevServerPort in Chrome on the phone."
