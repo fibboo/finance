@@ -1,7 +1,12 @@
+import '@/styles/global.css';
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { RouterProvider } from 'react-router';
 
-import { PlaceholderPage } from '@/app/placeholder-page';
+import { Providers } from '@/app/providers';
+import { queryClient } from '@/app/query-client';
+import { router } from '@/app/router';
 
 const rootElement = document.getElementById('root');
 
@@ -11,6 +16,8 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <PlaceholderPage />
+    <Providers queryClient={queryClient}>
+      <RouterProvider router={router} />
+    </Providers>
   </StrictMode>,
 );

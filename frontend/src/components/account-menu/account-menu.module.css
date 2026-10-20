@@ -1,0 +1,75 @@
+@import '@/styles/media.css';
+
+.accountMenu {
+  position: relative;
+}
+
+.avatar {
+  position: relative;
+  z-index: 2;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  padding: 0;
+  border: var(--size-focus) solid transparent;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-panel);
+  cursor: pointer;
+}
+
+.avatar:hover,
+.avatar[aria-expanded='true'] {
+  border-color: var(--color-ink);
+}
+
+.icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: var(--color-backdrop);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 2;
+  width: min(var(--size-popover), calc(100vw - var(--space-4) * 2));
+  padding: var(--space-4);
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-popover);
+}
+
+.panel:focus {
+  outline: none;
+}
+
+@media (--desktop) {
+  .backdrop {
+    background: transparent;
+  }
+
+  .panel {
+    top: calc(100% + var(--space-4));
+    width: var(--size-popover-wide);
+    padding: var(--space-5);
+    border: var(--size-border) solid var(--color-border);
+    gap: var(--space-5);
+  }
+}
