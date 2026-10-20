@@ -1,9 +1,6 @@
 from pydantic import BaseModel
 
-
-class DictionaryItem(BaseModel):
-    key: str
-    label: str
+from app.schemas.dictionary import DictionaryItem
 
 
 class AccountingDictionaries(BaseModel):

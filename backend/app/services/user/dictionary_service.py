@@ -1,4 +1,4 @@
-from app.schemas.accounting.dictionary import DictionaryItem
+from app.schemas.dictionary import DictionaryItem
 from app.schemas.user.dictionary import UserDictionaries
 from app.schemas.user.external_user import PROVIDER_TYPE_LABELS, ProviderType
 

@@ -1,4 +1,4 @@
-from app.schemas.accounting.dictionary import DictionaryItem
+from app.schemas.dictionary import DictionaryItem
 from app.schemas.user.dictionary import UserDictionaries
 from app.services.user import dictionary_service
 

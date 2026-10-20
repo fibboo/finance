@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.accounting.dictionary import AccountingDictionaries, DictionaryItem
+from app.schemas.accounting.dictionary import AccountingDictionaries
+from app.schemas.dictionary import DictionaryItem
 from app.services.accounting import dictionary_service
 
 

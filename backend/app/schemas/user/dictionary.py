@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.schemas.accounting.dictionary import DictionaryItem
+from app.schemas.dictionary import DictionaryItem
 
 
 class UserDictionaries(BaseModel):
