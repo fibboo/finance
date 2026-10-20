@@ -1,21 +1,55 @@
 services:
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: ./Dockerfile
+  postgres:
+    image: postgres:18
     restart: unless-stopped
+    command: [ "postgres", "-c", "shared_buffers=64MB" ]
+    volumes:
+      - postgres:/var/lib/postgresql
+    environment:
+      - POSTGRES_USER=finance
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=finance
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "finance", "-d", "finance" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/fibboo/finance-backend:${IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     env_file:
       - ./backend/.env-production
 
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+    command: sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: ./Dockerfile
+    image: ghcr.io/fibboo/finance-frontend:${IMAGE_TAG}
     restart: unless-stopped
     depends_on:
-      - backend
-    ports:
-      - "80:80"
+      backend:
+        condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.2
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+
+    command: tunnel --no-autoupdate run
+
+volumes:
+  postgres:

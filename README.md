@@ -20,8 +20,8 @@ Two env files are committed:
 - `backend/.env` holds the local values. `docker-compose.yml` passes it to the `backend` service through `env_file`. The app
   runs locally only in Docker, so its database host is `postgres`, the compose service name.
 - `backend/.env-production` holds the production values. Secrets are `'${VAR}'` placeholders, filled with `envsubst` at
-  deploy time; the public URLs of `https://finance.fibboo.dev` are written openly. `docker-compose.production.yml` passes it to the `backend` service, which it builds
-  from `backend/Dockerfile` and runs without `--reload`.
+  deploy time; the public URLs of `https://finance.fibboo.dev` are written openly. `docker-compose.production.yml` passes it
+  to the `backend` service (see [Deployment](#deployment)).
 
 `backend/pytest.ini` sets fake values for tests, and they take precedence over `backend/.env`.
 
@@ -91,6 +91,49 @@ docker compose down -v
 ```
 
 A database migrated before the Alembic revisions were squashed into one initial revision fails `alembic upgrade head` with `Can't locate revision`; recreate it the same way.
+
+---
+
+## Deployment
+
+Every successful `tests` run on a push to `main` starts `.github/workflows/deploy.yml`, which can also be started by hand
+from the Actions tab on any branch. A `tests` run of a commit that is no longer the head of `main`, such as a re-run of
+an old failure, deploys nothing. It builds `backend/Dockerfile` and `frontend/Dockerfile` on the GitHub runner, pushes
+them to `ghcr.io/fibboo/finance-backend` and `ghcr.io/fibboo/finance-frontend` tagged with the commit SHA, and brings the
+VPS up to that commit. The server never builds: it has 1 GB of RAM.
+
+On the server, `~/finance` holds `docker-compose.production.yml`, `backend/.env-production` rendered from the repository
+secrets, and a `.env` with `COMPOSE_FILE`, `IMAGE_TAG`, `POSTGRES_PASSWORD` and `CLOUDFLARE_TUNNEL_TOKEN`, so a manual
+`docker compose up -d` there uses the values of the last deploy. The compose file runs `postgres` with a named volume,
+`backend`, which applies `alembic upgrade head` before uvicorn starts, `frontend` (nginx, proxying `/api` to `backend`),
+which starts once the backend answers, and `cloudflared`. No service publishes a host port: the app is reachable only through the Cloudflare Tunnel, whose public
+hostname `finance.fibboo.dev` routes to `http://frontend:80`, and port 443 stays with the VPN. The deploy never removes
+volumes, and it deletes only the finance images of earlier SHAs.
+
+To roll back, re-run an earlier deploy run; it redeploys that run's SHA. An older image does not know the revisions
+added after it, so when the commits being rolled back added a migration, first run
+`docker compose exec backend alembic downgrade <revision>` on the server while the newer image is still running, with
+the head revision of the SHA you return to.
+
+Repository secrets the workflow reads; the deploy fails before building when one is empty or contains a single quote:
+
+| Secret | Value |
+| --- | --- |
+| `SSH_HOST`, `SSH_USER` | The VPS address and the user that runs Docker there |
+| `SSH_PRIVATE_KEY` | A private key whose public half is in that user's `~/.ssh/authorized_keys` |
+| `SSH_KNOWN_HOSTS` | The host's line from `ssh-keyscan <host>`, checked before connecting |
+| `JWT_SECRET` | The signing key of the access tokens |
+| `POSTGRES_PASSWORD` | The database password; it goes into `DATABASE_URL` as is, so generate a URL-safe one (`openssl rand -hex 32`). Postgres reads it only when the volume is first created, so to change it run `docker compose exec postgres psql -U finance -c "ALTER USER finance PASSWORD '<new>'"` before updating the secret |
+| `CLOUDFLARE_TUNNEL_TOKEN` | The token of the tunnel, from Cloudflare Zero Trust → Networks → Tunnels |
+| `TELEGRAM_CLIENT_ID`, `TELEGRAM_CLIENT_SECRET` | The OIDC client from BotFather |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | The OAuth client from Google Cloud |
+
+The images are pushed with the workflow's `GITHUB_TOKEN`. Once, the server logs in to the registry with a personal
+access token that has only `read:packages`; the token stays on the server:
+
+```bash
+docker login ghcr.io -u <github_user>
+```
 
 ---
 
