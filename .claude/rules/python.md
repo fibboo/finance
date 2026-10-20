@@ -1,14 +1,14 @@
 ---
 paths:
   - "**/*.py"
-  - "requirements/**"
-  - "pyproject.toml"
-  - "setup.cfg"
+  - "backend/requirements/**"
+  - "backend/pyproject.toml"
+  - "backend/setup.cfg"
   - "**/.env*"
-  - "Dockerfile"
-  - "tests/Dockerfile"
-  - "pytest.ini"
-  - "alembic.ini"
+  - "backend/Dockerfile"
+  - "backend/tests/Dockerfile"
+  - "backend/pytest.ini"
+  - "backend/alembic.ini"
 ---
 
 # Python Rules

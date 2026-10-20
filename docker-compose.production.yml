@@ -2,11 +2,11 @@ services:
 
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: ./Dockerfile
     restart: unless-stopped
     env_file:
-      - .env-production
+      - ./backend/.env-production
     ports:
       - "8000:8000"
 

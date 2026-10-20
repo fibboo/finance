@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build test image
-        run: docker build -t finance-test -f tests/Dockerfile .
+        run: docker build -t finance-test -f backend/tests/Dockerfile backend
 
       - name: Run tests
         run: docker run --rm finance-test pytest -v -n auto

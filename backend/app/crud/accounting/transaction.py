@@ -1,8 +1,9 @@
+from datetime import date
 from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import asc, ColumnElement, CompoundSelect, desc, or_, select, Select, union
+from sqlalchemy import asc, ColumnElement, CompoundSelect, desc, func, or_, Row, select, Select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, with_polymorphic
 
@@ -16,7 +17,13 @@ from app.models.accounting.transaction import (
     Transaction,
     TransferTransaction,
 )
-from app.schemas.accounting.transaction import OrderDirectionType, OrderFieldType, TransactionCreate, TransactionRequest
+from app.schemas.accounting.transaction import (
+    OrderDirectionType,
+    OrderFieldType,
+    TransactionCreate,
+    TransactionRequest,
+    TransactionType,
+)
 from app.schemas.base import EntityStatusType
 
 logger = get_logger(logger_name=__name__)
@@ -113,6 +120,22 @@ class CRUDTransaction(CRUDBase[TransactionModel, TransactionCreate, TransactionC
 
         paginated_expenses = await apaginate(db, query, request)
         return paginated_expenses
+
+    async def get_income_and_expense_sums(
+        self, *, db: AsyncSession, user_id: UUID, date_from: date, date_to: date
+    ) -> Row:
+        amount: ColumnElement = Transaction.base_currency_amount
+        income_sum: ColumnElement = func.sum(amount).filter(Transaction.transaction_type == TransactionType.INCOME)
+        expense_sum: ColumnElement = func.sum(amount).filter(Transaction.transaction_type == TransactionType.EXPENSE)
+        query: Select = select(
+            func.coalesce(income_sum, 0).label("income"), func.coalesce(expense_sum, 0).label("expense")
+        ).where(
+            Transaction.user_id == user_id,
+            Transaction.status == EntityStatusType.ACTIVE,
+            Transaction.transaction_date.between(date_from, date_to),
+        )
+        sums: Row = (await db.execute(query)).one()
+        return sums
 
     def _build_get_query(self, *, with_for_update: bool = False, **kwargs) -> Select:
         query: Select = select(TransactionModel).where(*[getattr(TransactionModel, k) == v for k, v in kwargs.items()])

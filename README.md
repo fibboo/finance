@@ -16,13 +16,13 @@ For Claude Code and Codex setup, shared rules and skills, permissions, and Git t
 Every setting comes from environment variables; none has a default, so the app fails to start when one is missing.
 Two env files are committed:
 
-- `.env` holds the local values. `docker-compose.yml` passes it to the `backend` service through `env_file`. The app
+- `backend/.env` holds the local values. `docker-compose.yml` passes it to the `backend` service through `env_file`. The app
   runs locally only in Docker, so its database host is `postgres`, the compose service name.
-- `.env-production` holds the production values. Secrets and host-specific values are `'${VAR}'` placeholders, filled
+- `backend/.env-production` holds the production values. Secrets and host-specific values are `'${VAR}'` placeholders, filled
   with `envsubst` at deploy time. `docker-compose.production.yml` passes it to the `backend` service, which it builds
-  from `Dockerfile` and runs without `--reload`.
+  from `backend/Dockerfile` and runs without `--reload`.
 
-`pytest.ini` sets fake values for tests, and they take precedence over `.env`.
+`backend/pytest.ini` sets fake values for tests, and they take precedence over `backend/.env`.
 
 ---
 
@@ -88,7 +88,8 @@ You can verify the functionality of the project by running the tests. There are 
    ```
 
 2. **Locally (if you have Python installed)**:
-   Ensure your virtual environment is activated, then run:
+   Ensure your virtual environment is activated, then run from `backend/`:
    ```bash
+   cd backend
    pytest -n auto
    ```
