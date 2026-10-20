@@ -145,3 +145,26 @@ You can verify the functionality of the project by running the tests. There are 
    cd backend
    pytest -n auto
    ```
+
+---
+
+## Testing on a phone
+
+The app needs a secure context, which a phone has only on `localhost`, so an Android phone reaches the local app through
+`adb reverse` over wireless debugging (Android 11 or later). The phone and the computer must be on the same Wi-Fi.
+
+1. Install adb once and open a new terminal:
+   ```powershell
+   winget install Google.PlatformTools
+   ```
+2. On the phone, turn on Developer options (tap Build number seven times) and then Developer options → Wireless debugging.
+3. With the app running (`docker compose up -d`), run from the repository root:
+   ```powershell
+   ./scripts/connect-phone.ps1
+   ```
+   The script finds the phone on the network, pairs it the first time (it asks for the code shown under Pair device
+   with pairing code), connects once, forwards ports 5173 and 8080, and checks the dev server.
+4. Open `http://localhost:5173` in Chrome on the phone.
+
+Wireless debugging turns off when the phone restarts or changes networks, and the forwards belong to one connection, so
+rerun the script whenever the phone stops loading the app.
