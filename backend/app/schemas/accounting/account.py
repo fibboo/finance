@@ -17,6 +17,7 @@ class AccountBase(BaseModel):
 
 class AccountCreateRequest(AccountBase):
     currency: CurrencyCode
+    color: Annotated[str, StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$")] | None = None
 
 
 class AccountCreate(AccountCreateRequest):
@@ -33,6 +34,7 @@ class Account(AccountBase):
 
     balance: Decimal
     currency: CurrencyCode
+    color: str | None
     base_currency_rate: Decimal
     status: EntityStatusType
 
