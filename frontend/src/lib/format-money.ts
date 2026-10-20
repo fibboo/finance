@@ -1,4 +1,4 @@
-const LOCALE = 'en-US';
+export const LOCALE = 'en-US';
 
 export function formatMoney({
   amount,

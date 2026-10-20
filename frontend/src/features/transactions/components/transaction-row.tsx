@@ -1,6 +1,6 @@
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
-import { formatMoney } from '@/lib/format-money';
+import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import styles from './transaction-row.module.css';
 
@@ -15,7 +15,6 @@ type TransactionView = Readonly<{
   isIncome: boolean;
 }>;
 
-const LOCALE = 'en-US';
 const DAY_MILLISECONDS = 86_400_000;
 
 function requireField<Field>({
