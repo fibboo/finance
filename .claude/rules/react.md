@@ -86,6 +86,7 @@ The frontend is a responsive, mobile-first single-page app. It is built from Rea
 - Mobile-first is the order the styles are written in, not a target that stops at the phone. Every screen is finished for desktop too: wide layouts use the space with columns or a side panel instead of a stretched phone column, text lines keep a readable maximum width, and hover and focus states exist for pointer and keyboard. A screen is checked at a phone width and at a desktop width before its PR is opened.
 - Switching between phone and desktop is seamless. Both widths show one app, not two: the same screens and routes, the same navigation sections in the same order, the same names, icons and colors for the same things, and the same actions in the same order of steps. Only the arrangement adapts (a bottom bar becomes a side bar, a list and its detail move from two screens onto one), never what exists or what it is called. A feature never exists at one width only. Both widths render the same components, which reflow with CSS; there are no separate mobile and desktop component trees.
 - No inline `style` except for a value computed at runtime, such as a progress width.
+- A screen whose issue links design sources in the `assets` branch takes its colors, sizes, type, spacing and states from those sources, not from measuring the mockup PNGs; tokens that do not exist yet are added to `tokens.css` with the source's values.
 
 ## Accessibility
 
