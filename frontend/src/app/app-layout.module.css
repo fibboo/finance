@@ -45,7 +45,7 @@
 @media (--desktop) {
   .appLayout {
     padding: var(--space-4);
-    grid-template-columns: var(--size-sidebar) minmax(0, var(--size-content));
+    grid-template-columns: var(--size-sidebar) minmax(0, 1fr);
     grid-template-rows: var(--size-header) 1fr;
     column-gap: var(--space-4);
     row-gap: 0;
