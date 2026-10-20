@@ -23,6 +23,13 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
         paginated_accounts = await apaginate(db, query, request)
         return paginated_accounts
 
+    async def get_active_accounts(self, *, db: AsyncSession, user_id: UUID) -> list[Account]:
+        query: Select = select(self.model).where(
+            self.model.user_id == user_id, self.model.status == EntityStatusType.ACTIVE
+        )
+        accounts: list[Account] = (await db.scalars(query)).all()
+        return accounts
+
     async def get_locked_by_ids(self, *, db: AsyncSession, ids: list[UUID], **kwargs) -> dict[UUID, Account]:
         query: Select = (
             self._build_get_query(with_for_update=True, **kwargs)

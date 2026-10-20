@@ -1,4 +1,5 @@
 import hashlib
+from decimal import Decimal, ROUND_HALF_EVEN
 from typing import Any
 
 from pydantic import BaseModel
@@ -28,3 +29,17 @@ def make_hashable(*, value: Any) -> tuple:
 def hash_secret(*, secret: str) -> str:
     secret_hash: str = hashlib.sha256(secret.encode("utf-8")).hexdigest()
     return secret_hash
+
+
+def round_to_cents(*, amount: Decimal) -> Decimal:
+    rounded_amount: Decimal = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+    return rounded_amount
+
+
+def get_base_currency_balance(*, balance: Decimal, base_currency_rate: Decimal) -> Decimal:
+    if base_currency_rate == 0:
+        base_currency_balance: Decimal = Decimal("0.00")
+    else:
+        base_currency_balance: Decimal = round_to_cents(amount=balance / base_currency_rate)
+
+    return base_currency_balance
