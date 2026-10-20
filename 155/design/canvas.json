@@ -1,0 +1,89 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Main.dc.html": {
+      "h": 844,
+      "title": "Sign in",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "synth-onboarding.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Onboarding",
+      "is_interactive": true
+    },
+    "synth-home.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 1000,
+      "title": "Home (phone, scrolls)"
+    },
+    "synth-accounts.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 1000,
+      "title": "All accounts (phone)"
+    },
+    "synth-menu-popover.dc.html": {
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Account menu (phone)",
+      "is_interactive": true
+    },
+    "synth-home-desktop.dc.html": {
+      "x": 2350,
+      "y": 0,
+      "w": 1280,
+      "h": 1000,
+      "title": "Home (desktop)",
+      "expand": "fill"
+    },
+    "synth-account-menu-desktop.dc.html": {
+      "x": 3710,
+      "y": 0,
+      "w": 1280,
+      "h": 640,
+      "title": "Account menu (desktop)",
+      "expand": "fill",
+      "is_interactive": true
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-19T10:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "row": {
+      "kind": "title1",
+      "maxW": 4990,
+      "text": "Finance — согласуемый дизайн (тема на каждой доске: Tweaks → dark)",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "synth-onboarding.dc.html",
+    "synth-home.dc.html",
+    "synth-accounts.dc.html",
+    "synth-menu-popover.dc.html",
+    "synth-home-desktop.dc.html",
+    "synth-account-menu-desktop.dc.html"
+  ],
+  "pages": [],
+  "title": "Finance — дизайн"
+}

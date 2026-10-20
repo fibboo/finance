@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Account menu — popover</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{opacity:.8}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div aria-hidden="true" style="padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="height: 44px"></div>
+    <div style="height: 164px; border-radius: 20px; background: {{t.panel}}"></div>
+    <div style="height: 246px; border-radius: 20px; background: {{t.panel}}"></div>
+    <div style="height: 200px; border-radius: 20px; background: {{t.panel}}"></div>
+  </div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.35)"></div>
+  <div style="position: absolute; top: 16px; left: 24px; right: 16px; height: 44px; display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px; color: {{t.text}}"><span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>finance</div>
+    <a href="synth-home.dc.html" aria-label="Close account menu" aria-expanded="true" style="width: 44px; height: 44px; border-radius: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: {{t.panel}}; border: 2px solid {{t.text}}">NI</a>
+  </div>
+  <div role="dialog" aria-label="Account" style="position: absolute; top: 68px; right: 16px; width: 300px; box-sizing: border-box; padding: 16px; border-radius: 20px; display: flex; flex-direction: column; gap: 16px; background: {{t.panel}}; box-shadow: 0 18px 50px rgba(0,0,0,.3)">
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 600">nikita</span><span style="font-size: 13px; color: {{t.muted}}">Signed in with Telegram</span></div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span id="theme-label-pop" style="font-size: 13px; color: {{t.muted}}">Theme</span>
+      <div role="radiogroup" aria-labelledby="theme-label-pop" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: {{t.bg}}">
+        <sc-for list="{{themes}}" as="o" hint-placeholder-count="3">
+          <button type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="{{o.style}}">{{o.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="height: 1px; background: {{t.line}}"></div>
+    <button type="button" style="height: 44px; margin: -6px -8px; padding: 0 8px; border: 0; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; background: transparent; color: {{t.text}}">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h10"/></svg>
+      Sign out
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p) { super(p); this.state = { theme: 'system' }; }
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', line: '#E2E2DE', accent: '#1F7A55' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', line: '#2A2D32', accent: '#4CC38A' };
+const theme = this.state.theme;
+const t = (theme === 'system' ? (this.props.dark ?? true) : theme === 'dark') ? D : L;
+const themes = [['system','System'],['light','Light'],['dark','Dark']].map(([id, label]) => {
+const on = id === theme;
+return { label, checked: on ? 'true' : 'false',
+style: 'height:40px;border:0;border-radius:10px;font-size:14px;font-weight:600;background:' + (on ? t.panel : 'transparent') + ';color:' + (on ? t.text : t.muted) + (on ? ';box-shadow:0 1px 3px rgba(0,0,0,.18)' : ''),
+pick: () => this.setState({ theme: id }) };
+});
+return { t, themes };
+}
+}
+</script>
+</body>
+</html>

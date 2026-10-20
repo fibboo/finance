@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Synthesis — All accounts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; box-sizing: border-box; padding: 16px 16px 96px; position: relative; display: flex; flex-direction: column; gap: 12px; font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; background: {{t.bg}}; color: {{t.text}}">
+  <div style="display: flex; align-items: center; gap: 4px">
+    <a href="synth-home.dc.html" aria-label="Back to home" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 22px">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
+    </a>
+    <h1 style="margin: 0; flex-grow: 1; font-size: 20px; font-weight: 600">Accounts</h1>
+    <span style="font-size: 15px; font-weight: 600; padding-right: 8px">$13,713.25</span>
+  </div>
+  <label style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-radius: 14px; background: {{t.panel}}">
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Find an account</span>
+    <input type="search" placeholder="Find an account" style="flex-grow: 1; border: 0; outline: 0; background: transparent; font-size: 16px; color: {{t.text}}">
+  </label>
+  <sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
+    <section aria-label="{{g.code}} accounts" style="padding: 6px 16px 6px; border-radius: 18px; display: flex; flex-direction: column; background: {{t.panel}}">
+      <div style="height: 36px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: {{t.muted}}">
+        <span><span style="font-family: 'Geist Mono', monospace; font-weight: 500; color: {{t.text}}">{{g.code}}</span> · {{g.count}}</span>
+        <span>{{g.total}}</span>
+      </div>
+      <sc-for list="{{g.items}}" as="a" hint-placeholder-count="2">
+        <div style="display: flex; align-items: center; gap: 12px; height: 50px">
+          <span aria-hidden="true" style="{{a.chipStyle}}">{{a.initial}}</span>
+          <span style="flex-grow: 1; font-size: 15px; font-weight: 500">{{a.name}}</span>
+          <span style="font-size: 15px; font-weight: 500">{{a.balance}}</span>
+        </div>
+      </sc-for>
+    </section>
+  </sc-for>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 20px; background: {{t.bg}}">
+    <button type="button" style="width: 100%; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 600; background: {{t.panel}}; color: {{t.text}}; border: 0">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      New account
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;dark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true},&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A' };
+const dark = this.props.dark ?? false;
+const t = dark ? D : L;
+const chip = (c) => 'width:32px;height:32px;flex-shrink:0;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;background:' + c + (dark ? '33' : '22') + ';color:' + c;
+const raw = [
+{ code: 'GEL', total: '₾14,540.00 · ≈ $5,425.60', items: [['Savings','₾14,200.00','#2E8C7A'],['Cash lari','₾340.00','#6E8A3A']] },
+{ code: 'EUR', total: '€4,380.00 · ≈ $4,781.10', items: [['Main card','€3,180.00','#5B6CD9'],['Deposit','€1,200.00','#B8862C']] },
+{ code: 'USD', total: '$3,212.50', items: [['Freelance','$1,940.00','#A15CB8'],['Travel card','$860.00','#C2613F'],['Wallet','$412.50','#4D8FBF']] },
+{ code: 'RUB', total: '₽18,500.00 · ≈ $231.25', items: [['Ruble card','₽18,500.00','#C24E6E']] },
+{ code: 'TRY', total: '₺2,150.00 · ≈ $62.80', items: [['Lira cash','₺2,150.00','#8A6FD1']] }
+];
+const groups = raw.map((g) => ({ code: g.code, total: g.total, count: g.items.length === 1 ? '1 account' : g.items.length + ' accounts',
+items: g.items.map(([name, balance, color]) => ({ name, balance, initial: name[0], chipStyle: chip(color) })) }));
+return { t, groups };
+}
+}
+</script>
+</body>
+</html>
