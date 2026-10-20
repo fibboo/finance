@@ -6,10 +6,25 @@ import styles from './recent-transactions.module.css';
 import { TransactionRow } from './transaction-row';
 
 const RECENT_TRANSACTION_COUNT = 6;
+const EARLIEST_TRANSACTION_DATE = '0001-01-01';
+
+function readLocalToday(): string {
+  const today = new Date();
+  const localToday = [
+    String(today.getFullYear()).padStart(4, '0'),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
+  return localToday;
+}
 
 export function RecentTransactions() {
   const { data: transactionPage } = useQuery(
-    transactionQueries.list({ size: RECENT_TRANSACTION_COUNT }),
+    transactionQueries.list({
+      size: RECENT_TRANSACTION_COUNT,
+      date_from: EARLIEST_TRANSACTION_DATE,
+      date_to: readLocalToday(),
+    }),
   );
   const titleId = useId();
   if (transactionPage === undefined) {

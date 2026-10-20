@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -8,17 +8,29 @@ import { server } from '@/test/setup';
 
 import { RecentTransactions } from './recent-transactions';
 
-test('shows the latest transactions', async () => {
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 9, 20, 0, 30));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+test('shows the latest transactions of the whole history up to the local today', async () => {
   // arrange
   server.use(
-    http.get('http://localhost/api/accounting/transactions', ({ request }) =>
-      new URL(request.url).searchParams.get('size') === '6'
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const searchParams = new URL(request.url).searchParams;
+      return searchParams.get('size') === '6' &&
+        searchParams.get('date_from') === '0001-01-01' &&
+        searchParams.get('date_to') === '2026-10-20'
         ? HttpResponse.json({
             items: [
               {
                 id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c4d',
                 user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-                transaction_date: '2026-10-14',
+                transaction_date: '2026-03-02',
                 source_amount: '640.00',
                 source_currency: 'USD',
                 destination_amount: '640.00',
@@ -51,8 +63,8 @@ test('shows the latest transactions', async () => {
             size: 6,
             pages: 1,
           } satisfies components['schemas']['Page_Transaction_'])
-        : HttpResponse.json(null, { status: 400 }),
-    ),
+        : HttpResponse.json(null, { status: 400 });
+    }),
   );
 
   // act
@@ -61,6 +73,7 @@ test('shows the latest transactions', async () => {
   // assert
   expect(await screen.findByRole('listitem')).toHaveTextContent('Design project');
   expect(screen.getByText('+$640.00')).toBeInTheDocument();
+  expect(screen.getByText('Mar 2', { exact: false })).toBeInTheDocument();
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });
 
