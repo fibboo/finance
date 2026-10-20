@@ -9,6 +9,14 @@ class ProviderType(str, Enum):
     GOOGLE = "GOOGLE"
 
 
+PROVIDER_TYPE_LABELS: frozendict[ProviderType, str] = frozendict(
+    {
+        ProviderType.TELEGRAM: "Telegram",
+        ProviderType.GOOGLE: "Google",
+    }
+)
+
+
 class ExternalUserBase(BaseModel):
     user_id: UUID
 

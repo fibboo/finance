@@ -3,13 +3,13 @@ from fastapi import APIRouter
 from app.api.endpoints.accounting import (
     account,
     categories,
-    dictionaries,
+    dictionaries as accounting_dictionaries,
     income_sources,
     locations,
     summary,
     transactions,
 )
-from app.api.endpoints.user import auth, user
+from app.api.endpoints.user import auth, dictionaries as user_dictionaries, user
 from app.schemas.error_response import responses
 
 api_router = APIRouter(responses=responses)
@@ -25,7 +25,8 @@ accounting_router.include_router(summary.router, prefix="/summary", tags=["Summa
 api_router.include_router(accounting_router)
 
 dictionaries_router = APIRouter(prefix="/dictionaries")
-dictionaries_router.include_router(dictionaries.router, prefix="/accounting", tags=["Dictionaries"])
+dictionaries_router.include_router(accounting_dictionaries.router, prefix="/accounting", tags=["Dictionaries"])
+dictionaries_router.include_router(user_dictionaries.router, prefix="/user", tags=["Dictionaries"])
 
 api_router.include_router(dictionaries_router)
 
