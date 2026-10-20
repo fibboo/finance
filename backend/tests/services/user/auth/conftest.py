@@ -8,7 +8,7 @@ def telegram_signing_key(httpx_mock: HTTPXMock) -> ECKey:
     signing_key: ECKey = ECKey.generate_key("P-256", parameters={"kid": "telegram-test-key", "alg": "ES256"})
     httpx_mock.add_response(
         method="GET",
-        url="https://oauth.telegram.org/.well-known/openid-configuration",
+        url="https://oauth.telegram.test/.well-known/openid-configuration",
         json={
             "issuer": "https://oauth.telegram.org",
             "authorization_endpoint": "https://oauth.telegram.org/auth",
@@ -33,7 +33,7 @@ def google_signing_key(httpx_mock: HTTPXMock) -> RSAKey:
     signing_key: RSAKey = RSAKey.generate_key(2048, parameters={"kid": "google-test-key", "alg": "RS256"})
     httpx_mock.add_response(
         method="GET",
-        url="https://accounts.google.com/.well-known/openid-configuration",
+        url="https://accounts.google.test/.well-known/openid-configuration",
         json={
             "issuer": "https://accounts.google.com",
             "authorization_endpoint": "https://accounts.google.com/o/oauth2/v2/auth",

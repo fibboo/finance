@@ -49,13 +49,13 @@ Packages under `backend/app/` are split by layer, and each layer is split by dom
 - `models/`: SQLAlchemy models on `models/base.py`.
 - `schemas/`: Pydantic schemas, plus `error_response.py` (`ErrorResponse`, `ErrorCodeType`).
 - `exceptions/`: the `AppBaseException` hierarchy (`exceptions/base.py`), one file per HTTP status. Each exception carries its status code, message, log message, logger and log level. The handler in `app/main.py` logs it and turns it into an `ErrorResponse`, except `ClientRedirect` (`temporary_redirect_307.py`), which its own handler turns into a redirect to the sign-in client.
-- `configs/`: `settings.py` holds the `settings`, `database_settings`, `telegram_settings` (the OIDC client id and secret from BotFather) and `google_settings` (the OAuth client id and secret from Google Cloud) instances. `logging_settings.py` holds `get_logger` and `LogLevelType`.
+- `configs/`: `settings.py` holds the `settings`, `database_settings`, `telegram_settings` (the OIDC client id and secret from BotFather and the discovery URL) and `google_settings` (the OAuth client id and secret from Google Cloud and the discovery URL) instances. `logging_settings.py` holds `get_logger` and `LogLevelType`.
 - `db/postgres.py`: the async engine and `session_maker`.
 - `utils/`: small pure helpers.
 
 ## Commands
 
-Everything runs in Docker through `docker-compose.yml`, which has the `postgres` and `backend` services. Rebuild the image only when `backend/tests/Dockerfile` or `backend/requirements/` change. The `backend` service builds from `backend/`, mounts it as `/app` and reads its settings from the committed `backend/.env` through `env_file`. Production runs `docker-compose.production.yml`, which builds `backend` from `backend/Dockerfile` and reads `backend/.env-production`, whose secrets are `'${VAR}'` placeholders filled with envsubst at deploy time.
+Everything runs in Docker through `docker-compose.yml`, which has the `postgres`, `mock-oidc` and `backend` services. `mock-oidc` is a mock OpenID Connect server that stands in for Telegram and Google locally. Rebuild the image only when `backend/tests/Dockerfile` or `backend/requirements/` change. The `backend` service builds from `backend/`, mounts it as `/app` and reads its settings from the committed `backend/.env` through `env_file`. Production runs `docker-compose.production.yml`, which builds `backend` from `backend/Dockerfile` and reads `backend/.env-production`, whose secrets are `'${VAR}'` placeholders filled with envsubst at deploy time.
 
 ### Format
 

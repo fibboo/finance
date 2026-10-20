@@ -56,6 +56,23 @@ Two env files are committed:
 Once all steps are completed, your project will be available at:  
 [http://localhost:8000](http://localhost:8000)
 
+### Signing in locally
+
+Locally, both sign-in providers point at the `mock-oidc` service, a [mock OpenID Connect server](https://github.com/navikt/mock-oauth2-server)
+on port 8080 with one issuer per provider: `/telegram` and `/google`. `backend/.env` sets `TELEGRAM_SERVER_METADATA_URL` and
+`GOOGLE_SERVER_METADATA_URL` to their discovery documents, while `backend/.env-production` keeps the real Telegram and Google
+ones. No real Telegram or Google client is needed.
+
+The mock server is reached as `mock-oidc.localhost:8080` by both sides, because the issuer in its tokens is the host it
+was called on and the backend checks it. Chrome and Firefox resolve every `*.localhost` name to the local machine, so the
+browser reaches the published port, and inside compose the name is a network alias of the `mock-oidc` service, so the
+backend reaches the container. No hosts file entry is needed.
+
+When a sign-in reaches the mock server, it shows a form: type any username, which becomes the user's `sub`, and press
+Sign-in. The optional claims field takes a JSON object of extra ID token claims, such as
+`{"preferred_username": "alice", "given_name": "Alice", "email": "alice@example.com", "email_verified": true}`. Without
+`preferred_username` the user is named `<provider>_<username>`.
+
 ### Upgrading from PostgreSQL 15
 
 The `postgres` service runs PostgreSQL 18, which keeps its data under `/var/lib/postgresql/18/docker`, so the compose volume is mounted at `/var/lib/postgresql`. A volume created by the old PostgreSQL 15 service starts as an empty cluster and the backend fails with `database "finance" does not exist`. Recreate the volume once, then repeat steps 4–6:

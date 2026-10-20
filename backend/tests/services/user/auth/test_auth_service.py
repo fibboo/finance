@@ -151,7 +151,7 @@ async def test_authorize_provider_unavailable(
 ):
     # Arrange
     httpx_mock.add_response(
-        method="GET", url="https://oauth.telegram.org/.well-known/openid-configuration", **discovery_response
+        method="GET", url="https://oauth.telegram.test/.well-known/openid-configuration", **discovery_response
     )
 
     # Act / Assert
@@ -1242,7 +1242,7 @@ async def test_callback_discovery_without_issuer(db: AsyncSession, db_transactio
     )
     httpx_mock.add_response(
         method="GET",
-        url="https://oauth.telegram.org/.well-known/openid-configuration",
+        url="https://oauth.telegram.test/.well-known/openid-configuration",
         json={
             "authorization_endpoint": "https://oauth.telegram.org/auth",
             "token_endpoint": "https://oauth.telegram.org/token",
@@ -1350,7 +1350,7 @@ async def test_callback_broken_provider_response(
     )
     httpx_mock.add_response(
         method="GET",
-        url="https://oauth.telegram.org/.well-known/openid-configuration",
+        url="https://oauth.telegram.test/.well-known/openid-configuration",
         is_reusable=True,
         **discovery,
     )
