@@ -1,6 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
 
+import pytest
+
 from app.schemas.accounting.transaction import (
     Order,
     OrderDirectionType,
@@ -59,3 +61,24 @@ def test_hash_secret():
 
     # Assert
     assert secret_hash == "03b411ef0f044a8472f1b7de95e53f992c9bf7131f6c15cc7a29c83f2a09f91c"
+
+
+@pytest.mark.parametrize(
+    "balance, base_currency_rate, expected_base_currency_balance",
+    [
+        (Decimal("14200.00"), Decimal("2.68"), "5298.51"),
+        (Decimal("100"), Decimal("1"), "100.00"),
+        (Decimal("-50.00"), Decimal("0.5"), "-100.00"),
+        (Decimal("0"), Decimal("0.92"), "0.00"),
+        (Decimal("250.00"), Decimal("0"), "0.00"),
+    ],
+    ids=["other_currency", "base_currency", "negative_balance", "empty_account", "no_rate"],
+)
+def test_get_base_currency_balance(balance: Decimal, base_currency_rate: Decimal, expected_base_currency_balance: str):
+    # Act
+    base_currency_balance: Decimal = utils.get_base_currency_balance(
+        balance=balance, base_currency_rate=base_currency_rate
+    )
+
+    # Assert
+    assert str(base_currency_balance) == expected_base_currency_balance
