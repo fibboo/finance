@@ -1,6 +1,6 @@
 import calendar
 from datetime import date
-from decimal import Decimal, ROUND_HALF_EVEN
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import Row
@@ -39,8 +39,8 @@ async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) ->
     )
 
     total_balance: Decimal = _get_total_balance(accounts_db=accounts_db)
-    earned: Decimal = sums.income.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
-    spent: Decimal = sums.expense.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+    earned: Decimal = utils.round_to_cents(amount=sums.income)
+    spent: Decimal = utils.round_to_cents(amount=sums.expense)
     summary = Summary(
         month=first_day, total_balance=total_balance, earned=earned, spent=spent, left_over=earned - spent
     )

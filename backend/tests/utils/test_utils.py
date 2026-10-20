@@ -82,3 +82,22 @@ def test_get_base_currency_balance(balance: Decimal, base_currency_rate: Decimal
 
     # Assert
     assert str(base_currency_balance) == expected_base_currency_balance
+
+
+@pytest.mark.parametrize(
+    "amount, expected_rounded_amount",
+    [
+        (Decimal("1046.7"), "1046.70"),
+        (Decimal("0"), "0.00"),
+        (Decimal("2.345"), "2.34"),
+        (Decimal("2.355"), "2.36"),
+        (Decimal("-5298.5074"), "-5298.51"),
+    ],
+    ids=["one_decimal", "zero", "half_down_to_even", "half_up_to_even", "negative"],
+)
+def test_round_to_cents(amount: Decimal, expected_rounded_amount: str):
+    # Act
+    rounded_amount: Decimal = utils.round_to_cents(amount=amount)
+
+    # Assert
+    assert str(rounded_amount) == expected_rounded_amount

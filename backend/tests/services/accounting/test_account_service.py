@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.configs.logging_settings import LogLevelType
+from app.crud.accounting.account import account_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
@@ -134,6 +135,14 @@ async def test_get_account_ok(db: AsyncSession):
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
+    # A balance in another currency with its rate, 14200.00 / 2.68 = 5298.51 in the base currency
+    await account_crud.update_orm(
+        db=db,
+        obj_in={"balance": Decimal("14200.00"), "base_currency_rate": Decimal("2.68")},
+        id=account_created.id,
+        commit=True,
+    )
+
     # Act
     account: Account = await account_service.get_account(db=db, account_id=account_created.id, user_id=user_id)
 
@@ -144,9 +153,10 @@ async def test_get_account_ok(db: AsyncSession):
     assert account.name == account_created.name
     assert account.description == account_created.description
     assert account.user_id == account_created.user_id
-    assert account.balance == account_created.balance
+    assert account.balance == Decimal("14200.00")
     assert account.currency == account_created.currency
-    assert account.base_currency_rate == account_created.base_currency_rate
+    assert account.base_currency_rate == Decimal("2.68")
+    assert str(account.base_currency_balance) == "5298.51"
     assert account.status == account_created.status
 
 

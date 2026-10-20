@@ -257,13 +257,14 @@ async def test_get_summary_empty_month(db: AsyncSession):
         },
         commit=True,
     )
+    first_day_of_month: date = date.today().replace(day=1)
 
     # Act
     summary: Summary = await summary_service.get_summary(db=db, user_id=user_id, month=None)
 
     # Assert
     assert summary.model_dump(mode="json") == {
-        "month": date.today().replace(day=1).isoformat(),
+        "month": first_day_of_month.isoformat(),
         "total_balance": "150.50",
         "earned": "0.00",
         "spent": "0.00",
