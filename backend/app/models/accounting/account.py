@@ -33,6 +33,7 @@ class Account(Base):
 
     balance: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
     currency: Mapped[str] = mapped_column(String(3), ForeignKey(Currency.code), nullable=False)
+    color: Mapped[str | None] = mapped_column(String(7), nullable=True)
     base_currency_rate: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
     status: Mapped[EntityStatusType] = mapped_column(
         Enum(

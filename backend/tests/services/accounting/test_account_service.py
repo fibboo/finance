@@ -35,8 +35,25 @@ async def test_create_account_ok(db_transaction: AsyncSession):
     assert account.user_id == user_id
     assert account.balance == Decimal("0")
     assert account.currency == create_data.currency
+    assert account.color is None
     assert account.base_currency_rate == Decimal("0")
     assert account.status == EntityStatusType.ACTIVE
+
+
+async def test_create_account_with_color(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency="USD", color="#2E8C7A")
+
+    # Act
+    account: Account = await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert account.color == "#2E8C7A"
+
+    account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account.id))
+    assert account_db.color == "#2E8C7A"
 
 
 async def test_create_account_unknown_currency(db: AsyncSession, db_transaction: AsyncSession):
