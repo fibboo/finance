@@ -74,7 +74,7 @@ The exception is a sub-issue that is not part of the parent's type, for example 
 
 ## Issue Title
 
-Format: `<area>: <short description>`, where `<area>` is `backend`, `frontend` or `claude` (rules, skills and other `.claude/` changes). Use imperative or noun-phrase style, for example `backend: Fix balance restore on expense deletion`.
+Format: `<area>: <short description>`, where `<area>` is `backend`, `frontend`, `claude` (rules, skills and other `.claude/` changes) or `ci` (GitHub Actions workflows, the production compose file and the server it deploys to). Work inside one module's own Dockerfile, dependencies or tests keeps that module's area. Use imperative or noun-phrase style, for example `backend: Fix balance restore on expense deletion`.
 
 ## Issue Description Guidelines
 
