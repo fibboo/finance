@@ -7,6 +7,7 @@
   --color-ink: light-dark(#17181a, #ecedee);
   --color-muted: light-dark(#5a5d64, #9a9ea6);
   --color-accent: light-dark(#1f7a55, #4cc38a);
+  --color-selected: light-dark(#eaf3ee, #16241d);
   --color-backdrop: rgb(0 0 0 / 35%);
   --shadow-bar: 0 0.625rem 1.875rem rgb(0 0 0 / 28%);
   --shadow-popover: 0 1.125rem 3.125rem light-dark(rgb(0 0 0 / 25%), rgb(0 0 0 / 30%));
@@ -22,12 +23,15 @@
   --font-size-avatar: 1.0625rem;
   --font-size-xl: 1.125rem;
   --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.75rem;
   --font-size-display: 2.5rem;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --line-height-base: 1.5;
   --line-height-display: 1.08;
+  --line-height-note: 1.4;
+  --line-height-title: 1.15;
   --letter-spacing-title: -0.02em;
   --letter-spacing-display: -0.03em;
 
@@ -49,13 +53,16 @@
   --radius-segment: 0.625rem;
   --radius-control: 0.75rem;
   --radius-track: 0.875rem;
+  --radius-action: 0.875rem;
   --radius-fab: 1.125rem;
+  --radius-sheet: 1.125rem;
   --radius-panel: 1.25rem;
   --radius-bar: 1.375rem;
   --radius-full: 999rem;
 
   --size-mark: 0.625rem;
   --size-icon-sm: 1rem;
+  --size-icon-md: 1.125rem;
   --size-icon: 1.25rem;
   --size-icon-lg: 1.375rem;
   --size-border: 0.0625rem;
@@ -64,6 +71,7 @@
   --size-segment: 2.5rem;
   --size-button: 2.875rem;
   --size-avatar: 3rem;
+  --size-option: 3rem;
   --size-fab: 3.25rem;
   --size-button-lg: 3.25rem;
   --size-bar-item: 3.5rem;
