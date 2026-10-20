@@ -45,25 +45,31 @@ export function AccountMenu({ children }: AccountMenuProps) {
   }, [isOpen]);
 
   return (
-    <div ref={menuRef} className={styles['accountMenu']}>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={styles['avatar']}
-        aria-label={isOpen ? 'Close account menu' : 'Account menu'}
-        aria-expanded={isOpen}
-        aria-controls={panelId}
-        onClick={() => {
-          setIsOpen(!isOpen);
-        }}
-      >
-        <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-          <path d={PERSON_ICON_PATH} />
-        </svg>
-      </button>
+    <>
       {isOpen && (
-        <>
-          <div className={styles['backdrop']} aria-hidden="true" />
+        <div
+          className={styles['backdrop']}
+          data-testid="account-menu-backdrop"
+          aria-hidden="true"
+        />
+      )}
+      <div ref={menuRef} className={styles['accountMenu']}>
+        <button
+          ref={buttonRef}
+          type="button"
+          className={styles['avatar']}
+          aria-label={isOpen ? 'Close account menu' : 'Account menu'}
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+          onClick={() => {
+            setIsOpen(!isOpen);
+          }}
+        >
+          <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+            <path d={PERSON_ICON_PATH} />
+          </svg>
+        </button>
+        {isOpen && (
           <div
             id={panelId}
             ref={(panel) => {
@@ -76,8 +82,8 @@ export function AccountMenu({ children }: AccountMenuProps) {
           >
             {children}
           </div>
-        </>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

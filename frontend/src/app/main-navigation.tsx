@@ -24,7 +24,7 @@ export function MainNavigation() {
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
           <path d={ADD_ICON_PATH} />
         </svg>
-        <span className={styles['addLabel']}>Add transaction</span>
+        <span className={`visually-hidden ${styles['addLabel'] ?? ''}`}>Add transaction</span>
       </button>
       <NavLink to="/" end className={styles['section'] ?? ''}>
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
@@ -38,7 +38,7 @@ export function MainNavigation() {
             <path d={section.iconPath} />
           </svg>
           <span className={styles['label']}>{section.name}</span>{' '}
-          <span className={styles['soon']}>Soon</span>
+          <span className={`visually-hidden ${styles['soon'] ?? ''}`}>Soon</span>
         </button>
       ))}
     </nav>

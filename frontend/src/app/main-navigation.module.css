@@ -35,16 +35,6 @@
   cursor: not-allowed;
 }
 
-.addLabel,
-.soon {
-  position: absolute;
-  width: var(--size-border);
-  height: var(--size-border);
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .section {
   height: var(--size-bar-item);
   min-width: 0;

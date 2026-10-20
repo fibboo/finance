@@ -36,14 +36,14 @@ test('closes on Escape and returns focus to the avatar', async () => {
   expect(screen.getByRole('button', { name: 'Account menu' })).toHaveFocus();
 });
 
-test('closes on a click outside the menu', async () => {
+test('closes on a tap on the backdrop outside the menu', async () => {
   // arrange
   const user = userEvent.setup();
   render(<AccountMenu>Menu content</AccountMenu>);
   await user.click(screen.getByRole('button', { name: 'Account menu' }));
 
   // act
-  await user.click(document.body);
+  await user.click(screen.getByTestId('account-menu-backdrop'));
 
   // assert
   expect(screen.queryByRole('dialog', { name: 'Account' })).not.toBeInTheDocument();

@@ -6,8 +6,8 @@ const themeSchema = z.enum(['system', 'light', 'dark']);
 export type Theme = z.infer<typeof themeSchema>;
 
 const STORAGE_KEY = 'theme';
-const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 const themeListeners = new Set<() => void>();
+let unkeptTheme: Theme = 'system';
 
 function subscribe(listener: () => void): () => void {
   themeListeners.add(listener);
@@ -20,14 +20,23 @@ function subscribe(listener: () => void): () => void {
 }
 
 function readTheme(): Theme {
-  const storedTheme = themeSchema.safeParse(localStorage.getItem(STORAGE_KEY));
-  const theme = storedTheme.success ? storedTheme.data : 'system';
+  try {
+    const storedTheme = themeSchema.safeParse(localStorage.getItem(STORAGE_KEY));
+    const theme = storedTheme.success ? storedTheme.data : 'system';
 
-  return theme;
+    return theme;
+  } catch {
+    return unkeptTheme;
+  }
 }
 
 function setTheme(theme: Theme): void {
-  localStorage.setItem(STORAGE_KEY, theme);
+  try {
+    localStorage.setItem(STORAGE_KEY, theme);
+  } catch {
+    unkeptTheme = theme;
+  }
+
   themeListeners.forEach((listener) => {
     listener();
   });
@@ -37,19 +46,11 @@ export function useTheme(): { readonly theme: Theme; readonly setTheme: (theme: 
   const theme = useSyncExternalStore(subscribe, readTheme);
 
   useLayoutEffect(() => {
-    const darkScheme = window.matchMedia(DARK_SCHEME_QUERY);
-
-    function applyTheme() {
-      const systemTheme = darkScheme.matches ? 'dark' : 'light';
-      document.documentElement.dataset['theme'] = theme === 'system' ? systemTheme : theme;
+    if (theme === 'system') {
+      delete document.documentElement.dataset['theme'];
+    } else {
+      document.documentElement.dataset['theme'] = theme;
     }
-
-    applyTheme();
-    darkScheme.addEventListener('change', applyTheme);
-
-    return () => {
-      darkScheme.removeEventListener('change', applyTheme);
-    };
   }, [theme]);
 
   return { theme, setTheme };

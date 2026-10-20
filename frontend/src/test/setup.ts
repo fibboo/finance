@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 
 import { cleanup, configure } from '@testing-library/react';
 import { setupServer } from 'msw/node';
-import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 
 import { dismissErrorNotification } from '@/components/error-notification/error-notification-store';
 
@@ -14,18 +14,12 @@ beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' });
 });
 
-beforeEach(() => {
-  vi.stubGlobal('matchMedia', (media: string) =>
-    Object.assign(new EventTarget(), { media, matches: false }),
-  );
-});
-
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  vi.unstubAllGlobals();
   localStorage.clear();
   dismissErrorNotification();
-  vi.unstubAllGlobals();
 });
 
 afterAll(() => {

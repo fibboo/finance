@@ -1,15 +1,15 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 
-  --color-ground: #0b0c0e;
-  --color-panel: #17191c;
-  --color-border: #2a2d32;
-  --color-ink: #ecedee;
-  --color-muted: #9a9ea6;
-  --color-accent: #4cc38a;
+  --color-ground: light-dark(#eeeeeb, #0b0c0e);
+  --color-panel: light-dark(#ffffff, #17191c);
+  --color-border: light-dark(#e2e2de, #2a2d32);
+  --color-ink: light-dark(#17181a, #ecedee);
+  --color-muted: light-dark(#5a5d64, #9a9ea6);
+  --color-accent: light-dark(#1f7a55, #4cc38a);
   --color-backdrop: rgb(0 0 0 / 35%);
   --shadow-bar: 0 0.625rem 1.875rem rgb(0 0 0 / 28%);
-  --shadow-popover: 0 1.125rem 3.125rem rgb(0 0 0 / 30%);
+  --shadow-popover: 0 1.125rem 3.125rem light-dark(rgb(0 0 0 / 25%), rgb(0 0 0 / 30%));
   --shadow-segment: 0 0.0625rem 0.1875rem rgb(0 0 0 / 18%);
 
   --font-sans: 'Geist', system-ui, sans-serif;
@@ -67,12 +67,8 @@
 
 :root[data-theme='light'] {
   color-scheme: light;
+}
 
-  --color-ground: #eeeeeb;
-  --color-panel: #ffffff;
-  --color-border: #e2e2de;
-  --color-ink: #17181a;
-  --color-muted: #5a5d64;
-  --color-accent: #1f7a55;
-  --shadow-popover: 0 1.125rem 3.125rem rgb(0 0 0 / 25%);
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }

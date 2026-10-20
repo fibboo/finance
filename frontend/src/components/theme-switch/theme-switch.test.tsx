@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 import { ThemeSwitch } from '@/components/theme-switch/theme-switch';
 import { render } from '@/test/render';
@@ -12,7 +12,7 @@ test('follows the device setting by default', () => {
   // assert
   expect(screen.getByRole('radio', { name: 'System' })).toBeChecked();
   expect(screen.getByText('Follows your device setting.')).toBeInTheDocument();
-  expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+  expect(document.documentElement).not.toHaveAttribute('data-theme');
 });
 
 test('switches to the chosen theme', async () => {
@@ -50,5 +50,45 @@ test('falls back to the device setting when the kept choice is unknown', () => {
 
   // assert
   expect(screen.getByRole('radio', { name: 'System' })).toBeChecked();
-  expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+  expect(document.documentElement).not.toHaveAttribute('data-theme');
+});
+
+test('follows the device setting when the browser blocks storage', () => {
+  // arrange
+  vi.stubGlobal('localStorage', {
+    getItem: () => {
+      throw new DOMException('Storage is blocked.', 'SecurityError');
+    },
+    setItem: () => {
+      throw new DOMException('Storage is blocked.', 'SecurityError');
+    },
+  });
+
+  // act
+  render(<ThemeSwitch />);
+
+  // assert
+  expect(screen.getByRole('radio', { name: 'System' })).toBeChecked();
+  expect(document.documentElement).not.toHaveAttribute('data-theme');
+});
+
+test('keeps the chosen theme for this visit only when the browser blocks storage', async () => {
+  // arrange
+  vi.stubGlobal('localStorage', {
+    getItem: () => {
+      throw new DOMException('Storage is blocked.', 'SecurityError');
+    },
+    setItem: () => {
+      throw new DOMException('Storage is blocked.', 'SecurityError');
+    },
+  });
+  const user = userEvent.setup();
+  render(<ThemeSwitch />);
+
+  // act
+  await user.click(screen.getByRole('radio', { name: 'Dark' }));
+
+  // assert
+  expect(screen.getByRole('radio', { name: 'Dark' })).toBeChecked();
+  expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
 });
