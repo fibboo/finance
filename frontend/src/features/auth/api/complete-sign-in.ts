@@ -4,7 +4,7 @@ import { apiClient, readData } from '@/lib/api-client';
 import { ApiError } from '@/lib/api-error';
 
 import { callbackParamsSchema } from '../schemas/callback-params';
-import { readRedirectUri, takeSignInRequest } from './pkce';
+import { clearSignInRequest, readRedirectUri, readSignInRequest } from './pkce';
 import { startSession } from './session';
 
 const STATE_MISMATCH_ERROR = 'state_mismatch';
@@ -44,16 +44,18 @@ async function exchangeCode({
 export async function completeSignIn({
   request,
 }: Readonly<{ request: Request }>): Promise<Response> {
-  const signInRequest = takeSignInRequest();
+  const signInRequest = readSignInRequest();
   const callbackParams = callbackParamsSchema.safeParse(
     Object.fromEntries(new URL(request.url).searchParams),
   );
   if (!callbackParams.success || signInRequest?.state !== callbackParams.data.state) {
+    clearSignInRequest();
     const stateMismatchRedirect = redirect(buildSignInErrorUrl(STATE_MISMATCH_ERROR));
     return stateMismatchRedirect;
   }
 
   if ('error' in callbackParams.data) {
+    clearSignInRequest();
     const providerErrorRedirect = redirect(buildSignInErrorUrl(callbackParams.data.error));
     return providerErrorRedirect;
   }
@@ -62,6 +64,7 @@ export async function completeSignIn({
     code: callbackParams.data.code,
     code_verifier: signInRequest.code_verifier,
   });
+  clearSignInRequest();
   if (accessToken === null) {
     const invalidGrantRedirect = redirect(buildSignInErrorUrl(INVALID_GRANT_ERROR));
     return invalidGrantRedirect;

@@ -105,3 +105,23 @@ test('returns to sign-in when the backend rejects the code', async () => {
   expect(response.headers.get('Location')).toBe('/sign-in?error=invalid_grant');
   expect(readIsSignedIn()).toBe(false);
 });
+
+test('signs in on a retry after the code exchange fails to reach the backend', async () => {
+  // arrange
+  const authorizeUrl = new URL(await buildAuthorizeUrl('TELEGRAM'), 'http://localhost');
+  const callbackUrl = `http://localhost/auth/callback?code=code-1&state=${authorizeUrl.searchParams.get('state') ?? ''}`;
+  server.use(
+    http.post('http://localhost/api/user/auth/token', () => HttpResponse.error(), { once: true }),
+    http.post('http://localhost/api/user/auth/token', () =>
+      HttpResponse.json({ access_token: 'access-1', token_type: 'Bearer', expires_in: 900 }),
+    ),
+  );
+  await expect(completeSignIn({ request: new Request(callbackUrl) })).rejects.toThrow();
+
+  // act
+  const response = await completeSignIn({ request: new Request(callbackUrl) });
+
+  // assert
+  expect(response.headers.get('Location')).toBe('/');
+  expect(readAccessToken()).toBe('access-1');
+});

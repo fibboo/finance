@@ -53,13 +53,16 @@ export async function buildAuthorizeUrl(provider: string): Promise<string> {
   return authorizeUrl;
 }
 
-export function takeSignInRequest(): SignInRequest | null {
+export function readSignInRequest(): SignInRequest | null {
   const signInRequest = signInRequestSchema.safeParse({
     state: sessionStorage.getItem(STATE_KEY),
     code_verifier: sessionStorage.getItem(CODE_VERIFIER_KEY),
   });
-  sessionStorage.removeItem(STATE_KEY);
-  sessionStorage.removeItem(CODE_VERIFIER_KEY);
 
   return signInRequest.success ? signInRequest.data : null;
+}
+
+export function clearSignInRequest(): void {
+  sessionStorage.removeItem(STATE_KEY);
+  sessionStorage.removeItem(CODE_VERIFIER_KEY);
 }
