@@ -36,6 +36,7 @@ export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
       currency.label.toLowerCase().includes(searchText),
   );
   const currencyError = formState.errors.base_currency?.message;
+  const requestError = formState.errors.root?.['server']?.message;
 
   return (
     <form
@@ -46,11 +47,11 @@ export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
           setBaseCurrency.mutate(values, {
             onError: (error) => {
               if (error instanceof ApiError) {
-                error.fieldErrors
-                  .filter((fieldError) => fieldError.field === 'base_currency')
-                  .forEach((fieldError) => {
-                    setError('base_currency', { message: fieldError.message });
+                error.fieldErrors.forEach((fieldError) => {
+                  setError(fieldError.field === 'base_currency' ? 'base_currency' : 'root.server', {
+                    message: fieldError.message,
                   });
+                });
               }
             },
           });
@@ -102,6 +103,11 @@ export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
       {currencyError !== undefined && (
         <p id={errorId} className={styles['error']} role="alert">
           {currencyError}
+        </p>
+      )}
+      {requestError !== undefined && (
+        <p className={styles['error']} role="alert">
+          {requestError}
         </p>
       )}
       <p className={styles['note']}>

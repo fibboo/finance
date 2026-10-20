@@ -134,3 +134,25 @@ test('shows the field error the backend returns', async () => {
   expect(await screen.findByText("String should match pattern '^[A-Z]{3}$'")).toBeInTheDocument();
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
+
+test('shows a field error the form has no field for', async () => {
+  // arrange
+  server.use(
+    http.put('http://localhost/api/user/me/base_currency', () =>
+      HttpResponse.json(
+        { detail: [{ loc: ['body'], msg: 'Field required', type: 'missing' }] },
+        { status: 422 },
+      ),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<BaseCurrencyForm currencies={currencies} />);
+  await user.click(screen.getByRole('radio', { name: 'EUR Euro' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Start with EUR' }));
+
+  // assert
+  expect(await screen.findByText('Field required')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Start with EUR' })).toBeEnabled();
+});
