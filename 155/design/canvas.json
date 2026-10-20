@@ -55,6 +55,21 @@
       "title": "Account menu (desktop)",
       "expand": "fill",
       "is_interactive": true
+    },
+    "synth-home-empty.dc.html": {
+      "x": 940,
+      "y": 1120,
+      "w": 390,
+      "h": 844,
+      "title": "Home, first run (phone)"
+    },
+    "synth-home-desktop-empty.dc.html": {
+      "x": 2350,
+      "y": 1120,
+      "w": 1280,
+      "h": 844,
+      "title": "Home, first run (desktop)",
+      "expand": "fill"
     }
   },
   "createdOnFiles": {
@@ -82,7 +97,9 @@
     "synth-accounts.dc.html",
     "synth-menu-popover.dc.html",
     "synth-home-desktop.dc.html",
-    "synth-account-menu-desktop.dc.html"
+    "synth-account-menu-desktop.dc.html",
+    "synth-home-empty.dc.html",
+    "synth-home-desktop-empty.dc.html"
   ],
   "pages": [],
   "title": "Finance — дизайн"

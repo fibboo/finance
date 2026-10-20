@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home desktop — first run</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{opacity:.8}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1000px; box-sizing: border-box; padding: 16px; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; background: {{t.bg}}; color: {{t.text}}">
+  <nav aria-label="Main" style="flex: 1 1 232px; max-width: 100%; box-sizing: border-box; padding: 16px 12px; border-radius: 22px; display: flex; flex-direction: column; gap: 4px; background: {{t.panel}}">
+    <div style="height: 44px; padding: 0 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px">
+      <span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>
+      finance
+    </div>
+    <button type="button" disabled title="Soon" style="height: 44px; margin-bottom: 10px; border: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}; opacity: .45; cursor: not-allowed">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Add transaction
+    </button>
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+      <sc-if value="{{n.active}}" hint-placeholder-val="{{false}}">
+        <a href="#" aria-current="page" style="height: 44px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 600; background: {{t.bg}}">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{n.icon}}"/></svg>
+          {{n.label}}
+        </a>
+      </sc-if>
+      <sc-if value="{{n.soon}}" hint-placeholder-val="{{true}}">
+        <button type="button" disabled style="height: 44px; padding: 0 12px; border: 0; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; background: transparent; color: {{t.muted}}; cursor: not-allowed">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="opacity: .55"><path d="{{n.icon}}"/></svg>
+          <span style="opacity: .55">{{n.label}}</span>
+          <span style="margin-left: auto; padding: 2px 8px; border-radius: 8px; font-size: 11px; background: {{t.bg}}">Soon</span>
+        </button>
+      </sc-if>
+    </sc-for>
+  </nav>
+  <div style="flex: 999 1 560px; min-width: 0; max-width: 1180px; display: flex; flex-direction: column; gap: 16px">
+    <div style="height: 76px; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Home</h1>
+      <a href="synth-account-menu-desktop.dc.html" aria-label="Account menu" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: {{t.panel}}">NI</a>
+    </div>
+    <section aria-label="Balance" style="padding: 24px 28px; border-radius: 22px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; background: {{t.panel}}">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 14px; color: {{t.muted}}">Total balance · USD</span>
+        <span style="font-size: 56px; font-weight: 600; letter-spacing: -0.035em; line-height: 1">$0.00</span>
+      </div>
+      <div style="flex: 0 1 520px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; color: {{t.muted}}">This month</span>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+          <div style="padding: 12px 16px; border-radius: 14px; display: flex; flex-direction: column; gap: 2px; background: {{t.bg}}"><span style="font-size: 13px; color: {{t.muted}}">Earned</span><span style="font-size: 20px; font-weight: 600; ">$0.00</span></div>
+          <div style="padding: 12px 16px; border-radius: 14px; display: flex; flex-direction: column; gap: 2px; background: {{t.bg}}"><span style="font-size: 13px; color: {{t.muted}}">Spent</span><span style="font-size: 20px; font-weight: 600">$0.00</span></div>
+          <div style="padding: 12px 16px; border-radius: 14px; display: flex; flex-direction: column; gap: 2px; background: {{t.bg}}"><span style="font-size: 13px; color: {{t.muted}}">Left over</span><span style="font-size: 20px; font-weight: 600">$0.00</span></div>
+        </div>
+      </div>
+    </section>
+    <section aria-label="Accounts" style="padding: 8px 20px 20px; border-radius: 22px; display: flex; flex-direction: column; gap: 4px; background: {{t.panel}}">
+      <div style="height: 48px; padding: 0 8px; display: flex; align-items: center; justify-content: space-between"><span style="font-size: 16px; font-weight: 600">Accounts</span></div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); grid-template-rows: auto; grid-auto-rows: 0; column-gap: 10px; row-gap: 0; overflow: hidden">
+        <sc-for list="{{accounts}}" as="a" hint-placeholder-count="9">
+          <a href="#" style="padding: 14px 16px; border-radius: 16px; display: flex; flex-direction: column; gap: 12px; background: {{t.bg}}">
+            <span style="display: flex; align-items: center; gap: 10px">
+              <span aria-hidden="true" style="{{a.chipStyle}}">{{a.initial}}</span>
+              <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 15px; font-weight: 500">{{a.name}}</span><span style="font-size: 12px; color: {{t.muted}}">{{a.currency}}</span></span>
+            </span>
+            <span style="display: flex; flex-direction: column"><span style="font-size: 19px; font-weight: 600; letter-spacing: -0.01em">{{a.balance}}</span><span style="font-size: 12px; color: {{t.muted}}">{{a.base}}</span></span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+    <section aria-label="Recent transactions" style="padding: 8px 28px 12px; border-radius: 22px; display: flex; flex-direction: column; background: {{t.panel}}">
+      <div style="height: 48px; display: flex; align-items: center; justify-content: space-between"><span style="font-size: 16px; font-weight: 600">Recent</span></div>
+      <div style="height: 160px; margin: 0 0 16px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; background: {{t.bg}}">
+        <span style="font-size: 16px; font-weight: 600">Nothing here yet</span>
+        <span style="font-size: 14px; color: {{t.muted}}">Your income and expenses will show up here.</span>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A' };
+const dark = this.props.dark ?? true;
+const t = dark ? D : L;
+const chip = (c) => 'width:32px;height:32px;flex-shrink:0;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;background:' + c + (dark ? '33' : '22') + ';color:' + c;
+const accounts = [
+['Wallet','USD','$0.00',' ','#4D8FBF']
+].map(([name, currency, balance, base, color]) => ({ name, currency, balance, base, initial: name[0], chipStyle: chip(color) }));
+const recent = [
+{ title: 'Groceries', account: 'Wallet', date: 'Today', amount: '−$42.80', income: false, color: '#4D8FBF' },
+{ title: 'Salary', account: 'Main card', date: 'Yesterday', amount: '+€2,100.00', income: true, color: '#5B6CD9' },
+{ title: 'Transfer to Savings', account: 'Main card → Savings', date: 'Oct 16', amount: '€300.00', income: false, color: '#2E8C7A' },
+{ title: 'Coffee', account: 'Wallet', date: 'Oct 16', amount: '−$4.50', income: false, color: '#4D8FBF' },
+{ title: 'Rent', account: 'Main card', date: 'Oct 15', amount: '−€850.00', income: false, color: '#5B6CD9' },
+{ title: 'Design project', account: 'Freelance', date: 'Oct 14', amount: '+$640.00', income: true, color: '#A15CB8' }
+].map((r) => ({ ...r,
+dotStyle: 'width:8px;height:8px;border-radius:4px;flex-shrink:0;background:' + r.color,
+amountStyle: 'width:120px;text-align:right;font-size:15px;font-weight:500;color:' + (r.income ? t.accent : t.text) }));
+const nav = [
+{ label: 'Home', icon: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z', active: true },
+{ label: 'Transactions', icon: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01' },
+{ label: 'Accounts', icon: 'M6 6h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3zM3 10h18M16 14.5h2' },
+{ label: 'Categories', icon: 'M3 12V4h8l10 10-8 8zM7.5 8.5h.01' }
+].map((n) => ({ ...n, active: !!n.active, soon: !n.active }));
+return { t, accounts, recent, nav };
+}
+}
+</script>
+</body>
+</html>
