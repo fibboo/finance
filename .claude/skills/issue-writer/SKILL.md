@@ -113,13 +113,13 @@ Rules:
 An issue that adds or changes a screen is drafted only after its mockup is agreed. Issues without a screen are not held back by this, so in a Container the backend sub-issues may be drafted and created first and the frontend ones after the agreement.
 
 1. **Agree the mockup.** Propose a few variants of every affected screen on a design canvas or whatever mockup tool the host offers, and iterate with the user until one is agreed. Each screen is drawn in the dark and the light theme, at phone width and, where it has a desktop layout, at desktop width.
-2. **Export it.** Render every agreed screen to PNG at twice its pixel size (phone 390 px wide, desktop 1280 px wide), for example with a headless browser screenshot. File names are `<screen>-<width>-<theme>.png`, such as `home-phone-dark.png`. A mockup made on a design canvas also exports its sources: the source file of every agreed screen and the canvas index, under the names they have on the canvas. A mockup agreed without a canvas has no sources.
-3. **Store it in the `assets` branch.** It is an orphan branch that shares no history with `main`, holds no code and is never merged (`CLAUDE.md` **Git Conventions**). Each issue has a folder named by its number with the screens it touches, the PNGs at its top and the sources in its `design/` subfolder; a Container's folder holds every screen of the feature, so one file may sit in two folders. Work on it in a separate worktree (`git worktree add <dir> assets`), so the working checkout never leaves its own branch, then commit and push.
-4. **Show it in the issue.** The body ends with a `## Mockups` section. Its first line links the issue's sources at `https://github.com/fibboo/finance/tree/assets/<issue_number>/design`, and a link to the canvas itself may follow for whoever edits the mockup; a mockup without sources leaves the line out. A table follows with the columns Screen, Dark and Light and one row per screen, each image an `<img>` with a `width` (240 for a phone screen, 480 for a desktop one) and an `alt` text, pointing at `https://github.com/fibboo/finance/blob/assets/<issue_number>/<file>.png?raw=true`.
+2. **Export it.** Render every agreed screen to PNG at twice its pixel size (phone 390 px wide, desktop 1280 px wide), for example with a headless browser screenshot. File names are `<screen>-<width>-<theme>.png`, such as `home-phone-dark.png`. A mockup whose screens exist as files, on a design canvas or as local HTML, also exports its sources: every file of its own (the screens, the index and any file they link to), under the names they already have. A mockup agreed only as images has no sources.
+3. **Store it in the `assets` branch.** It is an orphan branch that shares no history with `main`, holds no code and is never merged (`CLAUDE.md` **Git Conventions**). Each issue has a folder named by its number with the PNGs of the screens it touches; a Container's folder holds every screen of the feature, so one PNG may sit in two folders. The sources are kept once, in the `design/` subfolder of the Container's folder when the issue has a parent Container and of the issue's own folder otherwise. Work on it in a separate worktree (`git worktree add <dir> assets`), so the working checkout never leaves its own branch, then commit and push.
+4. **Show it in the issue.** The body ends with a `## Mockups` section. Its first line links the sources at `https://github.com/fibboo/finance/tree/assets/<folder_number>/design`, the number of the folder that keeps them. A link to the canvas may follow for whoever edits the mockup; only its owner can open it, and implementing the screen never needs it. A mockup without sources leaves the first line out. A table follows with the columns Screen, Dark and Light and one row per screen, each image an `<img>` with a `width` (240 for a phone screen, 480 for a desktop one) and an `alt` text, pointing at `https://github.com/fibboo/finance/blob/assets/<issue_number>/<file>.png?raw=true`.
 
-The PNGs are the agreed snapshot a person looks at; the sources hold the same screens as data. An agent implementing a screen reads exact colors, sizes, type and states from its sources rather than measuring them off the images, and needs no access to the canvas for that. A later change to an agreed screen updates its sources and re-exports its PNGs under the same names in one commit, so the links stay valid and the two never drift apart. Whoever finds the sources and the PNGs disagreeing follows the PNGs and asks the user.
+The sources are the agreed screens and hold their exact colors, sizes, type and states; the PNGs are pictures of the same screens for a person to look at, rendered from the sources. Both change together: a later change to an agreed screen updates its sources and re-exports its PNGs in every folder that holds them, under the same names and in one commit, so the links stay valid and the two never drift apart.
 
-The folder is named by the issue number, which exists only after the issue is created. So the draft shows the Mockups section with `<issue_number>` in its links; after creating the issue, push the PNGs and sources into its folder and edit the body to put the number in.
+The folder is named by the issue number, which exists only after the issue is created. So the draft shows the Mockups section with `<issue_number>` in its links; after creating the issue, push the PNGs into its folder and the sources into the folder that keeps them and edit the body to put the number in.
 
 ## Git Conventions
 
@@ -167,14 +167,14 @@ Prepare body files as described in **Approval and Body Files**.
 8. **Call `ExitPlanMode`** and wait for explicit approval given after the complete draft was shown. If the user asks for changes, revise the draft and call `ExitPlanMode` again. Do NOT run any GitHub write command until that draft is approved.
 9. Create the issue (see Commands), assigned to `@me`. Always run the project item-add command, take `.id` from its response and set the status to `Todo`. If creation succeeded but a later step failed, resume from the existing issue rather than creating a duplicate.
 10. For a Container: create each sub-issue in order using step 9, including assignment, project item-add and status `Todo` for every child. Link each child to the Container, then verify the links.
-11. For every created issue with a Mockups section: push its PNGs and sources to its folder in the `assets` branch and edit its body to put its number into the links.
+11. For every created issue with a Mockups section: push its PNGs to its folder in the `assets` branch, and its sources to the folder that keeps them, and edit its body to put its number into the links.
 12. Report back with the issue numbers as Markdown links: `[#<number>](<url>)`.
 
 ### Updating an existing issue
 
 1. Get the issue number from the user's message.
 2. Fetch the current issue.
-3. Work out what the user wants changed and which body sections are affected. Keep all content the user did not ask to change.
+3. Work out what the user wants changed and which body sections are affected. Keep all content the user did not ask to change. If the change adds or alters a screen, agree its mockup first and update its sources and PNGs in the `assets` branch as **Mockups** describes.
 4. Compose the full updated body. Never send a partial body; the edit replaces the whole description.
 5. **Enter plan mode** with `EnterPlanMode`, show the full updated draft clearly marked as the version that will replace the current one, and call `ExitPlanMode`. If the user asks for changes, revise and call `ExitPlanMode` again. Wait for explicit approval given after that complete draft was shown.
 6. Edit the issue, changing only what the user explicitly asked for (title, body, labels). Never change the status.
@@ -208,7 +208,7 @@ Before finalizing a **new** issue, verify:
 - [ ] Container issues have no PR noted in the body
 - [ ] **No issue body references a parent or child issue number**
 - [ ] Sub-issues verified as linked to the parent
-- [ ] An issue that adds or changes a screen was drafted after its mockup was agreed, and ends with a Mockups section whose images, and the design sources when the mockup has them, load from its folder in the `assets` branch
+- [ ] An issue that adds or changes a screen was drafted after its mockup was agreed, and ends with a Mockups section whose images load from its folder in the `assets` branch and whose first line links the design sources when the mockup has them
 
 Before finalizing an **update**, verify:
 - [ ] Fetched the current issue before composing the update
