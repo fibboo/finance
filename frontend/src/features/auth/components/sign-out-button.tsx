@@ -12,7 +12,7 @@ export function SignOutButton({ appearance = 'outlined' }: SignOutButtonProps) {
   return (
     <button
       type="button"
-      className={`${styles['signOutButton'] ?? ''} ${styles[appearance] ?? ''}`}
+      className={`${styles['signOutButton'] ?? ''} ${appearance === 'text' ? (styles['text'] ?? '') : ''}`}
       disabled={signOutMutation.isPending}
       onClick={() => {
         signOutMutation.mutate();

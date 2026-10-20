@@ -1,10 +1,16 @@
 .signOutButton {
   min-height: var(--size-button);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-control);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   background: transparent;
   color: var(--color-ink);
   cursor: pointer;
+}
+
+.signOutButton:hover {
+  border-color: var(--color-ink);
 }
 
 .signOutButton:focus-visible {
@@ -17,20 +23,10 @@
   cursor: default;
 }
 
-.outlined {
-  border: var(--size-border) solid var(--color-border);
-  border-radius: var(--radius-control);
-}
-
-.outlined:hover {
-  border-color: var(--color-ink);
-}
-
 .text {
   min-height: var(--size-touch);
   padding: 0 var(--space-2);
   border: 0;
-  border-radius: var(--radius-control);
   color: var(--color-muted);
 }
 
