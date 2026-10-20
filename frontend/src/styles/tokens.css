@@ -22,10 +22,14 @@
   --font-size-avatar: 1.0625rem;
   --font-size-xl: 1.125rem;
   --font-size-2xl: 1.5rem;
+  --font-size-display: 2.5rem;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   --line-height-base: 1.5;
+  --line-height-display: 1.08;
   --letter-spacing-title: -0.02em;
+  --letter-spacing-display: -0.03em;
 
   --space-0-5: 0.125rem;
   --space-1: 0.25rem;
@@ -37,6 +41,8 @@
   --space-4: 1rem;
   --space-5: 1.25rem;
   --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
 
   --radius-mark: 0.1875rem;
   --radius-badge: 0.5rem;
@@ -59,13 +65,16 @@
   --size-button: 2.875rem;
   --size-avatar: 3rem;
   --size-fab: 3.25rem;
+  --size-button-lg: 3.25rem;
   --size-bar-item: 3.5rem;
   --size-bar: 4.25rem;
   --size-header: 4.75rem;
   --size-sidebar: 14.5rem;
   --size-popover: 18.75rem;
   --size-popover-wide: 21.25rem;
+  --size-column: 30rem;
   --opacity-disabled: 0.5;
+  --opacity-hover: 0.8;
 }
 
 :root[data-theme='light'] {

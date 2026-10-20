@@ -39,6 +39,7 @@ afterEach(async () => {
   server.resetHandlers();
   vi.unstubAllGlobals();
   localStorage.clear();
+  sessionStorage.clear();
   dismissErrorNotification();
 });
 
