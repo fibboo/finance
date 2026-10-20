@@ -66,7 +66,14 @@ ones. No real Telegram or Google client is needed.
 The mock server is reached as `mock-oidc.localhost:8080` by both sides, because the issuer in its tokens is the host it
 was called on and the backend checks it. Chrome and Firefox resolve every `*.localhost` name to the local machine, so the
 browser reaches the published port, and inside compose the name is a network alias of the `mock-oidc` service, so the
-backend reaches the container. No hosts file entry is needed.
+backend reaches the container. Only Chrome and Firefox resolve `*.localhost` on their own; Safari and some system tools
+do not. For those, add this line to the hosts file (`/etc/hosts`, or `C:\Windows\System32\drivers\etc\hosts` on Windows):
+
+```
+127.0.0.1 mock-oidc.localhost
+```
+
+The port is published on `127.0.0.1` only, since anyone who reaches the mock server can sign in as any user.
 
 When a sign-in reaches the mock server, it shows a form: type any username, which becomes the user's `sub`, and press
 Sign-in. The optional claims field takes a JSON object of extra ID token claims, such as
