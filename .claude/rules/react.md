@@ -101,5 +101,5 @@ The frontend is a responsive, mobile-first single-page app. It is built from Rea
 - Elements are found as a user finds them: `getByRole` with a `name` first, then `getByLabelText`, then `getByText`. `getByTestId` only when nothing else can find the element. Queries go through `screen`.
 - Interaction goes through `userEvent.setup()` and is awaited. `fireEvent` is not used.
 - An async result is awaited with `findBy*`.
-- The network is mocked with MSW handlers, and the server is started with `onUnhandledRequest: 'error'`. The test asserts what the user sees or what request reached the network, never component state, hook internals, class names or a snapshot of the tree.
+- The network is mocked with MSW handlers, and the server is started with `onUnhandledFrame: 'error'`. The test asserts what the user sees or what request reached the network, never component state, hook internals, class names or a snapshot of the tree.
 - A component that only lays out children, a schema, a key factory or a token file is not the subject of a test (`.claude/rules/python.md` **Tests**: a definition is never the subject of a test). Their behaviour is tested through the screen that uses them.
