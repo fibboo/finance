@@ -1,0 +1,76 @@
+@import '@/styles/media.css';
+
+.appLayout {
+  min-height: 100dvh;
+  padding: var(--space-4) var(--space-4) calc(var(--size-bar) + var(--space-4) + var(--space-5));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-3);
+}
+
+.header {
+  display: contents;
+}
+
+.logoLink {
+  grid-area: 1 / 1;
+  align-self: center;
+  justify-self: start;
+  padding: 0 var(--space-2);
+  display: flex;
+  align-items: center;
+  min-height: var(--size-touch);
+  z-index: 1;
+}
+
+.account {
+  grid-area: 1 / 2;
+  align-self: center;
+  padding-right: var(--space-2);
+  z-index: 2;
+}
+
+.navigation {
+  position: fixed;
+  inset: auto var(--space-3) var(--space-4);
+  z-index: 1;
+}
+
+.main {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (--desktop) {
+  .appLayout {
+    padding: var(--space-6);
+    grid-template-columns: var(--size-sidebar) minmax(0, 1fr);
+    grid-template-rows: var(--size-header) 1fr;
+    column-gap: var(--space-6);
+    row-gap: 0;
+  }
+
+  .logoLink {
+    padding: 0 var(--space-5);
+  }
+
+  .navigation {
+    position: sticky;
+    inset: var(--space-6) auto auto;
+    grid-area: 1 / 1 / 3 / 2;
+    align-self: start;
+    height: calc(100dvh - var(--space-6) * 2);
+    z-index: 0;
+  }
+
+  .main {
+    grid-area: 1 / 2 / 3 / 3;
+  }
+
+  .account {
+    grid-area: 1 / 2;
+    justify-self: end;
+    padding-right: 0;
+  }
+}

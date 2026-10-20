@@ -6,6 +6,10 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  css: {
+    transformer: 'lightningcss',
+    lightningcss: { drafts: { customMedia: true } },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
