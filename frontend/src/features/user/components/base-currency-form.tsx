@@ -63,7 +63,7 @@ export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" />
           </svg>
-          <span className={styles['visuallyHidden']}>Search currency</span>
+          <span className="visually-hidden">Search currency</span>
           <input
             type="search"
             className={styles['searchInput']}
@@ -78,7 +78,7 @@ export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
           className={styles['currencies']}
           aria-describedby={currencyError === undefined ? undefined : errorId}
         >
-          <legend className={styles['visuallyHidden']}>Base currency</legend>
+          <legend className="visually-hidden">Base currency</legend>
           {shownCurrencies.map((currency) => (
             <label key={currency.key} className={styles['currency']}>
               <input

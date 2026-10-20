@@ -132,4 +132,5 @@ test('shows the field error the backend returns', async () => {
 
   // assert
   expect(await screen.findByText("String should match pattern '^[A-Z]{3}$'")).toBeInTheDocument();
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });

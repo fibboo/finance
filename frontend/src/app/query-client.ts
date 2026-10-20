@@ -20,10 +20,17 @@ function notifyError(error: Error): void {
   }
 }
 
+function notifyMutationError(error: Error): void {
+  const isFieldError = error instanceof ApiError && error.fieldErrors.length > 0;
+  if (!isFieldError) {
+    notifyError(error);
+  }
+}
+
 export function createQueryClient(): QueryClient {
   const queryClient = new QueryClient({
     queryCache: new QueryCache({ onError: notifyError }),
-    mutationCache: new MutationCache({ onError: notifyError }),
+    mutationCache: new MutationCache({ onError: notifyMutationError }),
     defaultOptions: {
       queries: { staleTime: STALE_TIME_MS, retry: shouldRetry },
       mutations: { retry: false },

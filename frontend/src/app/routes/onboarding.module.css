@@ -9,21 +9,11 @@
   gap: var(--space-4);
 }
 
-.logo {
-  margin: 0;
-  padding: var(--space-1) var(--space-2) 0;
+.header {
+  padding-left: var(--space-2);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-}
-
-.logoMark {
-  width: var(--size-mark);
-  height: var(--size-mark);
-  border-radius: var(--radius-mark);
-  background: var(--color-accent);
+  justify-content: space-between;
 }
 
 .intro {

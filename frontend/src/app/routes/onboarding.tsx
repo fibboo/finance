@@ -1,5 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 
+import { Logo } from '@/components/logo/logo';
+import { SignOutButton } from '@/features/auth/components/sign-out-button';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { BaseCurrencyForm } from '@/features/user/components/base-currency-form';
 
@@ -10,10 +12,10 @@ export function Component() {
 
   return (
     <main className={styles['onboarding']}>
-      <p className={styles['logo']}>
-        <span className={styles['logoMark']} aria-hidden="true" />
-        finance
-      </p>
+      <header className={styles['header']}>
+        <Logo />
+        <SignOutButton appearance="text" />
+      </header>
       <div className={styles['intro']}>
         <h1 className={styles['title']}>Pick your base currency</h1>
         <p className={styles['text']}>
