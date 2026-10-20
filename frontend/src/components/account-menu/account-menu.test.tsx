@@ -8,7 +8,7 @@ import { render } from '@/test/render';
 test('opens the menu with its content and moves focus into it', async () => {
   // arrange
   const user = userEvent.setup();
-  render(<AccountMenu>Menu content</AccountMenu>);
+  render(<AccountMenu avatar="NI">Menu content</AccountMenu>);
 
   // act
   await user.click(screen.getByRole('button', { name: 'Account menu' }));
@@ -25,7 +25,7 @@ test('opens the menu with its content and moves focus into it', async () => {
 test('closes on Escape and returns focus to the avatar', async () => {
   // arrange
   const user = userEvent.setup();
-  render(<AccountMenu>Menu content</AccountMenu>);
+  render(<AccountMenu avatar="NI">Menu content</AccountMenu>);
   await user.click(screen.getByRole('button', { name: 'Account menu' }));
 
   // act
@@ -39,7 +39,7 @@ test('closes on Escape and returns focus to the avatar', async () => {
 test('closes on a tap on the backdrop outside the menu', async () => {
   // arrange
   const user = userEvent.setup();
-  render(<AccountMenu>Menu content</AccountMenu>);
+  render(<AccountMenu avatar="NI">Menu content</AccountMenu>);
   await user.click(screen.getByRole('button', { name: 'Account menu' }));
 
   // act
@@ -52,7 +52,7 @@ test('closes on a tap on the backdrop outside the menu', async () => {
 test('closes on a second click of the avatar', async () => {
   // arrange
   const user = userEvent.setup();
-  render(<AccountMenu>Menu content</AccountMenu>);
+  render(<AccountMenu avatar="NI">Menu content</AccountMenu>);
   await user.click(screen.getByRole('button', { name: 'Account menu' }));
 
   // act

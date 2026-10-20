@@ -15,23 +15,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
   background: var(--color-panel);
+  color: var(--color-ink);
   cursor: pointer;
 }
 
 .avatar:hover,
 .avatar[aria-expanded='true'] {
   border-color: var(--color-ink);
-}
-
-.icon {
-  width: var(--size-icon);
-  height: var(--size-icon);
-  fill: none;
-  stroke: currentcolor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .backdrop {

@@ -1,0 +1,24 @@
+.signOutButton {
+  min-height: var(--size-button);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.signOutButton:hover {
+  border-color: var(--color-ink);
+}
+
+.signOutButton:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.signOutButton:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
