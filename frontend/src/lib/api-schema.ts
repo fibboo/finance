@@ -290,7 +290,7 @@ export interface paths {
         };
         /**
          * Get User Dictionaries
-         * @description The value sets of the user domain, each item a key and a label.
+         * @description The value sets of the user domain, each item a key and a label, served without sign-in.
          */
         get: operations["get_user_dictionaries_dictionaries_user_get"];
         put?: never;
