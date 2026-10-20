@@ -1,8 +1,8 @@
 ---
 paths:
-  - "app/**"
-  - "tests/**"
-  - "db_migration/**"
+  - "backend/app/**"
+  - "backend/tests/**"
+  - "backend/db_migration/**"
 ---
 
 # backend
