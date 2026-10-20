@@ -1,0 +1,122 @@
+@import '@/styles/media.css';
+
+.signInPage {
+  min-height: 100dvh;
+  padding: var(--space-7) var(--space-6) var(--space-8);
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-logo);
+}
+
+.logoMark {
+  width: var(--size-mark);
+  height: var(--size-mark);
+  border-radius: var(--radius-mark);
+  background: var(--color-accent);
+}
+
+.hero {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-display);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+.text {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+}
+
+.error {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-panel);
+  font-size: var(--font-size-md);
+  text-align: center;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: var(--size-button-lg);
+  border-radius: var(--radius-control);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2-5);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 0;
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+.secondaryButton {
+  border: var(--size-border) solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-ink);
+}
+
+.primaryButton:hover {
+  opacity: var(--opacity-hover);
+}
+
+.secondaryButton:hover {
+  border-color: var(--color-ink);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+
+.googleMark {
+  font-weight: var(--font-weight-bold);
+}
+
+.note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+@media (--desktop) {
+  .signInPage {
+    max-width: var(--size-sign-in);
+    margin-inline: auto;
+  }
+}
