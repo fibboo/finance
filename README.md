@@ -201,12 +201,15 @@ The app needs a secure context, which a phone has only on `localhost`, so an And
    winget install Google.PlatformTools
    ```
 2. On the phone, turn on Developer options (tap Build number seven times) and then Developer options → Wireless debugging.
-3. With the app running (`docker compose up -d`), run from the repository root:
+3. Close Android Studio, which restarts adb with its own settings. With the app running (`docker compose up -d`), run
+   from the repository root in PowerShell 7 (`winget install Microsoft.PowerShell`), whose default execution policy
+   runs local scripts:
    ```powershell
-   ./scripts/connect-phone.ps1
+   pwsh ./scripts/connect-phone.ps1
    ```
-   The script finds the phone on the network, pairs it the first time (it asks for the code shown under Pair device
-   with pairing code), connects once, forwards ports 5173 and 8080, and checks the dev server.
+   The script finds the phone on the network, tries every phone that wireless debugging advertises, pairs it when none
+   accepts (it asks for the code shown under Pair device with pairing code), connects once, forwards ports 5173 and
+   8080, and checks that the dev server and the mock sign-in server answer on them.
 4. Open `http://localhost:5173` in Chrome on the phone.
 
 Wireless debugging turns off when the phone restarts or changes networks, and the forwards belong to one connection, so
