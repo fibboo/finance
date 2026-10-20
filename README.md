@@ -5,7 +5,8 @@
 Finances is a tool designed to help users manage and track their personal finances. It provides features for budgeting,
 expense tracking, and generating reports, making financial management simple and efficient.
 
-Tech Stack: Python, FastAPI, SQLAlchemy 2, Pydantic 2, PostgreSQL, Alembic, Docker, Pytest, Pytest x-dist
+Tech Stack: Python, FastAPI, SQLAlchemy 2, Pydantic 2, PostgreSQL, Alembic, Docker, Pytest, Pytest x-dist on the
+backend; Vite, React 19, TypeScript, TanStack Query, React Router, Vitest and MSW on the frontend
 
 ## Agent setup
 
@@ -18,8 +19,8 @@ Two env files are committed:
 
 - `backend/.env` holds the local values. `docker-compose.yml` passes it to the `backend` service through `env_file`. The app
   runs locally only in Docker, so its database host is `postgres`, the compose service name.
-- `backend/.env-production` holds the production values. Secrets and host-specific values are `'${VAR}'` placeholders, filled
-  with `envsubst` at deploy time. `docker-compose.production.yml` passes it to the `backend` service, which it builds
+- `backend/.env-production` holds the production values. Secrets are `'${VAR}'` placeholders, filled with `envsubst` at
+  deploy time; the public URLs of `https://finance.fibboo.dev` are written openly. `docker-compose.production.yml` passes it to the `backend` service, which it builds
   from `backend/Dockerfile` and runs without `--reload`.
 
 `backend/pytest.ini` sets fake values for tests, and they take precedence over `backend/.env`.
@@ -44,17 +45,14 @@ Two env files are committed:
    ```bash
    docker compose up -d
    ```
-5. Create the database:
-   ```bash
-   docker compose exec postgres psql -U user -d postgres -c "CREATE DATABASE finance;"
-   ```
-6. Apply database migrations:
+5. Apply database migrations:
    ```bash
    docker compose exec backend alembic upgrade head
    ```
    
-Once all steps are completed, your project will be available at:  
-[http://localhost:8000](http://localhost:8000)
+Once all steps are completed, the frontend is available at [http://localhost:5173](http://localhost:5173) and the API at
+[http://localhost:8000](http://localhost:8000). The Vite dev server proxies `/api` to the backend, so the frontend calls
+the API as `/api/...`.
 
 ### Signing in locally
 
@@ -62,6 +60,10 @@ Locally, both sign-in providers point at the `mock-oidc` service, a [mock OpenID
 on port 8080 with one issuer per provider: `/telegram` and `/google`. `backend/.env` sets `TELEGRAM_SERVER_METADATA_URL` and
 `GOOGLE_SERVER_METADATA_URL` to their discovery documents, while `backend/.env-production` keeps the real Telegram and Google
 ones. No real Telegram or Google client is needed.
+
+`PUBLIC_BASE_URL` in `backend/.env` is `http://localhost:5173/api`, so the provider sends the browser back to the backend
+through the Vite proxy, the same `/api` path nginx serves in production. Signing in needs only port 5173 and the
+mock server's port 8080, which also lets a phone sign in through two `adb reverse` forwards.
 
 The mock server is reached as `mock-oidc.localhost:8080` by both sides, because the issuer in its tokens is the host it
 was called on and the backend checks it. Chrome and Firefox resolve every `*.localhost` name to the local machine, so the
@@ -82,7 +84,7 @@ Sign-in. The optional claims field takes a JSON object of extra ID token claims,
 
 ### Upgrading from PostgreSQL 15
 
-The `postgres` service runs PostgreSQL 18, which keeps its data under `/var/lib/postgresql/18/docker`, so the compose volume is mounted at `/var/lib/postgresql`. A volume created by the old PostgreSQL 15 service starts as an empty cluster and the backend fails with `database "finance" does not exist`. Recreate the volume once, then repeat steps 4–6:
+The `postgres` service runs PostgreSQL 18, which keeps its data under `/var/lib/postgresql/18/docker`, so the compose volume is mounted at `/var/lib/postgresql`. A volume created by the old PostgreSQL 15 service starts as an empty cluster and the backend fails with `database "finance" does not exist`. Recreate the volume once, then repeat steps 4–5:
 
 ```bash
 docker compose down -v
@@ -99,6 +101,32 @@ The project provides built-in API documentation, available via Swagger or Redoc.
 Swagger - [http://localhost:8000/docs](http://localhost:8000/docs)
 
 Redoc - [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+---
+
+## Frontend
+
+The `frontend` compose service runs the Vite dev server with `frontend/` mounted, so a saved file reloads the page. In
+production `frontend/Dockerfile` builds the bundle and serves it with nginx, which proxies `/api` to the backend.
+
+To work on the frontend outside Docker, install Node 22 or later and run from `frontend/`:
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm run test
+npm run format
+```
+
+The API types in `frontend/src/lib/api-schema.ts` are generated from the backend's OpenAPI schema. After changing the
+API, start the backend (`docker compose up -d backend`) and regenerate them from `frontend/`:
+
+```bash
+npm run generate:api
+```
+
+CI fails when the committed file differs from the generated one.
 
 ---
 
