@@ -61,6 +61,10 @@ on port 8080 with one issuer per provider: `/telegram` and `/google`. `backend/.
 `GOOGLE_SERVER_METADATA_URL` to their discovery documents, while `backend/.env-production` keeps the real Telegram and Google
 ones. No real Telegram or Google client is needed.
 
+`PUBLIC_BASE_URL` in `backend/.env` is `http://localhost:5173/api`, so the provider sends the browser back to the backend
+through the Vite proxy, the same `/api` path nginx serves in production. Signing in needs only port 5173 and the
+mock server's port 8080, which also lets a phone sign in through two `adb reverse` forwards.
+
 The mock server is reached as `mock-oidc.localhost:8080` by both sides, because the issuer in its tokens is the host it
 was called on and the backend checks it. Chrome and Firefox resolve every `*.localhost` name to the local machine, so the
 browser reaches the published port, and inside compose the name is a network alias of the `mock-oidc` service, so the
