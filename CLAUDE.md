@@ -57,6 +57,8 @@ Packages under `backend/app/` are split by layer, and each layer is split by dom
 
 Everything runs in Docker through `docker-compose.yml`, which has the `postgres`, `mock-oidc`, `backend` and `frontend` services. `mock-oidc` is a mock OpenID Connect server that stands in for Telegram and Google locally. Rebuild the image only when `backend/tests/Dockerfile` or `backend/requirements/` change. The `backend` service builds from `backend/`, mounts it as `/app` and reads its settings from the committed `backend/.env` through `env_file`. The `frontend` service runs the `node` image with `frontend/` mounted over its own `node_modules` volume, and installs with `npm ci` on start. Production runs `docker-compose.production.yml`, which builds `backend` from `backend/Dockerfile` and reads `backend/.env-production`, whose secrets are `'${VAR}'` placeholders filled with envsubst at deploy time, and builds `frontend` from `frontend/Dockerfile`. Only `frontend` publishes a host port there; the backend is reached through its `/api` proxy.
 
+`scripts/connect-phone.ps1` connects an Android phone to the local app over wireless debugging and forwards its ports with `adb reverse` (README, Testing on a phone).
+
 ### Format
 
 Try the local CLI first, and fall back to Docker if the command is missing. Run from `backend/`, with paths relative to it, since `backend/pyproject.toml` holds the configuration and the container mounts `backend/` as `/app`:
