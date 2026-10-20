@@ -4,7 +4,7 @@ import { type ReactNode, useEffect } from 'react';
 import { ErrorNotification } from '@/components/error-notification/error-notification';
 import { useTheme } from '@/components/theme-switch/use-theme';
 import { authMiddleware } from '@/features/auth/api/auth-middleware';
-import { readIsSignedIn, subscribeToSession } from '@/features/auth/api/session';
+import { subscribeToSession } from '@/features/auth/api/session';
 import { apiClient } from '@/lib/api-client';
 
 type ProvidersProps = Readonly<{
@@ -18,8 +18,11 @@ export function Providers({ queryClient, children }: ProvidersProps) {
   useTheme();
   useEffect(
     () =>
-      subscribeToSession(() => {
-        if (!readIsSignedIn()) {
+      subscribeToSession((change) => {
+        if (change === 'signed-in') {
+          void queryClient.resetQueries();
+        }
+        if (change === 'signed-out') {
           queryClient.removeQueries();
         }
       }),

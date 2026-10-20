@@ -58,7 +58,7 @@ test('broadcasts the refreshed token to the other tabs', async () => {
 
   // assert
   await vi.waitFor(() => {
-    expect(otherTabMessages).toContainEqual({ type: 'signed-in', access_token: 'access-1' });
+    expect(otherTabMessages).toContainEqual({ type: 'refreshed', access_token: 'access-1' });
   });
 });
 
@@ -93,15 +93,18 @@ test.each([
   expect(readAccessToken()).toBe('access-1');
 });
 
-test('takes the token another tab broadcast', async () => {
-  // act
-  otherTab.postMessage({ type: 'signed-in', access_token: 'from-other-tab' });
+test.each(['signed-in', 'refreshed'])(
+  'takes the token another tab broadcast as %s',
+  async (type) => {
+    // act
+    otherTab.postMessage({ type, access_token: 'from-other-tab' });
 
-  // assert
-  await vi.waitFor(() => {
-    expect(readAccessToken()).toBe('from-other-tab');
-  });
-});
+    // assert
+    await vi.waitFor(() => {
+      expect(readAccessToken()).toBe('from-other-tab');
+    });
+  },
+);
 
 test('signs out when another tab signs out', async () => {
   // arrange

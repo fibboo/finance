@@ -88,3 +88,23 @@ test('shows no data of the previous user after another tab signs out', async () 
   expect(await screen.findByText('anna')).toBeInTheDocument();
   expect(screen.queryByText('nikita')).not.toBeInTheDocument();
 });
+
+test('shows no data of the previous user after another tab signs in as another user', async () => {
+  // arrange
+  startSession('access-1');
+  render(
+    <Routes>
+      <Route element={<RequireSession />}>
+        <Route index element={<UserSummary providerTypes={[]} />} />
+      </Route>
+    </Routes>,
+  );
+  expect(await screen.findByText('nikita')).toBeInTheDocument();
+
+  // act
+  otherTab.postMessage({ type: 'signed-in', access_token: 'access-2' });
+
+  // assert
+  expect(await screen.findByText('anna')).toBeInTheDocument();
+  expect(screen.queryByText('nikita')).not.toBeInTheDocument();
+});

@@ -1,7 +1,7 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
 import { showErrorNotification } from '@/components/error-notification/error-notification-store';
-import { ApiError } from '@/lib/api-error';
+import { ApiError, UNAUTHORIZED_STATUS } from '@/lib/api-error';
 
 const STALE_TIME_MS = 60_000;
 const MAX_RETRIES = 3;
@@ -13,10 +13,17 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
   return shouldRetryError;
 }
 
+function notifyError(error: Error): void {
+  const hasEndedSession = error instanceof ApiError && error.status === UNAUTHORIZED_STATUS;
+  if (!hasEndedSession) {
+    showErrorNotification();
+  }
+}
+
 export function createQueryClient(): QueryClient {
   const queryClient = new QueryClient({
-    queryCache: new QueryCache({ onError: showErrorNotification }),
-    mutationCache: new MutationCache({ onError: showErrorNotification }),
+    queryCache: new QueryCache({ onError: notifyError }),
+    mutationCache: new MutationCache({ onError: notifyError }),
     defaultOptions: {
       queries: { staleTime: STALE_TIME_MS, retry: shouldRetry },
       mutations: { retry: false },

@@ -93,7 +93,7 @@ test('waits for the refresh of another tab and takes its token instead of refres
 
   // act
   const result = apiClient.GET('/user/me', { middleware: [authMiddleware] });
-  otherTab.postMessage({ type: 'signed-in', access_token: 'from-other-tab' });
+  otherTab.postMessage({ type: 'refreshed', access_token: 'from-other-tab' });
   await vi.waitFor(() => {
     expect(readAccessToken()).toBe('from-other-tab');
   });

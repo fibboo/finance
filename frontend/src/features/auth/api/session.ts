@@ -9,27 +9,24 @@ const REFRESH_TIMEOUT_MS = 10_000;
 
 const sessionMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('signed-in'), access_token: z.string().min(1) }),
+  z.object({ type: z.literal('refreshed'), access_token: z.string().min(1) }),
   z.object({ type: z.literal('signed-out') }),
 ]);
 
 type SessionMessage = z.infer<typeof sessionMessageSchema>;
 
-const listeners = new Set<() => void>();
+type SessionChange = SessionMessage['type'];
+
+const listeners = new Set<(change: SessionChange) => void>();
 const sessionChannel = new BroadcastChannel(SESSION_CHANNEL_NAME);
 let accessToken: string | null = null;
 let pendingRefresh: Promise<string | null> | null = null;
 
-function setAccessToken(token: string | null): void {
-  accessToken = token;
+function applySessionMessage(message: SessionMessage): void {
+  accessToken = message.type === 'signed-out' ? null : message.access_token;
   listeners.forEach((listener) => {
-    listener();
+    listener(message.type);
   });
-}
-
-function buildSessionMessage(token: string | null): SessionMessage {
-  const message: SessionMessage =
-    token === null ? { type: 'signed-out' } : { type: 'signed-in', access_token: token };
-  return message;
 }
 
 async function requestRefreshedToken(): Promise<string | null> {
@@ -54,7 +51,7 @@ async function requestRefreshedToken(): Promise<string | null> {
 sessionChannel.addEventListener('message', (event) => {
   const message = sessionMessageSchema.safeParse(event.data);
   if (message.success) {
-    setAccessToken(message.data.type === 'signed-in' ? message.data.access_token : null);
+    applySessionMessage(message.data);
   }
 });
 
@@ -66,7 +63,7 @@ export function readIsSignedIn(): boolean {
   return accessToken !== null;
 }
 
-export function subscribeToSession(listener: () => void): () => void {
+export function subscribeToSession(listener: (change: SessionChange) => void): () => void {
   listeners.add(listener);
 
   return () => {
@@ -75,8 +72,9 @@ export function subscribeToSession(listener: () => void): () => void {
 }
 
 export function startSession(token: string): void {
-  setAccessToken(token);
-  sessionChannel.postMessage(buildSessionMessage(token));
+  const message: SessionMessage = { type: 'signed-in', access_token: token };
+  applySessionMessage(message);
+  sessionChannel.postMessage(message);
 }
 
 export function refreshSession(staleToken: string | null): Promise<string | null> {
@@ -91,8 +89,12 @@ export function refreshSession(staleToken: string | null): Promise<string | null
       }
 
       const refreshedToken = await requestRefreshedToken();
-      setAccessToken(refreshedToken);
-      sessionChannel.postMessage(buildSessionMessage(refreshedToken));
+      const message: SessionMessage =
+        refreshedToken === null
+          ? { type: 'signed-out' }
+          : { type: 'refreshed', access_token: refreshedToken };
+      applySessionMessage(message);
+      sessionChannel.postMessage(message);
 
       return refreshedToken;
     })
@@ -111,6 +113,7 @@ export async function restoreSession(): Promise<void> {
 
 export async function signOut(): Promise<void> {
   await apiClient.POST('/user/auth/revoke');
-  setAccessToken(null);
-  sessionChannel.postMessage(buildSessionMessage(null));
+  const message: SessionMessage = { type: 'signed-out' };
+  applySessionMessage(message);
+  sessionChannel.postMessage(message);
 }
