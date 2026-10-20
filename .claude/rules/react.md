@@ -51,7 +51,7 @@ The frontend is a responsive, mobile-first single-page app. It is built from Rea
 - A query key runs from general to specific and contains every value the fetcher uses.
 - Every request goes through TanStack Query, except the token refresh and the session restore of the API client's auth middleware and the code exchange of the sign-in callback (**Auth and Security**).
 - Fetchers are plain functions over the one `openapi-fetch` client in `frontend/src/lib/`. The client turns an error response into an `ApiError` and throws it.
-- Route loaders only prefetch, with `queryClient.ensureQueryData`, except the loader of the sign-in callback route (**Auth and Security**). Components read with `useQuery` or `useSuspenseQuery`, so the query cache stays the one source of server data.
+- Route loaders only prefetch, with `queryClient.query` (`ensureQueryData` is deprecated in TanStack Query 5), except the loader of the sign-in callback route (**Auth and Security**). Components read with `useQuery` or `useSuspenseQuery`, so the query cache stays the one source of server data.
 - A mutation invalidates the affected keys through the factory prefix in `onSuccess` and returns that promise, so its pending state lasts until the fresh data has arrived. An optimistic update uses TanStack Query's mutation `variables` or `onMutate`, not `useOptimistic`.
 - The query client sets a global `staleTime` and does not retry a 4xx. Errors are reported in one place: the `QueryCache` and `MutationCache` `onError` show a notification, and an error that leaves the screen unusable reaches the route's error boundary.
 - The dictionaries of value sets and labels (`.claude/rules/common.md` **Architecture**) are loaded once at startup through queries with an infinite `staleTime`.
