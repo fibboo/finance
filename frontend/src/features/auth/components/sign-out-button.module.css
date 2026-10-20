@@ -22,3 +22,14 @@
   opacity: var(--opacity-disabled);
   cursor: default;
 }
+
+.text {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-2);
+  border: 0;
+  color: var(--color-muted);
+}
+
+.text:hover {
+  color: var(--color-ink);
+}

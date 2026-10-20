@@ -33,13 +33,26 @@ const routes: RouteObject[] = [
           {
             ErrorBoundary: RootErrorBoundary,
             lazy: {
-              Component: async () => (await import('@/app/app-layout')).AppLayout,
+              Component: async () => (await import('@/app/require-onboarding')).RequireOnboarding,
             },
             children: [
               {
-                index: true,
+                path: 'onboarding',
                 ErrorBoundary: RootErrorBoundary,
-                lazy: () => import('@/app/routes/home'),
+                lazy: () => import('@/app/routes/onboarding'),
+              },
+              {
+                ErrorBoundary: RootErrorBoundary,
+                lazy: {
+                  Component: async () => (await import('@/app/app-layout')).AppLayout,
+                },
+                children: [
+                  {
+                    index: true,
+                    ErrorBoundary: RootErrorBoundary,
+                    lazy: () => import('@/app/routes/home'),
+                  },
+                ],
               },
             ],
           },
