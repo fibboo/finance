@@ -1,0 +1,25 @@
+@import '@/styles/media.css';
+
+.accountMark {
+  flex: none;
+  width: var(--size-account-mark);
+  height: var(--size-account-mark);
+  border-radius: var(--radius-segment);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  background: light-dark(
+    color-mix(in srgb, currentColor var(--account-mark-tint-light), transparent),
+    color-mix(in srgb, currentColor var(--account-mark-tint-dark), transparent)
+  );
+}
+
+@media (--desktop) {
+  .accountMark {
+    width: var(--size-account-mark-sm);
+    height: var(--size-account-mark-sm);
+    font-size: var(--font-size-sm);
+  }
+}

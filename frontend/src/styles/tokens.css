@@ -16,24 +16,32 @@
   --font-sans: 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
   --font-size-2xs: 0.6875rem;
+  --font-size-xs: 0.75rem;
   --font-size-sm: 0.8125rem;
   --font-size-md: 0.875rem;
   --font-size-base: 0.9375rem;
   --font-size-lg: 1rem;
   --font-size-avatar: 1.0625rem;
   --font-size-xl: 1.125rem;
+  --font-size-tile-amount: 1.1875rem;
+  --font-size-summary: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.75rem;
+  --font-size-balance: 2.25rem;
   --font-size-display: 2.5rem;
+  --font-size-balance-lg: 3.5rem;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --line-height-base: 1.5;
   --line-height-display: 1.08;
+  --line-height-tight: 1.1;
   --line-height-note: 1.4;
   --line-height-title: 1.15;
   --letter-spacing-title: -0.02em;
+  --letter-spacing-amount: -0.01em;
   --letter-spacing-display: -0.03em;
+  --letter-spacing-balance-lg: -0.035em;
 
   --space-0-5: 0.125rem;
   --space-1: 0.25rem;
@@ -43,6 +51,7 @@
   --space-3: 0.75rem;
   --space-3-5: 0.875rem;
   --space-4: 1rem;
+  --space-4-5: 1.125rem;
   --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-7: 1.75rem;
@@ -54,6 +63,7 @@
   --radius-control: 0.75rem;
   --radius-track: 0.875rem;
   --radius-action: 0.875rem;
+  --radius-tile: 1rem;
   --radius-fab: 1.125rem;
   --radius-sheet: 1.125rem;
   --radius-panel: 1.25rem;
@@ -61,6 +71,7 @@
   --radius-full: 999rem;
 
   --size-mark: 0.625rem;
+  --size-dot: 0.5rem;
   --size-icon-sm: 1rem;
   --size-icon-md: 1.125rem;
   --size-icon: 1.25rem;
@@ -68,6 +79,14 @@
   --size-border: 0.0625rem;
   --size-focus: 0.125rem;
   --size-touch: 2.75rem;
+  --size-section-header-sm: 2.5rem;
+  --size-section-header: 2.625rem;
+  --size-section-header-lg: 3rem;
+  --size-account-mark-sm: 2rem;
+  --size-account-mark: 2.125rem;
+  --size-account-row: 3rem;
+  --size-transaction-row: 3.25rem;
+  --size-transaction-row-lg: 3.375rem;
   --size-segment: 2.5rem;
   --size-button: 2.875rem;
   --size-avatar: 3rem;
@@ -77,12 +96,20 @@
   --size-bar-item: 3.5rem;
   --size-bar: 4.25rem;
   --size-header: 4.75rem;
+  --size-amount-column: 7.5rem;
+  --size-empty-state: 8.25rem;
+  --size-empty-state-lg: 10rem;
+  --size-balance-panel: 11.75rem;
+  --size-account-tile: 11.875rem;
   --size-sidebar: 14.5rem;
   --size-popover: 18.75rem;
   --size-popover-wide: 21.25rem;
   --size-column: 30rem;
+  --size-month: 32.5rem;
   --opacity-disabled: 0.5;
   --opacity-hover: 0.8;
+  --account-mark-tint-light: 13%;
+  --account-mark-tint-dark: 20%;
 }
 
 :root[data-theme='light'] {
