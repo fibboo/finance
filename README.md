@@ -45,11 +45,7 @@ Two env files are committed:
    ```bash
    docker compose up -d
    ```
-5. Create the database:
-   ```bash
-   docker compose exec postgres psql -U user -d postgres -c "CREATE DATABASE finance;"
-   ```
-6. Apply database migrations:
+5. Apply database migrations:
    ```bash
    docker compose exec backend alembic upgrade head
    ```
@@ -84,7 +80,7 @@ Sign-in. The optional claims field takes a JSON object of extra ID token claims,
 
 ### Upgrading from PostgreSQL 15
 
-The `postgres` service runs PostgreSQL 18, which keeps its data under `/var/lib/postgresql/18/docker`, so the compose volume is mounted at `/var/lib/postgresql`. A volume created by the old PostgreSQL 15 service starts as an empty cluster and the backend fails with `database "finance" does not exist`. Recreate the volume once, then repeat steps 4–6:
+The `postgres` service runs PostgreSQL 18, which keeps its data under `/var/lib/postgresql/18/docker`, so the compose volume is mounted at `/var/lib/postgresql`. A volume created by the old PostgreSQL 15 service starts as an empty cluster and the backend fails with `database "finance" does not exist`. Recreate the volume once, then repeat steps 4–5:
 
 ```bash
 docker compose down -v
