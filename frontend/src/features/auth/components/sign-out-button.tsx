@@ -1,16 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 
 import { signOut } from '../api/session';
 import styles from './sign-out-button.module.css';
 
 export function SignOutButton() {
-  const queryClient = useQueryClient();
-  const signOutMutation = useMutation({
-    mutationFn: signOut,
-    onSuccess: () => {
-      queryClient.removeQueries();
-    },
-  });
+  const signOutMutation = useMutation({ mutationFn: signOut });
   return (
     <button
       type="button"
