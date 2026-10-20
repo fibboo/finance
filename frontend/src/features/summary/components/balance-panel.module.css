@@ -1,0 +1,118 @@
+@import '@/styles/media.css';
+
+.balancePanel {
+  height: var(--size-balance-panel);
+  padding: var(--space-4);
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-panel);
+}
+
+.total {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.totalLabel,
+.monthLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.totalAmount {
+  font-size: var(--font-size-balance);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-display);
+  line-height: var(--line-height-tight);
+}
+
+.month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.tiles {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.tile {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  background: var(--color-ground);
+}
+
+.tileLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.tileAmount,
+.tileAccent {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tileAccent {
+  color: var(--color-accent);
+}
+
+@media (--desktop) {
+  .balancePanel {
+    height: auto;
+    padding: var(--space-6) var(--space-7);
+    border-radius: var(--radius-bar);
+    flex-flow: row wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-6);
+  }
+
+  .total {
+    gap: var(--space-1);
+  }
+
+  .totalLabel {
+    font-size: var(--font-size-md);
+  }
+
+  .totalAmount {
+    font-size: var(--font-size-balance-lg);
+    letter-spacing: var(--letter-spacing-balance-lg);
+    line-height: 1;
+  }
+
+  .month {
+    flex: 0 1 var(--size-month);
+    gap: var(--space-2);
+  }
+
+  .tiles {
+    gap: var(--space-2-5);
+  }
+
+  .tile {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-track);
+  }
+
+  .tileLabel {
+    font-size: var(--font-size-sm);
+  }
+
+  .tileAmount,
+  .tileAccent {
+    font-size: var(--font-size-summary);
+  }
+}
