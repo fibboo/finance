@@ -81,6 +81,8 @@ docker build -t finance-test -f backend/tests/Dockerfile backend
 docker run --rm -v "${PWD}/backend:/app" finance-test pytest -v -n auto <test_paths>
 ```
 
+`<test_paths>` are relative to `backend/`, which is mounted as `/app` (`tests/services/...`, not `backend/tests/services/...`).
+
 **Windows only:** run this in **PowerShell or WSL**, not Git Bash. Git Bash turns the current directory into a POSIX path (`/c/Users/...`) that Docker Desktop rejects. The volume then silently fails to mount, and the tests run against the files baked into the image.
 
 ### Database migrations
