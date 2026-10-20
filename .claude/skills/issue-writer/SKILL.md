@@ -115,9 +115,11 @@ An issue that adds or changes a screen is drafted only after its mockup is agree
 1. **Agree the mockup.** Propose a few variants of every affected screen on a design canvas or whatever mockup tool the host offers, and iterate with the user until one is agreed. Each screen is drawn in the dark and the light theme, at phone width and, where it has a desktop layout, at desktop width.
 2. **Export it.** Render every agreed screen to PNG at twice its pixel size (phone 390 px wide, desktop 1280 px wide), for example with a headless browser screenshot. File names are `<screen>-<width>-<theme>.png`, such as `home-phone-dark.png`.
 3. **Store it in the `assets` branch.** It is an orphan branch that shares no history with `main`, holds no code and is never merged (`CLAUDE.md` **Git Conventions**). Each issue has a folder named by its number with the screens it touches; a Container's folder holds every screen of the feature, so one PNG may sit in two folders. Work on it in a separate worktree (`git worktree add <dir> assets`), so the working checkout never leaves its own branch, then commit and push.
-4. **Show it in the issue.** The body ends with a `## Mockups` section: a table with the columns Screen, Dark and Light and one row per screen, each image an `<img>` with a `width` (240 for a phone screen, 480 for a desktop one) and an `alt` text, pointing at `https://github.com/fibboo/finance/blob/assets/<issue_number>/<file>.png?raw=true`. The body never links the design canvas, which other readers cannot open.
+4. **Show it in the issue.** The body ends with a `## Mockups` section. Its first line links the design artifact the mockup was agreed on, by its claude.ai URL; a Container and its sub-issues link the same artifact, and a mockup agreed without one leaves the line out. A table follows with the columns Screen, Dark and Light and one row per screen, each image an `<img>` with a `width` (240 for a phone screen, 480 for a desktop one) and an `alt` text, pointing at `https://github.com/fibboo/finance/blob/assets/<issue_number>/<file>.png?raw=true`. Remind the user to share the artifact through its Share menu, since until then only its owner can open the link.
 
-The folder is named by the issue number, which exists only after the issue is created. So the draft shows the Mockups section with `<issue_number>` in its links; after creating the issue, push the PNGs into its folder and edit the body to put the number in. A later change to an agreed screen replaces the PNG under the same name, so the links stay valid.
+The PNGs are the agreed snapshot that every reader sees; the artifact is the source of the same screens. An agent that can open the artifact reads exact colors, sizes, type and states from its source rather than measuring them off the images. A later change to an agreed screen is made in the artifact and agreed only when its PNGs are re-exported under the same names in the same step, so the links stay valid and the two never drift apart. Whoever finds the artifact and the PNGs disagreeing follows the PNGs and asks the user.
+
+The folder is named by the issue number, which exists only after the issue is created. So the draft shows the Mockups section with `<issue_number>` in its links; after creating the issue, push the PNGs into its folder and edit the body to put the number in.
 
 ## Git Conventions
 
@@ -206,7 +208,7 @@ Before finalizing a **new** issue, verify:
 - [ ] Container issues have no PR noted in the body
 - [ ] **No issue body references a parent or child issue number**
 - [ ] Sub-issues verified as linked to the parent
-- [ ] An issue that adds or changes a screen was drafted after its mockup was agreed, and ends with a Mockups section whose images load from its folder in the `assets` branch, with no link to the design canvas
+- [ ] An issue that adds or changes a screen was drafted after its mockup was agreed, and ends with a Mockups section that links the design artifact it was agreed on, if any, and whose images load from its folder in the `assets` branch
 
 Before finalizing an **update**, verify:
 - [ ] Fetched the current issue before composing the update
