@@ -72,6 +72,25 @@ test('follows the device setting when the browser blocks storage', () => {
   expect(document.documentElement).not.toHaveAttribute('data-theme');
 });
 
+test('keeps the chosen theme for this visit only when the browser cannot write to storage', async () => {
+  // arrange
+  vi.stubGlobal('localStorage', {
+    getItem: () => null,
+    setItem: () => {
+      throw new DOMException('Storage is full.', 'QuotaExceededError');
+    },
+  });
+  const user = userEvent.setup();
+  render(<ThemeSwitch />);
+
+  // act
+  await user.click(screen.getByRole('radio', { name: 'Light' }));
+
+  // assert
+  expect(screen.getByRole('radio', { name: 'Light' })).toBeChecked();
+  expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+});
+
 test('keeps the chosen theme for this visit only when the browser blocks storage', async () => {
   // arrange
   vi.stubGlobal('localStorage', {

@@ -7,7 +7,7 @@ export type Theme = z.infer<typeof themeSchema>;
 
 const STORAGE_KEY = 'theme';
 const themeListeners = new Set<() => void>();
-let unkeptTheme: Theme = 'system';
+let unkeptTheme: Theme | null = null;
 
 function subscribe(listener: () => void): () => void {
   themeListeners.add(listener);
@@ -19,20 +19,27 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-function readTheme(): Theme {
+function readStoredTheme(): Theme {
   try {
     const storedTheme = themeSchema.safeParse(localStorage.getItem(STORAGE_KEY));
     const theme = storedTheme.success ? storedTheme.data : 'system';
 
     return theme;
   } catch {
-    return unkeptTheme;
+    return 'system';
   }
+}
+
+function readTheme(): Theme {
+  const theme = unkeptTheme ?? readStoredTheme();
+
+  return theme;
 }
 
 function setTheme(theme: Theme): void {
   try {
     localStorage.setItem(STORAGE_KEY, theme);
+    unkeptTheme = null;
   } catch {
     unkeptTheme = theme;
   }
