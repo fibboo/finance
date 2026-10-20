@@ -41,6 +41,7 @@ database_settings = DatabaseSettings()
 class TelegramSettings(BaseSettings):
     client_id: str
     client_secret: str
+    server_metadata_url: str
 
     model_config = SettingsConfigDict(env_prefix="telegram_", env_file=".env", extra="ignore")
 
@@ -51,6 +52,7 @@ telegram_settings = TelegramSettings()
 class GoogleSettings(BaseSettings):
     client_id: str
     client_secret: str
+    server_metadata_url: str
 
     model_config = SettingsConfigDict(env_prefix="google_", env_file=".env", extra="ignore")
 

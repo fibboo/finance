@@ -12,12 +12,24 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=postgres
 
+  mock-oidc:
+    image: ghcr.io/navikt/mock-oauth2-server:6.0.4
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - 'JSON_CONFIG={"interactiveLogin": true}'
+    networks:
+      default:
+        aliases:
+          - mock-oidc.localhost
+
   backend:
     build:
       context: ./backend
       dockerfile: ./tests/Dockerfile
     depends_on:
       - postgres
+      - mock-oidc
     ports:
       - "8000:8000"
     volumes:
