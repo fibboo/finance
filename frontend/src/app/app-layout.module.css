@@ -44,10 +44,10 @@
 
 @media (--desktop) {
   .appLayout {
-    padding: var(--space-4);
+    padding: var(--space-6);
     grid-template-columns: var(--size-sidebar) minmax(0, 1fr);
     grid-template-rows: var(--size-header) 1fr;
-    column-gap: var(--space-4);
+    column-gap: var(--space-6);
     row-gap: 0;
   }
 
@@ -57,10 +57,10 @@
 
   .navigation {
     position: sticky;
-    inset: var(--space-4) auto auto;
+    inset: var(--space-6) auto auto;
     grid-area: 1 / 1 / 3 / 2;
     align-self: start;
-    height: calc(100dvh - var(--space-4) * 2);
+    height: calc(100dvh - var(--space-6) * 2);
     z-index: 0;
   }
 
