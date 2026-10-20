@@ -24,7 +24,7 @@ test('shows the initials, the name and the sign-in provider', async () => {
   );
 
   // act
-  render(<UserSummary />);
+  render(<UserSummary providerTypes={[{ key: 'TELEGRAM', label: 'Telegram' }]} />);
 
   // assert
   expect(await screen.findByText('nikita')).toBeInTheDocument();

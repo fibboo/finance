@@ -6,16 +6,19 @@ import { userQueries } from '../api/user-queries';
 import { UserInitials } from './user-initials';
 import styles from './user-summary.module.css';
 
-const PROVIDER_NAMES = {
-  TELEGRAM: 'Telegram',
-  GOOGLE: 'Google',
-} as const satisfies Record<components['schemas']['ProviderType'], string>;
+type UserSummaryProps = Readonly<{
+  providerTypes: readonly components['schemas']['DictionaryItem'][];
+}>;
 
-export function UserSummary() {
+export function UserSummary({ providerTypes }: UserSummaryProps) {
   const { data: user } = useQuery(userQueries.me());
   if (user === undefined) {
     return null;
   }
+
+  const providerLabel = providerTypes.find(
+    (providerType) => providerType.key === user.registration_provider,
+  )?.label;
 
   return (
     <div className={styles['userSummary']}>
@@ -24,9 +27,7 @@ export function UserSummary() {
       </span>
       <div className={styles['identity']}>
         <span className={styles['name']}>{user.username}</span>
-        <span className={styles['provider']}>
-          Signed in with {PROVIDER_NAMES[user.registration_provider]}
-        </span>
+        <span className={styles['provider']}>Signed in with {providerLabel}</span>
       </div>
     </div>
   );
