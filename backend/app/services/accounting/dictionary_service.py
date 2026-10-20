@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.accounting.currency import currency_crud
 from app.models.accounting.currency import Currency as CurrencyModel
 from app.schemas.accounting.category import CATEGORY_TYPE_LABELS, CategoryType
-from app.schemas.accounting.dictionary import AccountingDictionaries, DictionaryItem
+from app.schemas.accounting.dictionary import AccountingDictionaries
+from app.schemas.dictionary import DictionaryItem
 
 
 async def get_accounting_dictionaries(*, db: AsyncSession) -> AccountingDictionaries:

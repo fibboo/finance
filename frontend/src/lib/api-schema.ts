@@ -281,6 +281,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dictionaries/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User Dictionaries
+         * @description The value sets of the user domain, each item a key and a label, served without sign-in.
+         */
+        get: operations["get_user_dictionaries_dictionaries_user_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/user/auth/authorize/{provider}": {
         parameters: {
             query?: never;
@@ -1047,6 +1067,11 @@ export interface components {
             id: string;
             /** External Users */
             external_users: components["schemas"]["ExternalUser"][];
+        };
+        /** UserDictionaries */
+        UserDictionaries: {
+            /** Provider Types */
+            provider_types: components["schemas"]["DictionaryItem"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -2097,6 +2122,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountingDictionaries"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_user_dictionaries_dictionaries_user_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDictionaries"];
                 };
             };
             /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
