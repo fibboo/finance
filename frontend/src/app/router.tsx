@@ -12,10 +12,7 @@ const routes: RouteObject[] = [
       {
         path: 'sign-in',
         ErrorBoundary: RootErrorBoundary,
-        lazy: {
-          Component: async () =>
-            (await import('@/features/auth/components/sign-in-page')).SignInPage,
-        },
+        lazy: () => import('@/app/routes/sign-in'),
       },
       {
         path: 'auth/callback',

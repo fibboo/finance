@@ -7,22 +7,6 @@
   flex-direction: column;
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-logo);
-}
-
-.logoMark {
-  width: var(--size-mark);
-  height: var(--size-mark);
-  border-radius: var(--radius-mark);
-  background: var(--color-accent);
-}
-
 .hero {
   flex-grow: 1;
   display: flex;

@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
 import { env } from '@/config/env';
-import type { components } from '@/lib/api-schema';
-
-type ProviderType = components['schemas']['ProviderType'];
 
 const STATE_KEY = 'finance-sign-in-state';
 const CODE_VERIFIER_KEY = 'finance-sign-in-code-verifier';
@@ -40,7 +37,7 @@ export function readRedirectUri(): string {
   return redirectUri;
 }
 
-export async function buildAuthorizeUrl(provider: ProviderType): Promise<string> {
+export async function buildAuthorizeUrl(provider: string): Promise<string> {
   const state = createRandomValue();
   const codeVerifier = createRandomValue();
   const query = new URLSearchParams({

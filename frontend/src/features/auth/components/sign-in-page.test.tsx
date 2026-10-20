@@ -3,10 +3,16 @@ import { userEvent } from '@testing-library/user-event';
 import { Navigate, Route, Routes } from 'react-router';
 import { expect, test, vi } from 'vitest';
 
+import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
 
 import { startSession } from '../api/session';
 import { SignInPage } from './sign-in-page';
+
+const providerTypes: components['schemas']['DictionaryItem'][] = [
+  { key: 'TELEGRAM', label: 'Telegram' },
+  { key: 'GOOGLE', label: 'Google' },
+];
 
 test.each([
   { buttonName: 'Continue with Telegram', provider: 'TELEGRAM' },
@@ -16,7 +22,7 @@ test.each([
   const assign = vi.fn<(url: string) => void>();
   vi.stubGlobal('location', { origin: 'http://localhost:5173', assign });
   const user = userEvent.setup();
-  render(<SignInPage />);
+  render(<SignInPage providerTypes={providerTypes} />);
 
   // act
   await user.click(screen.getByRole('button', { name: buttonName }));
@@ -38,7 +44,7 @@ test('shows a message when the sign-in failed', async () => {
   render(
     <Routes>
       <Route index element={<Navigate to="/sign-in?error=access_denied" />} />
-      <Route path="/sign-in" element={<SignInPage />} />
+      <Route path="/sign-in" element={<SignInPage providerTypes={providerTypes} />} />
     </Routes>,
   );
 
@@ -54,7 +60,7 @@ test('sends a signed-in visitor into the app', async () => {
   render(
     <Routes>
       <Route index element={<h1>Home</h1>} />
-      <Route path="/sign-in" element={<SignInPage />} />
+      <Route path="/sign-in" element={<SignInPage providerTypes={providerTypes} />} />
       <Route path="*" element={<Navigate to="/sign-in" />} />
     </Routes>,
   );
