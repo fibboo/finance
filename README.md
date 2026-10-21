@@ -113,8 +113,10 @@ volumes, and it deletes only the finance images of earlier SHAs.
 On the server the deploy runs, in order: `docker compose pull`; `up -d --wait --no-recreate postgres`, which only starts
 a stopped database and leaves changes to it for the last step; a `pg_dump -Fc` of the database into
 `~/backups/pre-deploy-<utc time>-<sha>.dump`, keeping the five newest; `alembic upgrade head` in a one-off container of
-the new backend image; `up -d --remove-orphans`; the image cleanup. A failed dump or migration stops the deploy while the
-previous backend keeps serving. Postgres rolls back a failed revision made of transactional DDL; one with an autocommit
+the new backend image; `up -d --remove-orphans --wait --wait-timeout 300`, which returns once postgres, backend and
+frontend are healthy and cloudflared is running; the image cleanup. A failed dump or migration stops the deploy while the
+previous backend keeps serving. A service that is not up within five minutes fails the deploy before the cleanup, so the
+images of the previous SHA stay on the server for a re-run of its deploy. Postgres rolls back a failed revision made of transactional DDL; one with an autocommit
 block, such as `CREATE INDEX CONCURRENTLY`, can stay half applied, and the pre-deploy dump is the way back. The backend
 never migrates on start, so a manual `docker compose up -d` on the server applies no migration; with postgres running,
 run `docker compose run --rm --no-deps backend alembic upgrade head` first.
