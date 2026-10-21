@@ -105,10 +105,17 @@ VPS up to that commit. The server never builds: it has 1 GB of RAM.
 On the server, `~/finance` holds `docker-compose.production.yml`, `backend/.env-production` rendered from the repository
 secrets, and a `.env` with `COMPOSE_FILE`, `IMAGE_TAG`, `POSTGRES_PASSWORD` and `CLOUDFLARE_TUNNEL_TOKEN`, so a manual
 `docker compose up -d` there uses the values of the last deploy. The compose file runs `postgres` with a named volume,
-`backend`, which applies `alembic upgrade head` before uvicorn starts, `frontend` (nginx, proxying `/api` to `backend`),
-which starts once the backend answers, and `cloudflared`. No service publishes a host port: the app is reachable only through the Cloudflare Tunnel, whose public
+`backend` (uvicorn), `frontend` (nginx, proxying `/api` to `backend`), which starts once the backend answers, and
+`cloudflared`. No service publishes a host port: the app is reachable only through the Cloudflare Tunnel, whose public
 hostname `finance.fibboo.dev` routes to `http://frontend:80`, and port 443 stays with the VPN. The deploy never removes
 volumes, and it deletes only the finance images of earlier SHAs.
+
+On the server the deploy runs, in order: `docker compose pull`; `up -d --wait postgres`; a `pg_dump -Fc` of the
+`finance` database into `~/backups/pre-deploy-<sha>.dump`, keeping the five newest; `alembic upgrade head` in a one-off
+container of the new backend image; `up -d --remove-orphans`; the image cleanup. A failed dump or migration stops the
+deploy while the previous backend keeps serving, and Postgres rolls a failed migration back. The backend never migrates on
+start, so a manual `docker compose up -d` on the server applies no migration; run
+`docker compose run --rm backend alembic upgrade head` first.
 
 To roll back, re-run an earlier deploy run; it redeploys that run's SHA. An older image does not know the revisions
 added after it, so when the commits being rolled back added a migration, first run
