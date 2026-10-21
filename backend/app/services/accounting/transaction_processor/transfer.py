@@ -28,6 +28,15 @@ class Transfer(TransactionProcessor[TransferRequest]):
         accounts_db: list[AccountModel] = [transaction_db.from_account, transaction_db.to_account]
         return accounts_db
 
+    @staticmethod
+    def _get_first_credit_rate(*, transaction_db: TransferTransactionModel) -> Decimal:
+        if transaction_db.source_currency == transaction_db.destination_currency:
+            first_credit_rate: Decimal = transaction_db.from_account.base_currency_rate
+        else:
+            first_credit_rate: Decimal = TransactionProcessor._get_first_credit_rate(transaction_db=transaction_db)
+
+        return first_credit_rate
+
     async def __validate_transaction(
         self, *, data: TransferRequest, to_account_db: AccountModel, from_account_db: AccountModel
     ) -> None:
@@ -48,9 +57,9 @@ class Transfer(TransactionProcessor[TransferRequest]):
                 logger=logger,
             )
 
-        if data.source_currency != self.base_currency and data.destination_currency != self.base_currency:
-            if to_account_db.base_currency_rate == 0:
-                raise NoAccountBaseCurrencyRate(account_id=to_account_db.id, logger=logger)
+        is_base_currency_involved: bool = self.base_currency in (data.source_currency, data.destination_currency)
+        if not is_same_currency and not is_base_currency_involved and to_account_db.base_currency_rate == 0:
+            raise NoAccountBaseCurrencyRate(account_id=to_account_db.id, logger=logger)
 
     async def _prepare_transaction(self, *, data: TransferRequest) -> TransactionCreate:
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(

@@ -10,7 +10,7 @@ from starlette import status
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.user.user import user_crud
-from app.exceptions.conflict_409 import IntegrityException
+from app.exceptions.conflict_409 import BaseCurrencyNotSet, IntegrityException
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.user.user import User as UserModel
@@ -470,3 +470,22 @@ async def test_restore_account_name_taken(db: AsyncSession, db_transaction: Asyn
 
     account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == deleted_account.id))
     assert account_db.status == EntityStatusType.DELETED
+
+
+async def test_create_account_base_currency_not_set(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    create_data: AccountCreateRequest = AccountCreateRequest(name="test name", currency="USD")
+
+    # Act / Assert
+    with pytest.raises(BaseCurrencyNotSet) as exc:
+        await account_service.create_account(db=db_transaction, user_id=user_db.id, create_data=create_data)
+
+    await db_transaction.rollback()
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_NOT_SET
+
+    accounts_db: list[AccountModel] = (await db.scalars(select(AccountModel))).all()
+    assert len(accounts_db) == 0

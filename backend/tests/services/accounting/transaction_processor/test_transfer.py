@@ -1059,3 +1059,69 @@ async def test_create_transfer_same_currency_amount_mismatch(
     assert account_from.balance == Decimal("110")
     account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_to.balance == Decimal("11")
+
+
+# 1 EUR at the source rate 1.1 is 0.91 USD, and 1 / 0.91 would give the receiving account 1.0989010989;
+# an account without a rate and one whose balance crosses zero both take the source rate instead
+@pytest.mark.parametrize(
+    "to_balance, to_base_currency_rate, expected_to_balance",
+    [(Decimal("0"), Decimal("0"), Decimal("1")), (Decimal("-0.5"), Decimal("1.2"), Decimal("0.5"))],
+)
+async def test_create_transfer_same_currency_takes_source_rate(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    to_balance: Decimal,
+    to_base_currency_rate: Decimal,
+    expected_to_balance: Decimal,
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("110"),
+        "base_currency_rate": Decimal("1.1"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Savings EUR",
+        "currency": "EUR",
+        "balance": to_balance,
+        "base_currency_rate": to_base_currency_rate,
+    }
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency="EUR",
+        destination_currency="EUR",
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.destination_amount == Decimal("1")
+    assert transaction.base_currency_amount == Decimal("0.91")
+
+    account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_from.balance == Decimal("109")
+    assert account_from.base_currency_rate == Decimal("1.1")
+    account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to.balance == expected_to_balance
+    assert account_to.base_currency_rate == Decimal("1.1")

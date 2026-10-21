@@ -73,6 +73,16 @@ class BaseCurrencyAmountRequired(UnprocessableException):
         )
 
 
+class IncomeBaseCurrencyAmountNotAllowed(UnprocessableException):
+    def __init__(self, *, currency: CurrencyCode, logger: logging.Logger):
+        super().__init__(
+            message="Base currency amount not allowed",
+            log_message=f"An income in `{currency}` does not need a base_currency_amount: it is the base currency",
+            logger=logger,
+            error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED,
+        )
+
+
 class TransferAmountMismatch(UnprocessableException):
     def __init__(self, *, source_amount: Decimal, destination_amount: Decimal, logger: logging.Logger):
         super().__init__(

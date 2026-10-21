@@ -23,7 +23,8 @@ from app.schemas.accounting.location import Location
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.utils import utils
 
-PositiveAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), max_digits=15, decimal_places=2)]
+PositiveAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), decimal_places=2)]
+RequestAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), max_digits=15, decimal_places=2)]
 
 
 class TransactionType(str, Enum):
@@ -43,7 +44,12 @@ class TransactionBase(BaseModel):
     transaction_type: TransactionType
 
 
-class ExpenseRequest(TransactionBase):
+class TransactionCreateRequestBase(TransactionBase):
+    source_amount: RequestAmount
+    destination_amount: RequestAmount
+
+
+class ExpenseRequest(TransactionCreateRequestBase):
     transaction_type: TransactionType = TransactionType.EXPENSE
     from_account_id: UUID
     category_id: UUID
@@ -57,12 +63,12 @@ class ExpenseRequest(TransactionBase):
         return transaction_type
 
 
-class IncomeRequest(TransactionBase):
+class IncomeRequest(TransactionCreateRequestBase):
     transaction_type: TransactionType = TransactionType.INCOME
     income_period: date
     income_source_id: UUID
     to_account_id: UUID
-    base_currency_amount: PositiveAmount | None = None
+    base_currency_amount: RequestAmount | None = None
 
     @field_validator("transaction_type", mode="after")
     def validate_transaction_type(cls, transaction_type: TransactionType):
@@ -79,9 +85,9 @@ class IncomeRequest(TransactionBase):
         return income_period
 
 
-class TransferRequest(TransactionBase):
+class TransferRequest(TransactionCreateRequestBase):
     transaction_type: TransactionType = TransactionType.TRANSFER
-    destination_amount: PositiveAmount | None = None
+    destination_amount: RequestAmount | None = None
     from_account_id: UUID
     to_account_id: UUID
 
@@ -106,7 +112,7 @@ class AdjustmentRequest(BaseModel):
     comment: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
     account_id: UUID
     new_balance: Annotated[Decimal, Field(max_digits=15, decimal_places=2)]
-    base_currency_amount: PositiveAmount | None = None
+    base_currency_amount: RequestAmount | None = None
 
     @field_validator("transaction_type", mode="after")
     def validate_transaction_type(cls, transaction_type: TransactionType):
