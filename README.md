@@ -105,15 +105,29 @@ VPS up to that commit. The server never builds: it has 1 GB of RAM.
 On the server, `~/finance` holds `docker-compose.production.yml`, `backend/.env-production` rendered from the repository
 secrets, and a `.env` with `COMPOSE_FILE`, `IMAGE_TAG`, `POSTGRES_PASSWORD` and `CLOUDFLARE_TUNNEL_TOKEN`, so a manual
 `docker compose up -d` there uses the values of the last deploy. The compose file runs `postgres` with a named volume,
-`backend`, which applies `alembic upgrade head` before uvicorn starts, `frontend` (nginx, proxying `/api` to `backend`),
-which starts once the backend answers, and `cloudflared`. No service publishes a host port: the app is reachable only through the Cloudflare Tunnel, whose public
+`backend` (uvicorn), `frontend` (nginx, proxying `/api` to `backend`), which starts once the backend answers, and
+`cloudflared`. No service publishes a host port: the app is reachable only through the Cloudflare Tunnel, whose public
 hostname `finance.fibboo.dev` routes to `http://frontend:80`, and port 443 stays with the VPN. The deploy never removes
 volumes, and it deletes only the finance images of earlier SHAs.
 
+On the server the deploy runs, in order: `docker compose pull`; `up -d --wait --no-recreate postgres`, which only starts
+a stopped database and leaves changes to it for the last step; a `pg_dump -Fc` of the database into
+`~/backups/pre-deploy-<utc time>-<sha>.dump`, keeping the five newest; `alembic upgrade head` in a one-off container of
+the new backend image; `up -d --remove-orphans`; the image cleanup. A failed dump or migration stops the deploy while the
+previous backend keeps serving. Postgres rolls back a failed revision made of transactional DDL; one with an autocommit
+block, such as `CREATE INDEX CONCURRENTLY`, can stay half applied, and the pre-deploy dump is the way back. The backend
+never migrates on start, so a manual `docker compose up -d` on the server applies no migration; run
+`docker compose run --rm backend alembic upgrade head` first.
+
+The previous backend keeps serving on the new schema for the seconds between the migration and `up -d`. So a revision
+that drops or renames a column, or adds a `NOT NULL` column without a default, ships in two deploys: first the code that
+no longer needs the old shape, then the revision.
+
 To roll back, re-run an earlier deploy run; it redeploys that run's SHA. An older image does not know the revisions
-added after it, so when the commits being rolled back added a migration, first run
-`docker compose exec backend alembic downgrade <revision>` on the server while the newer image is still running, with
-the head revision of the SHA you return to.
+added after it, so when the commits being rolled back added a migration, first take a dump with
+`docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > ~/backups/pre-downgrade.dump`,
+then run `docker compose exec backend alembic downgrade <revision>` on the server while the newer image is still running,
+with the head revision of the SHA you return to.
 
 Repository secrets the workflow reads; the deploy fails before building when one is empty or contains a single quote:
 

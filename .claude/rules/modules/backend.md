@@ -92,4 +92,4 @@ An account's balance in the base currency is computed in one place, `utils.get_b
 
 ## Migrations
 
-The application is deployed, and the production database is stamped with the revisions in `db_migration/versions/`. So every schema change adds a new revision on top with `alembic revision --autogenerate`; an existing revision is never edited, deleted or regenerated, since the production database could no longer find it and `alembic upgrade head`, which the backend runs on start, would fail.
+The application is deployed, and the production database is stamped with the revisions in `db_migration/versions/`. So every schema change adds a new revision on top with `alembic revision --autogenerate`; an existing revision is never edited, deleted or regenerated, since the production database could no longer find it and `alembic upgrade head`, which every deploy runs before the new backend starts, would fail. The previous backend keeps serving on the new schema until the new one replaces it, so a revision that drops or renames a column, or adds a `NOT NULL` column without a default, ships in two deploys: first the code that no longer uses the old shape, then the revision.
