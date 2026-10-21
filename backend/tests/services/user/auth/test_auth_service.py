@@ -1,4 +1,5 @@
 import hashlib
+import re
 import time
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urlsplit
@@ -25,6 +26,7 @@ from app.exceptions.conflict_409 import (
     ProviderAlreadyLinked,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
+from app.exceptions.temporary_redirect_307 import ClientRedirect
 from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException
 from app.exceptions.unprocessable_422 import RedirectUriNotAllowed
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
@@ -376,7 +378,7 @@ async def test_callback_without_username(
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
         db=db, external_id="1234123412341234123", provider=ProviderType.TELEGRAM
     )
-    assert user_db.username == "telegram_1234123412341234123"
+    assert re.fullmatch(r"user_[a-z0-9]{8}", user_db.username) is not None
 
 
 @pytest.mark.parametrize(
@@ -457,7 +459,7 @@ async def test_callback_google_creates_user(
         db=db, external_id="110169484474386276334", provider=ProviderType.GOOGLE
     )
     assert user_db is not None
-    assert user_db.username == "google_110169484474386276334"
+    assert re.fullmatch(r"user_[a-z0-9]{8}", user_db.username) is not None
     assert user_db.avatar == "https://lh3.googleusercontent.com/a/johndoe"
     assert user_db.registration_provider == ProviderType.GOOGLE
     assert user_db.external_users[0].first_name == "John"
@@ -755,24 +757,7 @@ async def test_callback_token_endpoint_error(
     assert len(users_db) == 0
 
 
-@pytest.mark.parametrize(
-    "state, expires_in, code_hash, used",
-    [
-        ("unknown_state", timedelta(minutes=10), None, False),
-        ("state", -timedelta(seconds=1), None, False),
-        ("state", timedelta(minutes=10), hashlib.sha256(b"issued_code").hexdigest(), False),
-        ("state", timedelta(minutes=10), None, True),
-    ],
-    ids=["unknown_state", "expired", "already_completed", "link_already_completed"],
-)
-async def test_callback_invalid_state(
-    db: AsyncSession,
-    db_transaction: AsyncSession,
-    state: str,
-    expires_in: timedelta,
-    code_hash: str | None,
-    used: bool,
-):
+async def test_callback_unknown_state(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     await authorization_request_crud.create(
         db=db,
@@ -784,9 +769,7 @@ async def test_callback_invalid_state(
             "client_redirect_uri": "https://finance.test/auth/callback",
             "client_state": "client_state",
             "client_code_challenge": "client_code_challenge",
-            "expires_at": datetime.now() + expires_in,
-            "code_hash": code_hash,
-            "used": used,
+            "expires_at": datetime.now() + timedelta(minutes=10),
         },
         commit=True,
     )
@@ -796,7 +779,7 @@ async def test_callback_invalid_state(
         await auth_service.callback(
             db=db_transaction,
             provider=ProviderType.TELEGRAM,
-            callback_request=CallbackRequest(state=state, code="provider_code", error=None),
+            callback_request=CallbackRequest(state="unknown_state", code="provider_code", error=None),
         )
     await db_transaction.commit()
 
@@ -804,6 +787,62 @@ async def test_callback_invalid_state(
 
     users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
     assert len(users_db) == 0
+
+
+@pytest.mark.parametrize(
+    "expires_in, code_hash, used",
+    [
+        (-timedelta(seconds=1), None, False),
+        (timedelta(minutes=10), hashlib.sha256(b"issued_code").hexdigest(), False),
+        (timedelta(minutes=10), None, True),
+    ],
+    ids=["expired", "already_completed", "link_already_completed"],
+)
+async def test_callback_expired_request(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    expires_in: timedelta,
+    code_hash: str | None,
+    used: bool,
+):
+    # Arrange
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.TELEGRAM,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback?source=app",
+            "client_state": "client_state",
+            "client_code_challenge": "client_code_challenge",
+            "expires_at": datetime.now() + expires_in,
+            "code_hash": code_hash,
+            "used": used,
+        },
+        commit=True,
+    )
+
+    # Act / Assert
+    with pytest.raises(ClientRedirect) as exc:
+        await auth_service.callback(
+            db=db_transaction,
+            provider=ProviderType.TELEGRAM,
+            callback_request=CallbackRequest(state="state", code="provider_code", error=None),
+        )
+    await db_transaction.commit()
+
+    url = urlsplit(exc.value.url)
+    assert exc.value.status_code == status.HTTP_307_TEMPORARY_REDIRECT
+    assert f"{url.scheme}://{url.netloc}{url.path}" == "https://finance.test/auth/callback"
+    assert parse_qs(url.query) == {"source": ["app"], "error": ["expired_request"], "state": ["client_state"]}
+
+    users_db: list[UserModel] = (await db.scalars(select(UserModel))).unique().all()
+    assert len(users_db) == 0
+
+    await db.refresh(request_db)
+    assert request_db.code_hash == code_hash
+    assert request_db.used is used
 
 
 async def test_grant_token_authorization_code_without_cookie(db: AsyncSession, db_transaction: AsyncSession):
@@ -1116,7 +1155,7 @@ async def test_callback_invalid_optional_claims(
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
         db=db, external_id="1234123412341234123", provider=ProviderType.TELEGRAM
     )
-    assert user_db.username == "telegram_1234123412341234123"
+    assert re.fullmatch(r"user_[a-z0-9]{8}", user_db.username) is not None
     assert user_db.avatar is None
     assert user_db.external_users[0].username == "j" * 65
     assert user_db.external_users[0].first_name is None
@@ -1377,15 +1416,20 @@ async def test_callback_broken_provider_response(
 
 
 async def test_callback_no_free_username(
-    db: AsyncSession, db_transaction: AsyncSession, httpx_mock: HTTPXMock, telegram_signing_key: ECKey
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    httpx_mock: HTTPXMock,
+    telegram_signing_key: ECKey,
+    monkeypatch: pytest.MonkeyPatch,
 ):
     # Arrange
-    # both the provider username and the fallback username belong to other users
+    # the provider username and every fallback username, all user_aaaaaaaa, belong to other users
+    monkeypatch.setattr("secrets.choice", lambda alphabet: "a")
     await user_crud.create_batch(
         db=db,
         objs_in=[
             UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM),
-            UserCreate(username="telegram_1234123412341234123", registration_provider=ProviderType.TELEGRAM),
+            UserCreate(username="user_aaaaaaaa", registration_provider=ProviderType.TELEGRAM),
         ],
         commit=True,
     )
@@ -1886,7 +1930,7 @@ async def test_complete_link_ok(db: AsyncSession, db_transaction: AsyncSession):
         db=db, user_id=user_db.id, provider=ProviderType.GOOGLE
     )
     assert external_user_db.external_id == "110169484474386276334"
-    assert external_user_db.username == "google_110169484474386276334"
+    assert re.fullmatch(r"user_[a-z0-9]{8}", external_user_db.username) is not None
     assert external_user_db.first_name == "John"
     assert external_user_db.email == "john.doe@gmail.com"
 

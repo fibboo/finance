@@ -147,11 +147,13 @@ async def callback(*, db: AsyncSession, provider: ProviderType, callback_request
     if request_db is None or request_db.provider != provider:
         raise InvalidAuthData(log_message=f"Unknown {provider.value} authorization state", logger=logger)
 
-    if request_db.code_hash is not None or request_db.used:
-        raise InvalidAuthData(log_message=f"Authorization request `{request_db.id}` already completed", logger=logger)
-
-    if request_db.expires_at <= datetime.now():
-        raise InvalidAuthData(log_message=f"Authorization request `{request_db.id}` expired", logger=logger)
+    is_request_completed: bool = request_db.code_hash is not None or request_db.used
+    if is_request_completed or request_db.expires_at <= datetime.now():
+        expired_url: str = _build_client_url(request_db=request_db, params={"error": "expired_request"})
+        exception = InvalidAuthData(
+            log_message=f"Authorization request `{request_db.id}` already completed or expired", logger=logger
+        )
+        raise ClientRedirect(url=expired_url, exception=exception)
 
     if callback_request.error is not None or callback_request.code is None:
         error_code: str = _build_client_error_code(error=callback_request.error)
