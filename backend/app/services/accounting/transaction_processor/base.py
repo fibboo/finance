@@ -21,6 +21,7 @@ from app.schemas.accounting.transaction import Transaction, TransactionCreate, T
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
 from app.services.user import user_service
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -148,8 +149,11 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         base_currency_delta: Decimal,
         base_currency: CurrencyCode | None,
     ) -> Decimal:
-        if account_db.currency == base_currency:
-            new_base_rate: Decimal = Decimal("1")
+        fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+            currency=account_db.currency, base_currency=base_currency
+        )
+        if fixed_rate is not None:
+            new_base_rate: Decimal = fixed_rate
         elif new_balance == 0:
             new_base_rate: Decimal = Decimal("0")
         elif account_db.base_currency_rate == 0 or account_db.balance <= 0 < new_balance:
@@ -174,8 +178,11 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         new_balance: Decimal,
         base_currency: CurrencyCode | None,
     ) -> Decimal:
-        if account_db.currency == base_currency:
-            new_base_rate: Decimal = Decimal("1")
+        fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+            currency=account_db.currency, base_currency=base_currency
+        )
+        if fixed_rate is not None:
+            new_base_rate: Decimal = fixed_rate
         elif account_db.base_currency_rate != 0 or new_balance == 0:
             new_base_rate: Decimal = account_db.base_currency_rate
         else:

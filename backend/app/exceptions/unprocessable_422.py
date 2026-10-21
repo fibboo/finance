@@ -51,12 +51,12 @@ class AccountBalanceUnchanged(UnprocessableException):
 
 
 class BaseCurrencyAmountNotAllowed(UnprocessableException):
-    def __init__(self, *, account_id: UUID, logger: logging.Logger):
+    def __init__(self, *, account_id: UUID, base_currency_amount: Decimal, logger: logging.Logger):
         super().__init__(
             message="Base currency amount not allowed",
             log_message=(
-                f"Account `{account_id}` does not need a base_currency_amount: "
-                f"it is in the base currency or already has a rate"
+                f"A base_currency_amount of {base_currency_amount} was sent for account `{account_id}`, "
+                f"whose base currency amount is derived"
             ),
             logger=logger,
             error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED,
@@ -73,23 +73,13 @@ class BaseCurrencyAmountRequired(UnprocessableException):
         )
 
 
-class IncomeBaseCurrencyAmountNotAllowed(UnprocessableException):
-    def __init__(self, *, currency: CurrencyCode, logger: logging.Logger):
-        super().__init__(
-            message="Base currency amount not allowed",
-            log_message=f"An income in `{currency}` does not need a base_currency_amount: it is the base currency",
-            logger=logger,
-            error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED,
-        )
-
-
 class TransferAmountMismatch(UnprocessableException):
-    def __init__(self, *, source_amount: Decimal, destination_amount: Decimal, logger: logging.Logger):
+    def __init__(self, *, destination_amount: Decimal, derived_destination_amount: Decimal, logger: logging.Logger):
         super().__init__(
             message="Transfer amount mismatch",
             log_message=(
-                f"A transfer within one currency should move the same amount out and in, "
-                f"not {source_amount} and {destination_amount}"
+                f"A transfer sent destination_amount {destination_amount}, "
+                f"while its currencies give {derived_destination_amount}"
             ),
             logger=logger,
             error_code=ErrorCodeType.TRANSFER_AMOUNT_MISMATCH,

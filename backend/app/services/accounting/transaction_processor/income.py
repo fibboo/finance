@@ -4,7 +4,7 @@ from uuid import UUID
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDIncomeTransaction, income_transaction_crud
-from app.exceptions.unprocessable_422 import BaseCurrencyAmountRequired, IncomeBaseCurrencyAmountNotAllowed
+from app.exceptions.unprocessable_422 import BaseCurrencyAmountNotAllowed, BaseCurrencyAmountRequired
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import IncomeTransaction as IncomeTransactionModel
 from app.schemas.accounting.transaction import IncomeRequest, TransactionCreate, TransactionType
@@ -34,15 +34,19 @@ class Income(TransactionProcessor[IncomeRequest]):
         pass
 
     def __get_base_currency_amount(self, *, data: IncomeRequest) -> Decimal:
-        if data.source_currency == self.base_currency:
-            if data.base_currency_amount is not None:
-                raise IncomeBaseCurrencyAmountNotAllowed(currency=data.source_currency, logger=logger)
-
+        if data.destination_currency == self.base_currency:
+            base_currency_amount: Decimal = data.destination_amount
+        elif data.source_currency == self.base_currency:
             base_currency_amount: Decimal = data.source_amount
         elif data.base_currency_amount is not None:
             base_currency_amount: Decimal = data.base_currency_amount
         else:
             raise BaseCurrencyAmountRequired(currency=data.source_currency, logger=logger)
+
+        if data.base_currency_amount is not None and data.base_currency_amount != base_currency_amount:
+            raise BaseCurrencyAmountNotAllowed(
+                account_id=data.to_account_id, base_currency_amount=data.base_currency_amount, logger=logger
+            )
 
         return base_currency_amount
 

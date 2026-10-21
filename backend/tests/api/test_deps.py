@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.api.deps import (
+    get_base_currency,
     get_onboarded_user_id,
     get_refresh_token,
     get_user_id,
@@ -109,3 +110,29 @@ async def test_get_refresh_token_origin_not_allowed():
 
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.error_code == ErrorCodeType.ORIGIN_NOT_ALLOWED
+
+
+async def test_get_base_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD")
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+
+    # Act
+    base_currency: str = await get_base_currency(user_id=user_db.id, db=db_transaction)
+    await db_transaction.commit()
+
+    # Assert
+    assert base_currency == "USD"
+
+
+async def test_get_base_currency_not_set(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create = UserCreate(username="test", registration_provider=ProviderType.TELEGRAM)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+
+    # Act / Assert
+    with pytest.raises(BaseCurrencyNotSet) as exc:
+        await get_base_currency(user_id=user_db.id, db=db_transaction)
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_NOT_SET

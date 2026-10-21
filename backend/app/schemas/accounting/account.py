@@ -22,7 +22,7 @@ class AccountCreateRequest(AccountBase):
 
 class AccountCreate(AccountCreateRequest):
     user_id: UUID
-    base_currency_rate: Decimal = Decimal("0")
+    base_currency_rate: Decimal
 
 
 class AccountUpdate(AccountBase):

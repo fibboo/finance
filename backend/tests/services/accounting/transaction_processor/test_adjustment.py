@@ -371,8 +371,7 @@ async def test_create_adjustment_base_currency_amount_not_allowed(
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert exc.value.message == "Base currency amount not allowed"
     assert exc.value.log_message == (
-        f"Account `{account_db.id}` does not need a base_currency_amount: "
-        f"it is in the base currency or already has a rate"
+        f"A base_currency_amount of 1 was sent for account `{account_db.id}`, whose base currency amount is derived"
     )
     assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED
 

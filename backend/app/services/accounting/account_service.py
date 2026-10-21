@@ -7,12 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
-from app.crud.user.user import user_crud
-from app.exceptions.conflict_409 import BaseCurrencyNotSet, IntegrityException
+from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import AccountDeletionForbidden
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
-from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import (
     Account,
     AccountCreate,
@@ -22,21 +20,20 @@ from app.schemas.accounting.account import (
 )
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
 
-async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID) -> Account:
+async def create_account(
+    *, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID, base_currency: CurrencyCode
+) -> Account:
     await currency_service.get_currency(db=db, code=create_data.currency)
 
-    user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_id)
-    if user_db is None:
-        raise EntityNotFound(entity=UserModel, search_params={"id": user_id}, logger=logger)
-
-    if user_db.base_currency is None:
-        raise BaseCurrencyNotSet(user_id=user_id, logger=logger)
-
-    base_currency_rate: Decimal = Decimal("1") if create_data.currency == user_db.base_currency else Decimal("0")
+    fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+        currency=create_data.currency, base_currency=base_currency
+    )
+    base_currency_rate: Decimal = fixed_rate if fixed_rate is not None else Decimal("0")
     create_data: AccountCreate = AccountCreate(
         **create_data.model_dump(), user_id=user_id, base_currency_rate=base_currency_rate
     )
@@ -51,7 +48,12 @@ async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest,
 
 
 async def create_default_account(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyCode) -> None:
-    create_data = AccountCreate(name="Wallet", currency=base_currency, user_id=user_id, base_currency_rate=Decimal("1"))
+    base_currency_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+        currency=base_currency, base_currency=base_currency
+    )
+    create_data = AccountCreate(
+        name="Wallet", currency=base_currency, user_id=user_id, base_currency_rate=base_currency_rate
+    )
     await account_crud.create(db=db, obj_in=create_data)
 
 

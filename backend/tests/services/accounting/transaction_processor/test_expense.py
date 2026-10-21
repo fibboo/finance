@@ -223,7 +223,9 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
-    account_create_data: AccountCreate = AccountCreate(user_id=user_id, name="Income USD", currency="USD")
+    account_create_data: AccountCreate = AccountCreate(
+        user_id=user_id, name="Income EUR", currency="EUR", base_currency_rate=Decimal("0")
+    )
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
     base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
@@ -237,7 +239,7 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
     expense_create_data: ExpenseRequest = ExpenseRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
-        source_currency="USD",
+        source_currency="EUR",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
@@ -936,7 +938,9 @@ async def test_create_expense_new_base_currency_account_ok(db: AsyncSession, db_
     user_id: UUID = user_db.id
 
     account_create_data: AccountCreateRequest = AccountCreateRequest(name="Cash", currency="USD")
-    account: Account = await account_service.create_account(db=db, create_data=account_create_data, user_id=user_id)
+    account: Account = await account_service.create_account(
+        db=db, create_data=account_create_data, user_id=user_id, base_currency="USD"
+    )
     await db.commit()
 
     category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.VARIABLE)

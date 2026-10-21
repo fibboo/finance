@@ -44,11 +44,6 @@ class Transfer(TransactionProcessor[TransferRequest]):
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
         is_same_currency: bool = data.source_currency == data.destination_currency
-        if is_same_currency and data.destination_amount is not None and data.destination_amount != data.source_amount:
-            raise TransferAmountMismatch(
-                source_amount=data.source_amount, destination_amount=data.destination_amount, logger=logger
-            )
-
         is_destination_amount_derived: bool = is_same_currency or data.destination_currency == self.base_currency
         if not is_destination_amount_derived and data.destination_amount is None:
             raise UnprocessableException(
@@ -61,6 +56,20 @@ class Transfer(TransactionProcessor[TransferRequest]):
         if not is_same_currency and not is_base_currency_involved and to_account_db.base_currency_rate == 0:
             raise NoAccountBaseCurrencyRate(account_id=to_account_db.id, logger=logger)
 
+    def __get_derived_destination_amount(
+        self, *, data: TransferRequest, from_account_db: AccountModel
+    ) -> Decimal | None:
+        if data.source_currency == data.destination_currency:
+            derived_destination_amount: Decimal | None = data.source_amount
+        elif data.destination_currency == self.base_currency:
+            derived_destination_amount: Decimal | None = self._quantize_amount(
+                amount=data.source_amount / from_account_db.base_currency_rate
+            )
+        else:
+            derived_destination_amount: Decimal | None = None
+
+        return derived_destination_amount
+
     async def _prepare_transaction(self, *, data: TransferRequest) -> TransactionCreate:
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=[data.from_account_id, data.to_account_id], user_id=self.user_id
@@ -69,18 +78,23 @@ class Transfer(TransactionProcessor[TransferRequest]):
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
 
-        if data.source_currency == data.destination_currency:
-            data.destination_amount = data.source_amount
+        derived_destination_amount: Decimal | None = self.__get_derived_destination_amount(
+            data=data, from_account_db=from_account_db
+        )
+        if derived_destination_amount is not None:
+            if data.destination_amount is not None and data.destination_amount != derived_destination_amount:
+                raise TransferAmountMismatch(
+                    destination_amount=data.destination_amount,
+                    derived_destination_amount=derived_destination_amount,
+                    logger=logger,
+                )
 
-        is_source_base_currency: bool = data.source_currency == self.base_currency
-        is_destination_base_currency: bool = data.destination_currency == self.base_currency
-        if is_source_base_currency:
+            data.destination_amount = derived_destination_amount
+
+        if data.source_currency == self.base_currency:
             base_currency_amount: Decimal = data.source_amount
 
-        elif is_destination_base_currency:
-            data.destination_amount = self._quantize_amount(
-                amount=data.source_amount / from_account_db.base_currency_rate
-            )
+        elif data.destination_currency == self.base_currency:
             base_currency_amount: Decimal = data.destination_amount
 
         else:
