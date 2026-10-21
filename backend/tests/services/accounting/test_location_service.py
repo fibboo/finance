@@ -251,3 +251,21 @@ async def test_update_location_double(db: AsyncSession, db_transaction: AsyncSes
 
     transactions: list[LocationModel] = (await db.scalars(select(LocationModel))).all()
     assert len(transactions) == 2
+
+
+@pytest.mark.parametrize("search_term, expected_names", [("0% c", ["100% cash"]), ("a_b", ["a_b test"])])
+async def test_get_locations_search_term_wildcards(db: AsyncSession, search_term: str, expected_names: list[str]):
+    # Arrange
+    user_id = uuid4()
+    for name in ["100% cash", "100 cash", "a_b test", "axb test"]:
+        location_create = LocationCreateRequest(name=name)
+        await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
+    await db.commit()
+
+    request = LocationRequest(search_term=search_term)
+
+    # Act
+    locations: Page[Location] = await location_service.get_locations(db=db, request=request, user_id=user_id)
+
+    # Assert
+    assert [location.name for location in locations.items] == expected_names

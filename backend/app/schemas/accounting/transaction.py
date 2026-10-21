@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, UTC
 from decimal import Decimal
 from enum import Enum
 from typing import Annotated, Any, TypeAlias
@@ -23,7 +23,7 @@ from app.schemas.accounting.location import Location
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.utils import utils
 
-PositiveAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), decimal_places=2)]
+PositiveAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), max_digits=15, decimal_places=2)]
 
 
 class TransactionType(str, Enum):
@@ -62,6 +62,7 @@ class IncomeRequest(TransactionBase):
     income_period: date
     income_source_id: UUID
     to_account_id: UUID
+    base_currency_amount: PositiveAmount | None = None
 
     @field_validator("transaction_type", mode="after")
     def validate_transaction_type(cls, transaction_type: TransactionType):
@@ -91,13 +92,20 @@ class TransferRequest(TransactionBase):
 
         return transaction_type
 
+    @model_validator(mode="after")
+    def validate_accounts(self) -> TransferRequest:
+        if self.from_account_id == self.to_account_id:
+            raise ValueError("from_account_id and to_account_id should be different")
+
+        return self
+
 
 class AdjustmentRequest(BaseModel):
     transaction_type: TransactionType = TransactionType.ADJUSTMENT
     transaction_date: date
     comment: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
     account_id: UUID
-    new_balance: Annotated[Decimal, Field(decimal_places=2)]
+    new_balance: Annotated[Decimal, Field(max_digits=15, decimal_places=2)]
     base_currency_amount: PositiveAmount | None = None
 
     @field_validator("transaction_type", mode="after")
@@ -221,12 +229,14 @@ class TransactionRequest(Params):
 
     @model_validator(mode="after")
     def fill_default_dates(self) -> TransactionRequest:
-        today: date = datetime.now().date()
-        if self.date_from is None:
-            self.date_from = today - timedelta(days=90)
-
         if self.date_to is None:
-            self.date_to = today
+            self.date_to = datetime.now(UTC).date()
+
+        if self.date_from is None:
+            self.date_from = self.date_to - timedelta(days=90)
+
+        if self.date_from > self.date_to:
+            raise ValueError("date_from should not be later than date_to")
 
         return self
 

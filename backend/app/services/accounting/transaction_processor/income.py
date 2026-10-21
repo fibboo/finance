@@ -1,12 +1,17 @@
+from decimal import Decimal
 from uuid import UUID
 
+from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDIncomeTransaction, income_transaction_crud
+from app.exceptions.unprocessable_422 import BaseCurrencyAmountRequired
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import IncomeTransaction as IncomeTransactionModel
 from app.schemas.accounting.transaction import IncomeRequest, TransactionCreate, TransactionType
 from app.services.accounting import income_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
+
+logger = get_logger(logger_name=__name__)
 
 
 class Income(TransactionProcessor[IncomeRequest]):
@@ -28,6 +33,16 @@ class Income(TransactionProcessor[IncomeRequest]):
     ) -> None:
         pass
 
+    def __get_base_currency_amount(self, *, data: IncomeRequest) -> Decimal:
+        if data.source_currency == self.base_currency:
+            base_currency_amount: Decimal = data.source_amount
+        elif data.base_currency_amount is not None:
+            base_currency_amount: Decimal = data.base_currency_amount
+        else:
+            raise BaseCurrencyAmountRequired(currency=data.source_currency, logger=logger)
+
+        return base_currency_amount
+
     async def _prepare_transaction(self, *, data: IncomeRequest) -> TransactionCreate:
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=[data.to_account_id], user_id=self.user_id
@@ -37,8 +52,11 @@ class Income(TransactionProcessor[IncomeRequest]):
 
         await income_service.get_income_source(db=self.db, income_source_id=data.income_source_id, user_id=self.user_id)
 
+        base_currency_amount: Decimal = self.__get_base_currency_amount(data=data)
         transaction_data: TransactionCreate = TransactionCreate(
-            **data.model_dump(), user_id=self.user_id, base_currency_amount=data.source_amount
+            **data.model_dump(exclude={"base_currency_amount"}),
+            user_id=self.user_id,
+            base_currency_amount=base_currency_amount,
         )
         return transaction_data
 

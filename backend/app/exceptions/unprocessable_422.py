@@ -6,6 +6,7 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
+from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
 
 
@@ -59,4 +60,27 @@ class BaseCurrencyAmountNotAllowed(UnprocessableException):
             ),
             logger=logger,
             error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED,
+        )
+
+
+class BaseCurrencyAmountRequired(UnprocessableException):
+    def __init__(self, *, currency: CurrencyCode, logger: logging.Logger):
+        super().__init__(
+            message="Base currency amount required",
+            log_message=f"An income in `{currency}` needs a base_currency_amount: it is not the base currency",
+            logger=logger,
+            error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_REQUIRED,
+        )
+
+
+class TransferAmountMismatch(UnprocessableException):
+    def __init__(self, *, source_amount: Decimal, destination_amount: Decimal, logger: logging.Logger):
+        super().__init__(
+            message="Transfer amount mismatch",
+            log_message=(
+                f"A transfer within one currency should move the same amount out and in, "
+                f"not {source_amount} and {destination_amount}"
+            ),
+            logger=logger,
+            error_code=ErrorCodeType.TRANSFER_AMOUNT_MISMATCH,
         )

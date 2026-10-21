@@ -480,3 +480,40 @@ async def test_delete_category_already_deleted(db: AsyncSession, db_transaction:
     # Assert
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+
+async def test_create_category_strips_name(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: CategoryCreateRequest = CategoryCreateRequest(
+        name="  Groceries  ", description="  Food at home  ", type=CategoryType.VARIABLE
+    )
+
+    # Act
+    category: Category = await category_service.create_category(
+        db=db_transaction, create_data=create_data, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    category_db: CategoryModel = await category_crud.get(db=db, id=category.id)
+    assert category_db.name == "Groceries"
+    assert category_db.description == "Food at home"
+
+
+@pytest.mark.parametrize("search_term, expected_names", [("0% c", ["100% cash"]), ("a_b", ["a_b test"])])
+async def test_get_categories_search_term_wildcards(db: AsyncSession, search_term: str, expected_names: list[str]):
+    # Arrange
+    user_id: UUID = uuid4()
+    for name in ["100% cash", "100 cash", "a_b test", "axb test"]:
+        create_data: CategoryCreateRequest = CategoryCreateRequest(name=name, type=CategoryType.VARIABLE)
+        await category_service.create_category(db=db, create_data=create_data, user_id=user_id)
+    await db.commit()
+
+    request: CategoryRequest = CategoryRequest(search_term=search_term)
+
+    # Act
+    categories: Page[Category] = await category_service.get_categories(db=db, request=request, user_id=user_id)
+
+    # Assert
+    assert [category.name for category in categories.items] == expected_names

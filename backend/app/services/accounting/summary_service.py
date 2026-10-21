@@ -1,5 +1,5 @@
 import calendar
-from datetime import date
+from datetime import date, datetime, UTC
 from decimal import Decimal
 from uuid import UUID
 
@@ -30,7 +30,7 @@ def _get_total_balance(*, accounts_db: list[AccountModel]) -> Decimal:
 
 
 async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) -> Summary:
-    month_date: date = date.today() if month is None else month
+    month_date: date = datetime.now(UTC).date() if month is None else month
     first_day, last_day = _get_month_bounds(month=month_date)
 
     accounts_db: list[AccountModel] = await account_crud.get_active_accounts(db=db, user_id=user_id)

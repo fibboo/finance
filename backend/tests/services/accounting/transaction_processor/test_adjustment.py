@@ -731,7 +731,7 @@ async def test_delete_adjustment_ok(
         "name": "Wallet",
         "currency": "USD",
         "balance": balance_before,
-        "base_currency_rate": Decimal("1") if balance_before != 0 else Decimal("0"),
+        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -759,3 +759,42 @@ async def test_delete_adjustment_ok(
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == balance_before
     assert account_db_after.base_currency_rate == account_create_data["base_currency_rate"]
+
+
+async def test_create_adjustment_base_currency_account_to_zero_keeps_rate(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "user_id": user_id,
+        "name": "Wallet",
+        "currency": "USD",
+        "balance": Decimal("1000"),
+        "base_currency_rate": Decimal("1"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 10), account_id=account_db.id, new_balance=Decimal("0.00")
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=adjustment_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.base_currency_amount == Decimal("1000.00")
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("0")
+    assert account_db_after.base_currency_rate == Decimal("1")

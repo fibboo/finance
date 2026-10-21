@@ -9,8 +9,8 @@ from app.utils import utils
 
 
 class IncomeSourceBase(BaseModel):
-    name: Annotated[str, StringConstraints(min_length=3, max_length=64)]
-    description: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=64)]
+    description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=256)] | None = None
 
 
 class IncomeSourceCreateRequest(IncomeSourceBase):
@@ -35,7 +35,7 @@ class IncomeSourceRequest(Params):
     page: int = Query(1, ge=1, description="Page number")
     size: int = Query(20, ge=1, le=100, description="Page size")
 
-    search_term: str | None = None
+    search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
 
     def __hash__(self):
         data = self.model_dump()

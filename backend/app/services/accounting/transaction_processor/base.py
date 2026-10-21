@@ -141,10 +141,10 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         base_currency_delta: Decimal,
         base_currency: CurrencyCode | None,
     ) -> Decimal:
-        if new_balance == 0:
-            new_base_rate: Decimal = Decimal("0")
-        elif account_db.currency == base_currency:
+        if account_db.currency == base_currency:
             new_base_rate: Decimal = Decimal("1")
+        elif new_balance == 0:
+            new_base_rate: Decimal = Decimal("0")
         elif account_db.base_currency_rate == 0 or account_db.balance <= 0 < new_balance:
             new_base_rate: Decimal = TransactionProcessor._get_first_rate(
                 amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount
@@ -169,10 +169,10 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         new_balance: Decimal,
         base_currency: CurrencyCode | None,
     ) -> Decimal:
-        if account_db.base_currency_rate != 0 or new_balance == 0:
-            new_base_rate: Decimal = account_db.base_currency_rate
-        elif account_db.currency == base_currency:
+        if account_db.currency == base_currency:
             new_base_rate: Decimal = Decimal("1")
+        elif account_db.base_currency_rate != 0 or new_balance == 0:
+            new_base_rate: Decimal = account_db.base_currency_rate
         else:
             new_base_rate: Decimal = TransactionProcessor._get_first_rate(
                 amount=transaction_db.source_amount, base_currency_amount=transaction_db.base_currency_amount

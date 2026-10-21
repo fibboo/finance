@@ -5,7 +5,7 @@ from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDTransferTransaction, transfer_transaction_crud
 from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
-from app.exceptions.unprocessable_422 import UnprocessableException
+from app.exceptions.unprocessable_422 import TransferAmountMismatch, UnprocessableException
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import TransferTransaction as TransferTransactionModel
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType, TransferRequest
@@ -34,9 +34,16 @@ class Transfer(TransactionProcessor[TransferRequest]):
         await self._validate_transaction_from_account(data=data, from_account_db=from_account_db)
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
-        if data.destination_currency != self.base_currency and data.destination_amount is None:
+        is_same_currency: bool = data.source_currency == data.destination_currency
+        if is_same_currency and data.destination_amount is not None and data.destination_amount != data.source_amount:
+            raise TransferAmountMismatch(
+                source_amount=data.source_amount, destination_amount=data.destination_amount, logger=logger
+            )
+
+        is_destination_amount_derived: bool = is_same_currency or data.destination_currency == self.base_currency
+        if not is_destination_amount_derived and data.destination_amount is None:
             raise UnprocessableException(
-                log_message="If destination_currency differs from user base currency, "
+                log_message="If destination_currency differs from user base currency and from source_currency, "
                 "destination_amount must be specified",
                 logger=logger,
             )
@@ -53,16 +60,15 @@ class Transfer(TransactionProcessor[TransferRequest]):
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
 
+        if data.source_currency == data.destination_currency:
+            data.destination_amount = data.source_amount
+
         is_source_base_currency: bool = data.source_currency == self.base_currency
         is_destination_base_currency: bool = data.destination_currency == self.base_currency
-        if is_source_base_currency and is_destination_base_currency:
-            data.destination_amount = data.source_amount
-            base_currency_amount: Decimal = data.destination_amount
-
-        elif is_source_base_currency and not is_destination_base_currency:
+        if is_source_base_currency:
             base_currency_amount: Decimal = data.source_amount
 
-        elif not is_source_base_currency and is_destination_base_currency:
+        elif is_destination_base_currency:
             data.destination_amount = self._quantize_amount(
                 amount=data.source_amount / from_account_db.base_currency_rate
             )

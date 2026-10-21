@@ -13,7 +13,7 @@ from app.crud.accounting.account import account_crud
 from app.crud.user.user import user_crud
 from app.exceptions.forbidden_403 import DeletedAccountTransactionForbidden, NoAccountBaseCurrencyRate
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.unprocessable_422 import UnprocessableException
+from app.exceptions.unprocessable_422 import TransferAmountMismatch, UnprocessableException
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
@@ -464,7 +464,8 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert exc.value.message == "Unprocessable entity"
     assert exc.value.log_message == (
-        "If destination_currency differs from user base currency, " "destination_amount must be specified"
+        "If destination_currency differs from user base currency and from source_currency, "
+        "destination_amount must be specified"
     )
     assert exc.value.logger is not None
     assert exc.value.log_level == LogLevelType.WARNING
@@ -623,7 +624,12 @@ async def test_delete_transfer_from_account_without_rate_sets_rate(db: AsyncSess
     }
     account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
 
-    account_to_create_data: dict = {"user_id": user_db.id, "name": "Wallet", "currency": "USD"}
+    account_to_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Wallet",
+        "currency": "USD",
+        "base_currency_rate": Decimal("1"),
+    }
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
     transfer_create_data: TransferRequest = TransferRequest(
@@ -662,7 +668,7 @@ async def test_delete_transfer_from_account_without_rate_sets_rate(db: AsyncSess
 
     account_db_to_after: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_db_to_after.balance == Decimal("0")
-    assert account_db_to_after.base_currency_rate == Decimal("0")
+    assert account_db_to_after.base_currency_rate == Decimal("1")
 
 
 async def test_create_transfer_to_account_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
@@ -930,3 +936,126 @@ async def test_create_transfer_opposite_concurrent_no_deadlock(
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 2
+
+
+@pytest.mark.parametrize("destination_amount", [None, Decimal("55")])
+async def test_create_transfer_same_currency_ok(
+    db: AsyncSession, db_transaction: AsyncSession, destination_amount: Decimal | None
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("110"),
+        "base_currency_rate": Decimal("1.1"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Savings EUR",
+        "currency": "EUR",
+        "balance": Decimal("11"),
+        "base_currency_rate": Decimal("1.1"),
+    }
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("55"),
+        source_currency="EUR",
+        destination_currency="EUR",
+        destination_amount=destination_amount,
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.source_amount == Decimal("55")
+    assert transaction.destination_amount == Decimal("55")
+    assert transaction.base_currency_amount == Decimal("50")
+
+    account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_from.balance == Decimal("55")
+    assert account_from.base_currency_rate == Decimal("1.1")
+    account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to.balance == Decimal("66")
+    assert account_to.base_currency_rate == Decimal("1.1")
+
+
+@pytest.mark.parametrize("currency, base_currency_rate", [("USD", Decimal("1")), ("EUR", Decimal("1.1"))])
+async def test_create_transfer_same_currency_amount_mismatch(
+    db: AsyncSession, db_transaction: AsyncSession, currency: str, base_currency_rate: Decimal
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Card",
+        "currency": currency,
+        "balance": Decimal("110"),
+        "base_currency_rate": base_currency_rate,
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: dict = {
+        "user_id": user_db.id,
+        "name": "Savings",
+        "currency": currency,
+        "balance": Decimal("11"),
+        "base_currency_rate": base_currency_rate,
+    }
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+
+    transfer_create_data: TransferRequest = TransferRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("100"),
+        source_currency=currency,
+        destination_currency=currency,
+        destination_amount=Decimal("50"),
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+    )
+    with pytest.raises(TransferAmountMismatch) as exc:
+        await transaction_processor.create(data=transfer_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.message == "Transfer amount mismatch"
+    assert exc.value.log_message == (
+        "A transfer within one currency should move the same amount out and in, not 100 and 50"
+    )
+    assert exc.value.log_level == LogLevelType.WARNING
+    assert exc.value.error_code == ErrorCodeType.TRANSFER_AMOUNT_MISMATCH
+
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 0
+    account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_from.balance == Decimal("110")
+    account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to.balance == Decimal("11")

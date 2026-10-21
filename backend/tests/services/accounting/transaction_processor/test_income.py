@@ -18,6 +18,7 @@ from app.exceptions.forbidden_403 import (
     DeletedAccountTransactionForbidden,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
+from app.exceptions.unprocessable_422 import BaseCurrencyAmountRequired
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.income_source import IncomeSource as IncomeSourceModel
 from app.models.accounting.transaction import Transaction as TransactionModel
@@ -540,7 +541,7 @@ async def test_delete_base_currency_ok(db: AsyncSession, db_transaction: AsyncSe
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("0")
-    assert account_db_after.base_currency_rate == Decimal("0")
+    assert account_db_after.base_currency_rate == Decimal("1")
 
 
 async def test_delete_other_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -940,3 +941,102 @@ async def test_create_income_concurrent_keeps_both_balance_changes(
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 2
+
+
+async def test_create_income_other_source_currency_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: AccountCreate = AccountCreate(user_id=user_id, name="Income EUR", currency="EUR")
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name="Best Job")
+    income_source_db: IncomeSourceModel = await income_source_crud.create(
+        db=db, obj_in=income_source_create_data, commit=True
+    )
+
+    income_create_data: IncomeRequest = IncomeRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1000"),
+        source_currency="EUR",
+        destination_amount=Decimal("1000"),
+        destination_currency="EUR",
+        to_account_id=account_db.id,
+        income_source_id=income_source_db.id,
+        income_period=date(2025, 1, 1),
+        base_currency_amount=Decimal("1080"),
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=income_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.source_amount == Decimal("1000")
+    assert transaction.source_currency == "EUR"
+    assert transaction.destination_amount == Decimal("1000")
+    assert transaction.destination_currency == "EUR"
+    assert transaction.base_currency_amount == Decimal("1080")
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("1000")
+    assert account_db_after.base_currency_rate == Decimal("0.9259259259")
+
+
+async def test_create_income_other_source_currency_without_base_currency_amount(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: AccountCreate = AccountCreate(user_id=user_id, name="Income EUR", currency="EUR")
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    income_source_create_data: IncomeSourceCreate = IncomeSourceCreate(user_id=user_id, name="Best Job")
+    income_source_db: IncomeSourceModel = await income_source_crud.create(
+        db=db, obj_in=income_source_create_data, commit=True
+    )
+
+    income_create_data: IncomeRequest = IncomeRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1000"),
+        source_currency="EUR",
+        destination_amount=Decimal("1000"),
+        destination_currency="EUR",
+        to_account_id=account_db.id,
+        income_source_id=income_source_db.id,
+        income_period=date(2025, 1, 1),
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+    )
+    with pytest.raises(BaseCurrencyAmountRequired) as exc:
+        await transaction_processor.create(data=income_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.message == "Base currency amount required"
+    assert exc.value.log_message == "An income in `EUR` needs a base_currency_amount: it is not the base currency"
+    assert exc.value.log_level == LogLevelType.WARNING
+    assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_AMOUNT_REQUIRED
+
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("0")

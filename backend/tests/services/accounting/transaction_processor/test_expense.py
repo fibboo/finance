@@ -24,7 +24,7 @@ from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.category import Category as CategoryModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.account import AccountCreate
+from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest
 from app.schemas.accounting.category import CategoryCreate, CategoryType
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionType
@@ -32,6 +32,7 @@ from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import User as UserModel, UserCreate
+from app.services.accounting import account_service
 from app.services.accounting.transaction_processor import factory
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
@@ -924,3 +925,47 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 2
+
+
+async def test_create_expense_new_base_currency_account_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: AccountCreateRequest = AccountCreateRequest(name="Cash", currency="USD")
+    account: Account = await account_service.create_account(db=db, create_data=account_create_data, user_id=user_id)
+    await db.commit()
+
+    category_create_data: CategoryCreate = CategoryCreate(user_id=user_id, name="Food", type=CategoryType.VARIABLE)
+    category_db: CategoryModel = await category_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("10"),
+        source_currency="USD",
+        destination_amount=Decimal("10"),
+        destination_currency="USD",
+        from_account_id=account.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.base_currency_amount == Decimal("10")
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account.id)
+    assert account_db_after.balance == Decimal("-10")
+    assert account_db_after.base_currency_rate == Decimal("1")
