@@ -37,9 +37,10 @@ When in doubt, ask the user.
 Every issue is added to the project. This skill sets only the two statuses that describe the issue itself:
 
 - **On create**: an issue whose body leaves nothing open gets `Ready for Development`. An issue that still has an open decision or a mockup that is not agreed yet gets `In Refinement` and ends its body with an **Open Questions** section.
-- **On update and refine**: an issue in `In Refinement` moves to `Ready for Development` when the change closes its last open item and removes the Open Questions section. Nothing else changes the status.
+- **On update and refine**: an issue whose edited body still has an Open Questions section is `In Refinement`, and one whose edited body leaves nothing open is `Ready for Development`. An update moves an issue only when it adds the first open item or removes the last one; a refine sets the status its finished plan earns, so a raw idea refined into a complete plan leaves `In Refinement`.
+- **A Container** has no Open Questions section; its status follows its sub-issues by the Container rule of `CLAUDE.md` **Git Conventions**. Whenever this skill moves a sub-issue, it applies that rule to the parent.
 
-`In Development`, `In Review` and `Done` describe work in flight or settled (`CLAUDE.md` **Git Conventions**); this skill never sets them and never moves an issue out of them, and editing a description is never a reason to override them.
+`In Development`, `In Review` and `Done` describe work in flight or settled (`CLAUDE.md` **Git Conventions**); this skill never sets them and never moves an issue out of them, and editing a description is never a reason to override them. When the Container rule gives a parent `In Development`, the work has already set it.
 
 ## Labels
 
@@ -111,12 +112,12 @@ Rules:
   - **Code change** (logic refactoring, no schema changes): a `###` sub-heading per logical aspect when there is more than one, otherwise 2–3 sentences. No code blocks.
   - **Bug**: `### Root cause` and `### Fix` sub-headings. Put a traceback excerpt (the last 5–10 relevant lines) under the root cause, and the proposed fix in 1–2 sentences under the fix.
 - **Container issues**: do NOT describe the sub-issues in the body; they are linked through the sub-issues API.
-- **Mockups section**: required in an issue that adds or changes a screen, and in a Container that has such sub-issues; see **Mockups**.
-- **Open Questions section**: present only in an issue created as `In Refinement`, as the last section of the body. A bullet list with one item per open decision or unagreed mockup, each saying what has to be settled (for example `Mockup: not agreed yet`). The section is removed when its last item is settled, and the issue then moves to `Ready for Development` (**Repository and Project**).
+- **Mockups section**: required in an issue that adds or changes a screen once its mockup is agreed, and in a Container whose sub-issues have agreed mockups, where it shows every screen agreed so far; see **Mockups**.
+- **Open Questions section**: present only while an issue that is not a Container has something open, as the last section of the body. A bullet list with one item per open decision or unagreed mockup, each saying what has to be settled (for example `Mockup: not agreed yet`). An update that finds a new open item adds it, creating the section if needed; the section is removed when its last item is settled. Its presence decides the status (**Repository and Project**).
 
 ## Mockups
 
-An issue that adds or changes a screen is complete only once its mockup is agreed. It may be created before that, as `In Refinement`, with the screen described in text and `Mockup: not agreed yet` in its Open Questions; the mockup is then agreed and added by an update, which removes that item. Issues without a screen are not held back by this.
+An issue that adds or changes a screen is complete only once its mockup is agreed. It may be created before that, as `In Refinement`, with the screen described in text and `Mockup: not agreed yet` in its Open Questions; the mockup is then agreed and added by an update, which removes that item. When the issue has a parent Container, the same update also pushes the PNGs into the Container's folder and adds the screens to the Container's Mockups section, creating the section if it has none yet. Issues without a screen are not held back by this.
 
 1. **Agree the mockup.** Propose a few variants of every affected screen on a design canvas or whatever mockup tool the host offers, and iterate with the user until one is agreed. Each screen is drawn in the dark and the light theme, at phone width and, where it has a desktop layout, at desktop width.
 2. **Export it.** Render every agreed screen to PNG at twice its pixel size (phone 390 px wide, desktop 1280 px wide), for example with a headless browser screenshot. File names are `<screen>-<width>-<theme>.png`, such as `home-phone-dark.png`. A mockup whose screens exist as files, on a design canvas or as local HTML, also exports its sources: every file of its own (the screens, the index and any file they link to), under the names they already have. A mockup agreed only as images has no sources.
@@ -156,7 +157,7 @@ Prepare body files as described in **Approval and Body Files**.
 3. Estimate whether the work will exceed the 500-change limit by thinking through the number of affected files, schema changes, new classes or models, and wiring. Count with the exclusions from `.claude/rules/common.md`: excluded files are not a factor, and everything else is, including the model and schema changes that go with a migration. If the estimate is borderline, lean towards splitting.
 4. If it exceeds the limit, plan a Container with sub-issues titled in the `PR N of M` format. Otherwise plan a single issue.
 5. **Investigate the repository** for the files the plan names: every file in Affected Scope must be confirmed to exist (or tagged `[new]`).
-6. **Compose the full draft**: title, the complete body with every section filled in, labels, parent and status. For a Container, compose the parent draft and every sub-issue draft. For an issue that adds or changes a screen, agree and export its mockup first (**Mockups**) and end the body with the Mockups section, or, when the user asks for the issue before the mockup, describe the screen in text and list the mockup in Open Questions. An issue with anything left open gets `In Refinement` and the Open Questions section; any other issue gets `Ready for Development`. A Container gets `In Refinement` while any of its sub-issues does.
+6. **Compose the full draft**: title, the complete body with every section filled in, labels, parent and status. For a Container, compose the parent draft and every sub-issue draft. For an issue that adds or changes a screen, agree and export its mockup first (**Mockups**) and end the body with the Mockups section, or, when the user asks for the issue before the mockup, describe the screen in text and list the mockup in Open Questions. An issue with anything left open gets `In Refinement` and the Open Questions section; any other issue gets `Ready for Development`. A Container gets the status the Container rule gives it (**Repository and Project**).
 7. **Present the draft for approval** with `EnterPlanMode`, in this format:
 
    ```
@@ -181,11 +182,11 @@ Prepare body files as described in **Approval and Body Files**.
 
 1. Get the issue number from the user's message.
 2. Fetch the current issue.
-3. Work out what the user wants changed and which body sections are affected. Keep all content the user did not ask to change. If the change adds or alters a screen, agree its mockup first and update its sources and PNGs in the `assets` branch as **Mockups** describes.
+3. Work out what the user wants changed and which body sections are affected. Keep all content the user did not ask to change. If the change adds or alters a screen, agree its mockup first and update its sources and PNGs in the `assets` branch as **Mockups** describes, including the parent Container's folder and Mockups section; that Container edit is shown in the same draft. If the change leaves something open that is not settled yet, list it in the Open Questions section.
 4. Compose the full updated body. Never send a partial body; the edit replaces the whole description.
 5. **Enter plan mode** with `EnterPlanMode`, show the full updated draft clearly marked as the version that will replace the current one, and call `ExitPlanMode`. If the user asks for changes, revise and call `ExitPlanMode` again. Wait for explicit approval given after that complete draft was shown.
 6. Edit the issue, changing only what the user explicitly asked for (title, body, labels).
-7. If the issue is `In Refinement` and the edit removed its Open Questions section, move it to `Ready for Development` (**Repository and Project**); if it has a parent Container in `In Refinement` whose other sub-issues are all past `In Refinement`, move the parent too. Never change any other status.
+7. Read the status. If the issue is `In Refinement` and the edit removed its Open Questions section, move it to `Ready for Development`; if it is `Ready for Development` and the edit added that section, move it to `In Refinement`. Then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
 8. Report back with `[#<number>](<url>)` and a short summary of what changed.
 
 ### Refining an existing issue
@@ -199,7 +200,7 @@ Refining turns a raw idea into an implementation plan. It is the update path plu
 5. Ask about every ambiguity the investigation could not resolve, in one `AskUserQuestion` call. Do not repeat questions already answered in the conversation.
 6. Compose the complete description in the standard structure, choosing the Implementation Steps format that fits the work. If the plan adds or changes a screen, agree and export its mockup first, push the PNGs and sources to the issue's folder in the `assets` branch and end the description with the Mockups section (**Mockups**).
 7. Present the full replacement draft with `EnterPlanMode` / `ExitPlanMode` and wait for explicit approval given after that complete draft was shown.
-8. Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Move the status as step 7 of **Updating an existing issue** describes, and never change it otherwise; a refined description that still lists open items keeps its Open Questions section and stays `In Refinement`.
+8. Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Read the status; if it is `In Refinement` or `Ready for Development`, set `Ready for Development` when the refined description has no Open Questions section and `In Refinement` when it has one, then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
 9. Post a comment summarizing what was planned and what was verified: which components the plan touches, and which claims a run confirmed.
 10. Report back with `[#<number>](<url>)`.
 
@@ -209,7 +210,7 @@ Before finalizing a **new** issue, verify:
 - [ ] Exactly one **type** label (Bug/Enhancement/Feature/Task)
 - [ ] Container label added if the issue has sub-issues; sub-issues labelled per the Container rule
 - [ ] Title follows `<area>: <short description>`
-- [ ] Assigned to the authenticated user, added to the `fibboo-finace` project, status `Ready for Development` when nothing is open, otherwise `In Refinement` with an Open Questions section listing every open item
+- [ ] Assigned to the authenticated user, added to the `fibboo-finace` project, status `Ready for Development` when nothing is open, otherwise `In Refinement` with an Open Questions section listing every open item; a Container's status follows the Container rule and its body has no Open Questions section
 - [ ] Every file in Affected Scope confirmed to exist or tagged `[new]`
 - [ ] Implementation Steps present if the issue involves a new or changed data flow, schemas or a bug, in the format that matches the issue type
 - [ ] No `docs/` or `.claude/` change folded into an issue that also changes product code, unless the request explicitly asked for that or they are one piece of work
@@ -222,12 +223,13 @@ Before finalizing an **update**, verify:
 - [ ] Fetched the current issue before composing the update
 - [ ] Kept all existing content the user did not explicitly change
 - [ ] Sent the full updated body, not a partial one
-- [ ] Changed only the fields the user explicitly asked for; status moved to `Ready for Development` only if the update closed the last open item of an `In Refinement` issue, otherwise untouched
+- [ ] Changed only the fields the user explicitly asked for; status moved only between `In Refinement` and `Ready for Development`, when the update removed the last open item or added the first one, and the parent Container checked by the Container rule
+- [ ] A mockup agreed for a sub-issue also reached the parent Container's folder and Mockups section
 
 Before finalizing a **refine**, verify:
 - [ ] Every file and component named in the plan confirmed to exist in the repository
 - [ ] Every claim a run could settle was settled by a run, not by assumption
 - [ ] Description follows the standard structure, with the Implementation Steps format matching the work
 - [ ] Plan fits under the 500-change limit, or the Container split was proposed instead
-- [ ] Status `Ready for Development` if nothing is left open, otherwise `In Refinement` with an Open Questions section; any other status untouched
+- [ ] Status `Ready for Development` if nothing is left open, otherwise `In Refinement` with an Open Questions section; any other status untouched; the parent Container checked by the Container rule
 - [ ] Comment posted describing what was planned and what was verified
