@@ -8,7 +8,7 @@ You are the issue manager for fibboo/finance, a personal finance service with a 
 
 ## Approval and Body Files
 
-Use `AskUserQuestion` for clarification and `EnterPlanMode` / `ExitPlanMode` to present the complete draft for approval. Approval remains valid only when the user gave it after seeing that complete draft, including title, body, labels and parent. An initial instruction to create an issue before the draft is shown is not approval of the draft. Do not ask again for an unchanged draft that was already approved; present a changed draft again for approval. Codex maps these native Claude tools in its own `.agents/skills/issue-writer/SKILL.md` entrypoint.
+Use `AskUserQuestion` for clarification and `EnterPlanMode` / `ExitPlanMode` to present the complete draft for approval. Approval remains valid only when the user gave it after seeing that complete draft, including title, body, labels, parent and blockers. An initial instruction to create an issue before the draft is shown is not approval of the draft. Do not ask again for an unchanged draft that was already approved; present a changed draft again for approval. Codex maps these native Claude tools in its own `.agents/skills/issue-writer/SKILL.md` entrypoint.
 
 Resolve repository paths from the current checkout root. Write body files to a host-provided temporary directory outside the tracked tree, using UTF-8 and the shell's safe literal quoting, then pass them with `--body-file` so Markdown and backticks survive the shell. In Claude Code, use the native `Bash` tool for `gh` commands; this skill does not require PowerShell or changes to shell profile loading.
 
@@ -80,7 +80,9 @@ The exception is a sub-issue that is not part of the parent's type, for example 
 
 ## Dependencies
 
-An issue that cannot start before another one is done records it as a GitHub dependency: "Blocked by" on the waiting issue, which GitHub shows as "Blocking" on the other. A blocker is an issue whose result this one builds on: an endpoint, an error code, a schema, a shared component. A sub-issue that builds on an earlier sub-issue of the same Container is blocked by it too. The dependency is the ONLY way the relation is expressed; like the parent rule above, no issue body references another issue's number. An issue blocked by issues that are not `Done` may still be refined and have its mockup agreed; only its work waits (`CLAUDE.md` **Git Conventions**).
+An issue that cannot start before another one is done records it as a GitHub dependency: "Blocked by" on the waiting issue, which GitHub shows as "Blocking" on the other. A blocker is an issue whose result this one builds on: an endpoint, an error code, a schema, a shared component. A sub-issue that builds on an earlier sub-issue of the same Container is blocked by it too. The dependency is the ONLY way the relation is expressed; like the parent rule above, no issue body references another issue's number. An issue blocked by issues that are still open may still be refined and have its mockup agreed; only its work waits (`CLAUDE.md` **Git Conventions**).
+
+A draft names a blocker that already exists as `#<number> (<title>)`, and a sibling sub-issue that is created in the same request as `PR <N> of <M>`. Blockers are set after the issue's body is created or edited. If a blocker call fails, list the blockers (see Commands) and set or remove only the difference from the approved draft.
 
 ## Issue Title
 
@@ -147,7 +149,7 @@ Prepare body files as described in **Approval and Body Files**.
 - Verify the links: `gh api repos/fibboo/finance/issues/<parent_number>/sub_issues --jq '.[].number'`.
 - Set a blocker, one call per pair: get the blocker's numeric id with `gh api repos/fibboo/finance/issues/<blocker_number> --jq .id`, then run `gh api -X POST repos/fibboo/finance/issues/<number>/dependencies/blocked_by -F issue_id=<id>`.
 - Remove a blocker: `gh api -X DELETE repos/fibboo/finance/issues/<number>/dependencies/blocked_by/<id>`, with the blocker's numeric id.
-- Verify the blockers: `gh api repos/fibboo/finance/issues/<number>/dependencies/blocked_by --jq '.[].number'`.
+- List the blockers with their state, to verify them or to check whether work may start: `gh api repos/fibboo/finance/issues/<number>/dependencies/blocked_by --jq '.[] | [.number, .state] | @tsv'`.
 - Fetch: `gh issue view <number> -R fibboo/finance --json number,title,body,labels,state,url`.
 - Edit: `gh issue edit <number> -R fibboo/finance [--title ...] [--body-file ...] [--add-label ... --remove-label ...]`.
 - Comment: `gh issue comment <number> -R fibboo/finance --body-file <file>`.
@@ -163,9 +165,9 @@ Prepare body files as described in **Approval and Body Files**.
    - Every ambiguity in the request: missing context, an unclear type label, ambiguous scope, unknown data shapes or flows, unclear affected components, uncertain decomposition, anything not 100% clear. **Never assume; always ask.**
    Wait for the answers. Do not draft any issue text until every ambiguity is resolved.
 3. Estimate whether the work will exceed the 500-change limit by thinking through the number of affected files, schema changes, new classes or models, and wiring. Count with the exclusions from `.claude/rules/common.md`: excluded files are not a factor, and everything else is, including the model and schema changes that go with a migration. If the estimate is borderline, lean towards splitting.
-4. If it exceeds the limit, plan a Container with sub-issues titled in the `PR N of M` format. Otherwise plan a single issue.
+4. If it exceeds the limit, plan a Container with sub-issues titled in the `PR N of M` format, and ask in one `AskUserQuestion` call which sub-issues are blocked by earlier ones, proposing what each builds on (**Dependencies**). Otherwise plan a single issue.
 5. **Investigate the repository** for the files the plan names: every file in Affected Scope must be confirmed to exist (or tagged `[new]`).
-6. **Compose the full draft**: title, the complete body with every section filled in, labels, parent and status. For a Container, compose the parent draft and every sub-issue draft. For an issue that adds or changes a screen, agree and export its mockup first (**Mockups**) and end the body with the Mockups section, or, when the user asks for the issue before the mockup, describe the screen in text and list the mockup in Open Questions. An issue with anything left open gets `In Refinement` and the Open Questions section; any other issue gets `Ready for Development`. A Container gets the status the Container rule gives it (**Repository and Project**).
+6. **Compose the full draft**: title, the complete body with every section filled in, labels, parent, blockers and status. For a Container, compose the parent draft and every sub-issue draft. For an issue that adds or changes a screen, agree and export its mockup first (**Mockups**) and end the body with the Mockups section, or, when the user asks for the issue before the mockup, describe the screen in text and list the mockup in Open Questions. An issue with anything left open gets `In Refinement` and the Open Questions section; any other issue gets `Ready for Development`. A Container gets the status the Container rule gives it (**Repository and Project**).
 7. **Present the draft for approval** with `EnterPlanMode`, in this format:
 
    ```
@@ -174,7 +176,7 @@ Prepare body files as described in **Approval and Body Files**.
    Title: <title>
    Labels: <Bug/Enhancement/Feature/Task>[, Container] | Status: <Ready for Development/In Refinement>
    Parent: #<number> (<title>) | none
-   Blocked by: #<number> (<title>), ... | none
+   Blocked by: #<number> (<title>) | PR <N> of <M>, ... | none
 
    <full issue body>
    ---
@@ -192,10 +194,10 @@ Prepare body files as described in **Approval and Body Files**.
 
 1. Get the issue number from the user's message.
 2. Fetch the current issue.
-3. Work out what the user wants changed and which body sections are affected. Keep all content the user did not ask to change. If the change adds or alters a screen, agree its mockup first and update its sources and PNGs in the `assets` branch as **Mockups** describes, including the parent Container's folder and Mockups section; that Container edit is shown in the same draft. If the change leaves something open that is not settled yet, list it in the Open Questions section.
+3. Work out what the user wants changed and which body sections are affected. Keep all content the user did not ask to change. If the change adds or alters a screen, agree its mockup first and update its sources and PNGs in the `assets` branch as **Mockups** describes, including the parent Container's folder and Mockups section; that Container edit is shown in the same draft. If the change leaves something open that is not settled yet, list it in the Open Questions section. If the change makes the issue build on another one, or stop building on it, change its blockers in the draft (**Dependencies**).
 4. Compose the full updated body. Never send a partial body; the edit replaces the whole description.
-5. **Enter plan mode** with `EnterPlanMode`, show the full updated draft clearly marked as the version that will replace the current one, and call `ExitPlanMode`. If the user asks for changes, revise and call `ExitPlanMode` again. Wait for explicit approval given after that complete draft was shown.
-6. Edit the issue, changing only what the user explicitly asked for (title, body, labels, blockers). When the change makes the issue build on another one, or stop building on it, the draft shows the new `Blocked by:` line, and the blockers are set or removed and verified after the edit (see Commands).
+5. **Enter plan mode** with `EnterPlanMode`, show the full updated draft clearly marked as the version that will replace the current one, with its `Blocked by:` line, and call `ExitPlanMode`. If the user asks for changes, revise and call `ExitPlanMode` again. Wait for explicit approval given after that complete draft was shown.
+6. Edit the issue, changing only what the user explicitly asked for (title, body, labels). Then set and remove blockers until the issue's list matches the approved draft, and verify it (see Commands).
 7. Read the status. If the issue is `In Refinement` and the edit removed its Open Questions section, move it to `Ready for Development`; if it is `Ready for Development` and the edit added that section, move it to `In Refinement`. Then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
 8. Report back with `[#<number>](<url>)` and a short summary of what changed.
 
@@ -210,7 +212,7 @@ Refining turns a raw idea into an implementation plan. It is the update path plu
 5. Ask about every ambiguity the investigation could not resolve, in one `AskUserQuestion` call, together with the blockers the investigation found (**Dependencies**). Do not repeat questions already answered in the conversation.
 6. Compose the complete description in the standard structure, choosing the Implementation Steps format that fits the work. If the plan adds or changes a screen, agree and export its mockup first, push the PNGs and sources to the issue's folder in the `assets` branch and end the description with the Mockups section (**Mockups**).
 7. Present the full replacement draft with `EnterPlanMode` / `ExitPlanMode`, with its `Blocked by:` line, and wait for explicit approval given after that complete draft was shown.
-8. Set and remove blockers until the issue's list matches the approved draft, and verify it (see Commands). Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Read the status; if it is `In Refinement` or `Ready for Development`, set `Ready for Development` when the refined description has no Open Questions section and `In Refinement` when it has one, then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
+8. Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Then set and remove blockers until the issue's list matches the approved draft, and verify it (see Commands). Read the status; if it is `In Refinement` or `Ready for Development`, set `Ready for Development` when the refined description has no Open Questions section and `In Refinement` when it has one, then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
 9. Post a comment summarizing what was planned and what was verified: which components the plan touches, and which claims a run confirmed.
 10. Report back with `[#<number>](<url>)`.
 
@@ -225,7 +227,7 @@ Before finalizing a **new** issue, verify:
 - [ ] Implementation Steps present if the issue involves a new or changed data flow, schemas or a bug, in the format that matches the issue type
 - [ ] No `docs/` or `.claude/` change folded into an issue that also changes product code, unless the request explicitly asked for that or they are one piece of work
 - [ ] Container issues have no PR noted in the body
-- [ ] **No issue body references a parent or child issue number**
+- [ ] **No issue body references another issue's number**
 - [ ] Sub-issues verified as linked to the parent
 - [ ] The blockers GitHub returns for each created issue are exactly the ones its approved draft lists
 - [ ] An issue that adds or changes a screen either ends with a Mockups section whose images load from its folder in the `assets` branch and whose first line links the design sources when the mockup has them, or is `In Refinement` with `Mockup: not agreed yet` in its Open Questions
@@ -236,12 +238,13 @@ Before finalizing an **update**, verify:
 - [ ] Sent the full updated body, not a partial one
 - [ ] Changed only the fields the user explicitly asked for; status moved only between `In Refinement` and `Ready for Development`, when the update removed the last open item or added the first one, and the parent Container checked by the Container rule
 - [ ] A mockup agreed for a sub-issue also reached the parent Container's folder and Mockups section
+- [ ] No issue body references another issue's number
 - [ ] The blockers GitHub returns are the ones the approved draft lists
 
 Before finalizing a **refine**, verify:
 - [ ] Every file and component named in the plan confirmed to exist in the repository
 - [ ] Every claim a run could settle was settled by a run, not by assumption
-- [ ] Description follows the standard structure, with the Implementation Steps format matching the work
+- [ ] Description follows the standard structure, with the Implementation Steps format matching the work, and references no other issue's number
 - [ ] Plan fits under the 500-change limit, or the Container split was proposed instead
 - [ ] Status `Ready for Development` if nothing is left open, otherwise `In Refinement` with an Open Questions section; any other status untouched; the parent Container checked by the Container rule
 - [ ] The blockers GitHub returns are the ones the approved draft lists
