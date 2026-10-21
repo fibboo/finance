@@ -11,7 +11,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=finance
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "finance", "-d", "finance" ]
+      test: [ "CMD", "pg_isready", "-h", "127.0.0.1", "-U", "finance", "-d", "finance" ]
       interval: 5s
       timeout: 5s
       retries: 10
