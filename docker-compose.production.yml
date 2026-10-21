@@ -42,21 +42,31 @@ services:
         condition: service_healthy
 
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://127.0.0.1/" ]
+      test: [ "CMD", "wget", "-q", "--spider", "http://127.0.0.1/api/openapi.json" ]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 60s
+      start_period: 30s
+      start_interval: 1s
 
   cloudflared:
     image: cloudflare/cloudflared:2026.10.2
     restart: unless-stopped
     depends_on:
-      - frontend
+      frontend:
+        condition: service_healthy
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
 
-    command: tunnel --no-autoupdate run
+    healthcheck:
+      test: [ "CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:2000", "ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 1s
+
+    command: tunnel --no-autoupdate --metrics 127.0.0.1:2000 run
 
 volumes:
   postgres:
