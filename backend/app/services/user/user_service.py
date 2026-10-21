@@ -37,10 +37,10 @@ from app.services.accounting import account_service, category_service, currency_
 
 logger = get_logger(logger_name=__name__)
 
-FALLBACK_USERNAME_PREFIX = "user_"
+FALLBACK_USERNAME_PREFIX: str = "user_"
 FALLBACK_USERNAME_ALPHABET: str = string.ascii_lowercase + string.digits
-FALLBACK_USERNAME_SUFFIX_LENGTH = 8
-FALLBACK_USERNAME_ATTEMPTS = 5
+FALLBACK_USERNAME_SUFFIX_LENGTH: int = 8
+FALLBACK_USERNAME_ATTEMPTS: int = 5
 
 
 def _build_fallback_username() -> str:
