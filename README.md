@@ -116,8 +116,8 @@ a stopped database and leaves changes to it for the last step; a `pg_dump -Fc` o
 the new backend image; `up -d --remove-orphans`; the image cleanup. A failed dump or migration stops the deploy while the
 previous backend keeps serving. Postgres rolls back a failed revision made of transactional DDL; one with an autocommit
 block, such as `CREATE INDEX CONCURRENTLY`, can stay half applied, and the pre-deploy dump is the way back. The backend
-never migrates on start, so a manual `docker compose up -d` on the server applies no migration; run
-`docker compose run --rm backend alembic upgrade head` first.
+never migrates on start, so a manual `docker compose up -d` on the server applies no migration; with postgres running,
+run `docker compose run --rm --no-deps backend alembic upgrade head` first.
 
 The previous backend keeps serving on the new schema for the seconds between the migration and `up -d`. So a revision
 that drops or renames a column, or adds a `NOT NULL` column without a default, ships in two deploys: first the code that

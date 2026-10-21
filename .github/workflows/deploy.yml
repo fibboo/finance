@@ -134,7 +134,7 @@ jobs:
           docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' < /dev/null > ~/backups/pre-deploy.dump.tmp
           mv ~/backups/pre-deploy.dump.tmp ~/backups/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ)-$IMAGE_TAG.dump
           ls -1t ~/backups/pre-deploy-*.dump | tail -n +6 | xargs -r rm --
-          docker compose run --rm -T backend alembic upgrade head < /dev/null
+          docker compose run --rm --no-deps -T backend alembic upgrade head < /dev/null
           docker compose up -d --remove-orphans
           docker images --filter 'reference=ghcr.io/fibboo/finance-*' --format '{{.Repository}}:{{.Tag}}' | grep -v ":$IMAGE_TAG\$" | xargs -r docker rmi
           EOF
