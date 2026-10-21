@@ -84,3 +84,16 @@ class TransferAmountMismatch(UnprocessableException):
             logger=logger,
             error_code=ErrorCodeType.TRANSFER_AMOUNT_MISMATCH,
         )
+
+
+class DestinationAmountNotAllowed(UnprocessableException):
+    def __init__(self, *, account_id: UUID, destination_amount: Decimal, logger: logging.Logger):
+        super().__init__(
+            message="Destination amount not allowed",
+            log_message=(
+                f"A destination_amount of {destination_amount} was sent for account `{account_id}`, "
+                f"whose amount is derived from the source account's rate"
+            ),
+            logger=logger,
+            error_code=ErrorCodeType.DESTINATION_AMOUNT_NOT_ALLOWED,
+        )

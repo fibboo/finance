@@ -209,10 +209,11 @@ export interface paths {
          *     `destination_*` refers to the amount in **the seller's currency**.
          *     - **Income:** `source_*` refers to the incoming amount in **its original currency**.
          *     `destination_*` refers to the credited amount in **the receiving account**. `base_currency_amount` is required
-         *     when `source_currency` is not the base currency.
+         *     when neither currency is the base currency, and refused otherwise, since it is then derived.
          *     - **Transfers:** `source_*` refers to **the withdrawal from one account**.
          *     `destination_*` refers to the deposit to **another account**. When both currencies are the same,
-         *     `destination_amount` may be omitted and otherwise must equal `source_amount`.
+         *     `destination_amount` may be omitted and otherwise must equal `source_amount`. When only `destination_currency`
+         *     is the base currency, `destination_amount` is derived from the source account's rate and must not be sent.
          *     - **Adjustments:** the request carries the account and its `new_balance`. `source_*` and `destination_*` are both
          *     the difference from the current balance in the account currency, on `to_account` for an increase and on
          *     `from_account` for a decrease. `base_currency_amount` is required only for an account outside the base currency
@@ -646,7 +647,7 @@ export interface components {
          * ErrorCodeType
          * @enum {string}
          */
-        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
+        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
         /** ErrorResponse */
         ErrorResponse: {
             /** Message */

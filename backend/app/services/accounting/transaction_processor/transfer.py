@@ -4,8 +4,11 @@ from uuid import UUID
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import CRUDTransferTransaction, transfer_transaction_crud
-from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
-from app.exceptions.unprocessable_422 import TransferAmountMismatch, UnprocessableException
+from app.exceptions.unprocessable_422 import (
+    DestinationAmountNotAllowed,
+    TransferAmountMismatch,
+    UnprocessableException,
+)
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import TransferTransaction as TransferTransactionModel
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType, TransferRequest
@@ -44,6 +47,19 @@ class Transfer(TransactionProcessor[TransferRequest]):
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
         is_same_currency: bool = data.source_currency == data.destination_currency
+        if is_same_currency and data.destination_amount is not None and data.destination_amount != data.source_amount:
+            raise TransferAmountMismatch(
+                destination_amount=data.destination_amount,
+                derived_destination_amount=data.source_amount,
+                logger=logger,
+            )
+
+        is_destination_base_currency: bool = data.destination_currency == self.base_currency
+        if not is_same_currency and is_destination_base_currency and data.destination_amount is not None:
+            raise DestinationAmountNotAllowed(
+                account_id=to_account_db.id, destination_amount=data.destination_amount, logger=logger
+            )
+
         is_destination_amount_derived: bool = is_same_currency or data.destination_currency == self.base_currency
         if not is_destination_amount_derived and data.destination_amount is None:
             raise UnprocessableException(
@@ -51,24 +67,6 @@ class Transfer(TransactionProcessor[TransferRequest]):
                 "destination_amount must be specified",
                 logger=logger,
             )
-
-        is_base_currency_involved: bool = self.base_currency in (data.source_currency, data.destination_currency)
-        if not is_same_currency and not is_base_currency_involved and to_account_db.base_currency_rate == 0:
-            raise NoAccountBaseCurrencyRate(account_id=to_account_db.id, logger=logger)
-
-    def __get_derived_destination_amount(
-        self, *, data: TransferRequest, from_account_db: AccountModel
-    ) -> Decimal | None:
-        if data.source_currency == data.destination_currency:
-            derived_destination_amount: Decimal | None = data.source_amount
-        elif data.destination_currency == self.base_currency:
-            derived_destination_amount: Decimal | None = self._quantize_amount(
-                amount=data.source_amount / from_account_db.base_currency_rate
-            )
-        else:
-            derived_destination_amount: Decimal | None = None
-
-        return derived_destination_amount
 
     async def _prepare_transaction(self, *, data: TransferRequest) -> TransactionCreate:
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
@@ -78,18 +76,12 @@ class Transfer(TransactionProcessor[TransferRequest]):
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
 
-        derived_destination_amount: Decimal | None = self.__get_derived_destination_amount(
-            data=data, from_account_db=from_account_db
-        )
-        if derived_destination_amount is not None:
-            if data.destination_amount is not None and data.destination_amount != derived_destination_amount:
-                raise TransferAmountMismatch(
-                    destination_amount=data.destination_amount,
-                    derived_destination_amount=derived_destination_amount,
-                    logger=logger,
-                )
-
-            data.destination_amount = derived_destination_amount
+        if data.source_currency == data.destination_currency:
+            data.destination_amount = data.source_amount
+        elif data.destination_currency == self.base_currency:
+            data.destination_amount = self._quantize_amount(
+                amount=data.source_amount / from_account_db.base_currency_rate
+            )
 
         if data.source_currency == self.base_currency:
             base_currency_amount: Decimal = data.source_amount

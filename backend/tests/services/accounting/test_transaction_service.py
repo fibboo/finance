@@ -152,7 +152,6 @@ async def test_get_transactions(db: AsyncSession):
         source_amount=Decimal("100"),
         source_currency="EUR",
         destination_currency="USD",
-        destination_amount=Decimal("105"),
         from_account_id=account_income_db.id,
         to_account_id=account_checking_db.id,
         comment="test",

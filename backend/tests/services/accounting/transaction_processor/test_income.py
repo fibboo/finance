@@ -1066,22 +1066,24 @@ async def test_create_income_other_source_currency_without_base_currency_amount(
     assert account_db_after.balance == Decimal("0")
 
 
-# the base currency amount is derived from the credited amount, or from the incoming one when only it is in USD
+# the base currency amount is derived whenever either currency is USD, so even the derived value is refused
 @pytest.mark.parametrize(
-    "source_amount, source_currency, destination_amount, destination_currency",
+    "source_amount, source_currency, destination_amount, destination_currency, base_currency_amount",
     [
-        (Decimal("1000"), "USD", Decimal("1000"), "USD"),
-        (Decimal("1000"), "EUR", Decimal("1000"), "USD"),
-        (Decimal("1000"), "USD", Decimal("950"), "EUR"),
+        (Decimal("1000"), "USD", Decimal("1000"), "USD", Decimal("900")),
+        (Decimal("1000"), "USD", Decimal("1000"), "USD", Decimal("1000")),
+        (Decimal("1000"), "EUR", Decimal("1080"), "USD", Decimal("1080")),
+        (Decimal("1000"), "USD", Decimal("950"), "EUR", Decimal("1000")),
     ],
 )
-async def test_create_income_base_currency_amount_differs(
+async def test_create_income_base_currency_amount_not_allowed(
     db: AsyncSession,
     db_transaction: AsyncSession,
     source_amount: Decimal,
     source_currency: str,
     destination_amount: Decimal,
     destination_currency: str,
+    base_currency_amount: Decimal,
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -1112,7 +1114,7 @@ async def test_create_income_base_currency_amount_differs(
         to_account_id=account_db.id,
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
-        base_currency_amount=Decimal("900"),
+        base_currency_amount=base_currency_amount,
     )
     await db.close()
 
@@ -1128,7 +1130,8 @@ async def test_create_income_base_currency_amount_differs(
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert exc.value.message == "Base currency amount not allowed"
     assert exc.value.log_message == (
-        f"A base_currency_amount of 900 was sent for account `{account_db.id}`, whose base currency amount is derived"
+        f"A base_currency_amount of {base_currency_amount} was sent for account `{account_db.id}`, "
+        f"whose base currency amount is derived"
     )
     assert exc.value.log_level == LogLevelType.WARNING
     assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED
@@ -1139,9 +1142,8 @@ async def test_create_income_base_currency_amount_differs(
     assert account_db_after.balance == Decimal("0")
 
 
-@pytest.mark.parametrize("base_currency_amount", [None, Decimal("1080")])
 async def test_create_income_into_base_currency_account_takes_credited_amount(
-    db: AsyncSession, db_transaction: AsyncSession, base_currency_amount: Decimal | None
+    db: AsyncSession, db_transaction: AsyncSession
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -1169,7 +1171,6 @@ async def test_create_income_into_base_currency_account_takes_credited_amount(
         to_account_id=account_db.id,
         income_source_id=income_source_db.id,
         income_period=date(2025, 1, 1),
-        base_currency_amount=base_currency_amount,
     )
     await db.close()
 

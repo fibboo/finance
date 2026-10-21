@@ -30,10 +30,9 @@ async def create_account(
 ) -> Account:
     await currency_service.get_currency(db=db, code=create_data.currency)
 
-    fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+    base_currency_rate: Decimal = utils.get_new_account_base_currency_rate(
         currency=create_data.currency, base_currency=base_currency
     )
-    base_currency_rate: Decimal = fixed_rate if fixed_rate is not None else Decimal("0")
     create_data: AccountCreate = AccountCreate(
         **create_data.model_dump(), user_id=user_id, base_currency_rate=base_currency_rate
     )
@@ -48,7 +47,7 @@ async def create_account(
 
 
 async def create_default_account(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyCode) -> None:
-    base_currency_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+    base_currency_rate: Decimal = utils.get_new_account_base_currency_rate(
         currency=base_currency, base_currency=base_currency
     )
     create_data = AccountCreate(
