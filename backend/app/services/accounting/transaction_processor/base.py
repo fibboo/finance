@@ -15,8 +15,10 @@ from app.exceptions.forbidden_403 import (
     NoAccountBaseCurrencyRate,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
+from app.exceptions.unprocessable_422 import AccountKindMismatch
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
+from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
 from app.schemas.accounting.transaction import Transaction, TransactionCreate, TransactionCreateRequest, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
@@ -54,6 +56,16 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
         if account_db.status == EntityStatusType.DELETED:
             raise DeletedAccountTransactionForbidden(account_id=account_db.id, logger=logger)
+
+        if account_db.kind not in MONEY_ACCOUNT_KINDS:
+            raise AccountKindMismatch(account_id=account_db.id, kinds=MONEY_ACCOUNT_KINDS, logger=logger)
+
+    async def _validate_counter_account(self, *, account_id: UUID, kind: AccountKind) -> None:
+        account_db: AccountModel | None = await account_crud.get_or_none(
+            db=self.db, id=account_id, user_id=self.user_id, kind=kind, status=EntityStatusType.ACTIVE
+        )
+        if account_db is None:
+            raise AccountKindMismatch(account_id=account_id, kinds=[kind], logger=logger)
 
     async def _validate_transaction_from_account(self, *, data: T, from_account_db: AccountModel | None) -> None:
         self._validate_account_is_active(account_id=data.from_account_id, account_db=from_account_db)

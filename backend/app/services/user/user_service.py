@@ -33,7 +33,7 @@ from app.schemas.user.user import (
     USERNAME_MAX_LENGTH,
     USERNAME_MIN_LENGTH,
 )
-from app.services.accounting import account_service, category_service, currency_service
+from app.services.accounting import account_service, currency_service
 
 logger = get_logger(logger_name=__name__)
 
@@ -139,8 +139,7 @@ async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: C
     if updated_user_db is None:
         raise BaseCurrencyAlreadySet(user_id=user_id, logger=logger)
 
-    await account_service.create_default_account(db=db, user_id=user_id, base_currency=base_currency)
-    await category_service.create_default_categories(db=db, user_id=user_id)
+    await account_service.create_default_accounts(db=db, user_id=user_id, base_currency=base_currency)
 
     updated_user: User = User.model_validate(updated_user_db)
     return updated_user

@@ -1,0 +1,67 @@
+import pytest
+from pydantic import ValidationError
+
+from app.schemas.accounting.account import AccountCreateRequest, AccountKind, CategoryType
+
+
+@pytest.mark.parametrize(
+    "kind, currency, category_type",
+    [
+        (AccountKind.ASSET, "USD", None),
+        (AccountKind.LIABILITY, "EUR", None),
+        (AccountKind.INCOME, None, None),
+        (AccountKind.EXPENSE, None, CategoryType.FIXED),
+    ],
+)
+def test_account_create_request_ok(kind: AccountKind, currency: str | None, category_type: CategoryType | None):
+    # Act
+    request: AccountCreateRequest = AccountCreateRequest(
+        kind=kind, name="Account", currency=currency, category_type=category_type
+    )
+
+    # Assert
+    assert request.kind == kind
+    assert request.currency == currency
+    assert request.category_type == category_type
+
+
+def test_account_create_request_equity():
+    # Act / Assert
+    with pytest.raises(ValidationError) as exc:
+        AccountCreateRequest(kind=AccountKind.EQUITY, name="Adjustments")
+
+    assert "EQUITY accounts can not be created" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "kind, currency",
+    [
+        (AccountKind.ASSET, None),
+        (AccountKind.LIABILITY, None),
+        (AccountKind.INCOME, "USD"),
+    ],
+)
+def test_account_create_request_currency_mismatch(kind: AccountKind, currency: str | None):
+    # Act / Assert
+    with pytest.raises(ValidationError) as exc:
+        AccountCreateRequest(kind=kind, name="Account", currency=currency)
+
+    assert "currency should be filled for ASSET and LIABILITY accounts only" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "kind, currency, category_type",
+    [
+        (AccountKind.EXPENSE, None, None),
+        (AccountKind.ASSET, "USD", CategoryType.VARIABLE),
+        (AccountKind.INCOME, None, CategoryType.VARIABLE),
+    ],
+)
+def test_account_create_request_category_type_mismatch(
+    kind: AccountKind, currency: str | None, category_type: CategoryType | None
+):
+    # Act / Assert
+    with pytest.raises(ValidationError) as exc:
+        AccountCreateRequest(kind=kind, name="Account", currency=currency, category_type=category_type)
+
+    assert "category_type should be filled for EXPENSE accounts only" in str(exc.value)

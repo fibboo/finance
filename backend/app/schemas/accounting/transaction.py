@@ -17,8 +17,6 @@ from pydantic import (
 )
 
 from app.schemas.accounting.account import Account
-from app.schemas.accounting.category import Category
-from app.schemas.accounting.income_source import IncomeSource
 from app.schemas.accounting.location import Location
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.utils import utils
@@ -168,11 +166,11 @@ class Transaction(TransactionCreate):
     id: UUID  # noqa: A003
     status: EntityStatusType
 
-    income_source: IncomeSource | None = None
+    income_source: Account | None = None
     from_account: Account | None = None
     to_account: Account | None = None
 
-    category: Category | None = None
+    category: Account | None = None
     location: Location | None = None
 
     created_at: datetime

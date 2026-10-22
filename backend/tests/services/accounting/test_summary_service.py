@@ -5,8 +5,6 @@ from uuid import UUID, uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.accounting.account import account_crud
-from app.crud.accounting.category import category_crud
-from app.crud.accounting.income_source import income_source_crud
 from app.crud.accounting.location import location_crud
 from app.crud.accounting.transaction import (
     adjustment_transaction_crud,
@@ -15,11 +13,8 @@ from app.crud.accounting.transaction import (
     transfer_transaction_crud,
 )
 from app.models.accounting.account import Account as AccountModel
-from app.models.accounting.category import Category as CategoryModel
-from app.models.accounting.income_source import IncomeSource as IncomeSourceModel
 from app.models.accounting.location import Location as LocationModel
-from app.schemas.accounting.category import CategoryCreate, CategoryType
-from app.schemas.accounting.income_source import IncomeSourceCreate
+from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryType
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.summary import Summary
 from app.schemas.base import EntityStatusType
@@ -35,6 +30,7 @@ async def test_get_summary_ok(db: AsyncSession):
     usd_account_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Checking",
             "currency": "USD",
@@ -46,6 +42,7 @@ async def test_get_summary_ok(db: AsyncSession):
     eur_account_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Euro",
             "currency": "EUR",
@@ -57,6 +54,7 @@ async def test_get_summary_ok(db: AsyncSession):
     await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Savings",
             "currency": "GEL",
@@ -70,6 +68,7 @@ async def test_get_summary_ok(db: AsyncSession):
     await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Deleted",
             "currency": "USD",
@@ -82,6 +81,7 @@ async def test_get_summary_ok(db: AsyncSession):
     other_account_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": other_user_id,
             "name": "Other",
             "currency": "USD",
@@ -91,14 +91,28 @@ async def test_get_summary_ok(db: AsyncSession):
         commit=True,
     )
 
-    income_source_db: IncomeSourceModel = await income_source_crud.create(
-        db=db, obj_in=IncomeSourceCreate(user_id=user_id, name="Job"), commit=True
+    income_source_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Job", base_currency_rate=Decimal("0")),
+        commit=True,
     )
-    other_income_source_db: IncomeSourceModel = await income_source_crud.create(
-        db=db, obj_in=IncomeSourceCreate(user_id=other_user_id, name="Job"), commit=True
+    other_income_source_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=other_user_id, kind=AccountKind.INCOME, name="Job", base_currency_rate=Decimal("0")
+        ),
+        commit=True,
     )
-    category_db: CategoryModel = await category_crud.create(
-        db=db, obj_in=CategoryCreate(user_id=user_id, name="Food", type=CategoryType.VARIABLE), commit=True
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id,
+            kind=AccountKind.EXPENSE,
+            name="Food",
+            category_type=CategoryType.VARIABLE,
+            base_currency_rate=Decimal("0"),
+        ),
+        commit=True,
     )
     location_db: LocationModel = await location_crud.create(
         db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
@@ -249,6 +263,7 @@ async def test_get_summary_empty_month(db: AsyncSession):
     await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Checking",
             "currency": "USD",
@@ -278,6 +293,7 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
     account_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Checking",
             "currency": "USD",
@@ -286,8 +302,16 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
         },
         commit=True,
     )
-    category_db: CategoryModel = await category_crud.create(
-        db=db, obj_in=CategoryCreate(user_id=user_id, name="Rent", type=CategoryType.FIXED), commit=True
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id,
+            kind=AccountKind.EXPENSE,
+            name="Rent",
+            category_type=CategoryType.FIXED,
+            base_currency_rate=Decimal("0"),
+        ),
+        commit=True,
     )
     location_db: LocationModel = await location_crud.create(
         db=db, obj_in=LocationCreate(user_id=user_id, name="Landlord"), commit=True
@@ -328,6 +352,7 @@ async def test_get_summary_account_without_rate(db: AsyncSession):
     await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Checking",
             "currency": "USD",
@@ -341,6 +366,7 @@ async def test_get_summary_account_without_rate(db: AsyncSession):
     await account_crud.create(
         db=db,
         obj_in={
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Lari",
             "currency": "GEL",
@@ -355,3 +381,52 @@ async def test_get_summary_account_without_rate(db: AsyncSession):
 
     # Assert
     assert str(summary.total_balance) == "50.00"
+
+
+async def test_get_summary_money_accounts_only(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Checking",
+            "currency": "USD",
+            "balance": Decimal("50.00"),
+            "base_currency_rate": Decimal("1"),
+        },
+        commit=True,
+    )
+    await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.LIABILITY,
+            "user_id": user_id,
+            "name": "Credit card",
+            "currency": "USD",
+            "balance": Decimal("-20.00"),
+            "base_currency_rate": Decimal("1"),
+        },
+        commit=True,
+    )
+
+    # A category with a balance and a rate, as the ledger will give it, is not money the user holds
+    await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.EXPENSE,
+            "user_id": user_id,
+            "name": "Groceries",
+            "category_type": CategoryType.VARIABLE,
+            "balance": Decimal("70.00"),
+            "base_currency_rate": Decimal("1"),
+        },
+        commit=True,
+    )
+
+    # Act
+    summary: Summary = await summary_service.get_summary(db=db, user_id=user_id, month=date(2026, 10, 1))
+
+    # Assert
+    assert summary.total_balance == Decimal("30.00")

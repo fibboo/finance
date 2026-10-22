@@ -47,12 +47,14 @@ def get_base_currency_balance(*, balance: Decimal, base_currency_rate: Decimal) 
     return base_currency_balance
 
 
-def get_fixed_base_currency_rate(*, currency: CurrencyCode, base_currency: CurrencyCode | None) -> Decimal | None:
+def get_fixed_base_currency_rate(
+    *, currency: CurrencyCode | None, base_currency: CurrencyCode | None
+) -> Decimal | None:
     fixed_rate: Decimal | None = Decimal("1") if currency == base_currency else None
     return fixed_rate
 
 
-def get_new_account_base_currency_rate(*, currency: CurrencyCode, base_currency: CurrencyCode) -> Decimal:
+def get_new_account_base_currency_rate(*, currency: CurrencyCode | None, base_currency: CurrencyCode) -> Decimal:
     fixed_rate: Decimal | None = get_fixed_base_currency_rate(currency=currency, base_currency=base_currency)
     base_currency_rate: Decimal = fixed_rate if fixed_rate is not None else Decimal("0")
     return base_currency_rate
