@@ -19,12 +19,13 @@ type BaseCurrencyFormOutput = z.output<typeof baseCurrencyFormSchema>;
 
 type BaseCurrencyFormProps = Readonly<{
   currencies: readonly DictionaryItem[] | undefined;
+  copy: ReactNode;
   note: ReactNode;
 }>;
 
 const SKELETON_CURRENCY_COUNT = 6;
 
-export function BaseCurrencyForm({ currencies, note }: BaseCurrencyFormProps) {
+export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormProps) {
   const [search, setSearch] = useState('');
   const errorId = useId();
   const { control, register, handleSubmit, setError, formState } = useForm<
@@ -63,82 +64,87 @@ export function BaseCurrencyForm({ currencies, note }: BaseCurrencyFormProps) {
         })(event);
       }}
     >
-      <div className={styles['panel']} aria-busy={currencies === undefined}>
+      <div className={styles['copy']}>
+        {copy}
+        <div className={styles['note']}>{note}</div>
+      </div>
+      <div className={styles['formPanel']}>
+        <div className={styles['panel']} aria-busy={currencies === undefined}>
+          {currencies === undefined ? (
+            <>
+              <Skeleton className={styles['searchSkeleton']} />
+              <div className={styles['currencies']}>
+                {listSkeletonKeys(SKELETON_CURRENCY_COUNT).map((key) => (
+                  <span key={key} className={styles['currencySkeleton']}>
+                    <Skeleton className={styles['codeSkeleton']} />
+                    <Skeleton className={styles['nameSkeleton']} />
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <label className={styles['search']}>
+                <svg className={styles['searchIcon']} aria-hidden="true" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <span className="visually-hidden">Search currency</span>
+                <input
+                  type="search"
+                  className={styles['searchInput']}
+                  placeholder="Code or name"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                  }}
+                />
+              </label>
+              <fieldset
+                className={styles['currencies']}
+                aria-describedby={currencyError === undefined ? undefined : errorId}
+              >
+                <legend className="visually-hidden">Base currency</legend>
+                {shownCurrencies.map((currency) => (
+                  <label key={currency.key} className={styles['currency']}>
+                    <input
+                      type="radio"
+                      className={styles['radio']}
+                      value={currency.key}
+                      {...register('base_currency')}
+                    />
+                    <span className={styles['code']}>{currency.key}</span>{' '}
+                    <span className={styles['name']}>{currency.label}</span>
+                    <svg className={styles['check']} aria-hidden="true" viewBox="0 0 24 24">
+                      <path d="m5 12 4.5 4.5L19 7" />
+                    </svg>
+                  </label>
+                ))}
+                {shownCurrencies.length === 0 && (
+                  <p className={styles['empty']}>No currency matches the search.</p>
+                )}
+              </fieldset>
+            </>
+          )}
+        </div>
+        {currencyError !== undefined && (
+          <p id={errorId} className={styles['error']} role="alert">
+            {currencyError}
+          </p>
+        )}
+        {requestError !== undefined && (
+          <p className={styles['error']} role="alert">
+            {requestError}
+          </p>
+        )}
         {currencies === undefined ? (
-          <>
-            <Skeleton className={styles['searchSkeleton']} />
-            <div className={styles['currencies']}>
-              {listSkeletonKeys(SKELETON_CURRENCY_COUNT).map((key) => (
-                <span key={key} className={styles['currencySkeleton']}>
-                  <Skeleton className={styles['codeSkeleton']} />
-                  <Skeleton className={styles['nameSkeleton']} />
-                </span>
-              ))}
-            </div>
-          </>
+          <Skeleton className={styles['startSkeleton']} />
         ) : (
-          <>
-            <label className={styles['search']}>
-              <svg className={styles['searchIcon']} aria-hidden="true" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3.5-3.5" />
-              </svg>
-              <span className="visually-hidden">Search currency</span>
-              <input
-                type="search"
-                className={styles['searchInput']}
-                placeholder="Code or name"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                }}
-              />
-            </label>
-            <fieldset
-              className={styles['currencies']}
-              aria-describedby={currencyError === undefined ? undefined : errorId}
-            >
-              <legend className="visually-hidden">Base currency</legend>
-              {shownCurrencies.map((currency) => (
-                <label key={currency.key} className={styles['currency']}>
-                  <input
-                    type="radio"
-                    className={styles['radio']}
-                    value={currency.key}
-                    {...register('base_currency')}
-                  />
-                  <span className={styles['code']}>{currency.key}</span>{' '}
-                  <span className={styles['name']}>{currency.label}</span>
-                  <svg className={styles['check']} aria-hidden="true" viewBox="0 0 24 24">
-                    <path d="m5 12 4.5 4.5L19 7" />
-                  </svg>
-                </label>
-              ))}
-              {shownCurrencies.length === 0 && (
-                <p className={styles['empty']}>No currency matches the search.</p>
-              )}
-            </fieldset>
-          </>
+          <button type="submit" className={styles['start']} disabled={setBaseCurrency.isPending}>
+            {pickedCurrency === '' ? 'Start' : `Start with ${pickedCurrency}`}
+          </button>
         )}
       </div>
-      {currencyError !== undefined && (
-        <p id={errorId} className={styles['error']} role="alert">
-          {currencyError}
-        </p>
-      )}
-      {requestError !== undefined && (
-        <p className={styles['error']} role="alert">
-          {requestError}
-        </p>
-      )}
-      {note}
-      {currencies === undefined ? (
-        <Skeleton className={styles['startSkeleton']} />
-      ) : (
-        <button type="submit" className={styles['start']} disabled={setBaseCurrency.isPending}>
-          {pickedCurrency === '' ? 'Start' : `Start with ${pickedCurrency}`}
-        </button>
-      )}
     </form>
   );
 }

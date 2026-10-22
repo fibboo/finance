@@ -15,19 +15,22 @@ export function Component() {
 
   return (
     <main className={styles['onboarding']}>
-      <div className={styles['copy']}>
-        <header className={styles['header']}>
-          <Logo />
-          <SignOutButton appearance="text" />
-        </header>
-        <div className={styles['intro']}>
-          <h1 className={styles['title']}>Pick your base currency</h1>
-          <p className={styles['text']}>
-            Totals and monthly summaries are counted in it. We’ll open a Wallet in this currency.
-          </p>
-        </div>
-      </div>
       <BaseCurrencyForm
+        copy={
+          <>
+            <header className={styles['header']}>
+              <Logo />
+              <SignOutButton appearance="text" />
+            </header>
+            <div className={styles['intro']}>
+              <h1 className={styles['title']}>Pick your base currency</h1>
+              <p className={styles['text']}>
+                Totals and monthly summaries are counted in it. We’ll open a Wallet in this
+                currency.
+              </p>
+            </div>
+          </>
+        }
         currencies={dictionaries?.currencies}
         note={
           <p className={styles['note']}>

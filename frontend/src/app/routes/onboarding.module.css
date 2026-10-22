@@ -11,12 +11,6 @@
   gap: var(--space-4);
 }
 
-.copy {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
 .header {
   padding-left: var(--space-2);
   display: flex;
@@ -68,17 +62,8 @@
 
 @media (--desktop) {
   .onboarding {
-    position: relative;
     max-width: none;
     padding: var(--space-4);
-    display: grid;
-    grid-template-columns: 5fr 7fr;
-  }
-
-  .copy {
-    padding: var(--space-10) var(--space-12);
-    border-radius: var(--radius-bar);
-    background: var(--color-panel);
   }
 
   .header {
@@ -104,10 +89,6 @@
   }
 
   .note {
-    position: absolute;
-    bottom: calc(var(--space-4) + var(--space-10));
-    left: calc(var(--space-4) + var(--space-12));
-    width: calc((100% - 3 * var(--space-4)) * 5 / 12 - 2 * var(--space-12));
     padding: 0;
     font-size: var(--font-size-md);
   }

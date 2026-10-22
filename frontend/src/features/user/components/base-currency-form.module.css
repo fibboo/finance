@@ -8,6 +8,20 @@
   gap: var(--space-4);
 }
 
+.copy,
+.formPanel {
+  display: contents;
+}
+
+.note {
+  order: 1;
+}
+
+.start,
+.startSkeleton {
+  order: 2;
+}
+
 .panel {
   flex-grow: 1;
   min-height: 0;
@@ -201,9 +215,31 @@
 
 @media (--desktop) {
   .baseCurrencyForm {
-    padding: var(--space-6);
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .copy,
+  .formPanel {
+    min-height: 0;
     border-radius: var(--radius-bar);
+    display: flex;
+    flex-direction: column;
     background: var(--color-panel);
+  }
+
+  .copy {
+    padding: var(--space-10) var(--space-12);
+  }
+
+  .formPanel {
+    padding: var(--space-6);
+    gap: var(--space-4);
+  }
+
+  .note {
+    margin-top: auto;
   }
 
   .panel {
