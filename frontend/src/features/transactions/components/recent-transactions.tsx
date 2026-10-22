@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
+import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 
 import { transactionQueries } from '../api/transaction-queries';
 import styles from './recent-transactions.module.css';
@@ -9,7 +10,6 @@ import { TransactionRow } from './transaction-row';
 
 const RECENT_TRANSACTION_COUNT = 6;
 const EARLIEST_TRANSACTION_DATE = '0001-01-01';
-const SKELETON_TRANSACTIONS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
 
 function readLocalToday(): string {
   const today = new Date();
@@ -30,15 +30,23 @@ export function RecentTransactions() {
     }),
   );
   const titleId = useId();
-  if (isPending) {
-    return (
-      <section className={styles['recentTransactions']} aria-labelledby={titleId} aria-busy="true">
-        <h2 id={titleId} className={styles['title']}>
-          Recent
-        </h2>
+  if (!isPending && transactionPage === undefined) {
+    return null;
+  }
+
+  return (
+    <section
+      className={styles['recentTransactions']}
+      aria-labelledby={titleId}
+      aria-busy={isPending}
+    >
+      <h2 id={titleId} className={styles['title']}>
+        Recent
+      </h2>
+      {transactionPage === undefined ? (
         <ul className={styles['transactions']}>
-          {SKELETON_TRANSACTIONS.map((transaction) => (
-            <li key={transaction} className={styles['skeletonRow']}>
+          {listSkeletonKeys(RECENT_TRANSACTION_COUNT).map((key) => (
+            <li key={key} className={styles['skeletonRow']}>
               <Skeleton className={styles['dotSkeleton']} />
               <Skeleton className={styles['titleSkeleton']} />
               <Skeleton className={styles['accountsSkeleton']} />
@@ -47,20 +55,7 @@ export function RecentTransactions() {
             </li>
           ))}
         </ul>
-      </section>
-    );
-  }
-
-  if (transactionPage === undefined) {
-    return null;
-  }
-
-  return (
-    <section className={styles['recentTransactions']} aria-labelledby={titleId}>
-      <h2 id={titleId} className={styles['title']}>
-        Recent
-      </h2>
-      {transactionPage.items.length > 0 ? (
+      ) : transactionPage.items.length > 0 ? (
         <ul className={styles['transactions']}>
           {transactionPage.items.map((transaction) => (
             <TransactionRow key={transaction.id} transaction={transaction} />

@@ -1,6 +1,4 @@
 .skeleton {
-  display: block;
-  flex-shrink: 0;
   background-image: linear-gradient(
     90deg,
     transparent 30%,
@@ -13,6 +11,8 @@
 }
 
 :where(.skeleton) {
+  display: block;
+  flex-shrink: 0;
   border-radius: var(--radius-full);
   background-color: var(--color-bone);
 }

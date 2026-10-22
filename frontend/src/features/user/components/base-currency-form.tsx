@@ -5,6 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
+import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import type { components } from '@/lib/api-schema';
 import { ApiError } from '@/lib/api-error';
 
@@ -20,7 +21,7 @@ type BaseCurrencyFormProps = Readonly<{
   currencies: readonly DictionaryItem[] | undefined;
 }>;
 
-const SKELETON_CURRENCIES = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
+const SKELETON_CURRENCY_COUNT = 6;
 
 export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
   const [search, setSearch] = useState('');
@@ -66,8 +67,8 @@ export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
           <>
             <Skeleton className={styles['searchSkeleton']} />
             <div className={styles['currencies']}>
-              {SKELETON_CURRENCIES.map((currency) => (
-                <span key={currency} className={styles['currencySkeleton']}>
+              {listSkeletonKeys(SKELETON_CURRENCY_COUNT).map((key) => (
+                <span key={key} className={styles['currencySkeleton']}>
                   <Skeleton className={styles['codeSkeleton']} />
                   <Skeleton className={styles['nameSkeleton']} />
                 </span>

@@ -4,6 +4,7 @@ import { Navigate, useSearchParams } from 'react-router';
 
 import { Logo } from '@/components/logo/logo';
 import { Skeleton } from '@/components/skeleton/skeleton';
+import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import type { components } from '@/lib/api-schema';
 
 import { buildAuthorizeUrl } from '../api/pkce';
@@ -19,7 +20,7 @@ type SignInPageProps = Readonly<{
   providerTypes: readonly components['schemas']['DictionaryItem'][] | undefined;
 }>;
 
-const SKELETON_PROVIDERS = ['first', 'second'];
+const SKELETON_PROVIDER_COUNT = 2;
 
 const providerPresentations: Record<string, ProviderPresentation> = {
   TELEGRAM: {
@@ -82,8 +83,8 @@ export function SignInPage({ providerTypes }: SignInPageProps) {
           </p>
         )}
         {providerTypes === undefined &&
-          SKELETON_PROVIDERS.map((provider) => (
-            <Skeleton key={provider} className={styles['buttonSkeleton']} />
+          listSkeletonKeys(SKELETON_PROVIDER_COUNT).map((key) => (
+            <Skeleton key={key} className={styles['buttonSkeleton']} />
           ))}
         {providerTypes?.map((providerType) => {
           const presentation = providerPresentations[providerType.key];

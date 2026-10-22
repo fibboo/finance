@@ -35,10 +35,6 @@
   gap: var(--space-1-5) var(--space-3);
 }
 
-.skeletonRow:nth-child(n + 4) {
-  display: none;
-}
-
 .dotSkeleton {
   grid-area: dot;
   width: var(--size-dot);
@@ -123,10 +119,6 @@
     grid-template-columns: var(--size-dot) 2fr 2fr 1fr var(--size-amount-column);
     grid-template-areas: 'dot title accounts date amount';
     column-gap: var(--space-3-5);
-  }
-
-  .skeletonRow:nth-child(n + 4) {
-    display: grid;
   }
 
   .accountsSkeleton,
