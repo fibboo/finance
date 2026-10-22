@@ -80,7 +80,7 @@ The port is published on `127.0.0.1` only, since anyone who reaches the mock ser
 When a sign-in reaches the mock server, it shows a form: type any username, which becomes the user's `sub`, and press
 Sign-in. The optional claims field takes a JSON object of extra ID token claims, such as
 `{"preferred_username": "alice", "given_name": "Alice", "email": "alice@example.com", "email_verified": true}`. Without
-`preferred_username` the user is named `<provider>_<username>`.
+`preferred_username` the user is named `user_` followed by 8 random lowercase letters and digits.
 
 ### Upgrading from PostgreSQL 15
 

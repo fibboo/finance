@@ -1,4 +1,4 @@
-import hashlib
+import re
 from uuid import UUID, uuid4
 
 import pytest
@@ -84,20 +84,50 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
 
     # Assert
     created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
-    assert created_user_db.username == "telegram_1111111111"
+    assert re.fullmatch(r"user_[a-z0-9]{8}", created_user_db.username) is not None
     assert created_user_db.external_users[0].username == "stenbot"
 
 
+async def test_create_user_fallback_username_taken(
+    db: AsyncSession, db_transaction: AsyncSession, monkeypatch: pytest.MonkeyPatch
+):
+    # Arrange
+    # the first fallback username is user_aaaaaaaa, every later one user_bbbbbbbb
+    suffix_characters = iter("a" * 8 + "b" * 32)
+    monkeypatch.setattr("secrets.choice", lambda alphabet: next(suffix_characters))
+    await user_crud.create(
+        db=db, obj_in=UserCreate(username="user_aaaaaaaa", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    identity = ProviderIdentity(
+        provider=ProviderType.TELEGRAM,
+        external_id="1111111111",
+        username=None,
+        first_name="Sten",
+        last_name=None,
+        avatar=None,
+        email=None,
+    )
+
+    # Act
+    user_db: UserModel | None = await create_user(db=db_transaction, identity=identity)
+    await db_transaction.commit()
+
+    # Assert
+    created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
+    assert created_user_db.username == "user_bbbbbbbb"
+    assert created_user_db.external_users[0].username == "user_bbbbbbbb"
+
+
 @pytest.mark.parametrize(
-    "username, avatar, expected_username, expected_avatar",
+    "username, avatar, expected_username_pattern, expected_avatar",
     [
         (
             "jd",
             "https://t.me/i/userpic/320/johndoe.jpg",
-            "telegram_1111111111",
+            r"user_[a-z0-9]{8}",
             "https://t.me/i/userpic/320/johndoe.jpg",
         ),
-        ("j" * 65, "ab", "telegram_1111111111", None),
+        ("j" * 65, "ab", r"user_[a-z0-9]{8}", None),
         ("johndoe", "https://t.me/" + "p" * 2560, "johndoe", None),
     ],
     ids=["username_too_short", "username_too_long_and_avatar_too_short", "avatar_too_long"],
@@ -107,7 +137,7 @@ async def test_create_user_profile_out_of_bounds(
     db_transaction: AsyncSession,
     username: str,
     avatar: str,
-    expected_username: str,
+    expected_username_pattern: str,
     expected_avatar: str | None,
 ):
     # Arrange
@@ -128,18 +158,17 @@ async def test_create_user_profile_out_of_bounds(
     # Assert
     # a username users.username cannot hold falls back, and an avatar users.avatar cannot hold is dropped
     created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
-    assert created_user_db.username == expected_username
+    assert re.fullmatch(expected_username_pattern, created_user_db.username) is not None
     assert created_user_db.avatar == expected_avatar
     assert created_user_db.external_users[0].username == username
     assert created_user_db.external_users[0].avatar == avatar
 
 
-async def test_create_user_long_external_id(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_user_without_username(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    external_id: str = "1" * 100
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
-        external_id=external_id,
+        external_id="1111111111",
         username=None,
         first_name="Sten",
         last_name=None,
@@ -153,18 +182,22 @@ async def test_create_user_long_external_id(db: AsyncSession, db_transaction: As
 
     # Assert
     created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
-    assert created_user_db.username == f"telegram_{hashlib.sha256(external_id.encode()).hexdigest()[:32]}"
+    assert re.fullmatch(r"user_[a-z0-9]{8}", created_user_db.username) is not None
     assert created_user_db.external_users[0].username == created_user_db.username
-    assert created_user_db.external_users[0].external_id == external_id
+    assert created_user_db.external_users[0].external_id == "1111111111"
 
 
-async def test_create_user_no_free_username(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_user_no_free_username(
+    db: AsyncSession, db_transaction: AsyncSession, monkeypatch: pytest.MonkeyPatch
+):
     # Arrange
+    # every fallback username is user_aaaaaaaa
+    monkeypatch.setattr("secrets.choice", lambda alphabet: "a")
     await user_crud.create_batch(
         db=db,
         objs_in=[
             UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM),
-            UserCreate(username="telegram_1111111111", registration_provider=ProviderType.TELEGRAM),
+            UserCreate(username="user_aaaaaaaa", registration_provider=ProviderType.TELEGRAM),
         ],
         commit=True,
     )
