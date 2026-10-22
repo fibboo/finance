@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
@@ -19,11 +19,12 @@ type BaseCurrencyFormOutput = z.output<typeof baseCurrencyFormSchema>;
 
 type BaseCurrencyFormProps = Readonly<{
   currencies: readonly DictionaryItem[] | undefined;
+  note: ReactNode;
 }>;
 
 const SKELETON_CURRENCY_COUNT = 6;
 
-export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
+export function BaseCurrencyForm({ currencies, note }: BaseCurrencyFormProps) {
   const [search, setSearch] = useState('');
   const errorId = useId();
   const { control, register, handleSubmit, setError, formState } = useForm<
@@ -130,14 +131,7 @@ export function BaseCurrencyForm({ currencies }: BaseCurrencyFormProps) {
           {requestError}
         </p>
       )}
-      <p className={styles['note']}>
-        <svg className={styles['noteIcon']} aria-hidden="true" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 8v5M12 16.5v.5" />
-        </svg>
-        The base currency can’t be changed later. Accounts in other currencies can be added any
-        time.
-      </p>
+      {note}
       {currencies === undefined ? (
         <Skeleton className={styles['startSkeleton']} />
       ) : (

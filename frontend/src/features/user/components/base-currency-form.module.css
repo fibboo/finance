@@ -144,27 +144,6 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.note {
-  margin: 0;
-  padding: 0 var(--space-2);
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-note);
-  color: var(--color-muted);
-}
-
-.noteIcon {
-  flex-shrink: 0;
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  fill: none;
-  stroke: currentcolor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-}
-
 .searchSkeleton {
   height: var(--size-button);
   border-radius: var(--radius-control);
@@ -222,14 +201,15 @@
 
 @media (--desktop) {
   .baseCurrencyForm {
-    display: contents;
+    padding: var(--space-6);
+    border-radius: var(--radius-bar);
+    background: var(--color-panel);
   }
 
   .panel {
-    grid-area: form;
-    padding: var(--space-6) var(--space-6) 0;
+    padding: 0;
+    border-radius: 0;
     gap: var(--space-4);
-    background: none;
   }
 
   .search,
@@ -272,25 +252,10 @@
     grid-column: 1 / -1;
   }
 
-  .error {
-    grid-column: 2;
-    margin-top: var(--space-4);
-    padding: 0 var(--space-8);
-  }
-
-  .note {
-    grid-area: note;
-    align-self: end;
-    padding: 0 var(--space-12) var(--space-10);
-    font-size: var(--font-size-md);
-  }
-
   .start,
   .startSkeleton {
-    grid-area: action;
-    justify-self: end;
+    align-self: flex-end;
     min-width: var(--size-button-wide);
-    margin: var(--space-4) var(--space-6) var(--space-6);
   }
 
   .start {

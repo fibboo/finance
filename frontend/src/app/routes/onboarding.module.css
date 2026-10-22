@@ -11,6 +11,12 @@
   gap: var(--space-4);
 }
 
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .header {
   padding-left: var(--space-2);
   display: flex;
@@ -39,49 +45,50 @@
   color: var(--color-muted);
 }
 
+.note {
+  margin: 0;
+  padding: 0 var(--space-2);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-note);
+  color: var(--color-muted);
+}
+
+.noteIcon {
+  flex-shrink: 0;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
 @media (--desktop) {
   .onboarding {
+    position: relative;
     max-width: none;
     padding: var(--space-4);
     display: grid;
     grid-template-columns: 5fr 7fr;
-    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
-    grid-template-areas:
-      'header form'
-      'intro form'
-      'note .'
-      'note .'
-      'note action';
-    gap: 0 var(--space-4);
-    isolation: isolate;
   }
 
-  .onboarding::before,
-  .onboarding::after {
-    content: '';
-    z-index: -1;
-    grid-row: 1 / -1;
+  .copy {
+    padding: var(--space-10) var(--space-12);
     border-radius: var(--radius-bar);
     background: var(--color-panel);
   }
 
-  .onboarding::before {
-    grid-column: 1;
-  }
-
-  .onboarding::after {
-    grid-column: 2;
-  }
-
   .header {
-    grid-area: header;
-    padding: var(--space-10) var(--space-12) 0;
+    padding-left: 0;
   }
 
   .intro {
-    grid-area: intro;
-    align-self: center;
-    padding: 0 var(--space-12);
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
     gap: var(--space-4);
   }
 
@@ -94,5 +101,14 @@
   .text {
     font-size: var(--font-size-intro);
     line-height: var(--line-height-base);
+  }
+
+  .note {
+    position: absolute;
+    bottom: calc(var(--space-4) + var(--space-10));
+    left: calc(var(--space-4) + var(--space-12));
+    width: calc((100% - 3 * var(--space-4)) * 5 / 12 - 2 * var(--space-12));
+    padding: 0;
+    font-size: var(--font-size-md);
   }
 }

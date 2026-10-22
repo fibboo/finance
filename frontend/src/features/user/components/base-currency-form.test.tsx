@@ -22,7 +22,7 @@ test.each([
 ])('filters the currencies by "$search"', async ({ search, shown }) => {
   // arrange
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} />);
+  render(<BaseCurrencyForm currencies={currencies} note={null} />);
 
   // act
   await user.type(screen.getByRole('searchbox', { name: 'Search currency' }), search);
@@ -35,7 +35,7 @@ test.each([
 test('says when no currency matches the search', async () => {
   // arrange
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} />);
+  render(<BaseCurrencyForm currencies={currencies} note={null} />);
 
   // act
   await user.type(screen.getByRole('searchbox', { name: 'Search currency' }), 'yen');
@@ -77,7 +77,7 @@ test('sets the picked currency and reloads the user', async () => {
   render(
     <>
       <UserInitials />
-      <BaseCurrencyForm currencies={currencies} />
+      <BaseCurrencyForm currencies={currencies} note={null} />
     </>,
   );
   await screen.findByText('NI');
@@ -96,7 +96,7 @@ test('sets the picked currency and reloads the user', async () => {
 test('asks for a currency before sending anything', async () => {
   // arrange
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} />);
+  render(<BaseCurrencyForm currencies={currencies} note={null} />);
 
   // act
   await user.click(screen.getByRole('button', { name: 'Start' }));
@@ -124,7 +124,7 @@ test('shows the field error the backend returns', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} />);
+  render(<BaseCurrencyForm currencies={currencies} note={null} />);
   await user.click(screen.getByRole('radio', { name: 'EUR Euro' }));
 
   // act
@@ -146,7 +146,7 @@ test('shows a field error the form has no field for', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} />);
+  render(<BaseCurrencyForm currencies={currencies} note={null} />);
   await user.click(screen.getByRole('radio', { name: 'EUR Euro' }));
 
   // act
