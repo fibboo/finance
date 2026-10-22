@@ -1,8 +1,12 @@
 import styles from './boot-screen.module.css';
 
-export function BootScreen() {
+type BootScreenProps = Readonly<{
+  label?: string;
+}>;
+
+export function BootScreen({ label = 'Loading' }: BootScreenProps) {
   return (
-    <div role="status" aria-label="Loading" className={styles['bootScreen']}>
+    <div role="status" aria-label={label} className={styles['bootScreen']}>
       <span className={styles['logo']}>
         <span className={styles['mark']} aria-hidden="true" />
         finance

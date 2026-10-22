@@ -65,16 +65,18 @@ export function SignInPage({ providerTypes }: SignInPageProps) {
 
   return (
     <main className={styles['signInPage']}>
-      <Logo />
-      <div className={styles['hero']}>
-        <h1 className={styles['title']}>
-          Every coin
-          <br />
-          on the record.
-        </h1>
-        <p className={styles['text']}>
-          Accounts, spending and income across currencies, in one quiet place.
-        </p>
+      <div className={styles['copy']}>
+        <Logo />
+        <div className={styles['hero']}>
+          <h1 className={styles['title']}>
+            Every coin
+            <br />
+            on the record.
+          </h1>
+          <p className={styles['text']}>
+            Accounts, spending and income across currencies, in one quiet place.
+          </p>
+        </div>
       </div>
       <div className={styles['actions']} aria-busy={providerTypes === undefined}>
         {searchParams.has('error') && (

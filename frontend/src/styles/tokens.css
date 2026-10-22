@@ -26,6 +26,7 @@
   --font-size-base: 0.9375rem;
   --font-size-lg: 1rem;
   --font-size-avatar: 1.0625rem;
+  --font-size-intro: 1.0625rem;
   --font-size-xl: 1.125rem;
   --font-size-tile-amount: 1.1875rem;
   --font-size-summary: 1.25rem;
@@ -33,18 +34,21 @@
   --font-size-3xl: 1.75rem;
   --font-size-balance: 2.25rem;
   --font-size-display: 2.5rem;
+  --font-size-display-lg: 3.5rem;
   --font-size-balance-lg: 3.5rem;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --line-height-base: 1.5;
   --line-height-display: 1.08;
+  --line-height-display-lg: 1.05;
   --line-height-tight: 1.1;
   --line-height-note: 1.4;
   --line-height-title: 1.15;
   --letter-spacing-title: -0.02em;
   --letter-spacing-amount: -0.01em;
   --letter-spacing-display: -0.03em;
+  --letter-spacing-display-lg: -0.035em;
   --letter-spacing-balance-lg: -0.035em;
 
   --space-0-5: 0.125rem;
@@ -60,6 +64,8 @@
   --space-6: 1.5rem;
   --space-7: 1.75rem;
   --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
 
   --radius-mark: 0.1875rem;
   --radius-mark-lg: 0.25rem;
@@ -93,6 +99,7 @@
   --size-section-header: 2.625rem;
   --size-section-header-lg: 3rem;
   --size-skeleton-word: 2rem;
+  --size-skeleton-code: 2.25rem;
   --size-skeleton-balance: 2rem;
   --size-skeleton-balance-lg: 3.125rem;
   --size-account-mark-sm: 2rem;
@@ -104,8 +111,10 @@
   --size-button: 2.875rem;
   --size-avatar: 3rem;
   --size-option: 3rem;
+  --size-field-lg: 3rem;
   --size-fab: 3.25rem;
   --size-button-lg: 3.25rem;
+  --size-option-lg: 3.25rem;
   --size-bar-item: 3.5rem;
   --size-bar: 4.25rem;
   --size-header: 4.75rem;
@@ -114,6 +123,7 @@
   --size-skeleton-label: 8rem;
   --size-skeleton-label-lg: 9.375rem;
   --size-skeleton-total: 12.25rem;
+  --size-button-wide: 13.75rem;
   --size-skeleton-total-lg: 20rem;
   --size-amount-column: 7.5rem;
   --size-empty-state: 8.25rem;
@@ -123,6 +133,7 @@
   --size-sidebar: 14.5rem;
   --size-popover: 18.75rem;
   --size-popover-wide: 21.25rem;
+  --size-actions: 22.5rem;
   --size-column: 30rem;
   --size-month: 32.5rem;
   --opacity-disabled: 0.5;

@@ -1,11 +1,5 @@
-import styles from './auth-callback-page.module.css';
+import { BootScreen } from '@/components/boot-screen/boot-screen';
 
 export function AuthCallbackPage() {
-  return (
-    <main className={styles['authCallbackPage']}>
-      <p role="status" className={styles['text']}>
-        Signing in…
-      </p>
-    </main>
-  );
+  return <BootScreen label="Signing in" />;
 }

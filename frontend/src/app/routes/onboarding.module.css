@@ -1,3 +1,5 @@
+@import '@/styles/media.css';
+
 .onboarding {
   width: 100%;
   max-width: var(--size-column);
@@ -35,4 +37,62 @@
   margin: 0;
   font-size: var(--font-size-base);
   color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .onboarding {
+    max-width: none;
+    padding: var(--space-4);
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      'header form'
+      'intro form'
+      'note .'
+      'note .'
+      'note action';
+    gap: 0 var(--space-4);
+    isolation: isolate;
+  }
+
+  .onboarding::before,
+  .onboarding::after {
+    content: '';
+    z-index: -1;
+    grid-row: 1 / -1;
+    border-radius: var(--radius-bar);
+    background: var(--color-panel);
+  }
+
+  .onboarding::before {
+    grid-column: 1;
+  }
+
+  .onboarding::after {
+    grid-column: 2;
+  }
+
+  .header {
+    grid-area: header;
+    padding: var(--space-10) var(--space-12) 0;
+  }
+
+  .intro {
+    grid-area: intro;
+    align-self: center;
+    padding: 0 var(--space-12);
+    gap: var(--space-4);
+  }
+
+  .title {
+    font-size: var(--font-size-display);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-display);
+  }
+
+  .text {
+    font-size: var(--font-size-intro);
+    line-height: var(--line-height-base);
+  }
 }

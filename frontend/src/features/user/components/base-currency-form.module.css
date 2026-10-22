@@ -1,3 +1,5 @@
+@import '@/styles/media.css';
+
 .baseCurrencyForm {
   flex-grow: 1;
   min-height: 0;
@@ -216,4 +218,86 @@
 .start:disabled {
   opacity: var(--opacity-disabled);
   cursor: default;
+}
+
+@media (--desktop) {
+  .baseCurrencyForm {
+    display: contents;
+  }
+
+  .panel {
+    grid-area: form;
+    padding: var(--space-6) var(--space-6) 0;
+    gap: var(--space-4);
+    background: none;
+  }
+
+  .search,
+  .searchSkeleton {
+    height: var(--size-field-lg);
+  }
+
+  .search {
+    padding: 0 var(--space-3-5);
+  }
+
+  .currencies {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: var(--size-option-lg);
+    align-content: start;
+    gap: var(--space-1-5);
+  }
+
+  .currency,
+  .currencySkeleton {
+    padding: 0 var(--space-3-5);
+    border-radius: var(--radius-control);
+    background: var(--color-ground);
+  }
+
+  .currency:hover {
+    box-shadow: inset 0 0 0 var(--size-border) var(--color-border);
+  }
+
+  .currency:has(:checked) {
+    background: var(--color-selected);
+  }
+
+  .codeSkeleton {
+    width: var(--size-skeleton-code);
+  }
+
+  .empty {
+    grid-column: 1 / -1;
+  }
+
+  .error {
+    grid-column: 2;
+    margin-top: var(--space-4);
+    padding: 0 var(--space-8);
+  }
+
+  .note {
+    grid-area: note;
+    align-self: end;
+    padding: 0 var(--space-12) var(--space-10);
+    font-size: var(--font-size-md);
+  }
+
+  .start,
+  .startSkeleton {
+    grid-area: action;
+    justify-self: end;
+    min-width: var(--size-button-wide);
+    margin: var(--space-4) var(--space-6) var(--space-6);
+  }
+
+  .start {
+    padding: 0 var(--space-6);
+  }
+
+  .startSkeleton {
+    background-color: var(--color-bone);
+  }
 }
