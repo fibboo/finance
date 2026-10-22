@@ -1,7 +1,7 @@
 """username ci
 
 Revision ID: a7c3e9d1f2b4
-Revises: 05fc98bcbb83
+Revises: 7c3e9a1d2b4f
 Create Date: 2026-10-22 12:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'a7c3e9d1f2b4'
-down_revision: Union[str, None] = '05fc98bcbb83'
+down_revision: Union[str, None] = '7c3e9a1d2b4f'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
