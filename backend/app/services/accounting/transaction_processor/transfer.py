@@ -36,7 +36,11 @@ class Transfer(TransactionProcessor[TransferRequest]):
         if transaction_db.source_currency == transaction_db.destination_currency:
             first_credit_rate: Decimal = transaction_db.from_account.base_currency_rate
         else:
-            first_credit_rate: Decimal = TransactionProcessor._get_first_credit_rate(transaction_db=transaction_db)
+            first_credit_rate: Decimal = TransactionProcessor._quantize_rate(
+                rate=transaction_db.from_account.base_currency_rate
+                * transaction_db.destination_amount
+                / transaction_db.source_amount
+            )
 
         return first_credit_rate
 

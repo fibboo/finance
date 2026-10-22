@@ -493,9 +493,22 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
     assert account_to.base_currency_rate == base_currency_to_rate_before
 
 
-# 100 EUR at the source rate 0.9 is 111.11 USD, so the empty RSD account takes 11700 / 111.11
+# the empty RSD account takes the source rate times destination_amount / source_amount, 0.9 * 117 = 105.3,
+# not a rate from the base amount rounded to cents: 0.05 EUR is 0.0555... USD, kept as 0.06, and 5.85 / 0.06 is 97.5
+@pytest.mark.parametrize(
+    "source_amount, destination_amount, expected_base_currency_amount, expected_from_balance",
+    [
+        (Decimal("100"), Decimal("11700"), Decimal("111.11"), Decimal("800")),
+        (Decimal("0.05"), Decimal("5.85"), Decimal("0.06"), Decimal("899.95")),
+    ],
+)
 async def test_create_transfer_other_to_other_to_account_without_rate_ok(
-    db: AsyncSession, db_transaction: AsyncSession
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    source_amount: Decimal,
+    destination_amount: Decimal,
+    expected_base_currency_amount: Decimal,
+    expected_from_balance: Decimal,
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -519,10 +532,10 @@ async def test_create_transfer_other_to_other_to_account_without_rate_ok(
 
     transfer_create_data: TransferRequest = TransferRequest(
         transaction_date=date(2025, 2, 10),
-        source_amount=Decimal("100"),
+        source_amount=source_amount,
         source_currency="EUR",
         destination_currency="RSD",
-        destination_amount=Decimal("11700"),
+        destination_amount=destination_amount,
         from_account_id=account_from_db.id,
         to_account_id=account_to_db.id,
     )
@@ -536,14 +549,14 @@ async def test_create_transfer_other_to_other_to_account_without_rate_ok(
     await db_transaction.commit()
 
     # Assert
-    assert transaction.base_currency_amount == Decimal("111.11")
+    assert transaction.base_currency_amount == expected_base_currency_amount
 
     account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
-    assert account_from.balance == Decimal("800")
+    assert account_from.balance == expected_from_balance
     assert account_from.base_currency_rate == Decimal("0.9")
     account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
-    assert account_to.balance == Decimal("11700")
-    assert account_to.base_currency_rate == Decimal("105.3010530105")
+    assert account_to.balance == destination_amount
+    assert account_to.base_currency_rate == Decimal("105.3")
 
 
 async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncSession):
