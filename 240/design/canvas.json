@@ -1,0 +1,16 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-22T15:30:00Z"},
+  "title": "Desktop sign-in and onboarding",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1280, "h": 800, "title": "Sign in (desktop)"},
+    "split-onboarding.dc.html": {"x": 1360, "y": 0, "w": 1280, "h": 800, "title": "Onboarding (desktop)", "is_interactive": true},
+    "split-sign-in-loading.dc.html": {"x": 0, "y": 920, "w": 1280, "h": 800, "title": "Sign in loading (desktop)"},
+    "split-onboarding-loading.dc.html": {"x": 1360, "y": 920, "w": 1280, "h": 800, "title": "Onboarding loading (desktop)"}
+  },
+  "order": ["Main.dc.html", "split-onboarding.dc.html", "split-sign-in-loading.dc.html", "split-onboarding-loading.dc.html"],
+  "notes": {},
+  "designSystems": []
+}
