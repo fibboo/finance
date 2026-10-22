@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Onboarding loading — line skeletons</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button{font:inherit;cursor:pointer}
+.sk{display:block;background-repeat:no-repeat;background-size:200% 100%;animation:sk-shimmer 1.4s ease-in-out infinite}
+.sk-light{background-image:linear-gradient(90deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.65) 50%,rgba(255,255,255,0) 70%)}
+.sk-dark{background-image:linear-gradient(90deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.07) 50%,rgba(255,255,255,0) 70%)}
+.sk-still{animation:none;background-image:none}
+@keyframes sk-shimmer{from{background-position:150% 0}to{background-position:-50% 0}}
+@media (prefers-reduced-motion: reduce){.sk{animation:none;background-image:none}}
+</style>
+</helmet>
+<div aria-busy="true" style="width: 390px; height: 844px; box-sizing: border-box; padding: 20px 16px 24px; display: flex; flex-direction: column; gap: 16px; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div style="padding: 4px 8px 0; display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px">
+      <span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>
+      finance
+    </div>
+    <button type="button" style="height: 44px; padding: 0 4px; border: 0; background: transparent; font-size: 14px; color: {{t.muted}}">Sign out</button>
+  </div>
+  <div style="padding: 8px 8px 0; display: flex; flex-direction: column; gap: 8px">
+    <h1 style="margin: 0; font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -0.02em">Pick your base currency</h1>
+    <p style="margin: 0; font-size: 15px; line-height: 1.5; color: {{t.muted}}">Totals and monthly summaries are counted in it. We’ll open a Wallet in this currency.</p>
+  </div>
+  <div style="flex-grow: 1; min-height: 0; padding: 12px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px; background: {{t.panel}}">
+    <span aria-hidden="true" class="{{sk}}" style="height: 46px; flex-shrink: 0; border-radius: 12px; background-color: {{t.bg}}"></span>
+    <div style="display: flex; flex-direction: column; overflow: hidden">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+        <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px">
+          <span aria-hidden="true" class="{{sk}}" style="width: 36px; height: 12px; flex-shrink: 0; border-radius: 6px; background-color: {{t.bone}}"></span>
+          <span aria-hidden="true" class="{{sk}}" style="width: {{r.name}}; height: 12px; border-radius: 6px; background-color: {{t.bone}}"></span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <p style="margin: 0; padding: 0 8px; display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; color: {{t.muted}}">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
+    The base currency can’t be changed later. Accounts in other currencies can be added any time.
+  </p>
+  <span aria-hidden="true" class="{{sk}}" style="height: 52px; flex-shrink: 0; border-radius: 14px; background-color: {{t.boneStrong}}"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"reducedMotion":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', bone: '#E4E4E0', boneStrong: '#E0E0DB' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', bone: '#24272B', boneStrong: '#1C1F22' };
+const dark = this.props.dark ?? true;
+const sk = 'sk ' + (dark ? 'sk-dark' : 'sk-light') + (this.props.reducedMotion ? ' sk-still' : '');
+const rows = ['72px', '48px', '112px', '96px', '84px', '104px'].map((name) => ({ name }));
+return { t: dark ? D : L, sk, rows };
+}
+}
+</script>
+</body>
+</html>

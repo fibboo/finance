@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>App loading — pulsing mark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.boot-mark{animation:boot-pulse 1.2s ease-in-out infinite}
+.boot-still{animation:none}
+@keyframes boot-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.45}}
+@media (prefers-reduced-motion: reduce){.boot-mark{animation:none}}
+</style>
+</helmet>
+<div role="status" aria-label="Loading" style="width: 390px; height: 844px; display: flex; align-items: center; justify-content: center; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div style="display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 24px; letter-spacing: -0.01em">
+    <span class="{{markClass}}" style="width: 14px; height: 14px; border-radius: 4px; background: {{t.accent}}"></span>
+    finance
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"reducedMotion":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', text: '#17181A', accent: '#1F7A55' };
+const D = { bg: '#0B0C0E', text: '#ECEDEE', accent: '#4CC38A' };
+const t = (this.props.dark ?? true) ? D : L;
+return { t, markClass: 'boot-mark' + (this.props.reducedMotion ? ' boot-still' : '') };
+}
+}
+</script>
+</body>
+</html>

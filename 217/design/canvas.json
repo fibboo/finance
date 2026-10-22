@@ -1,0 +1,17 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-22T12:00:00Z"},
+  "title": "Loading states",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 1000, "title": "Home loading (phone)"},
+    "a-desktop.dc.html": {"x": 470, "y": 0, "w": 1280, "h": 1000, "title": "Home loading (desktop)"},
+    "a-sign-in.dc.html": {"x": 1830, "y": 0, "w": 390, "h": 844, "title": "Sign in loading (phone)"},
+    "a-onboarding.dc.html": {"x": 2300, "y": 0, "w": 390, "h": 844, "title": "Onboarding loading (phone)"},
+    "boot-bar.dc.html": {"x": 2770, "y": 0, "w": 390, "h": 844, "title": "App boot (phone)"}
+  },
+  "order": ["Main.dc.html", "a-desktop.dc.html", "a-sign-in.dc.html", "a-onboarding.dc.html", "boot-bar.dc.html"],
+  "notes": {},
+  "designSystems": []
+}

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in loading — line skeletons</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+.sk{display:block;background-repeat:no-repeat;background-size:200% 100%;animation:sk-shimmer 1.4s ease-in-out infinite}
+.sk-light{background-image:linear-gradient(90deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.65) 50%,rgba(255,255,255,0) 70%)}
+.sk-dark{background-image:linear-gradient(90deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.07) 50%,rgba(255,255,255,0) 70%)}
+.sk-still{animation:none;background-image:none}
+@keyframes sk-shimmer{from{background-position:150% 0}to{background-position:-50% 0}}
+@media (prefers-reduced-motion: reduce){.sk{animation:none;background-image:none}}
+</style>
+</helmet>
+<div aria-busy="true" style="width: 390px; height: 844px; box-sizing: border-box; padding: 28px 24px 32px; display: flex; flex-direction: column; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px; letter-spacing: -0.01em">
+    <span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>
+    finance
+  </div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px">
+    <h1 style="margin: 0; font-size: 40px; line-height: 1.08; font-weight: 600; letter-spacing: -0.03em">Every coin<br>on the record.</h1>
+    <p style="margin: 0; font-size: 16px; line-height: 1.5; color: {{t.muted}}">Accounts, spending and income across currencies, in one quiet place.</p>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span aria-hidden="true" class="{{sk}}" style="height: 52px; border-radius: 12px; background-color: {{t.bone}}"></span>
+    <span aria-hidden="true" class="{{sk}}" style="height: 52px; border-radius: 12px; background-color: {{t.bone}}"></span>
+    <p style="margin: 8px 0 0; text-align: center; font-size: 13px; color: {{t.muted}}">First sign-in creates your account.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"reducedMotion":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', text: '#17181A', muted: '#5E6168', accent: '#1F7A55', bone: '#E0E0DB' };
+const D = { bg: '#0B0C0E', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', bone: '#1C1F22' };
+const dark = this.props.dark ?? true;
+const sk = 'sk ' + (dark ? 'sk-dark' : 'sk-light') + (this.props.reducedMotion ? ' sk-still' : '');
+return { t: dark ? D : L, sk };
+}
+}
+</script>
+</body>
+</html>
