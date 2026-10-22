@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -23,7 +23,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return user
 
     async def get_user_by_username(self, *, db: AsyncSession, username: str) -> User | None:
-        query = select(User).where(func.lower(User.username) == func.lower(username))
+        query: Select = select(User).where(func.lower(User.username) == func.lower(username))
 
         user: User | None = await db.scalar(query)
         return user
