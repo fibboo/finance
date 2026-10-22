@@ -3,7 +3,6 @@ import { createBrowserRouter, type RouteObject } from 'react-router';
 import { RootErrorBoundary } from '@/app/root-error-boundary';
 import { BootScreen } from '@/components/boot-screen/boot-screen';
 import { restoreSession } from '@/features/auth/api/session';
-import { AuthCallbackPage } from '@/features/auth/components/auth-callback-page';
 
 const routes: RouteObject[] = [
   {
@@ -19,7 +18,7 @@ const routes: RouteObject[] = [
       {
         path: 'auth/callback',
         ErrorBoundary: RootErrorBoundary,
-        HydrateFallback: AuthCallbackPage,
+        hydrateFallbackElement: <BootScreen label="Signing in" />,
         lazy: {
           loader: async () => (await import('@/features/auth/api/complete-sign-in')).completeSignIn,
         },
