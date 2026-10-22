@@ -5,13 +5,13 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.models.accounting.currency import Currency
 from app.models.base import Base
 
-CURRENCIES: list[dict[str, str]] = [
-    {"code": "USD", "name": "US Dollar"},
-    {"code": "EUR", "name": "Euro"},
-    {"code": "RSD", "name": "Serbian Dinar"},
-    {"code": "GEL", "name": "Georgian Lari"},
-    {"code": "TRY", "name": "Turkish Lira"},
-    {"code": "RUB", "name": "Russian Ruble"},
+CURRENCIES: list[dict[str, str | int]] = [
+    {"code": "USD", "name": "US Dollar", "position": 1},
+    {"code": "EUR", "name": "Euro", "position": 2},
+    {"code": "RSD", "name": "Serbian Dinar", "position": 3},
+    {"code": "GEL", "name": "Georgian Lari", "position": 4},
+    {"code": "TRY", "name": "Turkish Lira", "position": 5},
+    {"code": "RUB", "name": "Russian Ruble", "position": 6},
 ]
 
 
