@@ -72,6 +72,17 @@ class BaseCurrencyAlreadySet(ConflictException):
         )
 
 
+class UsernameAlreadyTaken(ConflictException):
+    def __init__(self, *, user_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Username is already taken",
+            log_message=f"User `{user_id}` chose a username that another user has",
+            error_code=ErrorCodeType.USERNAME_ALREADY_TAKEN,
+            logger=logger,
+            log_level=LogLevelType.INFO,
+        )
+
+
 class ProviderAlreadyLinked(ConflictException):
     def __init__(self, *, user_id: UUID, provider: ProviderType, logger: logging.Logger):
         super().__init__(

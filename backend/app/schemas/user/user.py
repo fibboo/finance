@@ -8,6 +8,8 @@ from app.schemas.user.external_user import ExternalUser, ProviderType
 
 USERNAME_MIN_LENGTH = 3
 USERNAME_MAX_LENGTH = 64
+USERNAME_SET_MAX_LENGTH = 32
+USERNAME_SET_PATTERN = r"^[A-Za-z0-9._-]+$"
 AVATAR_MIN_LENGTH = 3
 AVATAR_MAX_LENGTH = 2560
 
@@ -29,6 +31,19 @@ class UserUpdate(UserBase):
 
 class BaseCurrencySet(BaseModel):
     base_currency: CurrencyCode
+
+
+class UsernameSet(BaseModel):
+    username: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True,
+            to_lower=True,
+            min_length=USERNAME_MIN_LENGTH,
+            max_length=USERNAME_SET_MAX_LENGTH,
+            pattern=USERNAME_SET_PATTERN,
+        ),
+    ]
 
 
 class User(UserBase):
