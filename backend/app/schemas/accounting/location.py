@@ -9,8 +9,8 @@ from app.utils import utils
 
 
 class LocationBase(BaseModel):
-    name: Annotated[str, StringConstraints(min_length=3, max_length=64)]
-    description: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=64)]
+    description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=256)] | None = None
     coordinates: Annotated[str, StringConstraints(min_length=3, max_length=64)] | None = None
 
 

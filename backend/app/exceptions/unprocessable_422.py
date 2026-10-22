@@ -6,6 +6,7 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
+from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
 
 
@@ -50,13 +51,49 @@ class AccountBalanceUnchanged(UnprocessableException):
 
 
 class BaseCurrencyAmountNotAllowed(UnprocessableException):
-    def __init__(self, *, account_id: UUID, logger: logging.Logger):
+    def __init__(self, *, account_id: UUID, base_currency_amount: Decimal, logger: logging.Logger):
         super().__init__(
             message="Base currency amount not allowed",
             log_message=(
-                f"Account `{account_id}` does not need a base_currency_amount: "
-                f"it is in the base currency or already has a rate"
+                f"A base_currency_amount of {base_currency_amount} was sent for account `{account_id}`, "
+                f"whose base currency amount is derived"
             ),
             logger=logger,
             error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED,
+        )
+
+
+class BaseCurrencyAmountRequired(UnprocessableException):
+    def __init__(self, *, currency: CurrencyCode, logger: logging.Logger):
+        super().__init__(
+            message="Base currency amount required",
+            log_message=f"An income in `{currency}` needs a base_currency_amount: it is not the base currency",
+            logger=logger,
+            error_code=ErrorCodeType.BASE_CURRENCY_AMOUNT_REQUIRED,
+        )
+
+
+class TransferAmountMismatch(UnprocessableException):
+    def __init__(self, *, destination_amount: Decimal, derived_destination_amount: Decimal, logger: logging.Logger):
+        super().__init__(
+            message="Transfer amount mismatch",
+            log_message=(
+                f"A transfer sent destination_amount {destination_amount}, "
+                f"while its currencies give {derived_destination_amount}"
+            ),
+            logger=logger,
+            error_code=ErrorCodeType.TRANSFER_AMOUNT_MISMATCH,
+        )
+
+
+class DestinationAmountNotAllowed(UnprocessableException):
+    def __init__(self, *, account_id: UUID, destination_amount: Decimal, logger: logging.Logger):
+        super().__init__(
+            message="Destination amount not allowed",
+            log_message=(
+                f"A destination_amount of {destination_amount} was sent for account `{account_id}`, "
+                f"whose amount is derived from the source account's rate"
+            ),
+            logger=logger,
+            error_code=ErrorCodeType.DESTINATION_AMOUNT_NOT_ALLOWED,
         )

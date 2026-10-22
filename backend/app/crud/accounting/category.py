@@ -23,8 +23,8 @@ class CRUDCategory(CRUDBase[Category, CategoryCreateRequest, CategoryUpdate]):
         if request.search_term is not None:
             query = query.where(
                 or_(
-                    self.model.name.ilike(f"%{request.search_term}%"),
-                    self.model.description.ilike(f"%{request.search_term}%"),
+                    self.model.name.icontains(request.search_term, autoescape=True),
+                    self.model.description.icontains(request.search_term, autoescape=True),
                 )
             )
 

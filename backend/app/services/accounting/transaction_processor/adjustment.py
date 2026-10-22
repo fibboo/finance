@@ -11,6 +11,7 @@ from app.models.accounting.transaction import AdjustmentTransaction as Adjustmen
 from app.schemas.accounting.transaction import AdjustmentRequest, TransactionCreate, TransactionType
 from app.schemas.base import CurrencyCode
 from app.services.accounting.transaction_processor.base import TransactionProcessor
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -50,12 +51,16 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
         has_known_rate: bool = self.__has_known_rate(account_db=account_db)
         if account_db.currency == self.base_currency:
             if data.base_currency_amount is not None:
-                raise BaseCurrencyAmountNotAllowed(account_id=account_db.id, logger=logger)
+                raise BaseCurrencyAmountNotAllowed(
+                    account_id=account_db.id, base_currency_amount=data.base_currency_amount, logger=logger
+                )
 
             base_currency_amount: Decimal = amount
         elif has_known_rate:
             if data.base_currency_amount is not None:
-                raise BaseCurrencyAmountNotAllowed(account_id=account_db.id, logger=logger)
+                raise BaseCurrencyAmountNotAllowed(
+                    account_id=account_db.id, base_currency_amount=data.base_currency_amount, logger=logger
+                )
 
             base_currency_amount: Decimal = self._quantize_amount(amount=amount / account_db.base_currency_rate)
         elif data.base_currency_amount is not None:
@@ -74,12 +79,15 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
     ) -> None:
         new_balance: Decimal = account_db.balance + delta
         has_known_rate: bool = self.__has_known_rate(account_db=account_db)
-        if new_balance == 0:
+        fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+            currency=account_db.currency, base_currency=self.base_currency
+        )
+        if fixed_rate is not None:
+            new_base_rate: Decimal = fixed_rate
+        elif new_balance == 0:
             new_base_rate: Decimal = Decimal("0")
         elif has_known_rate:
             new_base_rate: Decimal = account_db.base_currency_rate
-        elif account_db.currency == self.base_currency:
-            new_base_rate: Decimal = Decimal("1")
         else:
             new_base_rate: Decimal = self._get_first_rate(
                 amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount

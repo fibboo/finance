@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
@@ -19,14 +20,22 @@ from app.schemas.accounting.account import (
 )
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
 
-async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID) -> Account:
+async def create_account(
+    *, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID, base_currency: CurrencyCode
+) -> Account:
     await currency_service.get_currency(db=db, code=create_data.currency)
 
-    create_data: AccountCreate = AccountCreate(**create_data.model_dump(), user_id=user_id)
+    base_currency_rate: Decimal = utils.get_new_account_base_currency_rate(
+        currency=create_data.currency, base_currency=base_currency
+    )
+    create_data: AccountCreate = AccountCreate(
+        **create_data.model_dump(), user_id=user_id, base_currency_rate=base_currency_rate
+    )
     try:
         account_db: AccountModel = await account_crud.create(db=db, obj_in=create_data)
 
@@ -38,7 +47,12 @@ async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest,
 
 
 async def create_default_account(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyCode) -> None:
-    create_data = AccountCreate(name="Wallet", currency=base_currency, user_id=user_id)
+    base_currency_rate: Decimal = utils.get_new_account_base_currency_rate(
+        currency=base_currency, base_currency=base_currency
+    )
+    create_data = AccountCreate(
+        name="Wallet", currency=base_currency, user_id=user_id, base_currency_rate=base_currency_rate
+    )
     await account_crud.create(db=db, obj_in=create_data)
 
 

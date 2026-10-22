@@ -11,8 +11,8 @@ from app.utils import utils
 
 
 class AccountBase(BaseModel):
-    name: Annotated[str, StringConstraints(min_length=3, max_length=64)]
-    description: Annotated[str, StringConstraints(min_length=3, max_length=4096)] | None = None
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=64)]
+    description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=4096)] | None = None
 
 
 class AccountCreateRequest(AccountBase):
@@ -22,6 +22,7 @@ class AccountCreateRequest(AccountBase):
 
 class AccountCreate(AccountCreateRequest):
     user_id: UUID
+    base_currency_rate: Decimal
 
 
 class AccountUpdate(AccountBase):

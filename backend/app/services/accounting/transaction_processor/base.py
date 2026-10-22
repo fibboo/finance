@@ -21,6 +21,7 @@ from app.schemas.accounting.transaction import Transaction, TransactionCreate, T
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
 from app.services.user import user_service
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -133,22 +134,30 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         return first_rate
 
     @staticmethod
+    def _get_first_credit_rate(*, transaction_db: TransactionModel) -> Decimal:
+        first_credit_rate: Decimal = TransactionProcessor._get_first_rate(
+            amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount
+        )
+        return first_credit_rate
+
+    @staticmethod
     def __get_credit_rate(
         *,
         account_db: AccountModel,
-        transaction_db: TransactionModel,
+        first_rate: Decimal,
         new_balance: Decimal,
         base_currency_delta: Decimal,
         base_currency: CurrencyCode | None,
     ) -> Decimal:
-        if new_balance == 0:
+        fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+            currency=account_db.currency, base_currency=base_currency
+        )
+        if fixed_rate is not None:
+            new_base_rate: Decimal = fixed_rate
+        elif new_balance == 0:
             new_base_rate: Decimal = Decimal("0")
-        elif account_db.currency == base_currency:
-            new_base_rate: Decimal = Decimal("1")
         elif account_db.base_currency_rate == 0 or account_db.balance <= 0 < new_balance:
-            new_base_rate: Decimal = TransactionProcessor._get_first_rate(
-                amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount
-            )
+            new_base_rate: Decimal = first_rate
         elif account_db.balance > 0 and new_balance > 0:
             new_base_balance: Decimal = account_db.balance / account_db.base_currency_rate + base_currency_delta
             if new_base_balance > 0:
@@ -169,10 +178,13 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         new_balance: Decimal,
         base_currency: CurrencyCode | None,
     ) -> Decimal:
-        if account_db.base_currency_rate != 0 or new_balance == 0:
+        fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
+            currency=account_db.currency, base_currency=base_currency
+        )
+        if fixed_rate is not None:
+            new_base_rate: Decimal = fixed_rate
+        elif account_db.base_currency_rate != 0 or new_balance == 0:
             new_base_rate: Decimal = account_db.base_currency_rate
-        elif account_db.currency == base_currency:
-            new_base_rate: Decimal = Decimal("1")
         else:
             new_base_rate: Decimal = TransactionProcessor._get_first_rate(
                 amount=transaction_db.source_amount, base_currency_amount=transaction_db.base_currency_amount
@@ -205,9 +217,10 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         delta: Decimal = self._get_to_account_delta(transaction_db=transaction_db)
         base_currency_delta: Decimal = self.__get_to_account_base_currency_delta(transaction_db=transaction_db)
         new_balance: Decimal = transaction_db.to_account.balance + delta
+        first_rate: Decimal = self._get_first_credit_rate(transaction_db=transaction_db)
         new_base_rate: Decimal = self.__get_credit_rate(
             account_db=transaction_db.to_account,
-            transaction_db=transaction_db,
+            first_rate=first_rate,
             new_balance=new_balance,
             base_currency_delta=base_currency_delta,
             base_currency=self.base_currency,

@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, UTC
 from decimal import Decimal
 from enum import Enum
 from typing import Annotated, Any, TypeAlias
@@ -24,6 +24,7 @@ from app.schemas.base import CurrencyCode, EntityStatusType
 from app.utils import utils
 
 PositiveAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), decimal_places=2)]
+RequestAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), max_digits=15, decimal_places=2)]
 
 
 class TransactionType(str, Enum):
@@ -43,7 +44,12 @@ class TransactionBase(BaseModel):
     transaction_type: TransactionType
 
 
-class ExpenseRequest(TransactionBase):
+class TransactionCreateRequestBase(TransactionBase):
+    source_amount: RequestAmount
+    destination_amount: RequestAmount
+
+
+class ExpenseRequest(TransactionCreateRequestBase):
     transaction_type: TransactionType = TransactionType.EXPENSE
     from_account_id: UUID
     category_id: UUID
@@ -57,11 +63,12 @@ class ExpenseRequest(TransactionBase):
         return transaction_type
 
 
-class IncomeRequest(TransactionBase):
+class IncomeRequest(TransactionCreateRequestBase):
     transaction_type: TransactionType = TransactionType.INCOME
     income_period: date
     income_source_id: UUID
     to_account_id: UUID
+    base_currency_amount: RequestAmount | None = None
 
     @field_validator("transaction_type", mode="after")
     def validate_transaction_type(cls, transaction_type: TransactionType):
@@ -78,9 +85,9 @@ class IncomeRequest(TransactionBase):
         return income_period
 
 
-class TransferRequest(TransactionBase):
+class TransferRequest(TransactionCreateRequestBase):
     transaction_type: TransactionType = TransactionType.TRANSFER
-    destination_amount: PositiveAmount | None = None
+    destination_amount: RequestAmount | None = None
     from_account_id: UUID
     to_account_id: UUID
 
@@ -91,14 +98,21 @@ class TransferRequest(TransactionBase):
 
         return transaction_type
 
+    @model_validator(mode="after")
+    def validate_accounts(self) -> TransferRequest:
+        if self.from_account_id == self.to_account_id:
+            raise ValueError("from_account_id and to_account_id should be different")
+
+        return self
+
 
 class AdjustmentRequest(BaseModel):
     transaction_type: TransactionType = TransactionType.ADJUSTMENT
     transaction_date: date
     comment: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
     account_id: UUID
-    new_balance: Annotated[Decimal, Field(decimal_places=2)]
-    base_currency_amount: PositiveAmount | None = None
+    new_balance: Annotated[Decimal, Field(max_digits=15, decimal_places=2)]
+    base_currency_amount: RequestAmount | None = None
 
     @field_validator("transaction_type", mode="after")
     def validate_transaction_type(cls, transaction_type: TransactionType):
@@ -221,12 +235,14 @@ class TransactionRequest(Params):
 
     @model_validator(mode="after")
     def fill_default_dates(self) -> TransactionRequest:
-        today: date = datetime.now().date()
-        if self.date_from is None:
-            self.date_from = today - timedelta(days=90)
-
         if self.date_to is None:
-            self.date_to = today
+            self.date_to = datetime.now(UTC).date()
+
+        if self.date_from is None:
+            self.date_from = self.date_to - timedelta(days=90)
+
+        if self.date_from > self.date_to:
+            raise ValueError("date_from should not be later than date_to")
 
         return self
 

@@ -39,10 +39,13 @@ async def create_transaction(
     **Context-specific behavior:**
     - **Expenses:** `source_*` refers to the amount **withdrawn from the account**.
     `destination_*` refers to the amount in **the seller's currency**.
-    - **Income:** `source_*` refers to the incoming amount in **the base currency**.
-    `destination_*` refers to the credited amount in **the receiving account**.
+    - **Income:** `source_*` refers to the incoming amount in **its original currency**.
+    `destination_*` refers to the credited amount in **the receiving account**. `base_currency_amount` is required
+    when neither currency is the base currency, and refused otherwise, since it is then derived.
     - **Transfers:** `source_*` refers to **the withdrawal from one account**.
-    `destination_*` refers to the deposit to **another account**.
+    `destination_*` refers to the deposit to **another account**. When both currencies are the same,
+    `destination_amount` may be omitted and otherwise must equal `source_amount`. When only `destination_currency`
+    is the base currency, `destination_amount` is derived from the source account's rate and must not be sent.
     - **Adjustments:** the request carries the account and its `new_balance`. `source_*` and `destination_*` are both
     the difference from the current balance in the account currency, on `to_account` for an increase and on
     `from_account` for a decrease. `base_currency_amount` is required only for an account outside the base currency
@@ -65,8 +68,9 @@ async def get_transactions(
     """
     Lists the user's transactions page by page.
 
-    `date_from` defaults to 90 days before today and `date_to` to today. To see the whole history of an account,
-    send an earlier `date_from` together with `account_ids` or `is_deleted_accounts_only`.
+    `date_to` defaults to today in UTC and `date_from` to 90 days before `date_to`; a `date_from` later than
+    `date_to` is refused. To see the whole history of an account, send an earlier `date_from` together with
+    `account_ids` or `is_deleted_accounts_only`.
     """
     transactions: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request, user_id=user_id
