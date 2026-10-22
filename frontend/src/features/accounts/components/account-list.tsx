@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 
+import { Skeleton } from '@/components/skeleton/skeleton';
 import { formatMoney } from '@/lib/format-money';
 
 import { accountQueries } from '../api/account-queries';
@@ -9,13 +10,41 @@ import { AccountMark } from './account-mark';
 import styles from './account-list.module.css';
 
 const ACCOUNT_PAGE_SIZE = 100;
+const SKELETON_ACCOUNTS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
 
 type AccountListProps = Readonly<{ baseCurrency: string }>;
 
 export function AccountList({ baseCurrency }: AccountListProps) {
-  const { data: accountPage } = useQuery(accountQueries.list({ size: ACCOUNT_PAGE_SIZE }));
+  const { data: accountPage, isPending } = useQuery(
+    accountQueries.list({ size: ACCOUNT_PAGE_SIZE }),
+  );
   const { ref, count } = useFittingCount();
   const titleId = useId();
+  if (isPending) {
+    return (
+      <section className={styles['accountList']} aria-labelledby={titleId} aria-busy="true">
+        <h2 id={titleId} className={styles['title']}>
+          Accounts <Skeleton className={styles['totalSkeleton']} />
+        </h2>
+        <ul ref={ref} className={styles['accounts']}>
+          {SKELETON_ACCOUNTS.slice(0, count).map((account) => (
+            <li key={account} className={styles['account']}>
+              <Skeleton className={styles['markSkeleton']} />
+              <span className={styles['identity']}>
+                <Skeleton className={styles['nameSkeleton']} />
+                <Skeleton className={styles['detailSkeleton']} />
+              </span>
+              <span className={styles['amounts']}>
+                <Skeleton className={styles['balanceSkeleton']} />
+                <Skeleton className={styles['detailSkeleton']} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
   if (accountPage === undefined) {
     return null;
   }

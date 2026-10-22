@@ -82,6 +82,12 @@
   cursor: default;
 }
 
+.buttonSkeleton {
+  height: var(--size-button-lg);
+  border-radius: var(--radius-control);
+  background-color: var(--color-bone-ground);
+}
+
 .icon {
   width: var(--size-icon);
   height: var(--size-icon);

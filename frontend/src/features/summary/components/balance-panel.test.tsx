@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { expect, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -52,4 +52,21 @@ test('shows zero amounts without a sign', async () => {
 
   // assert
   expect(await screen.findAllByText('€0.00')).toHaveLength(4);
+});
+
+test('shows a busy balance panel while the summary loads', () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/summary', async () => {
+      await delay('infinite');
+    }),
+  );
+
+  // act
+  render(<BalancePanel baseCurrency="USD" />);
+
+  // assert
+  expect(screen.getByRole('region', { name: 'Balance' })).toHaveAttribute('aria-busy', 'true');
+  expect(screen.getByText('This month')).toBeInTheDocument();
+  expect(screen.queryByText('Total balance · USD')).not.toBeInTheDocument();
 });

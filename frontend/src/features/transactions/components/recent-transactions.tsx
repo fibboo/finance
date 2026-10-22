@@ -1,12 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 
+import { Skeleton } from '@/components/skeleton/skeleton';
+
 import { transactionQueries } from '../api/transaction-queries';
 import styles from './recent-transactions.module.css';
 import { TransactionRow } from './transaction-row';
 
 const RECENT_TRANSACTION_COUNT = 6;
 const EARLIEST_TRANSACTION_DATE = '0001-01-01';
+const SKELETON_TRANSACTIONS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
 
 function readLocalToday(): string {
   const today = new Date();
@@ -19,7 +22,7 @@ function readLocalToday(): string {
 }
 
 export function RecentTransactions() {
-  const { data: transactionPage } = useQuery(
+  const { data: transactionPage, isPending } = useQuery(
     transactionQueries.list({
       size: RECENT_TRANSACTION_COUNT,
       date_from: EARLIEST_TRANSACTION_DATE,
@@ -27,6 +30,27 @@ export function RecentTransactions() {
     }),
   );
   const titleId = useId();
+  if (isPending) {
+    return (
+      <section className={styles['recentTransactions']} aria-labelledby={titleId} aria-busy="true">
+        <h2 id={titleId} className={styles['title']}>
+          Recent
+        </h2>
+        <ul className={styles['transactions']}>
+          {SKELETON_TRANSACTIONS.map((transaction) => (
+            <li key={transaction} className={styles['skeletonRow']}>
+              <Skeleton className={styles['dotSkeleton']} />
+              <Skeleton className={styles['titleSkeleton']} />
+              <Skeleton className={styles['accountsSkeleton']} />
+              <Skeleton className={styles['dateSkeleton']} />
+              <Skeleton className={styles['amountSkeleton']} />
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
   if (transactionPage === undefined) {
     return null;
   }

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { Skeleton } from '@/components/skeleton/skeleton';
 import { formatMoney } from '@/lib/format-money';
 
 import { summaryQueries } from '../api/summary-queries';
@@ -7,8 +8,32 @@ import styles from './balance-panel.module.css';
 
 type BalancePanelProps = Readonly<{ baseCurrency: string }>;
 
+const SKELETON_TILES = ['earned', 'spent', 'left-over'];
+
 export function BalancePanel({ baseCurrency }: BalancePanelProps) {
-  const { data: summary } = useQuery(summaryQueries.current());
+  const { data: summary, isPending } = useQuery(summaryQueries.current());
+  if (isPending) {
+    return (
+      <section className={styles['balancePanel']} aria-label="Balance" aria-busy="true">
+        <p className={styles['totalSkeleton']}>
+          <Skeleton className={styles['totalLabelSkeleton']} />
+          <Skeleton className={styles['totalAmountSkeleton']} />
+        </p>
+        <div className={styles['month']}>
+          <span className={styles['monthLabel']}>This month</span>
+          <div className={styles['tiles']}>
+            {SKELETON_TILES.map((tile) => (
+              <div key={tile} className={styles['tileSkeleton']}>
+                <Skeleton className={styles['tileLabelSkeleton']} />
+                <Skeleton className={styles['tileAmountSkeleton']} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   if (summary === undefined) {
     return null;
   }

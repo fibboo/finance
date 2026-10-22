@@ -3,6 +3,7 @@ import { type ReactNode, useSyncExternalStore } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 
 import { Logo } from '@/components/logo/logo';
+import { Skeleton } from '@/components/skeleton/skeleton';
 import type { components } from '@/lib/api-schema';
 
 import { buildAuthorizeUrl } from '../api/pkce';
@@ -15,8 +16,10 @@ type ProviderPresentation = Readonly<{
 }>;
 
 type SignInPageProps = Readonly<{
-  providerTypes: readonly components['schemas']['DictionaryItem'][];
+  providerTypes: readonly components['schemas']['DictionaryItem'][] | undefined;
 }>;
+
+const SKELETON_PROVIDERS = ['first', 'second'];
 
 const providerPresentations: Record<string, ProviderPresentation> = {
   TELEGRAM: {
@@ -72,13 +75,17 @@ export function SignInPage({ providerTypes }: SignInPageProps) {
           Accounts, spending and income across currencies, in one quiet place.
         </p>
       </div>
-      <div className={styles['actions']}>
+      <div className={styles['actions']} aria-busy={providerTypes === undefined}>
         {searchParams.has('error') && (
           <p role="alert" className={styles['error']}>
             Sign-in did not finish. Please try again.
           </p>
         )}
-        {providerTypes.map((providerType) => {
+        {providerTypes === undefined &&
+          SKELETON_PROVIDERS.map((provider) => (
+            <Skeleton key={provider} className={styles['buttonSkeleton']} />
+          ))}
+        {providerTypes?.map((providerType) => {
           const presentation = providerPresentations[providerType.key];
           return (
             <button
