@@ -106,9 +106,14 @@ On the server, `~/finance` holds `docker-compose.production.yml`, `backend/.env-
 secrets, and a `.env` with `COMPOSE_FILE`, `IMAGE_TAG`, `POSTGRES_PASSWORD` and `CLOUDFLARE_TUNNEL_TOKEN`, so a manual
 `docker compose up -d` there uses the values of the last deploy. The compose file runs `postgres` with a named volume,
 `backend` (uvicorn), `frontend` (nginx, proxying `/api` to `backend`), which starts once the backend answers, and
-`cloudflared`. No service publishes a host port: the app is reachable only through the Cloudflare Tunnel, whose public
-hostname `finance.fibboo.dev` routes to `http://frontend:80`, and port 443 stays with the VPN. The deploy never removes
-volumes, and it deletes only the finance images of earlier SHAs.
+`cloudflared`. No service publishes a port on the public address: the app is reachable only through the Cloudflare
+Tunnel, whose public hostname `finance.fibboo.dev` routes to `http://frontend:80`, and port 443 stays with the VPN. The
+deploy never removes volumes, and it deletes only the finance images of earlier SHAs.
+
+`postgres` publishes 5432 on `172.29.172.1` only, the host's address on `amnezia-dns-net`, the docker network of the
+Amnezia VPN containers. With Amnezia on, a database client connects to `172.29.172.1:5432` as user `finance` to
+database `finance`, with the `POSTGRES_PASSWORD` secret as the password. The bind depends on that network: if Amnezia is
+removed or its network gets another subnet, postgres cannot start and the deploy fails before the backend is replaced.
 
 On the server the deploy runs, in order: `docker compose pull`; `up -d --wait --no-recreate postgres`, which only starts
 a stopped database and leaves changes to it for the last step; a `pg_dump -Fc` of the database into
