@@ -14,6 +14,7 @@ from app.exceptions.conflict_409 import (
     IdentityLinkedToAnotherUser,
     IntegrityException,
     ProviderAlreadyLinked,
+    UsernameAlreadyTaken,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.user.external_user import (
@@ -21,7 +22,7 @@ from app.models.user.external_user import (
     PROVIDER_EXTERNAL_ID_CONSTRAINT,
     USER_PROVIDER_CONSTRAINT,
 )
-from app.models.user.user import User as UserModel
+from app.models.user.user import User as UserModel, USERNAME_LOWER_INDEX
 from app.schemas.base import CurrencyCode
 from app.schemas.user.external_user import ExternalUserCreate
 from app.schemas.user.identity import ProviderIdentity
@@ -67,7 +68,7 @@ async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserMo
 
     username: str | None = None
     for candidate_username in candidate_usernames:
-        username_owner_db: UserModel | None = await user_crud.get_or_none(db=db, username=candidate_username)
+        username_owner_db: UserModel | None = await user_crud.get_user_by_username(db=db, username=candidate_username)
         if username_owner_db is None:
             username = candidate_username
             break
@@ -141,6 +142,29 @@ async def set_base_currency(*, db: AsyncSession, user_id: UUID, base_currency: C
 
     await account_service.create_default_account(db=db, user_id=user_id, base_currency=base_currency)
     await category_service.create_default_categories(db=db, user_id=user_id)
+
+    updated_user: User = User.model_validate(updated_user_db)
+    return updated_user
+
+
+async def set_username(*, db: AsyncSession, user_id: UUID, username: str) -> User:
+    user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_id)
+    if user_db is None:
+        raise EntityNotFound(entity=UserModel, search_params={"id": user_id}, logger=logger)
+
+    if user_db.username == username:
+        user: User = User.model_validate(user_db)
+        return user
+
+    try:
+        updated_user_db: UserModel = await user_crud.update_orm(db=db, obj_in={"username": username}, id=user_id)
+
+    except IntegrityError as exc:
+        constraint_name: str | None = exc.driver_exception.constraint_name
+        if constraint_name == USERNAME_LOWER_INDEX:
+            raise UsernameAlreadyTaken(user_id=user_id, logger=logger)
+
+        raise IntegrityException(entity=UserModel, exception=exc, logger=logger)
 
     updated_user: User = User.model_validate(updated_user_db)
     return updated_user

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import DbTransaction, get_db, get_user_id
-from app.schemas.user.user import BaseCurrencySet, User
+from app.schemas.user.user import BaseCurrencySet, User, UsernameSet
 from app.services.user import user_service
 
 router = APIRouter()
@@ -26,4 +26,16 @@ async def set_base_currency(
 ) -> User:
     """Choose the base currency once after the first sign-in. Creates the Wallet account in that currency."""
     user: User = await user_service.set_base_currency(db=db, user_id=user_id, base_currency=data.base_currency)
+    return user
+
+
+@router.put("/me/username")
+async def set_username(
+    *,
+    data: UsernameSet,
+    user_id: UUID = Depends(get_user_id),
+    db: DbTransaction,
+) -> User:
+    """Change the username. It is stored lowercased and is unique regardless of case."""
+    user: User = await user_service.set_username(db=db, user_id=user_id, username=data.username)
     return user
