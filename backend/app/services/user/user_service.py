@@ -68,7 +68,7 @@ async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserMo
 
     username: str | None = None
     for candidate_username in candidate_usernames:
-        username_owner_db: UserModel | None = await user_crud.get_or_none(db=db, username=candidate_username)
+        username_owner_db: UserModel | None = await user_crud.get_user_by_username(db=db, username=candidate_username)
         if username_owner_db is None:
             username = candidate_username
             break

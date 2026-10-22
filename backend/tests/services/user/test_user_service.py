@@ -66,7 +66,8 @@ async def test_create_user_without_base_currency(db: AsyncSession, db_transactio
     assert len(accounts_db) == 0
 
 
-async def test_create_user_username_taken(db: AsyncSession, db_transaction: AsyncSession):
+@pytest.mark.parametrize("provider_username", ["stenbot", "StenBot"], ids=["same_case", "other_case"])
+async def test_create_user_username_taken(db: AsyncSession, db_transaction: AsyncSession, provider_username: str):
     # Arrange
     await user_crud.create(
         db=db, obj_in=UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM), commit=True
@@ -74,7 +75,7 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
         external_id="1111111111",
-        username="stenbot",
+        username=provider_username,
         first_name="Sten",
         last_name=None,
         avatar=None,
@@ -88,7 +89,7 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     # Assert
     created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
     assert re.fullmatch(r"user_[a-z0-9]{8}", created_user_db.username) is not None
-    assert created_user_db.external_users[0].username == "stenbot"
+    assert created_user_db.external_users[0].username == provider_username
 
 
 async def test_create_user_fallback_username_taken(
