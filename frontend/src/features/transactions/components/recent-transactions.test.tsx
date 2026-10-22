@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -98,4 +98,20 @@ test('shows the empty state without transactions', async () => {
   expect(await screen.findByText('Nothing here yet')).toBeInTheDocument();
   expect(screen.getByText('Your income and expenses will show up here.')).toBeInTheDocument();
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
+});
+
+test('shows a busy recent panel while the transactions load', () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', async () => {
+      await delay('infinite');
+    }),
+  );
+
+  // act
+  render(<RecentTransactions />);
+
+  // assert
+  expect(screen.getByRole('region', { name: 'Recent' })).toHaveAttribute('aria-busy', 'true');
+  expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });

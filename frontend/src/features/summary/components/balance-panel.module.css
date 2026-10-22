@@ -17,6 +17,25 @@
   gap: var(--space-0-5);
 }
 
+.totalSkeleton {
+  margin: 0;
+  padding-top: var(--space-0-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.totalLabelSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text);
+}
+
+.totalAmountSkeleton {
+  width: var(--size-skeleton-total);
+  height: var(--size-skeleton-balance);
+  border-radius: var(--radius-segment);
+}
+
 .totalLabel,
 .monthLabel {
   font-size: var(--font-size-sm);
@@ -50,6 +69,22 @@
   flex-direction: column;
   gap: var(--space-0-5);
   background: var(--color-ground);
+}
+
+.tileSkeleton {
+  composes: tile;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.tileLabelSkeleton {
+  width: 55%;
+  height: var(--size-skeleton-text-sm);
+}
+
+.tileAmountSkeleton {
+  width: 70%;
+  height: var(--size-skeleton-text);
 }
 
 .tileLabel {
@@ -109,6 +144,29 @@
 
   .tileLabel {
     font-size: var(--font-size-sm);
+  }
+
+  .totalSkeleton {
+    gap: var(--space-2-5);
+  }
+
+  .totalLabelSkeleton {
+    width: var(--size-skeleton-label-lg);
+  }
+
+  .totalAmountSkeleton {
+    width: var(--size-skeleton-total-lg);
+    max-width: 100%;
+    height: var(--size-skeleton-balance-lg);
+    border-radius: var(--radius-track);
+  }
+
+  .tileSkeleton {
+    gap: var(--space-2-5);
+  }
+
+  .tileAmountSkeleton {
+    height: var(--size-skeleton-text-lg);
   }
 
   .tileAmount,
