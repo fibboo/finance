@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Onboarding with username — one screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 20px 16px 24px; display: flex; flex-direction: column; gap: 16px; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div style="padding-left: 8px; display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px">
+      <span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>
+      finance
+    </div>
+    <button type="button" style="height: 44px; padding: 0 4px; border: 0; background: transparent; font-size: 14px; color: {{t.muted}}">Sign out</button>
+  </div>
+  <div style="padding: 8px 8px 0; display: flex; flex-direction: column; gap: 8px">
+    <h1 style="margin: 0; font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -0.02em">Set up your account</h1>
+    <p style="margin: 0; font-size: 15px; line-height: 1.5; color: {{t.muted}}">Check your username and pick the currency totals are counted in.</p>
+  </div>
+  <div style="padding: 12px; border-radius: 18px; display: flex; flex-direction: column; gap: 8px; background: {{t.panel}}">
+    <label for="username-a" style="padding: 0 4px; font-size: 13px; color: {{t.muted}}">Username</label>
+    <div style="{{fieldStyle}}">
+      <span aria-hidden="true" style="font-size: 16px; color: {{t.muted}}">@</span>
+      <input id="username-a" value="{{username}}" autocomplete="off" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; color: {{t.text}}">
+    </div>
+    <p style="{{hintStyle}}">{{hint}}</p>
+  </div>
+  <div style="flex-grow: 1; min-height: 0; padding: 12px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px; background: {{t.panel}}">
+    <label style="display: flex; align-items: center; gap: 10px; height: 46px; flex-shrink: 0; padding: 0 12px; border-radius: 12px; background: {{t.bg}}">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search currency</span>
+      <input type="search" placeholder="Code or name" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; color: {{t.text}}">
+    </label>
+    <div role="radiogroup" aria-label="Base currency" style="display: flex; flex-direction: column; overflow-y: auto">
+      <sc-for list="{{currencies}}" as="c" hint-placeholder-count="6">
+        <button type="button" role="radio" aria-checked="{{c.checked}}" onClick="{{c.pick}}" style="{{c.rowStyle}}">
+          <span style="width: 44px; font-family: 'Geist Mono', monospace; font-size: 14px; font-weight: 500; text-align: left">{{c.code}}</span>
+          <span style="flex-grow: 1; text-align: left; font-size: 15px">{{c.name}}</span>
+          <sc-if value="{{c.selected}}" hint-placeholder-val="{{false}}">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.accent}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4.5 4.5L19 7"/></svg>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  <p style="margin: 0; padding: 0 8px; display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; color: {{t.muted}}">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
+    The base currency can’t be changed later. The username can.
+  </p>
+  <button type="button" style="height: 52px; flex-shrink: 0; border: 0; border-radius: 14px; font-size: 16px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">Start with {{picked}}</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"field":{"editor":"enum","options":["given","invalid","taken"],"default":"given"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p) { super(p); this.state = { picked: 'USD' }; }
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', sel: '#EAF3EE', danger: '#B42318' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', sel: '#16241D', danger: '#FF7A6B' };
+const t = (this.props.dark ?? true) ? D : L;
+const field = this.props.field ?? 'given';
+const values = { given: 'nikita', invalid: 'ni', taken: 'anna' };
+const hints = { given: '3–32 letters, digits, dots, underscores or hyphens.', invalid: 'Use 3–32 letters, digits, dots, underscores or hyphens.', taken: 'Username is already taken' };
+const isError = field !== 'given';
+const errorColor = t.danger;
+const fieldStyle = 'height:46px;padding:0 12px;border-radius:12px;display:flex;align-items:center;gap:4px;background:' + t.bg + (isError ? ';box-shadow:inset 0 0 0 2px ' + errorColor : '');
+const hintStyle = 'margin:0;padding:0 4px;font-size:13px;line-height:1.4;' + (isError ? 'font-weight:600;color:' + errorColor : 'color:' + t.muted);
+const list = [['USD','US dollar'],['EUR','Euro'],['RSD','Serbian dinar'],['GEL','Georgian lari'],['TRY','Turkish lira'],['RUB','Russian ruble']];
+const currencies = list.map(([code, name]) => {
+const selected = code === this.state.picked;
+return { code, name, selected, checked: selected ? 'true' : 'false',
+rowStyle: 'display:flex;align-items:center;gap:12px;min-height:48px;padding:0 12px;border:0;border-radius:10px;color:' + t.text + ';background:' + (selected ? t.sel : 'transparent'),
+pick: () => this.setState({ picked: code }) };
+});
+return { t, currencies, picked: this.state.picked, username: values[field], hint: hints[field], fieldStyle, hintStyle };
+}
+}
+</script>
+</body>
+</html>

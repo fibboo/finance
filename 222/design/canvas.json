@@ -1,0 +1,20 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-23T10:00:00Z"},
+  "title": "Username in onboarding and account menu",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "Onboarding (phone)", "is_interactive": true},
+    "err-onboarding-phone.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "Onboarding, name taken (phone)"},
+    "menu-a-phone.dc.html": {"x": 940, "y": 0, "w": 390, "h": 844, "title": "Account menu, change username (phone)", "is_interactive": true},
+    "err-menu-phone.dc.html": {"x": 1410, "y": 0, "w": 390, "h": 844, "title": "Account menu, name breaks the rule (phone)"},
+    "onboarding-a-desktop.dc.html": {"x": 0, "y": 964, "w": 1280, "h": 800, "title": "Onboarding (desktop)", "is_interactive": true},
+    "err-onboarding-desktop.dc.html": {"x": 1360, "y": 964, "w": 1280, "h": 800, "title": "Onboarding, name taken (desktop)"},
+    "menu-a-desktop.dc.html": {"x": 0, "y": 1884, "w": 1280, "h": 800, "title": "Account menu, change username (desktop)", "is_interactive": true},
+    "err-menu-desktop.dc.html": {"x": 1360, "y": 1884, "w": 1280, "h": 800, "title": "Account menu, name breaks the rule (desktop)"}
+  },
+  "order": ["Main.dc.html", "err-onboarding-phone.dc.html", "menu-a-phone.dc.html", "err-menu-phone.dc.html", "onboarding-a-desktop.dc.html", "err-onboarding-desktop.dc.html", "menu-a-desktop.dc.html", "err-menu-desktop.dc.html"],
+  "notes": {},
+  "designSystems": []
+}
