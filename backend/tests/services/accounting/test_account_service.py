@@ -385,7 +385,14 @@ async def test_update_account_name_of_deleted_account(db: AsyncSession, db_trans
 async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.INCOME, name="test name")
+    # Wallet stays active, so the deleted account is not the last money account
+    wallet_create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.ASSET, name="Wallet", currency="USD"
+    )
+    wallet: Account = await account_service.create_account(
+        db=db, user_id=user_id, create_data=wallet_create_data, base_currency="USD"
+    )
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
     account_created: Account = await account_service.create_account(
         db=db, user_id=user_id, create_data=create_data, base_currency="USD"
     )
@@ -406,7 +413,7 @@ async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession
 
     request: AccountRequest = AccountRequest()
     accounts: Page[Account] = await account_service.get_accounts(db=db, request=request, user_id=user_id)
-    assert [account.id for account in accounts.items] == [account_created.id]
+    assert {account.id for account in accounts.items} == {wallet.id, account_created.id}
 
 
 async def test_restore_account_not_found(db_transaction: AsyncSession):
@@ -451,9 +458,12 @@ async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSes
 async def test_restore_account_name_taken(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.EXPENSE, name="test name", category_type=CategoryType.VARIABLE
+    # Wallet stays active, so the deleted account is not the last money account
+    wallet_create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.ASSET, name="Wallet", currency="USD"
     )
+    await account_service.create_account(db=db, user_id=user_id, create_data=wallet_create_data, base_currency="USD")
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
     deleted_account: Account = await account_service.create_account(
         db=db, user_id=user_id, create_data=create_data, base_currency="USD"
     )
@@ -568,13 +578,14 @@ async def test_get_accounts_statuses(db: AsyncSession):
     user_id: UUID = uuid4()
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     await db.commit()
-    groceries_db: AccountModel = await account_crud.get(db=db, user_id=user_id, name="Groceries")
-    await account_service.delete_account(db=db, account_id=groceries_db.id, user_id=user_id)
+    travel_db: AccountModel = await account_crud.get(db=db, user_id=user_id, name="Travel")
+    transport_db: AccountModel = await account_crud.get(db=db, user_id=user_id, name="Transport")
+    await account_service.delete_account(db=db, account_id=travel_db.id, user_id=user_id)
     await db.commit()
 
     deleted_request: AccountRequest = AccountRequest(statuses=[EntityStatusType.DELETED])
     all_request: AccountRequest = AccountRequest(
-        statuses=[EntityStatusType.ACTIVE, EntityStatusType.DELETED], search_term="roc"
+        statuses=[EntityStatusType.ACTIVE, EntityStatusType.DELETED], search_term="tra"
     )
 
     # Act
@@ -584,9 +595,10 @@ async def test_get_accounts_statuses(db: AsyncSession):
     all_accounts: Page[Account] = await account_service.get_accounts(db=db, request=all_request, user_id=user_id)
 
     # Assert
-    assert [account.id for account in deleted_accounts.items] == [groceries_db.id]
+    assert [account.id for account in deleted_accounts.items] == [travel_db.id]
     assert deleted_accounts.items[0].status == EntityStatusType.DELETED
-    assert [account.id for account in all_accounts.items] == [groceries_db.id]
+    # Transport is active and Travel is deleted; both match the search term
+    assert [account.id for account in all_accounts.items] == [transport_db.id, travel_db.id]
 
 
 async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSession):

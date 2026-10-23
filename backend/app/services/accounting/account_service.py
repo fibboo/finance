@@ -150,14 +150,15 @@ async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
     is_money_account: bool = account_db.kind in MONEY_ACCOUNT_KINDS
-    locked_ids: list[UUID] = [account_id]
     if is_money_account:
-        money_accounts_db: list[AccountModel] = await account_crud.get_active_money_accounts(db=db, user_id=user_id)
-        locked_ids = [money_account_db.id for money_account_db in money_accounts_db]
+        locked_accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_active_money_accounts(
+            db=db, user_id=user_id
+        )
+    else:
+        locked_accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
+            db=db, ids=[account_id], user_id=user_id, status=EntityStatusType.ACTIVE
+        )
 
-    locked_accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
-        db=db, ids=locked_ids, user_id=user_id, status=EntityStatusType.ACTIVE
-    )
     account_db: AccountModel | None = locked_accounts_db.get(account_id)
     if account_db is None:
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
