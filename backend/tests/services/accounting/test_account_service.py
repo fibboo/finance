@@ -11,14 +11,14 @@ from starlette import status
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.location import location_crud
-from app.crud.accounting.transaction import expense_transaction_crud
+from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.conflict_409 import NameAlreadyExists
 from app.exceptions.forbidden_403 import AccountDeletionForbidden, LastAccountDeletionForbidden
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import AccountKindMismatch
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
-from app.models.accounting.transaction import ExpenseTransaction as ExpenseTransactionModel
+from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.account import (
     Account,
     AccountCreate,
@@ -29,23 +29,22 @@ from app.schemas.accounting.account import (
     CategoryType,
 )
 from app.schemas.accounting.location import LocationCreate
-from app.schemas.accounting.transaction import TransactionType
+from app.schemas.accounting.posting import PostingCreate
+from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import account_service
 
 
-@pytest.mark.parametrize("currency, expected_base_currency_rate", [("USD", Decimal("1")), ("EUR", Decimal("0"))])
-async def test_create_account_ok(db_transaction: AsyncSession, currency: str, expected_base_currency_rate: Decimal):
+@pytest.mark.parametrize("currency", ["USD", "EUR"])
+async def test_create_account_ok(db_transaction: AsyncSession, currency: str):
     # Arrange
     user_id: UUID = uuid4()
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", description="test description", currency=currency
     )
     # Act
-    account: Account = await account_service.create_account(
-        db=db_transaction, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account: Account = await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
     await db_transaction.commit()
 
     # Assert
@@ -56,7 +55,8 @@ async def test_create_account_ok(db_transaction: AsyncSession, currency: str, ex
     assert account.balance == Decimal("0")
     assert account.currency == create_data.currency
     assert account.color is None
-    assert account.base_currency_rate == expected_base_currency_rate
+    assert account.base_currency_rate == Decimal("0")
+    assert account.base_currency_balance == Decimal("0.00")
     assert account.status == EntityStatusType.ACTIVE
 
 
@@ -68,9 +68,7 @@ async def test_create_account_with_color(db: AsyncSession, db_transaction: Async
     )
 
     # Act
-    account: Account = await account_service.create_account(
-        db=db_transaction, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account: Account = await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
     await db_transaction.commit()
 
     # Assert
@@ -87,9 +85,7 @@ async def test_create_account_unknown_currency(db: AsyncSession, db_transaction:
 
     # Act / Assert
     with pytest.raises(EntityNotFound) as exc:
-        await account_service.create_account(
-            db=db_transaction, user_id=user_id, create_data=create_data, base_currency="USD"
-        )
+        await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
 
     await db_transaction.rollback()
 
@@ -106,14 +102,12 @@ async def test_create_account_existing_name(db: AsyncSession, db_transaction: As
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", description="test description", currency="USD"
     )
-    await account_service.create_account(db=db, user_id=user_id, create_data=create_data, base_currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
     # Act
     with pytest.raises(NameAlreadyExists) as exc:
-        await account_service.create_account(
-            db=db_transaction, create_data=create_data, user_id=user_id, base_currency="USD"
-        )
+        await account_service.create_account(db=db_transaction, create_data=create_data, user_id=user_id)
         await db_transaction.commit()
 
     # Assert
@@ -136,12 +130,12 @@ async def test_get_accounts(db: AsyncSession):
         create_data: AccountCreateRequest = AccountCreateRequest(
             kind=AccountKind.ASSET, name=f"Account {i:02}", currency="USD"
         )
-        await account_service.create_account(db=db, user_id=user_id, create_data=create_data, base_currency="USD")
+        await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     deleted_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="Account deleted", currency="USD"
     )
     deleted_account: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=deleted_create_data, base_currency="USD"
+        db=db, user_id=user_id, create_data=deleted_create_data
     )
     await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
     await db.commit()
@@ -181,15 +175,13 @@ async def test_get_account_ok(db: AsyncSession):
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", description="test description", currency="USD"
     )
-    account_created: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
-    # A balance in another currency with its rate, 14200.00 / 2.68 = 5298.51 in the base currency
+    # A balance in another currency worth 5298.51 in the base currency, a rate of 14200.00 / 5298.51 = 2.6799987166
     await account_crud.update_orm(
         db=db,
-        obj_in={"balance": Decimal("14200.00"), "base_currency_rate": Decimal("2.68")},
+        obj_in={"balance": Decimal("14200.00"), "base_balance": Decimal("5298.51")},
         id=account_created.id,
         commit=True,
     )
@@ -206,7 +198,7 @@ async def test_get_account_ok(db: AsyncSession):
     assert account.user_id == account_created.user_id
     assert account.balance == Decimal("14200.00")
     assert account.currency == account_created.currency
-    assert account.base_currency_rate == Decimal("2.68")
+    assert account.base_currency_rate == Decimal("2.6799987166")
     assert str(account.base_currency_balance) == "5298.51"
     assert account.status == account_created.status
 
@@ -235,9 +227,7 @@ async def test_update_account_ok(db: AsyncSession, db_transaction: AsyncSession)
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", description="test description", currency="USD"
     )
-    account_created: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
     update_data: AccountUpdate = AccountUpdate(name="updated name", description="updated description")
@@ -289,12 +279,10 @@ async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSess
     # Arrange
     user_id: UUID = uuid4()
     create_data_1: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Account 1", currency="USD")
-    account_created_1: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data_1, base_currency="USD"
-    )
+    account_created_1: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_1)
 
     create_data_2: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Account 2", currency="USD")
-    await account_service.create_account(db=db, user_id=user_id, create_data=create_data_2, base_currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=create_data_2)
     await db.commit()
 
     update_data: AccountUpdate = AccountUpdate(name="Account 2")
@@ -325,18 +313,14 @@ async def test_create_account_name_of_deleted_account(db: AsyncSession, db_trans
     wallet_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="Wallet", currency="USD"
     )
-    await account_service.create_account(db=db, user_id=user_id, create_data=wallet_create_data, base_currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=wallet_create_data)
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
-    deleted_account: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
     await db.commit()
 
     # Act
-    account: Account = await account_service.create_account(
-        db=db_transaction, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account: Account = await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
     await db_transaction.commit()
 
     # Assert
@@ -357,14 +341,10 @@ async def test_update_account_name_of_deleted_account(db: AsyncSession, db_trans
     # Arrange
     user_id: UUID = uuid4()
     create_data_1: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Account 1", currency="USD")
-    account_created_1: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data_1, base_currency="USD"
-    )
+    account_created_1: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_1)
 
     create_data_2: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Account 2", currency="USD")
-    account_created_2: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data_2, base_currency="USD"
-    )
+    account_created_2: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_2)
     await account_service.delete_account(db=db, account_id=account_created_2.id, user_id=user_id)
     await db.commit()
 
@@ -389,13 +369,9 @@ async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession
     wallet_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="Wallet", currency="USD"
     )
-    wallet: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=wallet_create_data, base_currency="USD"
-    )
+    wallet: Account = await account_service.create_account(db=db, user_id=user_id, create_data=wallet_create_data)
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
-    account_created: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=account_created.id, user_id=user_id)
     await db.commit()
 
@@ -438,9 +414,7 @@ async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSes
     # Arrange
     user_id: UUID = uuid4()
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
-    account_created: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
     # Act / Assert
@@ -462,13 +436,11 @@ async def test_restore_account_name_taken(db: AsyncSession, db_transaction: Asyn
     wallet_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="Wallet", currency="USD"
     )
-    await account_service.create_account(db=db, user_id=user_id, create_data=wallet_create_data, base_currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=wallet_create_data)
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
-    deleted_account: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
-    await account_service.create_account(db=db, user_id=user_id, create_data=create_data, base_currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
     # Act / Assert
@@ -497,9 +469,7 @@ async def test_create_account_without_currency_ok(
     create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", category_type=category_type)
 
     # Act
-    account: Account = await account_service.create_account(
-        db=db_transaction, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account: Account = await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
     await db_transaction.commit()
 
     # Assert
@@ -515,14 +485,14 @@ async def test_create_account_same_name_other_kind(db: AsyncSession, db_transact
     # Arrange
     user_id: UUID = uuid4()
     asset_create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Job", currency="USD")
-    await account_service.create_account(db=db, user_id=user_id, create_data=asset_create_data, base_currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=asset_create_data)
     await db.commit()
 
     income_create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.INCOME, name="Job")
 
     # Act
     account: Account = await account_service.create_account(
-        db=db_transaction, user_id=user_id, create_data=income_create_data, base_currency="USD"
+        db=db_transaction, user_id=user_id, create_data=income_create_data
     )
     await db_transaction.commit()
 
@@ -536,7 +506,7 @@ async def test_get_accounts_kinds(db: AsyncSession):
     user_id: UUID = uuid4()
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     income_create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.INCOME, name="Salary")
-    await account_service.create_account(db=db, user_id=user_id, create_data=income_create_data, base_currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=income_create_data)
     await db.commit()
 
     default_request: AccountRequest = AccountRequest(size=100)
@@ -607,9 +577,7 @@ async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSessi
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.EXPENSE, name="Groceries", category_type=CategoryType.VARIABLE, color="#112233"
     )
-    account_created: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
     update_data: AccountUpdate = AccountUpdate(name="Groceries", color="#AABBCC")
@@ -634,9 +602,7 @@ async def test_update_account_category_type_ok(db: AsyncSession, db_transaction:
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.EXPENSE, name="Netflix", category_type=CategoryType.VARIABLE
     )
-    account_created: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
     update_data: AccountUpdate = AccountUpdate(name="Netflix", category_type=CategoryType.FIXED)
@@ -661,9 +627,7 @@ async def test_update_account_category_type_mismatch(
     # Arrange
     user_id: UUID = uuid4()
     create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", currency=currency)
-    account_created: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
-    )
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
     update_data: AccountUpdate = AccountUpdate(name="Updated", category_type=CategoryType.FIXED)
@@ -716,7 +680,7 @@ async def test_delete_account_with_balance(db: AsyncSession, db_transaction: Asy
         "name": "Credit card",
         "currency": "USD",
         "balance": Decimal("-100.00"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("-100.00"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -740,7 +704,6 @@ async def test_delete_account_category_keeps_transactions(db: AsyncSession, db_t
         "kind": AccountKind.ASSET,
         "name": "Wallet",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     wallet_db: AccountModel = await account_crud.create(db=db, obj_in=wallet_create_data, commit=True)
     category_create_data: dict = {
@@ -753,22 +716,21 @@ async def test_delete_account_category_keeps_transactions(db: AsyncSession, db_t
     location_db: LocationModel = await location_crud.create(
         db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
     )
-    expense_create_data: dict = {
-        "user_id": user_id,
-        "transaction_type": TransactionType.EXPENSE,
-        "transaction_date": date(2025, 2, 10),
-        "base_currency_amount": Decimal("10"),
-        "source_amount": Decimal("10"),
-        "source_currency": "USD",
-        "destination_amount": Decimal("10"),
-        "destination_currency": "USD",
-        "from_account_id": wallet_db.id,
-        "category_id": category_db.id,
-        "location_id": location_db.id,
-    }
-    expense_db: ExpenseTransactionModel = await expense_transaction_crud.create(
-        db=db, obj_in=expense_create_data, commit=True
+    expense_create_data: TransactionCreate = TransactionCreate(
+        user_id=user_id,
+        transaction_type=TransactionType.EXPENSE,
+        transaction_date=date(2025, 2, 10),
+        base_currency_amount=Decimal("10"),
+        location_id=location_db.id,
     )
+    postings_create_data: list[PostingCreate] = [
+        PostingCreate(account_id=wallet_db.id, amount=Decimal("-10"), currency="USD", base_amount=Decimal("-10")),
+        PostingCreate(account_id=category_db.id, amount=Decimal("10"), currency="USD", base_amount=Decimal("10")),
+    ]
+    expense_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db, obj_in=expense_create_data, postings=postings_create_data
+    )
+    await db.commit()
 
     # Act
     account: Account = await account_service.delete_account(
@@ -780,10 +742,10 @@ async def test_delete_account_category_keeps_transactions(db: AsyncSession, db_t
     assert account.id == category_db.id
     assert account.status == EntityStatusType.DELETED
 
-    expense_after_db: ExpenseTransactionModel = await db.scalar(
-        select(ExpenseTransactionModel).where(ExpenseTransactionModel.id == expense_db.id)
+    expense_after_db: TransactionModel = await db.scalar(
+        select(TransactionModel).where(TransactionModel.id == expense_db.id).execution_options(populate_existing=True)
     )
-    assert expense_after_db.category_id == category_db.id
+    assert [posting_db.account_id for posting_db in expense_after_db.postings] == [wallet_db.id, category_db.id]
     assert expense_after_db.status == EntityStatusType.ACTIVE
 
 
@@ -813,9 +775,7 @@ async def test_delete_account_last_money_account(db: AsyncSession, db_transactio
     card_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.LIABILITY, name="Credit card", currency="USD"
     )
-    card: Account = await account_service.create_account(
-        db=db, user_id=user_id, create_data=card_create_data, base_currency="USD"
-    )
+    card: Account = await account_service.create_account(db=db, user_id=user_id, create_data=card_create_data)
     await db.commit()
     await account_service.delete_account(db=db, account_id=card.id, user_id=user_id)
     await db.commit()
@@ -842,7 +802,7 @@ async def test_delete_account_other_money_account_active(db: AsyncSession, db_tr
     card_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.LIABILITY, name="Credit card", currency="USD"
     )
-    await account_service.create_account(db=db, user_id=user_id, create_data=card_create_data, base_currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=card_create_data)
     await db.commit()
     wallet_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.ASSET)
 

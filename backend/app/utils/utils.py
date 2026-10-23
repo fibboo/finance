@@ -4,8 +4,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.schemas.base import CurrencyCode
-
 
 def make_hashable(*, value: Any) -> tuple:
     if isinstance(value, dict):
@@ -38,21 +36,12 @@ def round_to_cents(*, amount: Decimal) -> Decimal:
     return rounded_amount
 
 
-def get_base_currency_balance(*, balance: Decimal, base_currency_rate: Decimal) -> Decimal:
-    if base_currency_rate == 0:
-        base_currency_balance: Decimal = Decimal("0.00")
+def get_base_currency_rate(*, balance: Decimal, base_balance: Decimal) -> Decimal:
+    if balance == 0 or base_balance == 0:
+        base_currency_rate: Decimal = Decimal("0")
     else:
-        base_currency_balance: Decimal = round_to_cents(amount=balance / base_currency_rate)
+        base_currency_rate: Decimal = (balance / base_balance).quantize(
+            Decimal("0.0000000001"), rounding=ROUND_HALF_EVEN
+        )
 
-    return base_currency_balance
-
-
-def get_fixed_base_currency_rate(*, currency: CurrencyCode, base_currency: CurrencyCode | None) -> Decimal | None:
-    fixed_rate: Decimal | None = Decimal("1") if currency == base_currency else None
-    return fixed_rate
-
-
-def get_new_account_base_currency_rate(*, currency: CurrencyCode, base_currency: CurrencyCode) -> Decimal:
-    fixed_rate: Decimal | None = get_fixed_base_currency_rate(currency=currency, base_currency=base_currency)
-    base_currency_rate: Decimal = fixed_rate if fixed_rate is not None else Decimal("0")
     return base_currency_rate

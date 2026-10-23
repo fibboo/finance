@@ -5,9 +5,8 @@ from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import DbTransaction, get_base_currency, get_db, get_user_id
+from app.api.deps import DbTransaction, get_db, get_onboarded_user_id, get_user_id
 from app.schemas.accounting.account import Account, AccountCreateRequest, AccountRequest, AccountUpdate
-from app.schemas.base import CurrencyCode
 from app.services.accounting import account_service
 
 router = APIRouter()
@@ -17,13 +16,10 @@ router = APIRouter()
 async def create_account(
     *,
     create_data: AccountCreateRequest,
-    user_id: UUID = Depends(get_user_id),
-    base_currency: CurrencyCode = Depends(get_base_currency),
+    user_id: UUID = Depends(get_onboarded_user_id),
     db: DbTransaction,
 ) -> Account:
-    account: Account = await account_service.create_account(
-        db=db, create_data=create_data, user_id=user_id, base_currency=base_currency
-    )
+    account: Account = await account_service.create_account(db=db, create_data=create_data, user_id=user_id)
     return account
 
 

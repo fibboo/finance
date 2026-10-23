@@ -55,7 +55,7 @@ class Account(Base):
         Enum(CategoryType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
         nullable=True,
     )
-    base_currency_rate: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
+    base_balance: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
     status: Mapped[EntityStatusType] = mapped_column(
         Enum(
             EntityStatusType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]

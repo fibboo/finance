@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
-from app.crud.base import CRUDBase
+from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import (
     CurrencyMismatchException,
@@ -17,8 +17,10 @@ from app.exceptions.forbidden_403 import (
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import AccountKindMismatch
 from app.models.accounting.account import Account as AccountModel
+from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
+from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import Transaction, TransactionCreate, TransactionCreateRequest, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
@@ -39,14 +41,8 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     def _transaction_type(self) -> TransactionType:
         pass
 
-    @property
     @abstractmethod
-    def _transaction_crud(self) -> CRUDBase:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def _get_transaction_accounts(*, transaction_db: TransactionModel) -> list[AccountModel]:
+    async def _prepare_transaction(self, *, data: T) -> tuple[TransactionCreate, list[PostingCreate]]:
         pass
 
     @staticmethod
@@ -70,7 +66,8 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     async def _validate_transaction_from_account(self, *, data: T, from_account_db: AccountModel | None) -> None:
         self._validate_account_is_active(account_id=data.from_account_id, account_db=from_account_db)
 
-        if from_account_db.base_currency_rate == 0:
+        has_rate: bool = self._has_rate(account_db=from_account_db, base_currency=self.base_currency)
+        if not has_rate:
             raise NoAccountBaseCurrencyRate(account_id=from_account_db.id, logger=logger)
 
         if from_account_db.currency != data.source_currency:
@@ -92,157 +89,66 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
                 logger=logger,
             )
 
-    @abstractmethod
-    async def _prepare_transaction(self, *, data: T) -> TransactionCreate:
-        pass
-
     @staticmethod
     def _get_request_currencies(*, data: T) -> list[CurrencyCode]:
         currencies: list[CurrencyCode] = sorted({data.source_currency, data.destination_currency})
         return currencies
 
     @staticmethod
-    def _get_from_account_delta(*, transaction_db: TransactionModel) -> Decimal:
-        if transaction_db.status == EntityStatusType.DELETED:
-            delta: Decimal = transaction_db.source_amount
-        else:
-            delta: Decimal = -transaction_db.source_amount
-
-        return delta
-
-    @staticmethod
-    def _get_to_account_delta(*, transaction_db: TransactionModel) -> Decimal:
-        if transaction_db.status == EntityStatusType.DELETED:
-            delta: Decimal = -transaction_db.destination_amount
-        else:
-            delta: Decimal = transaction_db.destination_amount
-
-        return delta
-
-    @staticmethod
-    def __get_to_account_base_currency_delta(*, transaction_db: TransactionModel) -> Decimal:
-        if transaction_db.status == EntityStatusType.DELETED:
-            base_currency_delta: Decimal = -transaction_db.base_currency_amount
-        else:
-            base_currency_delta: Decimal = transaction_db.base_currency_amount
-
-        return base_currency_delta
-
-    @staticmethod
-    def _quantize_amount(*, amount: Decimal) -> Decimal:
+    def __quantize_amount(*, amount: Decimal) -> Decimal:
         quantized_amount: Decimal = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
         quantized_amount: Decimal = max(quantized_amount, Decimal("0.01"))
         return quantized_amount
 
     @staticmethod
-    def _quantize_rate(*, rate: Decimal) -> Decimal:
-        quantized_rate: Decimal = rate.quantize(Decimal("0.0000000001"), rounding=ROUND_HALF_EVEN)
-        return quantized_rate
-
-    @staticmethod
-    def _get_first_rate(*, amount: Decimal, base_currency_amount: Decimal) -> Decimal:
-        first_rate: Decimal = amount / base_currency_amount
-        first_rate: Decimal = TransactionProcessor._quantize_rate(rate=first_rate)
-        return first_rate
-
-    @staticmethod
-    def _get_first_credit_rate(*, transaction_db: TransactionModel) -> Decimal:
-        first_credit_rate: Decimal = TransactionProcessor._get_first_rate(
-            amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount
+    def _has_rate(*, account_db: AccountModel, base_currency: CurrencyCode | None) -> bool:
+        base_currency_rate: Decimal = utils.get_base_currency_rate(
+            balance=account_db.balance, base_balance=account_db.base_balance
         )
-        return first_credit_rate
+        has_rate: bool = account_db.currency == base_currency or base_currency_rate > 0
+        return has_rate
 
     @staticmethod
-    def __get_credit_rate(
-        *,
-        account_db: AccountModel,
-        first_rate: Decimal,
-        new_balance: Decimal,
-        base_currency_delta: Decimal,
-        base_currency: CurrencyCode | None,
-    ) -> Decimal:
-        fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
-            currency=account_db.currency, base_currency=base_currency
-        )
-        if fixed_rate is not None:
-            new_base_rate: Decimal = fixed_rate
-        elif new_balance == 0:
-            new_base_rate: Decimal = Decimal("0")
-        elif account_db.base_currency_rate == 0 or account_db.balance <= 0 < new_balance:
-            new_base_rate: Decimal = first_rate
-        elif account_db.balance > 0 and new_balance > 0:
-            new_base_balance: Decimal = account_db.balance / account_db.base_currency_rate + base_currency_delta
-            if new_base_balance > 0:
-                new_base_rate: Decimal = new_balance / new_base_balance
-            else:
-                new_base_rate: Decimal = account_db.base_currency_rate
+    def _get_base_amount(*, account_db: AccountModel, amount: Decimal, base_currency: CurrencyCode | None) -> Decimal:
+        if account_db.currency == base_currency:
+            base_amount: Decimal = amount
+        elif amount == abs(account_db.balance):
+            base_amount: Decimal = abs(account_db.base_balance)
         else:
-            new_base_rate: Decimal = account_db.base_currency_rate
-
-        new_base_rate: Decimal = TransactionProcessor._quantize_rate(rate=new_base_rate)
-        return new_base_rate
-
-    @staticmethod
-    def __get_debit_rate(
-        *,
-        account_db: AccountModel,
-        transaction_db: TransactionModel,
-        new_balance: Decimal,
-        base_currency: CurrencyCode | None,
-    ) -> Decimal:
-        fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
-            currency=account_db.currency, base_currency=base_currency
-        )
-        if fixed_rate is not None:
-            new_base_rate: Decimal = fixed_rate
-        elif account_db.base_currency_rate != 0 or new_balance == 0:
-            new_base_rate: Decimal = account_db.base_currency_rate
-        else:
-            new_base_rate: Decimal = TransactionProcessor._get_first_rate(
-                amount=transaction_db.source_amount, base_currency_amount=transaction_db.base_currency_amount
+            base_amount: Decimal = TransactionProcessor.__quantize_amount(
+                amount=amount * account_db.base_balance / account_db.balance
             )
 
-        return new_base_rate
+        return base_amount
 
-    async def _update_from_account(self, *, transaction_db: TransactionModel) -> None:
-        if transaction_db.from_account_id is None:
-            return
+    @staticmethod
+    def _get_postings(
+        *,
+        from_account_id: UUID,
+        from_amount: Decimal,
+        from_currency: CurrencyCode,
+        to_account_id: UUID,
+        to_amount: Decimal,
+        to_currency: CurrencyCode,
+        base_amount: Decimal,
+    ) -> list[PostingCreate]:
+        postings: list[PostingCreate] = [
+            PostingCreate(
+                account_id=from_account_id, amount=-from_amount, currency=from_currency, base_amount=-base_amount
+            ),
+            PostingCreate(account_id=to_account_id, amount=to_amount, currency=to_currency, base_amount=base_amount),
+        ]
+        return postings
 
-        delta: Decimal = self._get_from_account_delta(transaction_db=transaction_db)
-        new_balance: Decimal = transaction_db.from_account.balance + delta
-        new_base_rate: Decimal = self.__get_debit_rate(
-            account_db=transaction_db.from_account,
-            transaction_db=transaction_db,
-            new_balance=new_balance,
-            base_currency=self.base_currency,
-        )
-        await account_crud.update_orm(
-            db=self.db,
-            id=transaction_db.from_account_id,
-            obj_in={"balance": new_balance, "base_currency_rate": new_base_rate},
-        )
-
-    async def _update_to_account(self, *, transaction_db: TransactionModel) -> None:
-        if transaction_db.to_account_id is None:
-            return
-
-        delta: Decimal = self._get_to_account_delta(transaction_db=transaction_db)
-        base_currency_delta: Decimal = self.__get_to_account_base_currency_delta(transaction_db=transaction_db)
-        new_balance: Decimal = transaction_db.to_account.balance + delta
-        first_rate: Decimal = self._get_first_credit_rate(transaction_db=transaction_db)
-        new_base_rate: Decimal = self.__get_credit_rate(
-            account_db=transaction_db.to_account,
-            first_rate=first_rate,
-            new_balance=new_balance,
-            base_currency_delta=base_currency_delta,
-            base_currency=self.base_currency,
-        )
-        new_balance: Decimal = new_balance.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
-        await account_crud.update_orm(
-            db=self.db,
-            id=transaction_db.to_account_id,
-            obj_in={"balance": new_balance, "base_currency_rate": new_base_rate},
-        )
+    async def __update_account_balances(self, *, postings_db: list[PostingModel], sign: Decimal) -> None:
+        for posting_db in postings_db:
+            if posting_db.account.kind in MONEY_ACCOUNT_KINDS:
+                await account_crud.add_to_balance(
+                    db=self.db,
+                    account_id=posting_db.account_id,
+                    amount=sign * posting_db.amount,
+                    base_amount=sign * posting_db.base_amount,
+                )
 
     async def create(self, *, data: T) -> Transaction:
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
@@ -251,32 +157,39 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         for currency in currencies:
             await currency_service.get_currency(db=self.db, code=currency)
 
-        transaction_data: TransactionCreate = await self._prepare_transaction(data=data)
+        transaction_data, postings_data = await self._prepare_transaction(data=data)
         try:
-            transaction_db: TransactionModel = await self._transaction_crud.create(db=self.db, obj_in=transaction_data)
+            transaction_db: TransactionModel = await transaction_crud.create_with_postings(
+                db=self.db, obj_in=transaction_data, postings=postings_data
+            )
 
         except IntegrityError as exc:
             raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)
 
-        await self._update_from_account(transaction_db=transaction_db)
-        await self._update_to_account(transaction_db=transaction_db)
+        await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("1"))
 
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction
 
     async def delete(self, *, transaction_id: UUID) -> Transaction:
-        transaction_db: TransactionModel | None = await self._transaction_crud.get_or_none(
-            db=self.db, id=transaction_id, user_id=self.user_id, status=EntityStatusType.ACTIVE, with_for_update=True
+        transaction_db: TransactionModel | None = await transaction_crud.get_or_none(
+            db=self.db,
+            id=transaction_id,
+            user_id=self.user_id,
+            transaction_type=self._transaction_type,
+            status=EntityStatusType.ACTIVE,
+            with_for_update=True,
         )
         if transaction_db is None:
             raise EntityNotFound(
                 entity=TransactionModel, search_params={"id": transaction_id, "user_id": self.user_id}, logger=logger
             )
 
-        self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
-
-        transaction_accounts_db: list[AccountModel] = self._get_transaction_accounts(transaction_db=transaction_db)
-        account_ids: list[UUID] = [account_db.id for account_db in transaction_accounts_db]
+        account_ids: list[UUID] = [
+            posting_db.account_id
+            for posting_db in transaction_db.postings
+            if posting_db.account.kind in MONEY_ACCOUNT_KINDS
+        ]
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=account_ids, user_id=self.user_id
         )
@@ -284,12 +197,10 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             self._validate_account_is_active(account_id=account_db.id, account_db=account_db)
 
         delete_update_data = {"status": EntityStatusType.DELETED}
-        transaction_db: TransactionModel = await self._transaction_crud.update_api(
+        transaction_db: TransactionModel = await transaction_crud.update_api(
             db=self.db, db_obj=transaction_db, obj_in=delete_update_data
         )
-
-        await self._update_from_account(transaction_db=transaction_db)
-        await self._update_to_account(transaction_db=transaction_db)
+        await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("-1"))
 
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction

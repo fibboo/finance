@@ -11,7 +11,6 @@ from app.configs.settings import settings
 from app.db.postgres import session_maker
 from app.exceptions.forbidden_403 import OriginNotAllowed
 from app.exceptions.unauthorized_401 import InvalidTokenException, RefreshTokenReusedException
-from app.schemas.base import CurrencyCode
 from app.services.user import token_service, user_service
 
 logger = get_logger(logger_name=__name__)
@@ -58,11 +57,6 @@ async def get_user_id(*, credentials: HTTPAuthorizationCredentials | None = Depe
 async def get_onboarded_user_id(*, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> UUID:
     await user_service.get_user_base_currency(db=db, user_id=user_id)
     return user_id
-
-
-async def get_base_currency(*, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> CurrencyCode:
-    base_currency: CurrencyCode = await user_service.get_user_base_currency(db=db, user_id=user_id)
-    return base_currency
 
 
 async def get_refresh_token(

@@ -1,4 +1,3 @@
-from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
@@ -24,7 +23,6 @@ from app.schemas.accounting.account import (
 )
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
-from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -51,19 +49,11 @@ def _get_integrity_exception(*, exception: IntegrityError, user_id: UUID) -> Con
     return integrity_exception
 
 
-async def create_account(
-    *, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID, base_currency: CurrencyCode
-) -> Account:
-    base_currency_rate: Decimal = Decimal("0")
+async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID) -> Account:
     if create_data.currency is not None:
         await currency_service.get_currency(db=db, code=create_data.currency)
-        base_currency_rate = utils.get_new_account_base_currency_rate(
-            currency=create_data.currency, base_currency=base_currency
-        )
 
-    create_data: AccountCreate = AccountCreate(
-        **create_data.model_dump(), user_id=user_id, base_currency_rate=base_currency_rate
-    )
+    create_data: AccountCreate = AccountCreate(**create_data.model_dump(), user_id=user_id)
     try:
         account_db: AccountModel = await account_crud.create(db=db, obj_in=create_data)
 
@@ -75,32 +65,15 @@ async def create_account(
 
 
 async def create_default_accounts(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyCode) -> None:
-    wallet_base_currency_rate: Decimal = utils.get_new_account_base_currency_rate(
-        currency=base_currency, base_currency=base_currency
-    )
     create_data: list[AccountCreate] = [
-        AccountCreate(
-            user_id=user_id,
-            kind=AccountKind.ASSET,
-            name="Wallet",
-            currency=base_currency,
-            base_currency_rate=wallet_base_currency_rate,
-        )
+        AccountCreate(user_id=user_id, kind=AccountKind.ASSET, name="Wallet", currency=base_currency)
     ]
     for name, category_type in DEFAULT_CATEGORIES.items():
         create_data.append(
-            AccountCreate(
-                user_id=user_id,
-                kind=AccountKind.EXPENSE,
-                name=name,
-                category_type=category_type,
-                base_currency_rate=Decimal("0"),
-            )
+            AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name=name, category_type=category_type)
         )
 
-    create_data.append(
-        AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments", base_currency_rate=Decimal("0"))
-    )
+    create_data.append(AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"))
     await account_crud.create_batch(db=db, objs_in=create_data)
 
 

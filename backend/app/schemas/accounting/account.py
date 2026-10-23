@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, computed_field, ConfigDict, model_validator, StringConstraints
+from pydantic import BaseModel, computed_field, ConfigDict, Field, model_validator, StringConstraints
 
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.utils import utils
@@ -81,7 +81,6 @@ class AccountCreateRequest(AccountCreateBase):
 
 class AccountCreate(AccountCreateBase):
     user_id: UUID
-    base_currency_rate: Decimal
 
 
 class AccountUpdate(AccountBase):
@@ -105,15 +104,19 @@ class Account(AccountBase):
     currency: CurrencyCode | None
     color: str | None
     category_type: CategoryType | None
-    base_currency_rate: Decimal
+    base_balance: Decimal = Field(exclude=True)
     status: EntityStatusType
 
     @computed_field
     @property
+    def base_currency_rate(self) -> Decimal:
+        base_currency_rate: Decimal = utils.get_base_currency_rate(balance=self.balance, base_balance=self.base_balance)
+        return base_currency_rate
+
+    @computed_field
+    @property
     def base_currency_balance(self) -> Decimal:
-        base_currency_balance: Decimal = utils.get_base_currency_balance(
-            balance=self.balance, base_currency_rate=self.base_currency_rate
-        )
+        base_currency_balance: Decimal = utils.round_to_cents(amount=self.base_balance)
         return base_currency_balance
 
     model_config = ConfigDict(from_attributes=True)

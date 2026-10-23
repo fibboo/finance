@@ -63,25 +63,25 @@ def test_hash_secret():
     assert secret_hash == "03b411ef0f044a8472f1b7de95e53f992c9bf7131f6c15cc7a29c83f2a09f91c"
 
 
+# 14200.00 over 5298.51 is 2.6799987166..., kept to 10 places
 @pytest.mark.parametrize(
-    "balance, base_currency_rate, expected_base_currency_balance",
+    "balance, base_balance, expected_base_currency_rate",
     [
-        (Decimal("14200.00"), Decimal("2.68"), "5298.51"),
-        (Decimal("100"), Decimal("1"), "100.00"),
-        (Decimal("-50.00"), Decimal("0.5"), "-100.00"),
-        (Decimal("0"), Decimal("0.92"), "0.00"),
-        (Decimal("250.00"), Decimal("0"), "0.00"),
+        (Decimal("14200.00"), Decimal("5298.51"), "2.6799987166"),
+        (Decimal("100.00"), Decimal("100.00"), "1.0000000000"),
+        (Decimal("-50.00"), Decimal("-100.00"), "0.5000000000"),
+        (Decimal("0"), Decimal("0"), "0"),
+        (Decimal("0"), Decimal("12.50"), "0"),
+        (Decimal("250.00"), Decimal("0"), "0"),
     ],
-    ids=["other_currency", "base_currency", "negative_balance", "empty_account", "no_rate"],
+    ids=["other_currency", "base_currency", "negative_balance", "empty_account", "no_balance", "no_base_balance"],
 )
-def test_get_base_currency_balance(balance: Decimal, base_currency_rate: Decimal, expected_base_currency_balance: str):
+def test_get_base_currency_rate(balance: Decimal, base_balance: Decimal, expected_base_currency_rate: str):
     # Act
-    base_currency_balance: Decimal = utils.get_base_currency_balance(
-        balance=balance, base_currency_rate=base_currency_rate
-    )
+    base_currency_rate: Decimal = utils.get_base_currency_rate(balance=balance, base_balance=base_balance)
 
     # Assert
-    assert str(base_currency_balance) == expected_base_currency_balance
+    assert str(base_currency_rate) == expected_base_currency_rate
 
 
 @pytest.mark.parametrize(
