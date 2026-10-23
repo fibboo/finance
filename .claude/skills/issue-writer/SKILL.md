@@ -73,7 +73,7 @@ The exception is a sub-issue that is not part of the parent's type, for example 
   3. **MANDATORY: never reference parent or child issue numbers in any issue body.**
   4. Verify the links by listing the parent's sub-issues.
 - **Sub-issue title format:** `<topic> (<area>) - PR N of M: <specific scope>`
-  - `<topic>`: the Container's topic, the same in every sub-issue of it
+  - `<topic>`: the Container's topic, the same in every sub-issue of it; a Container whose title predates this format takes the short prefix its existing sub-issues share
   - `(<area>)`: the rule of **Issue Title**, applied to this sub-issue's own work
   - `N of M`: 1-based position and total count
   - `<specific scope>`: an imperative phrase saying exactly what this PR delivers, readable without the parent title
@@ -90,10 +90,10 @@ A draft names a blocker that already exists as `#<number> (<title>)`, and a sibl
 Format: `<topic> (<area>): <short description>`.
 
 - `<topic>`: one or two words naming what the work is about in the terms of the domain, such as `Ledger`, `Transactions` or `Username`, not the module it changes.
-- `(<area>)`: written only when the whole issue stays inside one area, and left out together with its parentheses when the work spans several, such as an issue that changes both the backend and the frontend. `<area>` is `backend`, `frontend`, `claude` (rules, skills and other `.claude/` changes) or `ci` (GitHub Actions workflows, the production compose file and the server it deploys to). Work inside one module's own Dockerfile, dependencies or tests keeps that module's area.
+- `(<area>)`: written only when the whole issue stays inside one area, and left out together with its parentheses when the work spans several, such as an issue that changes both the backend and the frontend. `<area>` is `backend`, `frontend`, `claude` (rules, skills and other `.claude/` changes) or `ci` (GitHub Actions workflows, the production compose file and the server it deploys to). Work inside one module's own Dockerfile, dependencies or tests keeps that module's area. Files outside every area, such as the root `CLAUDE.md`, `README.md` files, `docs/` and `docker-compose.yml`, do not count when the area is chosen.
 - `<short description>`: imperative or noun-phrase style.
 
-Examples: `Locations (backend): Delete and restore locations`, `Username: Show and change the username`.
+Examples: `Locations (backend): Delete and restore locations`, `Budgets: Add monthly budget limits per category` for work that changes both the backend and the frontend.
 
 ## Issue Description Guidelines
 
