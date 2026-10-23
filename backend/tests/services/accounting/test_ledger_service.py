@@ -2,12 +2,15 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.location import location_crud
 from app.crud.accounting.transaction import transaction_crud
+from app.exceptions.forbidden_403 import DeletedAccountTransactionForbidden
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.posting import Posting as PostingModel
@@ -17,6 +20,7 @@ from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import EntityStatusType
+from app.schemas.error_response import ErrorCodeType
 from app.services.accounting.ledger_service import recalculate_accounts
 
 
@@ -582,3 +586,271 @@ async def test_recalculate_accounts_revalued_transfers_recalculate_receiving_acc
         (usd_account_db.id, Decimal("50"), Decimal("50")),
         (savings_db.id, Decimal("0"), Decimal("0")),
     ]
+
+
+async def test_recalculate_accounts_back_dated_adjustment_takes_rate_of_its_date(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # Incomes of 100 + 100 EUR, an adjustment of 100 EUR and an expense of 50 EUR, valued 100 + 300 + 200 - 100 USD
+    eur_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.ASSET,
+            "name": "Cash EUR",
+            "currency": "EUR",
+            "balance": Decimal("250"),
+            "base_balance": Decimal("500"),
+        },
+        commit=True,
+    )
+    income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    equity_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    for transaction_date, base_amount in [(date(2025, 1, 1), Decimal("100")), (date(2025, 1, 20), Decimal("300"))]:
+        await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.INCOME,
+                transaction_date=transaction_date,
+                base_currency_amount=base_amount,
+                income_period=date(2025, 1, 1),
+            ),
+            postings=[
+                PostingCreate(
+                    account_id=income_source_db.id, amount=Decimal("-100"), currency="EUR", base_amount=-base_amount
+                ),
+                PostingCreate(
+                    account_id=eur_account_db.id, amount=Decimal("100"), currency="EUR", base_amount=base_amount
+                ),
+            ],
+        )
+        await db.commit()
+
+    # Valued at the rate of both incomes, 2 USD for 1 EUR, as it was entered last
+    adjustment_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.ADJUSTMENT,
+            transaction_date=date(2025, 1, 5),
+            base_currency_amount=Decimal("200"),
+        ),
+        postings=[
+            PostingCreate(account_id=equity_db.id, amount=Decimal("-100"), currency="EUR", base_amount=Decimal("-200")),
+            PostingCreate(
+                account_id=eur_account_db.id, amount=Decimal("100"), currency="EUR", base_amount=Decimal("200")
+            ),
+        ],
+    )
+    await db.commit()
+
+    expense_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2025, 1, 10),
+            base_currency_amount=Decimal("100"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(
+                account_id=eur_account_db.id, amount=Decimal("-50"), currency="EUR", base_amount=Decimal("-100")
+            ),
+            PostingCreate(account_id=category_db.id, amount=Decimal("50"), currency="EUR", base_amount=Decimal("100")),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    await recalculate_accounts(db=db_transaction, transaction_db=adjustment_db, base_currency="USD")
+    await db_transaction.commit()
+
+    # Assert
+    # Only the first income precedes the adjustment, 1 EUR for 1 USD, and so it does for the expense
+    transaction_amounts = (
+        (
+            await db.execute(
+                select(TransactionModel.base_currency_amount)
+                .where(TransactionModel.id.in_([adjustment_db.id, expense_db.id]))
+                .order_by(TransactionModel.transaction_date)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert transaction_amounts == [Decimal("100"), Decimal("50")]
+
+    adjustment_postings = (
+        await db.execute(
+            select(PostingModel.account_id, PostingModel.amount, PostingModel.base_amount)
+            .where(PostingModel.transaction_id == adjustment_db.id)
+            .order_by(PostingModel.amount)
+        )
+    ).all()
+    assert [tuple(posting) for posting in adjustment_postings] == [
+        (equity_db.id, Decimal("-100"), Decimal("-100")),
+        (eur_account_db.id, Decimal("100"), Decimal("100")),
+    ]
+
+    eur_account = (
+        await db.execute(
+            select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == eur_account_db.id)
+        )
+    ).one()
+    assert tuple(eur_account) == (Decimal("250"), Decimal("450"))
+
+
+async def test_recalculate_accounts_deleted_account_balance_change_forbidden(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # Income 100 + back-dated income 100, transfer out 50 EUR, valued 100 + 300 - 50 USD
+    eur_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.ASSET,
+            "name": "Cash EUR",
+            "currency": "EUR",
+            "balance": Decimal("150"),
+            "base_balance": Decimal("350"),
+        },
+        commit=True,
+    )
+    # Received 50 USD, spent them and was deleted
+    deleted_usd_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.ASSET,
+            "name": "Old USD",
+            "currency": "USD",
+            "balance": Decimal("0"),
+            "base_balance": Decimal("0"),
+            "status": EntityStatusType.DELETED,
+        },
+        commit=True,
+    )
+    income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2025, 1, 1),
+            base_currency_amount=Decimal("100"),
+            income_period=date(2025, 1, 1),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=income_source_db.id, amount=Decimal("-100"), currency="EUR", base_amount=Decimal("-100")
+            ),
+            PostingCreate(
+                account_id=eur_account_db.id, amount=Decimal("100"), currency="EUR", base_amount=Decimal("100")
+            ),
+        ],
+    )
+    await db.commit()
+
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.TRANSFER,
+            transaction_date=date(2025, 1, 10),
+            base_currency_amount=Decimal("50"),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=eur_account_db.id, amount=Decimal("-50"), currency="EUR", base_amount=Decimal("-50")
+            ),
+            PostingCreate(
+                account_id=deleted_usd_account_db.id, amount=Decimal("50"), currency="USD", base_amount=Decimal("50")
+            ),
+        ],
+    )
+    await db.commit()
+
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2025, 1, 15),
+            base_currency_amount=Decimal("50"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(
+                account_id=deleted_usd_account_db.id, amount=Decimal("-50"), currency="USD", base_amount=Decimal("-50")
+            ),
+            PostingCreate(account_id=category_db.id, amount=Decimal("50"), currency="USD", base_amount=Decimal("50")),
+        ],
+    )
+    await db.commit()
+
+    back_dated_income_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2025, 1, 5),
+            base_currency_amount=Decimal("300"),
+            income_period=date(2025, 1, 1),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=income_source_db.id, amount=Decimal("-100"), currency="EUR", base_amount=Decimal("-300")
+            ),
+            PostingCreate(
+                account_id=eur_account_db.id, amount=Decimal("100"), currency="EUR", base_amount=Decimal("300")
+            ),
+        ],
+    )
+    await db.commit()
+
+    # Act / Assert
+    # The transfer is revalued to 100 USD, which would leave 50 USD on the deleted account
+    with pytest.raises(DeletedAccountTransactionForbidden) as exc:
+        await recalculate_accounts(db=db_transaction, transaction_db=back_dated_income_db, base_currency="USD")
+
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
+    assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
+    assert exc.value.log_message == (
+        f"Account `{deleted_usd_account_db.id}` is deleted. Restore it to create or delete its transactions"
+    )

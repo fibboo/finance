@@ -6,7 +6,7 @@ from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import MovementRequest, TransactionCreate, TransactionType
-from app.services.accounting import ledger_service, location_service
+from app.services.accounting import location_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 
@@ -31,12 +31,8 @@ class Expense(TransactionProcessor[MovementRequest]):
         await self._validate_counter_account(account_id=data.to_account_id, kind=AccountKind.EXPENSE)
         await location_service.get_location(db=self.db, location_id=data.location_id, user_id=self.user_id)
 
-        base_amount: Decimal = ledger_service.get_debit_base_amount(
-            currency=from_account_db.currency,
-            balance=from_account_db.balance,
-            base_balance=from_account_db.base_balance,
-            amount=data.source_amount,
-            base_currency=self.base_currency,
+        base_amount: Decimal = await self._get_debit_base_amount(
+            account_db=from_account_db, amount=data.source_amount, transaction_date=data.transaction_date
         )
         transaction_data: TransactionCreate = TransactionCreate(
             user_id=self.user_id,

@@ -27,14 +27,14 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
         currencies: list[CurrencyCode] = []
         return currencies
 
-    def __get_base_currency_amount(
+    async def __get_base_currency_amount(
         self, *, data: AdjustmentCreate, account_db: AccountModel, amount: Decimal
     ) -> Decimal:
+        balance, base_balance = await ledger_service.get_balances_at_date(
+            db=self.db, account_db=account_db, transaction_date=data.transaction_date
+        )
         has_rate: bool = ledger_service.has_base_currency_rate(
-            currency=account_db.currency,
-            balance=account_db.balance,
-            base_balance=account_db.base_balance,
-            base_currency=self.base_currency,
+            currency=account_db.currency, balance=balance, base_balance=base_balance, base_currency=self.base_currency
         )
         if has_rate:
             if data.base_currency_amount is not None:
@@ -42,10 +42,10 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
                     account_id=account_db.id, base_currency_amount=data.base_currency_amount, logger=logger
                 )
 
-            base_currency_amount: Decimal = ledger_service.get_debit_base_amount(
+            base_currency_amount: Decimal = ledger_service.get_base_amount(
                 currency=account_db.currency,
-                balance=account_db.balance,
-                base_balance=account_db.base_balance,
+                balance=balance,
+                base_balance=base_balance,
                 amount=amount,
                 base_currency=self.base_currency,
             )
@@ -79,7 +79,9 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
 
         difference: Decimal = data.new_balance - account_db.balance
         amount: Decimal = abs(difference)
-        base_currency_amount: Decimal = self.__get_base_currency_amount(data=data, account_db=account_db, amount=amount)
+        base_currency_amount: Decimal = await self.__get_base_currency_amount(
+            data=data, account_db=account_db, amount=amount
+        )
         transaction_data: TransactionCreate = TransactionCreate(
             user_id=self.user_id,
             transaction_type=self._transaction_type,

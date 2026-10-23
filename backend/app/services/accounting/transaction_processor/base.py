@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
@@ -92,15 +93,6 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     async def _validate_transaction_from_account(self, *, data: T, from_account_db: AccountModel | None) -> None:
         self._validate_account_is_active(account_id=data.from_account_id, account_db=from_account_db)
 
-        has_rate: bool = ledger_service.has_base_currency_rate(
-            currency=from_account_db.currency,
-            balance=from_account_db.balance,
-            base_balance=from_account_db.base_balance,
-            base_currency=self.base_currency,
-        )
-        if not has_rate:
-            raise NoAccountBaseCurrencyRate(account_id=from_account_db.id, logger=logger)
-
         if from_account_db.currency != data.source_currency:
             raise CurrencyMismatchException(
                 account_id=from_account_db.id,
@@ -124,6 +116,27 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     def _get_request_currencies(*, data: T) -> list[CurrencyCode]:
         currencies: list[CurrencyCode] = sorted({data.source_currency, data.destination_currency})
         return currencies
+
+    async def _get_debit_base_amount(
+        self, *, account_db: AccountModel, amount: Decimal, transaction_date: date
+    ) -> Decimal:
+        balance, base_balance = await ledger_service.get_balances_at_date(
+            db=self.db, account_db=account_db, transaction_date=transaction_date
+        )
+        has_rate: bool = ledger_service.has_base_currency_rate(
+            currency=account_db.currency, balance=balance, base_balance=base_balance, base_currency=self.base_currency
+        )
+        if not has_rate:
+            raise NoAccountBaseCurrencyRate(account_id=account_db.id, logger=logger)
+
+        base_amount: Decimal = ledger_service.get_base_amount(
+            currency=account_db.currency,
+            balance=balance,
+            base_balance=base_balance,
+            amount=amount,
+            base_currency=self.base_currency,
+        )
+        return base_amount
 
     @staticmethod
     def _get_postings(
@@ -183,6 +196,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         return transaction
 
     async def delete(self, *, transaction_id: UUID) -> Transaction:
+        await account_crud.lock_money_accounts(db=self.db, user_id=self.user_id)
         transaction_db: TransactionModel | None = await transaction_crud.get_or_none(
             db=self.db,
             id=transaction_id,
@@ -197,8 +211,6 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             )
 
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
-        await account_crud.lock_money_accounts(db=self.db, user_id=self.user_id)
-
         account_ids: list[UUID] = [
             posting_db.account_id
             for posting_db in transaction_db.postings
