@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, UTC
+from datetime import date, datetime, UTC
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -51,12 +51,12 @@ def test_transaction_request_date_from_after_date_to():
     assert "date_from should not be later than date_to" in str(exc.value)
 
 
-def test_transaction_request_date_from_defaults_before_date_to():
+def test_transaction_request_date_from_stays_empty():
     # Act
     request: TransactionRequest = TransactionRequest(date_to=date(2025, 6, 30))
 
     # Assert
-    assert request.date_from == date(2025, 4, 1)
+    assert request.date_from is None
     assert request.date_to == date(2025, 6, 30)
 
 
@@ -69,4 +69,4 @@ def test_transaction_request_date_to_defaults_to_utc_today():
 
     # Assert
     assert request.date_to == today
-    assert request.date_from == today - timedelta(days=90)
+    assert request.date_from is None

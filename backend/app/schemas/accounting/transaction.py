@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, UTC
+from datetime import date, datetime, UTC
 from decimal import Decimal
 from enum import Enum
 from typing import Annotated, Any, TypeAlias
@@ -22,6 +22,16 @@ class TransactionType(str, Enum):
     INCOME = "INCOME"
     TRANSFER = "TRANSFER"
     ADJUSTMENT = "ADJUSTMENT"
+
+
+TRANSACTION_TYPE_LABELS: frozendict[TransactionType, str] = frozendict(
+    {
+        TransactionType.EXPENSE: "Expense",
+        TransactionType.INCOME: "Income",
+        TransactionType.TRANSFER: "Transfer",
+        TransactionType.ADJUSTMENT: "Balance adjustment",
+    }
+)
 
 
 class MovementRequest(BaseModel):
@@ -93,6 +103,16 @@ class OrderDirectionType(str, Enum):
     DESC = "desc"
 
 
+TRANSACTION_ORDER_LABELS: frozendict[str, str] = frozendict(
+    {
+        f"{OrderFieldType.TRANSACTION_DATE.value}:{OrderDirectionType.DESC.value}": "Newest first",
+        f"{OrderFieldType.TRANSACTION_DATE.value}:{OrderDirectionType.ASC.value}": "Oldest first",
+        f"{OrderFieldType.AMOUNT.value}:{OrderDirectionType.DESC.value}": "Largest first",
+        f"{OrderFieldType.AMOUNT.value}:{OrderDirectionType.ASC.value}": "Smallest first",
+    }
+)
+
+
 class Order(BaseModel):
     field: OrderFieldType
     ordering: OrderDirectionType | None = None
@@ -135,14 +155,11 @@ class TransactionRequest(Params):
     is_deleted_accounts_only: bool = False
 
     @model_validator(mode="after")
-    def fill_default_dates(self) -> TransactionRequest:
+    def fill_default_date_to(self) -> TransactionRequest:
         if self.date_to is None:
             self.date_to = datetime.now(UTC).date()
 
-        if self.date_from is None:
-            self.date_from = self.date_to - timedelta(days=90)
-
-        if self.date_from > self.date_to:
+        if self.date_from is not None and self.date_from > self.date_to:
             raise ValueError("date_from should not be later than date_to")
 
         return self

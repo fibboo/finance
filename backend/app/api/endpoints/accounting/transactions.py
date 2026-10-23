@@ -69,9 +69,11 @@ async def get_transactions(
     """
     Lists the user's transactions page by page.
 
-    `date_to` defaults to today in UTC and `date_from` to 90 days before `date_to`; a `date_from` later than
-    `date_to` is refused. To see the whole history of an account, send an earlier `date_from` together with
-    `account_ids` or `is_deleted_accounts_only`.
+    `date_to` defaults to today in UTC, and without `date_from` the list starts at the first transaction; a
+    `date_from` later than `date_to` is refused. `account_ids` of one kind match a transaction with a posting on any
+    of them, and kinds combine: a transaction is listed only when it has a posting on a listed account of every kind
+    sent. ASSET and LIABILITY accounts count as one kind, so a card and a category list the card's expenses in that
+    category.
     """
     transactions: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request, user_id=user_id

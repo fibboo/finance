@@ -23,6 +23,8 @@ test('offers the currencies of the accounting dictionary', async () => {
         ],
         account_kinds: [],
         category_types: [],
+        transaction_types: [],
+        transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
     http.get('http://localhost/api/user/me', () =>
@@ -76,6 +78,8 @@ test('signs out and leaves for sign-in', async () => {
         currencies: [{ key: 'EUR', label: 'Euro' }],
         account_kinds: [],
         category_types: [],
+        transaction_types: [],
+        transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
     http.post('http://localhost/api/user/auth/revoke', () => HttpResponse.json(null)),

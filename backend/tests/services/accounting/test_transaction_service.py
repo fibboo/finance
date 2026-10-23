@@ -464,6 +464,16 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         account_ids=[account_income_db.id], is_deleted_accounts_only=True
     )
     request_no_account_filter: TransactionRequest = TransactionRequest()
+    request_checking_and_category: TransactionRequest = TransactionRequest(
+        account_ids=[account_checking_db.id, category_db.id]
+    )
+    request_checking_and_categories: TransactionRequest = TransactionRequest(
+        account_ids=[account_checking_db.id, category_db.id, category_deleted_db.id]
+    )
+    request_income_source_and_income: TransactionRequest = TransactionRequest(
+        account_ids=[income_source_db.id, account_income_db.id]
+    )
+    request_unknown_account: TransactionRequest = TransactionRequest(account_ids=[uuid4()])
 
     # Act
     transactions_checking: Page[Transaction] = await transaction_service.get_transactions(
@@ -489,6 +499,18 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     )
     transactions_no_account_filter: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request_no_account_filter, user_id=user_id
+    )
+    transactions_checking_and_category: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_checking_and_category, user_id=user_id
+    )
+    transactions_checking_and_categories: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_checking_and_categories, user_id=user_id
+    )
+    transactions_income_source_and_income: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_income_source_and_income, user_id=user_id
+    )
+    transactions_unknown_account: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_unknown_account, user_id=user_id
     )
 
     # Assert
@@ -520,6 +542,70 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         *deleted_account_transaction_ids,
         income.id,
         expense.id,
+    ]
+    # accounts of one kind match any of them, and kinds of accounts must all match
+    assert [item.id for item in transactions_checking_and_category.items] == [expense.id]
+    assert [item.id for item in transactions_checking_and_categories.items] == [
+        expense_to_deleted_category.id,
+        expense.id,
+    ]
+    assert [item.id for item in transactions_income_source_and_income.items] == [income.id]
+    assert transactions_unknown_account.total == 0
+
+
+async def test_get_transactions_whole_history_by_default(db: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Checking USD",
+        "currency": "USD",
+        "balance": Decimal("2000"),
+        "base_balance": Decimal("2000"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    # one expense older than any default window and one of today
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    for transaction_date in [date.today() - timedelta(days=400), date.today()]:
+        expense_create_data: MovementRequest = MovementRequest(
+            transaction_date=transaction_date,
+            source_amount=Decimal("10"),
+            source_currency="USD",
+            destination_amount=Decimal("10"),
+            destination_currency="USD",
+            from_account_id=account_db.id,
+            to_account_id=category_db.id,
+            location_id=location_db.id,
+        )
+        await transaction_processor.create(data=expense_create_data)
+
+    await db.commit()
+    await db.close()
+
+    # Act
+    transactions: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=TransactionRequest(), user_id=user_id
+    )
+
+    # Assert
+    assert [item.transaction_date for item in transactions.items] == [
+        date.today(),
+        date.today() - timedelta(days=400),
     ]
 
 
