@@ -15,13 +15,19 @@ from app.exceptions.forbidden_403 import (
     NoAccountBaseCurrencyRate,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.unprocessable_422 import AccountKindMismatch
+from app.exceptions.unprocessable_422 import AccountKindMismatch, UnprocessableException
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
 from app.schemas.accounting.posting import PostingCreate
-from app.schemas.accounting.transaction import Transaction, TransactionCreate, TransactionCreateRequest, TransactionType
+from app.schemas.accounting.transaction import (
+    MovementRequest,
+    Transaction,
+    TransactionCreate,
+    TransactionCreateRequest,
+    TransactionType,
+)
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
 from app.services.user import user_service
@@ -55,6 +61,21 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
         if account_db.kind not in MONEY_ACCOUNT_KINDS:
             raise AccountKindMismatch(account_id=account_db.id, kinds=MONEY_ACCOUNT_KINDS, logger=logger)
+
+    def _validate_fields(
+        self, *, data: MovementRequest, required_fields: list[str], forbidden_fields: list[str]
+    ) -> None:
+        for field in required_fields:
+            if getattr(data, field) is None:
+                raise UnprocessableException(
+                    log_message=f"Transaction type {self._transaction_type.value} needs {field}", logger=logger
+                )
+
+        for field in forbidden_fields:
+            if getattr(data, field) is not None:
+                raise UnprocessableException(
+                    log_message=f"Transaction type {self._transaction_type.value} does not take {field}", logger=logger
+                )
 
     async def _validate_counter_account(self, *, account_id: UUID, kind: AccountKind) -> None:
         account_db: AccountModel | None = await account_crud.get_or_none(

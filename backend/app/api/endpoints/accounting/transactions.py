@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import DbTransaction, get_db, get_onboarded_user_id, get_user_id
 from app.schemas.accounting.transaction import (
+    MovementRequest,
     Transaction,
-    TransactionCreateRequest,
     TransactionRequest,
     TransactionType,
 )
@@ -22,12 +22,15 @@ router = APIRouter()
 @router.post("")
 async def create_transaction(
     *,
-    create_data: TransactionCreateRequest,
+    create_data: MovementRequest,
     user_id: UUID = Depends(get_onboarded_user_id),
     db: DbTransaction,
 ) -> Transaction:
     """
-    Creates a new transaction.
+    Moves money from one account to another. The kinds of the two accounts give the transaction type:
+    a money (ASSET or LIABILITY) account to an EXPENSE account is an expense, an INCOME account to a money account
+    is an income, and a money account to another money account is a transfer. Any other pair is refused with
+    `MOVEMENT_NOT_ALLOWED`.
 
     **Transaction fields:**
     - `source_amount` — Amount in the withdrawal currency
@@ -38,23 +41,21 @@ async def create_transaction(
 
     **Context-specific behavior:**
     - **Expenses:** `source_*` refers to the amount **withdrawn from the account**.
-    `destination_*` refers to the amount in **the seller's currency**.
+    `destination_*` refers to the amount in **the seller's currency**. `location_id` is required,
+    `income_period` and `base_currency_amount` are refused.
     - **Income:** `source_*` refers to the incoming amount in **its original currency**.
-    `destination_*` refers to the credited amount in **the receiving account**. `base_currency_amount` is required
-    when neither currency is the base currency, and refused otherwise, since it is then derived.
+    `destination_*` refers to the credited amount in **the receiving account**. `income_period` is required and
+    `location_id` refused. `base_currency_amount` is required when neither currency is the base currency,
+    and refused otherwise, since it is then derived.
     - **Transfers:** `source_*` refers to **the withdrawal from one account**.
     `destination_*` refers to the deposit to **another account**. When both currencies are the same,
     `destination_amount` may be omitted and otherwise must equal `source_amount`. When only `destination_currency`
     is the base currency, `destination_amount` is derived from the source account's rate and must not be sent.
-    - **Adjustments:** the request carries the account and its `new_balance`. `source_*` and `destination_*` are both
-    the difference from the current balance in the account currency, on `to_account` for an increase and on
-    `from_account` for a decrease. `base_currency_amount` is required only for an account outside the base currency
-    that has no base currency rate yet.
+    `location_id`, `income_period` and `base_currency_amount` are refused.
     """
-    transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=create_data.transaction_type
+    transaction: Transaction = await transaction_service.create_transaction(
+        db=db, create_data=create_data, user_id=user_id
     )
-    transaction: Transaction = await transaction_processor.create(data=create_data)
     return transaction
 
 

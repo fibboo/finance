@@ -21,13 +21,14 @@ from app.exceptions.unprocessable_422 import (
     AccountKindMismatch,
     BaseCurrencyAmountNotAllowed,
     BaseCurrencyAmountRequired,
+    UnprocessableException,
 )
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountCreate, AccountKind
-from app.schemas.accounting.transaction import IncomeRequest, Transaction, TransactionType
+from app.schemas.accounting.transaction import MovementRequest, Transaction, TransactionType
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
@@ -53,21 +54,21 @@ async def test_create_income_base_currency_ok(db: AsyncSession, db_transaction: 
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
     await db.close()
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)
     await db_transaction.commit()
@@ -76,28 +77,19 @@ async def test_create_income_base_currency_ok(db: AsyncSession, db_transaction: 
     assert transaction.transaction_type == TransactionType.INCOME
     assert transaction.transaction_date == income_create_data.transaction_date
     assert transaction.comment is None
-    assert transaction.source_amount == Decimal("1")
-    assert transaction.source_currency == "USD"
-    assert transaction.destination_amount == Decimal("1")
-    assert transaction.destination_currency == "USD"
     assert transaction.base_currency_amount == Decimal("1")
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (income_source_db.id, Decimal("-1"), "USD", Decimal("-1")),
+        (account_db.id, Decimal("1"), "USD", Decimal("1")),
+    ]
+    assert transaction.postings[1].account.balance == Decimal("1") != account_balance_before
+    assert transaction.postings[1].account.base_currency_rate == Decimal("1")
+    assert transaction.postings[1].account.currency == income_create_data.destination_currency
 
-    assert transaction.from_account_id is None
-    assert transaction.from_account is None
-    assert transaction.to_account_id == account_db.id
-    assert transaction.to_account is not None
-    assert transaction.to_account.balance == Decimal("1") != account_balance_before
-    assert transaction.to_account.base_currency_rate == Decimal("1")
-    assert transaction.to_account.currency == income_create_data.destination_currency
-
-    assert transaction.category_id is None
-    assert transaction.category is None
-    assert transaction.location_id is None
     assert transaction.location is None
-
-    assert transaction.income_period == income_create_data.income_period.replace(day=1)
-    assert transaction.income_source_id == income_source_db.id
-    assert transaction.income_source is not None
+    assert transaction.income_period == date(2025, 1, 1)
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 1
@@ -132,21 +124,21 @@ async def test_create_income_other_currency_ok(db: AsyncSession, db_transaction:
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1050"),
         source_currency="USD",
         destination_amount=Decimal("1000"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
     await db.close()
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)
     await db_transaction.commit()
@@ -155,28 +147,19 @@ async def test_create_income_other_currency_ok(db: AsyncSession, db_transaction:
     assert transaction.transaction_type == TransactionType.INCOME
     assert transaction.transaction_date == income_create_data.transaction_date
     assert transaction.comment is None
-    assert transaction.source_amount == Decimal("1050")
-    assert transaction.source_currency == "USD"
-    assert transaction.destination_amount == Decimal("1000")
-    assert transaction.destination_currency == "EUR"
     assert transaction.base_currency_amount == Decimal("1050")
-
-    assert transaction.from_account_id is None
-    assert transaction.from_account is None
-    assert transaction.to_account_id == account_db.id
-    assert transaction.to_account is not None
-    assert transaction.to_account.balance == Decimal("1000") != account_balance_before
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (income_source_db.id, Decimal("-1050"), "USD", Decimal("-1050")),
+        (account_db.id, Decimal("1000"), "EUR", Decimal("1050")),
+    ]
+    assert transaction.postings[1].account.balance == Decimal("1000") != account_balance_before
     # the rate is derived from the cache: 1000 EUR over 1050 USD
-    assert transaction.to_account.base_currency_rate == Decimal("0.9523809524")
-    assert transaction.to_account.base_currency_balance == Decimal("1050.00")
+    assert transaction.postings[1].account.base_currency_rate == Decimal("0.9523809524")
+    assert transaction.postings[1].account.base_currency_balance == Decimal("1050.00")
 
-    assert transaction.category_id is None
-    assert transaction.category is None
-    assert transaction.location_id is None
     assert transaction.location is None
-
-    assert transaction.income_source_id == income_source_db.id
-    assert transaction.income_source is not None
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 1
@@ -209,41 +192,41 @@ async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, 
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data_1: IncomeRequest = IncomeRequest(
+    income_create_data_1: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1050"),
         source_currency="USD",
         destination_amount=Decimal("1000"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db,
         user_id=user_id,
-        transaction_type=income_create_data_1.transaction_type,
+        transaction_type=TransactionType.INCOME,
     )
     transaction_1: Transaction = await transaction_processor.create(data=income_create_data_1)
-    account_balance_before: Decimal = copy(transaction_1.to_account.balance)
-    base_currency_rate_before: Decimal = copy(transaction_1.to_account.base_currency_rate)
+    account_balance_before: Decimal = copy(transaction_1.postings[1].account.balance)
+    base_currency_rate_before: Decimal = copy(transaction_1.postings[1].account.base_currency_rate)
     await db.commit()
     await db.close()
 
-    income_create_data_2: IncomeRequest = IncomeRequest(
+    income_create_data_2: MovementRequest = MovementRequest(
         transaction_date=date(2025, 3, 10),
         source_amount=Decimal("1100"),
         source_currency="USD",
         destination_amount=Decimal("1000"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 2, 1),
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data_2.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data_2)
     await db_transaction.commit()
@@ -252,27 +235,18 @@ async def test_create_income_other_currency_2_transactions_ok(db: AsyncSession, 
     assert transaction.transaction_type == TransactionType.INCOME
     assert transaction.transaction_date == income_create_data_2.transaction_date
     assert transaction.comment is None
-    assert transaction.source_amount == Decimal("1100")
-    assert transaction.source_currency == "USD"
-    assert transaction.destination_amount == Decimal("1000")
-    assert transaction.destination_currency == "EUR"
     assert transaction.base_currency_amount == Decimal("1100")
-
-    assert transaction.from_account_id is None
-    assert transaction.from_account is None
-    assert transaction.to_account_id == account_db.id
-    assert transaction.to_account is not None
-    assert transaction.to_account.balance == Decimal("2000") != account_balance_before
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (income_source_db.id, Decimal("-1100"), "USD", Decimal("-1100")),
+        (account_db.id, Decimal("1000"), "EUR", Decimal("1100")),
+    ]
+    assert transaction.postings[1].account.balance == Decimal("2000") != account_balance_before
     # 2000 EUR over 1050 + 1100 USD
-    assert transaction.to_account.base_currency_rate == Decimal("0.9302325581") != base_currency_rate_before
+    assert transaction.postings[1].account.base_currency_rate == Decimal("0.9302325581") != base_currency_rate_before
 
-    assert transaction.category_id is None
-    assert transaction.category is None
-    assert transaction.location_id is None
     assert transaction.location is None
-
-    assert transaction.income_source_id == income_source_db.id
-    assert transaction.income_source is not None
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 2
@@ -301,27 +275,27 @@ async def test_create_income_strong_currency_against_weak_base_keeps_rate_digits
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
     # 1000 EUR for 117000 RSD: 0.008547008547 EUR per RSD, which the derived rate keeps to 10 places
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("117000"),
         source_currency="RSD",
         destination_amount=Decimal("1000"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)
     await db_transaction.commit()
 
     # Assert
-    assert transaction.to_account.balance == Decimal("1000")
-    assert transaction.to_account.base_currency_rate == Decimal("0.0085470085")
+    assert transaction.postings[1].account.balance == Decimal("1000")
+    assert transaction.postings[1].account.base_currency_rate == Decimal("0.0085470085")
 
 
 async def test_create_income_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
@@ -335,20 +309,20 @@ async def test_create_income_account_not_found(db: AsyncSession, db_transaction:
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
     to_account_id: UUID = uuid4()
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         to_account_id=to_account_id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     with pytest.raises(EntityNotFound) as exc:
         await transaction_processor.create(data=income_create_data)
@@ -384,20 +358,20 @@ async def test_create_income_currency_mismatch(db: AsyncSession, db_transaction:
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     with pytest.raises(CurrencyMismatchException) as exc:
         await transaction_processor.create(data=income_create_data)
@@ -436,20 +410,20 @@ async def test_create_income_unknown_source_currency(db: AsyncSession, db_transa
 
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="XXX",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     with pytest.raises(EntityNotFound) as exc:
         await transaction_processor.create(data=income_create_data)
@@ -490,19 +464,19 @@ async def test_create_income_income_source_of_other_user(db: AsyncSession, db_tr
         user_id=other_user_db.id, kind=AccountKind.INCOME, name="Best Job"
     )
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     with pytest.raises(AccountKindMismatch) as exc:
         await transaction_processor.create(data=income_create_data)
@@ -537,18 +511,18 @@ async def test_delete_base_currency_ok(db: AsyncSession, db_transaction: AsyncSe
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
     await db.commit()
@@ -589,18 +563,18 @@ async def test_delete_other_currency_ok(db: AsyncSession, db_transaction: AsyncS
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1050"),
         source_currency="USD",
         destination_amount=Decimal("1000"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
     await db.commit()
@@ -648,18 +622,18 @@ async def test_delete_other_currency_2_ok(db: AsyncSession, db_transaction: Asyn
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1050"),
         source_currency="USD",
         destination_amount=Decimal("1000"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
     await db.commit()
@@ -707,27 +681,27 @@ async def test_create_income_into_negative_account_adds_its_base_amount(db: Asyn
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
     # -110 EUR is worth -100 USD, so the income's own 100 USD brings the base balance to exactly 0
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("100"),
         source_currency="USD",
         destination_amount=Decimal("55"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
     await db.close()
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)
     await db_transaction.commit()
 
     # Assert
-    assert transaction.to_account_id == account_db.id
+    assert transaction.postings[1].account.id == account_db.id
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("-55")
@@ -754,19 +728,19 @@ async def test_create_income_deleted_account(db: AsyncSession, db_transaction: A
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
     # Act / Assert
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     with pytest.raises(DeletedAccountTransactionForbidden) as exc:
         await transaction_processor.create(data=income_create_data)
@@ -800,18 +774,18 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction_before: Transaction = await transaction_processor.create(data=income_create_data)
     await db.commit()
@@ -867,21 +841,21 @@ async def test_create_income_concurrent_keeps_both_balance_changes(
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("10"),
         source_currency="USD",
         destination_amount=Decimal("10"),
         destination_currency="USD",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 18),
     )
     first_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     second_processor: TransactionProcessor = factory.get_processor(
-        db=other_db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=other_db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     waiting_on_lock_query: TextClause = text(
         "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'"
@@ -927,14 +901,14 @@ async def test_create_income_other_source_currency_ok(db: AsyncSession, db_trans
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1000"),
         source_currency="EUR",
         destination_amount=Decimal("1000"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
         base_currency_amount=Decimal("1080"),
     )
@@ -942,17 +916,19 @@ async def test_create_income_other_source_currency_ok(db: AsyncSession, db_trans
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)
     await db_transaction.commit()
 
     # Assert
-    assert transaction.source_amount == Decimal("1000")
-    assert transaction.source_currency == "EUR"
-    assert transaction.destination_amount == Decimal("1000")
-    assert transaction.destination_currency == "EUR"
     assert transaction.base_currency_amount == Decimal("1080")
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (income_source_db.id, Decimal("-1000"), "EUR", Decimal("-1080")),
+        (account_db.id, Decimal("1000"), "EUR", Decimal("1080")),
+    ]
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("1000")
@@ -977,21 +953,21 @@ async def test_create_income_other_source_currency_without_base_currency_amount(
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1000"),
         source_currency="EUR",
         destination_amount=Decimal("1000"),
         destination_currency="EUR",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
     await db.close()
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     with pytest.raises(BaseCurrencyAmountRequired) as exc:
         await transaction_processor.create(data=income_create_data)
@@ -1047,14 +1023,14 @@ async def test_create_income_base_currency_amount_not_allowed(
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=source_amount,
         source_currency=source_currency,
         destination_amount=destination_amount,
         destination_currency=destination_currency,
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
         base_currency_amount=base_currency_amount,
     )
@@ -1062,7 +1038,7 @@ async def test_create_income_base_currency_amount_not_allowed(
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     with pytest.raises(BaseCurrencyAmountNotAllowed) as exc:
         await transaction_processor.create(data=income_create_data)
@@ -1102,21 +1078,21 @@ async def test_create_income_into_base_currency_account_takes_credited_amount(
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
-    income_create_data: IncomeRequest = IncomeRequest(
+    income_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1000"),
         source_currency="EUR",
         destination_amount=Decimal("1080"),
         destination_currency="USD",
         to_account_id=account_db.id,
-        income_source_id=income_source_db.id,
+        from_account_id=income_source_db.id,
         income_period=date(2025, 1, 1),
     )
     await db.close()
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=income_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
     transaction: Transaction = await transaction_processor.create(data=income_create_data)
     await db_transaction.commit()
@@ -1127,3 +1103,67 @@ async def test_create_income_into_base_currency_account_takes_credited_amount(
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("1080")
     assert account_db_after.base_balance == Decimal("1080")
+
+
+@pytest.mark.parametrize(
+    "destination_amount, income_period, has_location, expected_log_message",
+    [
+        (Decimal("1"), None, False, "Transaction type INCOME needs income_period"),
+        (None, date(2025, 1, 1), False, "Transaction type INCOME needs destination_amount"),
+        (Decimal("1"), date(2025, 1, 1), True, "Transaction type INCOME does not take location_id"),
+    ],
+)
+async def test_create_income_fields_by_type(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    destination_amount: Decimal | None,
+    income_period: date | None,
+    has_location: bool,
+    expected_log_message: str,
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: AccountCreate = AccountCreate(
+        kind=AccountKind.ASSET, user_id=user_id, name="Income USD", currency="USD"
+    )
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
+    income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
+
+    income_create_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency="USD",
+        destination_amount=destination_amount,
+        destination_currency="USD",
+        to_account_id=account_db.id,
+        from_account_id=income_source_db.id,
+        income_period=income_period,
+        location_id=uuid4() if has_location else None,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
+    )
+    with pytest.raises(UnprocessableException) as exc:
+        await transaction_processor.create(data=income_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.message == "Unprocessable entity"
+    assert exc.value.log_message == expected_log_message
+    assert exc.value.error_code is None
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("0")

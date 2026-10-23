@@ -62,6 +62,16 @@ class AccountKindMismatch(UnprocessableException):
         )
 
 
+class MovementNotAllowed(UnprocessableException):
+    def __init__(self, *, from_kind: AccountKind, to_kind: AccountKind, logger: logging.Logger):
+        super().__init__(
+            message="Movement not allowed",
+            log_message=f"Money can not move from a {from_kind.value} account to a {to_kind.value} account",
+            logger=logger,
+            error_code=ErrorCodeType.MOVEMENT_NOT_ALLOWED,
+        )
+
+
 class BaseCurrencyAmountNotAllowed(UnprocessableException):
     def __init__(self, *, account_id: UUID, base_currency_amount: Decimal, logger: logging.Logger):
         super().__init__(

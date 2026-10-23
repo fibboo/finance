@@ -4,26 +4,33 @@ from uuid import UUID
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.exceptions.unprocessable_422 import (
+    BaseCurrencyAmountNotAllowed,
     DestinationAmountNotAllowed,
     TransferAmountMismatch,
     UnprocessableException,
 )
 from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.posting import PostingCreate
-from app.schemas.accounting.transaction import TransactionCreate, TransactionType, TransferRequest
+from app.schemas.accounting.transaction import MovementRequest, TransactionCreate, TransactionType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(logger_name=__name__)
 
 
-class Transfer(TransactionProcessor[TransferRequest]):
+class Transfer(TransactionProcessor[MovementRequest]):
     @property
     def _transaction_type(self) -> TransactionType:
         return TransactionType.TRANSFER
 
     async def __validate_transaction(
-        self, *, data: TransferRequest, to_account_db: AccountModel, from_account_db: AccountModel
+        self, *, data: MovementRequest, to_account_db: AccountModel, from_account_db: AccountModel
     ) -> None:
+        self._validate_fields(data=data, required_fields=[], forbidden_fields=["location_id", "income_period"])
+        if data.base_currency_amount is not None:
+            raise BaseCurrencyAmountNotAllowed(
+                account_id=data.from_account_id, base_currency_amount=data.base_currency_amount, logger=logger
+            )
+
         await self._validate_transaction_from_account(data=data, from_account_db=from_account_db)
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
@@ -49,7 +56,7 @@ class Transfer(TransactionProcessor[TransferRequest]):
                 logger=logger,
             )
 
-    async def _prepare_transaction(self, *, data: TransferRequest) -> tuple[TransactionCreate, list[PostingCreate]]:
+    async def _prepare_transaction(self, *, data: MovementRequest) -> tuple[TransactionCreate, list[PostingCreate]]:
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=[data.from_account_id, data.to_account_id], user_id=self.user_id
         )

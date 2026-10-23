@@ -19,14 +19,18 @@ from app.exceptions.forbidden_403 import (
     NoAccountBaseCurrencyRate,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.unprocessable_422 import AccountKindMismatch
+from app.exceptions.unprocessable_422 import (
+    AccountKindMismatch,
+    BaseCurrencyAmountNotAllowed,
+    UnprocessableException,
+)
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountKind, CategoryType
 from app.schemas.accounting.location import LocationCreate
-from app.schemas.accounting.transaction import ExpenseRequest, Transaction, TransactionType
+from app.schemas.accounting.transaction import MovementRequest, Transaction, TransactionType
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
@@ -65,20 +69,20 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     transaction: Transaction = await transaction_processor.create(data=expense_create_data)
     await db_transaction.commit()
@@ -87,26 +91,19 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     assert transaction.transaction_type == TransactionType.EXPENSE
     assert transaction.transaction_date == expense_create_data.transaction_date
     assert transaction.comment is None
-    assert transaction.source_amount == Decimal("1")
-    assert transaction.source_currency == "USD"
-    assert transaction.destination_amount == Decimal("111")
-    assert transaction.destination_currency == "RSD"
     assert transaction.base_currency_amount == Decimal("1")
-
-    assert transaction.from_account_id == account_db.id
-    assert transaction.from_account.balance == Decimal("-1") != account_balance_before
-    assert transaction.from_account.base_currency_balance == Decimal("-1")
-    assert transaction.from_account.base_currency_rate == Decimal("1")
-    assert transaction.to_account_id is None
-    assert transaction.to_account is None
-
-    assert transaction.category_id == category_db.id
-    assert transaction.category is not None
-    assert transaction.location_id == location_db.id
-    assert transaction.location is not None
-
-    assert transaction.income_source_id is None
-    assert transaction.income_source is None
+    assert transaction.income_period is None
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (account_db.id, Decimal("-1"), "USD", Decimal("-1")),
+        (category_db.id, Decimal("111"), "RSD", Decimal("1")),
+    ]
+    assert transaction.postings[0].account.balance == Decimal("-1") != account_balance_before
+    assert transaction.postings[0].account.base_currency_balance == Decimal("-1")
+    assert transaction.postings[0].account.base_currency_rate == Decimal("1")
+    assert transaction.postings[1].account.kind == AccountKind.EXPENSE
+    assert transaction.location.id == location_db.id
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 1
@@ -180,20 +177,20 @@ async def test_create_expense_other_currency_rounds_base_amount(
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=amount,
         source_currency=currency,
         destination_amount=amount,
         destination_currency=currency,
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     transaction: Transaction = await transaction_processor.create(data=expense_create_data)
     await db_transaction.commit()
@@ -227,19 +224,19 @@ async def test_create_expense_account_not_found(db: AsyncSession, db_transaction
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
     from_account_id: UUID = uuid4()
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=from_account_id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(EntityNotFound) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -283,19 +280,19 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="EUR",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(NoAccountBaseCurrencyRate) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -346,19 +343,19 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="RSD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(CurrencyMismatchException) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -412,20 +409,20 @@ async def test_create_expense_unknown_destination_currency(db: AsyncSession, db_
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="XXX",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(EntityNotFound) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -477,20 +474,20 @@ async def test_create_expense_category_of_other_user(db: AsyncSession, db_transa
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(AccountKindMismatch) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -540,20 +537,20 @@ async def test_create_expense_deleted_category(db: AsyncSession, db_transaction:
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(AccountKindMismatch) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -607,20 +604,20 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
     location_create_data: LocationCreate = LocationCreate(user_id=other_user_db.id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(EntityNotFound) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -672,18 +669,18 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     transaction_before: Transaction = await transaction_processor.create(data=expense_create_data)
     await db.commit()
@@ -744,20 +741,20 @@ async def test_create_expense_emptying_account_takes_base_balance(db: AsyncSessi
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("30"),
         source_currency="EUR",
         destination_amount=Decimal("30"),
         destination_currency="EUR",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     transaction: Transaction = await transaction_processor.create(data=expense_create_data)
     await db_transaction.commit()
@@ -801,18 +798,18 @@ async def test_create_expense_from_emptied_account_no_base_rate(db: AsyncSession
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("30"),
         source_currency="EUR",
         destination_amount=Decimal("30"),
         destination_currency="EUR",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     await transaction_processor.create(data=expense_create_data)
     await db.commit()
@@ -820,7 +817,7 @@ async def test_create_expense_from_emptied_account_no_base_rate(db: AsyncSession
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(NoAccountBaseCurrencyRate) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -867,21 +864,21 @@ async def test_create_expense_opposite_signs_no_base_rate(db: AsyncSession, db_t
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("30"),
         source_currency="EUR",
         destination_amount=Decimal("30"),
         destination_currency="EUR",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     await db.close()
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(NoAccountBaseCurrencyRate) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -941,18 +938,18 @@ async def test_delete_expense_restores_account_balances(
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=amount,
         source_currency=currency,
         destination_amount=amount,
         destination_currency=currency,
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     transaction_before: Transaction = await transaction_processor.create(data=expense_create_data)
     await db.commit()
@@ -968,7 +965,7 @@ async def test_delete_expense_restores_account_balances(
 
     # Assert
     assert transaction.status == EntityStatusType.DELETED
-    assert transaction.from_account.balance == balance
+    assert transaction.postings[0].account.balance == balance
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     await db.refresh(account_db_after)
@@ -1033,19 +1030,19 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     # Act / Assert
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(DeletedAccountTransactionForbidden) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -1094,18 +1091,18 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("111"),
         destination_currency="RSD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     transaction_before: Transaction = await transaction_processor.create(data=expense_create_data)
     await db.commit()
@@ -1170,21 +1167,21 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("10"),
         source_currency="USD",
         destination_amount=Decimal("10"),
         destination_currency="USD",
         from_account_id=account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
     first_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     second_processor: TransactionProcessor = factory.get_processor(
-        db=other_db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=other_db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     waiting_on_lock_query: TextClause = text(
         "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'"
@@ -1239,20 +1236,20 @@ async def test_create_expense_new_base_currency_account_ok(db: AsyncSession, db_
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("10"),
         source_currency="USD",
         destination_amount=Decimal("10"),
         destination_currency="USD",
         from_account_id=account.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     transaction: Transaction = await transaction_processor.create(data=expense_create_data)
     await db_transaction.commit()
@@ -1287,20 +1284,20 @@ async def test_create_expense_from_income_account(db: AsyncSession, db_transacti
         db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
     )
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         from_account_id=income_account_db.id,
-        category_id=category_db.id,
+        to_account_id=category_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(AccountKindMismatch) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -1338,20 +1335,20 @@ async def test_create_expense_category_of_other_kind(db: AsyncSession, db_transa
         db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
     )
 
-    expense_create_data: ExpenseRequest = ExpenseRequest(
+    expense_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
         destination_amount=Decimal("1"),
         destination_currency="USD",
         from_account_id=account_db.id,
-        category_id=income_account_db.id,
+        to_account_id=income_account_db.id,
         location_id=location_db.id,
     )
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
     with pytest.raises(AccountKindMismatch) as exc:
         await transaction_processor.create(data=expense_create_data)
@@ -1367,3 +1364,142 @@ async def test_create_expense_category_of_other_kind(db: AsyncSession, db_transa
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     await db.refresh(account_db_after)
     assert account_db_after.balance == Decimal("0")
+
+
+@pytest.mark.parametrize(
+    "request_fields, log_message",
+    [
+        ({"location_id": None}, "Transaction type EXPENSE needs location_id"),
+        ({"destination_amount": None}, "Transaction type EXPENSE needs destination_amount"),
+        ({"income_period": date(2025, 2, 1)}, "Transaction type EXPENSE does not take income_period"),
+    ],
+)
+async def test_create_expense_field_not_allowed_for_type(
+    db: AsyncSession, db_transaction: AsyncSession, request_fields: dict, log_message: str
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Checking USD",
+        "currency": "USD",
+        "balance": Decimal("100"),
+        "base_balance": Decimal("100"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id,
+        kind=AccountKind.EXPENSE,
+        name="Food",
+        category_type=CategoryType.VARIABLE,
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: MovementRequest = MovementRequest(
+        **{
+            "transaction_date": date(2025, 2, 10),
+            "source_amount": Decimal("1"),
+            "source_currency": "USD",
+            "destination_amount": Decimal("1"),
+            "destination_currency": "USD",
+            "from_account_id": account_db.id,
+            "to_account_id": category_db.id,
+            "location_id": location_db.id,
+            **request_fields,
+        }
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    with pytest.raises(UnprocessableException) as exc:
+        await transaction_processor.create(data=expense_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.message == "Unprocessable entity"
+    assert exc.value.log_message == log_message
+    assert exc.value.error_code is None
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("100")
+
+
+async def test_create_expense_base_currency_amount_not_allowed(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("100"),
+        "base_balance": Decimal("110"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id,
+        kind=AccountKind.EXPENSE,
+        name="Food",
+        category_type=CategoryType.VARIABLE,
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("10"),
+        source_currency="EUR",
+        destination_amount=Decimal("10"),
+        destination_currency="EUR",
+        base_currency_amount=Decimal("11"),
+        from_account_id=account_db.id,
+        to_account_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    with pytest.raises(BaseCurrencyAmountNotAllowed) as exc:
+        await transaction_processor.create(data=expense_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.message == "Base currency amount not allowed"
+    assert exc.value.log_message == (
+        f"A base_currency_amount of 11 was sent for account `{account_db.id}`, whose base currency amount is derived"
+    )
+    assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("100")
+    assert account_db_after.base_balance == Decimal("110")
