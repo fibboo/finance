@@ -72,11 +72,12 @@ The exception is a sub-issue that is not part of the parent's type, for example 
   2. Create each sub-issue, then link it to the parent through the sub-issues API. This is the ONLY way the relationship is expressed.
   3. **MANDATORY: never reference parent or child issue numbers in any issue body.**
   4. Verify the links by listing the parent's sub-issues.
-- **Sub-issue title format:** `<area>: <short prefix> - PR N of M: <specific scope>`
-  - `<short prefix>`: a short, recognizable form of the Container title
+- **Sub-issue title format:** `<topic> (<area>) - PR N of M: <specific scope>`
+  - `<topic>`: the Container's topic, the same in every sub-issue of it
+  - `(<area>)`: the rule of **Issue Title**, applied to this sub-issue's own work
   - `N of M`: 1-based position and total count
   - `<specific scope>`: an imperative phrase saying exactly what this PR delivers, readable without the parent title
-  - Example: `frontend: Basic frontend - PR 2 of 4: Add accounts page`
+  - Example: `Transactions (frontend) - PR 2 of 6: Show Recent as a day-grouped list`
 
 ## Dependencies
 
@@ -86,7 +87,13 @@ A draft names a blocker that already exists as `#<number> (<title>)`, and a sibl
 
 ## Issue Title
 
-Format: `<area>: <short description>`, where `<area>` is `backend`, `frontend`, `claude` (rules, skills and other `.claude/` changes) or `ci` (GitHub Actions workflows, the production compose file and the server it deploys to). Work inside one module's own Dockerfile, dependencies or tests keeps that module's area. Use imperative or noun-phrase style, for example `backend: Fix balance restore on expense deletion`.
+Format: `<topic> (<area>): <short description>`.
+
+- `<topic>`: one or two words naming what the work is about in the terms of the domain, such as `Ledger`, `Transactions` or `Username`, not the module it changes.
+- `(<area>)`: written only when the whole issue stays inside one area, and left out together with its parentheses when the work spans several, such as an issue that changes both the backend and the frontend. `<area>` is `backend`, `frontend`, `claude` (rules, skills and other `.claude/` changes) or `ci` (GitHub Actions workflows, the production compose file and the server it deploys to). Work inside one module's own Dockerfile, dependencies or tests keeps that module's area.
+- `<short description>`: imperative or noun-phrase style.
+
+Examples: `Locations (backend): Delete and restore locations`, `Username: Show and change the username`.
 
 ## Issue Description Guidelines
 
@@ -158,7 +165,7 @@ Prepare body files as described in **Approval and Body Files**.
 
 ### Creating a new issue
 
-1. Analyze the request to determine the type label (Bug/Enhancement/Feature/Task), the area and the estimated scope.
+1. Analyze the request to determine the type label (Bug/Enhancement/Feature/Task), the topic, the area and the estimated scope.
 2. **Ask clarifying questions before writing anything**, combined into a single `AskUserQuestion` call (do not repeat questions already answered in the conversation):
    - **Parent selection**: "If this should be a sub-issue of an existing issue, give its number, or reply **none**."
    - **Blockers** (**Dependencies**): propose the open issues this one builds on, each with what it provides, and ask which of them block it, or **none**.
@@ -221,7 +228,7 @@ Refining turns a raw idea into an implementation plan. It is the update path plu
 Before finalizing a **new** issue, verify:
 - [ ] Exactly one **type** label (Bug/Enhancement/Feature/Task)
 - [ ] Container label added if the issue has sub-issues; sub-issues labelled per the Container rule
-- [ ] Title follows `<area>: <short description>`
+- [ ] Title follows `<topic> (<area>): <short description>`, with `(<area>)` only when the work stays inside one area
 - [ ] Assigned to the authenticated user, added to the `fibboo-finace` project, status `Ready for Development` when nothing is open, otherwise `In Refinement` with an Open Questions section listing every open item; a Container's status follows the Container rule and its body has no Open Questions section
 - [ ] Every file in Affected Scope confirmed to exist or tagged `[new]`
 - [ ] Implementation Steps present if the issue involves a new or changed data flow, schemas or a bug, in the format that matches the issue type
