@@ -16,7 +16,7 @@ from pydantic import (
     WithJsonSchema,
 )
 
-from app.schemas.accounting.account import Account
+from app.schemas.accounting.account import Account, AccountKind
 from app.schemas.accounting.location import Location
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.utils import utils
@@ -123,7 +123,27 @@ class AdjustmentRequest(BaseModel):
 TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest | AdjustmentRequest
 
 
-class TransactionCreate(TransactionBase):
+class TransactionCreate(BaseModel):
+    user_id: UUID
+    transaction_type: TransactionType
+    transaction_date: date
+    comment: str | None = None
+    base_currency_amount: PositiveAmount
+    location_id: UUID | None = None
+    income_period: date | None = None
+
+
+TRANSACTION_SIDES: frozendict[TransactionType, tuple[str, str]] = frozendict(
+    {
+        TransactionType.EXPENSE: ("from_account", "category"),
+        TransactionType.INCOME: ("income_source", "to_account"),
+        TransactionType.TRANSFER: ("from_account", "to_account"),
+        TransactionType.ADJUSTMENT: ("from_account", "to_account"),
+    }
+)
+
+
+class Transaction(TransactionBase):
     user_id: UUID
     base_currency_amount: PositiveAmount
 
@@ -136,33 +156,6 @@ class TransactionCreate(TransactionBase):
     from_account_id: UUID | None = None
     to_account_id: UUID | None = None
 
-    @model_validator(mode="after")
-    def validate_model(self):
-        if self.transaction_type == TransactionType.EXPENSE and (self.category_id is None or self.location_id is None):
-            raise ValueError(f"category_id and location_id should be filled for {self.transaction_type} transactions")
-
-        if self.transaction_type == TransactionType.TRANSFER and (
-            self.to_account_id is None or self.from_account_id is None
-        ):
-            raise ValueError(
-                f"to_account_id and from_account_id should be filled " f"for {self.transaction_type} transactions"
-            )
-
-        if self.transaction_type == TransactionType.ADJUSTMENT and (
-            (self.from_account_id is None) == (self.to_account_id is None)
-        ):
-            raise ValueError(
-                f"exactly one of from_account_id and to_account_id should be filled "
-                f"for {self.transaction_type} transactions"
-            )
-
-        if self.from_account_id == self.to_account_id:
-            raise ValueError("from_account_id and to_account_id should be different")
-
-        return self
-
-
-class Transaction(TransactionCreate):
     id: UUID  # noqa: A003
     status: EntityStatusType
 
@@ -177,6 +170,38 @@ class Transaction(TransactionCreate):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def read_postings(cls, transaction: Any) -> Any:
+        if isinstance(transaction, dict):
+            return transaction
+
+        debit, credit = transaction.postings
+        data: dict[str, Any] = {
+            "id": transaction.id,
+            "user_id": transaction.user_id,
+            "transaction_type": transaction.transaction_type,
+            "transaction_date": transaction.transaction_date,
+            "comment": transaction.comment,
+            "status": transaction.status,
+            "base_currency_amount": transaction.base_currency_amount,
+            "location_id": transaction.location_id,
+            "location": transaction.location,
+            "income_period": transaction.income_period,
+            "source_amount": -debit.amount,
+            "source_currency": debit.currency,
+            "destination_amount": credit.amount,
+            "destination_currency": credit.currency,
+            "created_at": transaction.created_at,
+            "updated_at": transaction.updated_at,
+        }
+        for side, posting in zip(TRANSACTION_SIDES[transaction.transaction_type], (debit, credit)):
+            if posting.account.kind != AccountKind.EQUITY:
+                data[side] = posting.account
+                data[f"{side}_id"] = posting.account_id
+
+        return data
 
 
 class OrderFieldType(str, Enum):

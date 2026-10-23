@@ -22,9 +22,7 @@ def _get_month_bounds(*, month: date) -> tuple[date, date]:
 def _get_total_balance(*, accounts_db: list[AccountModel]) -> Decimal:
     total_balance: Decimal = Decimal("0.00")
     for account_db in accounts_db:
-        total_balance += utils.get_base_currency_balance(
-            balance=account_db.balance, base_currency_rate=account_db.base_currency_rate
-        )
+        total_balance += utils.round_to_cents(amount=account_db.base_balance)
 
     return total_balance
 

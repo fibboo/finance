@@ -1,13 +1,8 @@
 from app.models.accounting.account import Account
 from app.models.accounting.currency import Currency
 from app.models.accounting.location import Location
-from app.models.accounting.transaction import (
-    AdjustmentTransaction,
-    ExpenseTransaction,
-    IncomeTransaction,
-    Transaction,
-    TransferTransaction,
-)
+from app.models.accounting.posting import Posting
+from app.models.accounting.transaction import Transaction
 from app.models.base import Base
 from app.models.user.authorization_request import AuthorizationRequest
 from app.models.user.external_user import ExternalUser

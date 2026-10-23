@@ -465,9 +465,9 @@ export interface components {
             /** Color */
             color: string | null;
             category_type: components["schemas"]["CategoryType"] | null;
-            /** Base Currency Rate */
-            base_currency_rate: string;
             status: components["schemas"]["EntityStatusType"];
+            /** Base Currency Rate */
+            readonly base_currency_rate: string;
             /** Base Currency Balance */
             readonly base_currency_balance: string;
         };

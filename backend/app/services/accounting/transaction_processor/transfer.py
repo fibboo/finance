@@ -3,14 +3,13 @@ from uuid import UUID
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
-from app.crud.accounting.transaction import CRUDTransferTransaction, transfer_transaction_crud
 from app.exceptions.unprocessable_422 import (
     DestinationAmountNotAllowed,
     TransferAmountMismatch,
     UnprocessableException,
 )
 from app.models.accounting.account import Account as AccountModel
-from app.models.accounting.transaction import TransferTransaction as TransferTransactionModel
+from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType, TransferRequest
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
@@ -21,28 +20,6 @@ class Transfer(TransactionProcessor[TransferRequest]):
     @property
     def _transaction_type(self) -> TransactionType:
         return TransactionType.TRANSFER
-
-    @property
-    def _transaction_crud(self) -> type[CRUDTransferTransaction]:
-        return transfer_transaction_crud
-
-    @staticmethod
-    def _get_transaction_accounts(*, transaction_db: TransferTransactionModel) -> list[AccountModel]:
-        accounts_db: list[AccountModel] = [transaction_db.from_account, transaction_db.to_account]
-        return accounts_db
-
-    @staticmethod
-    def _get_first_credit_rate(*, transaction_db: TransferTransactionModel) -> Decimal:
-        if transaction_db.source_currency == transaction_db.destination_currency:
-            first_credit_rate: Decimal = transaction_db.from_account.base_currency_rate
-        else:
-            first_credit_rate: Decimal = TransactionProcessor._quantize_rate(
-                rate=transaction_db.from_account.base_currency_rate
-                * transaction_db.destination_amount
-                / transaction_db.source_amount
-            )
-
-        return first_credit_rate
 
     async def __validate_transaction(
         self, *, data: TransferRequest, to_account_db: AccountModel, from_account_db: AccountModel
@@ -72,7 +49,7 @@ class Transfer(TransactionProcessor[TransferRequest]):
                 logger=logger,
             )
 
-    async def _prepare_transaction(self, *, data: TransferRequest) -> TransactionCreate:
+    async def _prepare_transaction(self, *, data: TransferRequest) -> tuple[TransactionCreate, list[PostingCreate]]:
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=[data.from_account_id, data.to_account_id], user_id=self.user_id
         )
@@ -80,25 +57,30 @@ class Transfer(TransactionProcessor[TransferRequest]):
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
 
+        base_amount: Decimal = self._get_base_amount(
+            account_db=from_account_db, amount=data.source_amount, base_currency=self.base_currency
+        )
         if data.source_currency == data.destination_currency:
-            data.destination_amount = data.source_amount
+            destination_amount: Decimal = data.source_amount
         elif data.destination_currency == self.base_currency:
-            data.destination_amount = self._quantize_amount(
-                amount=data.source_amount / from_account_db.base_currency_rate
-            )
-
-        if data.source_currency == self.base_currency:
-            base_currency_amount: Decimal = data.source_amount
-
-        elif data.destination_currency == self.base_currency:
-            base_currency_amount: Decimal = data.destination_amount
-
+            destination_amount: Decimal = base_amount
         else:
-            base_currency_amount: Decimal = self._quantize_amount(
-                amount=data.source_amount / from_account_db.base_currency_rate
-            )
+            destination_amount: Decimal = data.destination_amount
 
         transaction_data: TransactionCreate = TransactionCreate(
-            **data.model_dump(), user_id=self.user_id, base_currency_amount=base_currency_amount
+            user_id=self.user_id,
+            transaction_type=self._transaction_type,
+            transaction_date=data.transaction_date,
+            comment=data.comment,
+            base_currency_amount=base_amount,
         )
-        return transaction_data
+        postings: list[PostingCreate] = self._get_postings(
+            from_account_id=data.from_account_id,
+            from_amount=data.source_amount,
+            from_currency=data.source_currency,
+            to_account_id=data.to_account_id,
+            to_amount=destination_amount,
+            to_currency=data.destination_currency,
+            base_amount=base_amount,
+        )
+        return transaction_data, postings

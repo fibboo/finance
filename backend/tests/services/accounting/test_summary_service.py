@@ -6,17 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.location import location_crud
-from app.crud.accounting.transaction import (
-    adjustment_transaction_crud,
-    expense_transaction_crud,
-    income_transaction_crud,
-    transfer_transaction_crud,
-)
+from app.crud.accounting.transaction import transaction_crud
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
+from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryType
 from app.schemas.accounting.location import LocationCreate
+from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.summary import Summary
+from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import EntityStatusType
 from app.services.accounting import summary_service
 
@@ -26,7 +24,7 @@ async def test_get_summary_ok(db: AsyncSession):
     user_id: UUID = uuid4()
     other_user_id: UUID = uuid4()
 
-    # 1000.00 + 920 / 0.92 + 14200 / 2.68 = 1000.00 + 1000.00 + 5298.51
+    # The base balances of the three accounts, 1000.00 + 1000.00 + 5298.51
     usd_account_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
@@ -35,7 +33,7 @@ async def test_get_summary_ok(db: AsyncSession):
             "name": "Checking",
             "currency": "USD",
             "balance": Decimal("1000.00"),
-            "base_currency_rate": Decimal("1"),
+            "base_balance": Decimal("1000.00"),
         },
         commit=True,
     )
@@ -47,7 +45,7 @@ async def test_get_summary_ok(db: AsyncSession):
             "name": "Euro",
             "currency": "EUR",
             "balance": Decimal("920.00"),
-            "base_currency_rate": Decimal("0.92"),
+            "base_balance": Decimal("1000.00"),
         },
         commit=True,
     )
@@ -59,7 +57,7 @@ async def test_get_summary_ok(db: AsyncSession):
             "name": "Savings",
             "currency": "GEL",
             "balance": Decimal("14200.00"),
-            "base_currency_rate": Decimal("2.68"),
+            "base_balance": Decimal("5298.51"),
         },
         commit=True,
     )
@@ -73,7 +71,7 @@ async def test_get_summary_ok(db: AsyncSession):
             "name": "Deleted",
             "currency": "USD",
             "balance": Decimal("500.00"),
-            "base_currency_rate": Decimal("1"),
+            "base_balance": Decimal("500.00"),
             "status": EntityStatusType.DELETED,
         },
         commit=True,
@@ -86,21 +84,19 @@ async def test_get_summary_ok(db: AsyncSession):
             "name": "Other",
             "currency": "USD",
             "balance": Decimal("700.00"),
-            "base_currency_rate": Decimal("1"),
+            "base_balance": Decimal("700.00"),
         },
         commit=True,
     )
 
     income_source_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Job", base_currency_rate=Decimal("0")),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Job"),
         commit=True,
     )
     other_income_source_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=other_user_id, kind=AccountKind.INCOME, name="Job", base_currency_rate=Decimal("0")
-        ),
+        obj_in=AccountCreate(user_id=other_user_id, kind=AccountKind.INCOME, name="Job"),
         commit=True,
     )
     category_db: AccountModel = await account_crud.create(
@@ -110,9 +106,11 @@ async def test_get_summary_ok(db: AsyncSession):
             kind=AccountKind.EXPENSE,
             name="Food",
             category_type=CategoryType.VARIABLE,
-            base_currency_rate=Decimal("0"),
         ),
         commit=True,
+    )
+    equity_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
     )
     location_db: LocationModel = await location_crud.create(
         db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
@@ -120,22 +118,21 @@ async def test_get_summary_ok(db: AsyncSession):
 
     # Earned: the incomes on the first and the last day of October, 2000.00 + 312.00
     for transaction_date, amount in [(date(2026, 10, 1), Decimal("2000.00")), (date(2026, 10, 31), Decimal("312.00"))]:
-        await income_transaction_crud.create(
+        await transaction_crud.create_with_postings(
             db=db,
-            obj_in={
-                "user_id": user_id,
-                "transaction_date": transaction_date,
-                "base_currency_amount": amount,
-                "source_amount": amount,
-                "source_currency": "USD",
-                "destination_amount": amount,
-                "destination_currency": "USD",
-                "income_period": date(2026, 10, 1),
-                "income_source_id": income_source_db.id,
-                "to_account_id": usd_account_db.id,
-            },
-            commit=True,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.INCOME,
+                transaction_date=transaction_date,
+                base_currency_amount=amount,
+                income_period=date(2026, 10, 1),
+            ),
+            postings=[
+                PostingCreate(account_id=income_source_db.id, amount=-amount, currency="USD", base_amount=-amount),
+                PostingCreate(account_id=usd_account_db.id, amount=amount, currency="USD", base_amount=amount),
+            ],
         )
+        await db.commit()
 
     # Spent: the active expenses of October, 1000.00 + 46.70
     for transaction_date, amount, status in [
@@ -143,106 +140,130 @@ async def test_get_summary_ok(db: AsyncSession):
         (date(2026, 10, 20), Decimal("46.70"), EntityStatusType.ACTIVE),
         (date(2026, 10, 10), Decimal("500.00"), EntityStatusType.DELETED),
     ]:
-        await expense_transaction_crud.create(
+        expense_db: TransactionModel = await transaction_crud.create_with_postings(
             db=db,
-            obj_in={
-                "user_id": user_id,
-                "transaction_date": transaction_date,
-                "base_currency_amount": amount,
-                "source_amount": amount,
-                "source_currency": "USD",
-                "destination_amount": amount,
-                "destination_currency": "USD",
-                "status": status,
-                "from_account_id": usd_account_db.id,
-                "category_id": category_db.id,
-                "location_id": location_db.id,
-            },
-            commit=True,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=amount,
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(account_id=usd_account_db.id, amount=-amount, currency="USD", base_amount=-amount),
+                PostingCreate(account_id=category_db.id, amount=amount, currency="USD", base_amount=amount),
+            ],
         )
+        await db.commit()
+        await transaction_crud.update_orm(db=db, obj_in={"status": status}, id=expense_db.id, commit=True)
 
     # Outside October: the last day of September and the first day of November
-    await income_transaction_crud.create(
+    await transaction_crud.create_with_postings(
         db=db,
-        obj_in={
-            "user_id": user_id,
-            "transaction_date": date(2026, 9, 30),
-            "base_currency_amount": Decimal("999.00"),
-            "source_amount": Decimal("999.00"),
-            "source_currency": "USD",
-            "destination_amount": Decimal("999.00"),
-            "destination_currency": "USD",
-            "income_period": date(2026, 9, 1),
-            "income_source_id": income_source_db.id,
-            "to_account_id": usd_account_db.id,
-        },
-        commit=True,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2026, 9, 30),
+            base_currency_amount=Decimal("999.00"),
+            income_period=date(2026, 9, 1),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=income_source_db.id,
+                amount=Decimal("-999.00"),
+                currency="USD",
+                base_amount=Decimal("-999.00"),
+            ),
+            PostingCreate(
+                account_id=usd_account_db.id, amount=Decimal("999.00"), currency="USD", base_amount=Decimal("999.00")
+            ),
+        ],
     )
-    await expense_transaction_crud.create(
+    await db.commit()
+    await transaction_crud.create_with_postings(
         db=db,
-        obj_in={
-            "user_id": user_id,
-            "transaction_date": date(2026, 11, 1),
-            "base_currency_amount": Decimal("999.00"),
-            "source_amount": Decimal("999.00"),
-            "source_currency": "USD",
-            "destination_amount": Decimal("999.00"),
-            "destination_currency": "USD",
-            "from_account_id": usd_account_db.id,
-            "category_id": category_db.id,
-            "location_id": location_db.id,
-        },
-        commit=True,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2026, 11, 1),
+            base_currency_amount=Decimal("999.00"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(
+                account_id=usd_account_db.id, amount=Decimal("-999.00"), currency="USD", base_amount=Decimal("-999.00")
+            ),
+            PostingCreate(
+                account_id=category_db.id, amount=Decimal("999.00"), currency="USD", base_amount=Decimal("999.00")
+            ),
+        ],
     )
+    await db.commit()
 
     # Transfers and adjustments are neither earned nor spent
-    await transfer_transaction_crud.create(
+    await transaction_crud.create_with_postings(
         db=db,
-        obj_in={
-            "user_id": user_id,
-            "transaction_date": date(2026, 10, 10),
-            "base_currency_amount": Decimal("300.00"),
-            "source_amount": Decimal("300.00"),
-            "source_currency": "USD",
-            "destination_amount": Decimal("276.00"),
-            "destination_currency": "EUR",
-            "from_account_id": usd_account_db.id,
-            "to_account_id": eur_account_db.id,
-        },
-        commit=True,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.TRANSFER,
+            transaction_date=date(2026, 10, 10),
+            base_currency_amount=Decimal("300.00"),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=usd_account_db.id, amount=Decimal("-300.00"), currency="USD", base_amount=Decimal("-300.00")
+            ),
+            PostingCreate(
+                account_id=eur_account_db.id, amount=Decimal("276.00"), currency="EUR", base_amount=Decimal("300.00")
+            ),
+        ],
     )
-    await adjustment_transaction_crud.create(
+    await db.commit()
+    await transaction_crud.create_with_postings(
         db=db,
-        obj_in={
-            "user_id": user_id,
-            "transaction_date": date(2026, 10, 10),
-            "base_currency_amount": Decimal("200.00"),
-            "source_amount": Decimal("200.00"),
-            "source_currency": "USD",
-            "destination_amount": Decimal("200.00"),
-            "destination_currency": "USD",
-            "to_account_id": usd_account_db.id,
-        },
-        commit=True,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.ADJUSTMENT,
+            transaction_date=date(2026, 10, 10),
+            base_currency_amount=Decimal("200.00"),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=equity_db.id, amount=Decimal("-200.00"), currency="USD", base_amount=Decimal("-200.00")
+            ),
+            PostingCreate(
+                account_id=usd_account_db.id, amount=Decimal("200.00"), currency="USD", base_amount=Decimal("200.00")
+            ),
+        ],
     )
+    await db.commit()
 
     # Another user's income in October
-    await income_transaction_crud.create(
+    await transaction_crud.create_with_postings(
         db=db,
-        obj_in={
-            "user_id": other_user_id,
-            "transaction_date": date(2026, 10, 15),
-            "base_currency_amount": Decimal("5000.00"),
-            "source_amount": Decimal("5000.00"),
-            "source_currency": "USD",
-            "destination_amount": Decimal("5000.00"),
-            "destination_currency": "USD",
-            "income_period": date(2026, 10, 1),
-            "income_source_id": other_income_source_db.id,
-            "to_account_id": other_account_db.id,
-        },
-        commit=True,
+        obj_in=TransactionCreate(
+            user_id=other_user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2026, 10, 15),
+            base_currency_amount=Decimal("5000.00"),
+            income_period=date(2026, 10, 1),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=other_income_source_db.id,
+                amount=Decimal("-5000.00"),
+                currency="USD",
+                base_amount=Decimal("-5000.00"),
+            ),
+            PostingCreate(
+                account_id=other_account_db.id,
+                amount=Decimal("5000.00"),
+                currency="USD",
+                base_amount=Decimal("5000.00"),
+            ),
+        ],
     )
+    await db.commit()
 
     # Act
     summary: Summary = await summary_service.get_summary(db=db, user_id=user_id, month=date(2026, 10, 15))
@@ -268,7 +289,7 @@ async def test_get_summary_empty_month(db: AsyncSession):
             "name": "Checking",
             "currency": "USD",
             "balance": Decimal("150.50"),
-            "base_currency_rate": Decimal("1"),
+            "base_balance": Decimal("150.50"),
         },
         commit=True,
     )
@@ -298,7 +319,6 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
             "name": "Checking",
             "currency": "USD",
             "balance": Decimal("0"),
-            "base_currency_rate": Decimal("1"),
         },
         commit=True,
     )
@@ -309,29 +329,31 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
             kind=AccountKind.EXPENSE,
             name="Rent",
             category_type=CategoryType.FIXED,
-            base_currency_rate=Decimal("0"),
         ),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
         db=db, obj_in=LocationCreate(user_id=user_id, name="Landlord"), commit=True
     )
-    await expense_transaction_crud.create(
+    await transaction_crud.create_with_postings(
         db=db,
-        obj_in={
-            "user_id": user_id,
-            "transaction_date": date(2026, 2, 28),
-            "base_currency_amount": Decimal("800.25"),
-            "source_amount": Decimal("800.25"),
-            "source_currency": "USD",
-            "destination_amount": Decimal("800.25"),
-            "destination_currency": "USD",
-            "from_account_id": account_db.id,
-            "category_id": category_db.id,
-            "location_id": location_db.id,
-        },
-        commit=True,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2026, 2, 28),
+            base_currency_amount=Decimal("800.25"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(
+                account_id=account_db.id, amount=Decimal("-800.25"), currency="USD", base_amount=Decimal("-800.25")
+            ),
+            PostingCreate(
+                account_id=category_db.id, amount=Decimal("800.25"), currency="USD", base_amount=Decimal("800.25")
+            ),
+        ],
     )
+    await db.commit()
 
     # Act
     summary: Summary = await summary_service.get_summary(db=db, user_id=user_id, month=date(2026, 2, 1))
@@ -357,7 +379,7 @@ async def test_get_summary_account_without_rate(db: AsyncSession):
             "name": "Checking",
             "currency": "USD",
             "balance": Decimal("50.00"),
-            "base_currency_rate": Decimal("1"),
+            "base_balance": Decimal("50.00"),
         },
         commit=True,
     )
@@ -371,7 +393,6 @@ async def test_get_summary_account_without_rate(db: AsyncSession):
             "name": "Lari",
             "currency": "GEL",
             "balance": Decimal("-100.00"),
-            "base_currency_rate": Decimal("0"),
         },
         commit=True,
     )
@@ -394,7 +415,7 @@ async def test_get_summary_money_accounts_only(db: AsyncSession):
             "name": "Checking",
             "currency": "USD",
             "balance": Decimal("50.00"),
-            "base_currency_rate": Decimal("1"),
+            "base_balance": Decimal("50.00"),
         },
         commit=True,
     )
@@ -406,7 +427,7 @@ async def test_get_summary_money_accounts_only(db: AsyncSession):
             "name": "Credit card",
             "currency": "USD",
             "balance": Decimal("-20.00"),
-            "base_currency_rate": Decimal("1"),
+            "base_balance": Decimal("-20.00"),
         },
         commit=True,
     )
@@ -420,7 +441,7 @@ async def test_get_summary_money_accounts_only(db: AsyncSession):
             "name": "Groceries",
             "category_type": CategoryType.VARIABLE,
             "balance": Decimal("70.00"),
-            "base_currency_rate": Decimal("1"),
+            "base_balance": Decimal("70.00"),
         },
         commit=True,
     )

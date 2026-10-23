@@ -49,11 +49,11 @@ async def test_get_transactions(db: AsyncSession):
         "name": "Income EUR",
         "currency": "EUR",
         "balance": Decimal("100"),
-        "base_currency_rate": Decimal("0.9526"),
+        "base_balance": Decimal("104.98"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     income_source_create_data: AccountCreate = AccountCreate(
-        user_id=wrong_user_db.id, kind=AccountKind.INCOME, name="Best Job", base_currency_rate=Decimal("0")
+        user_id=wrong_user_db.id, kind=AccountKind.INCOME, name="Best Job"
     )
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
     for i in range(1, 4):
@@ -84,7 +84,7 @@ async def test_get_transactions(db: AsyncSession):
         "name": "Checking USD",
         "currency": "USD",
         "balance": Decimal("2000"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("2000"),
     }
     account_checking_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -93,7 +93,6 @@ async def test_get_transactions(db: AsyncSession):
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -127,13 +126,11 @@ async def test_get_transactions(db: AsyncSession):
         "name": "Income EUR",
         "currency": "EUR",
         "balance": Decimal("100"),
-        "base_currency_rate": Decimal("0.9526"),
+        "base_balance": Decimal("104.98"),
     }
     account_income_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
-    income_source_create_data: AccountCreate = AccountCreate(
-        user_id=user_id, kind=AccountKind.INCOME, name="Best Job", base_currency_rate=Decimal("0")
-    )
+    income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
     income_create_data: IncomeRequest = IncomeRequest(
@@ -284,7 +281,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         "name": "Checking USD",
         "currency": "USD",
         "balance": Decimal("2000"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("2000"),
     }
     account_checking_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_create_data: dict = {
@@ -293,7 +290,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         "name": "Income USD",
         "currency": "USD",
         "balance": Decimal("0"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("0"),
     }
     account_income_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_create_data: dict = {
@@ -302,7 +299,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         "name": "Old income USD",
         "currency": "USD",
         "balance": Decimal("0"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("0"),
     }
     account_deleted_income_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_create_data: dict = {
@@ -311,7 +308,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         "name": "Old checking USD",
         "currency": "USD",
         "balance": Decimal("0"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("0"),
     }
     account_deleted_checking_db: AccountModel = await account_crud.create(
         db=db, obj_in=account_create_data, commit=True
@@ -322,14 +319,11 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
-    income_source_create_data: AccountCreate = AccountCreate(
-        user_id=user_id, kind=AccountKind.INCOME, name="Best Job", base_currency_rate=Decimal("0")
-    )
+    income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
 
     # an expense from the checking account and an income to the income account,
@@ -515,13 +509,13 @@ async def test_get_transactions_adjustments(db: AsyncSession):
         "name": "Card",
         "currency": "USD",
         "balance": Decimal("500"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("500"),
     }
     account_card_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
-    income_source_create_data: AccountCreate = AccountCreate(
-        user_id=user_id, kind=AccountKind.INCOME, name="Best Job", base_currency_rate=Decimal("0")
-    )
+    income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
+    equity_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments")
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     # an increase of the wallet and a decrease of the card, next to an income to the card
     adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
@@ -594,11 +588,11 @@ async def test_get_transaction_ok(db: AsyncSession):
         "name": "Income EUR",
         "currency": "EUR",
         "balance": Decimal("100"),
-        "base_currency_rate": Decimal("0.9526"),
+        "base_balance": Decimal("104.98"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     income_source_create_data: AccountCreate = AccountCreate(
-        user_id=user_db.id, kind=AccountKind.INCOME, name="Best Job", base_currency_rate=Decimal("0")
+        user_id=user_db.id, kind=AccountKind.INCOME, name="Best Job"
     )
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
     income_create_data: IncomeRequest = IncomeRequest(
@@ -656,11 +650,11 @@ async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
         "name": "Income EUR",
         "currency": "EUR",
         "balance": Decimal("100"),
-        "base_currency_rate": Decimal("0.9526"),
+        "base_balance": Decimal("104.98"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     income_source_create_data: AccountCreate = AccountCreate(
-        user_id=user_db.id, kind=AccountKind.INCOME, name="Best Job", base_currency_rate=Decimal("0")
+        user_id=user_db.id, kind=AccountKind.INCOME, name="Best Job"
     )
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
     income_create_data: IncomeRequest = IncomeRequest(
