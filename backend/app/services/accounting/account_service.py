@@ -7,11 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
-from app.exceptions.conflict_409 import IntegrityException
-from app.exceptions.forbidden_403 import AccountDeletionForbidden
+from app.exceptions.conflict_409 import ConflictException, IntegrityException, NameAlreadyExists
+from app.exceptions.forbidden_403 import AccountDeletionForbidden, LastAccountDeletionForbidden
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import AccountKindMismatch
-from app.models.accounting.account import Account as AccountModel
+from app.models.accounting.account import Account as AccountModel, ACCOUNT_UNIQUE_NAME_INDEX
 from app.schemas.accounting.account import (
     Account,
     AccountCreate,
@@ -42,6 +42,15 @@ DEFAULT_CATEGORIES: frozendict[str, CategoryType] = frozendict(
 )
 
 
+def _get_integrity_exception(*, exception: IntegrityError, user_id: UUID) -> ConflictException:
+    if exception.driver_exception.constraint_name == ACCOUNT_UNIQUE_NAME_INDEX:
+        name_exception = NameAlreadyExists(entity=AccountModel, user_id=user_id, logger=logger)
+        return name_exception
+
+    integrity_exception = IntegrityException(entity=AccountModel, exception=exception, logger=logger)
+    return integrity_exception
+
+
 async def create_account(
     *, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID, base_currency: CurrencyCode
 ) -> Account:
@@ -59,7 +68,7 @@ async def create_account(
         account_db: AccountModel = await account_crud.create(db=db, obj_in=create_data)
 
     except IntegrityError as exc:
-        raise IntegrityException(entity=AccountModel, exception=exc, logger=logger)
+        raise _get_integrity_exception(exception=exc, user_id=user_id)
 
     account: Account = Account.model_validate(account_db)
     return account
@@ -127,7 +136,7 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
             db=db, obj_in=update_data, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE
         )
     except IntegrityError as exc:
-        raise IntegrityException(entity=AccountModel, exception=exc, logger=logger)
+        raise _get_integrity_exception(exception=exc, user_id=user_id)
 
     account: Account = Account.model_validate(account_db)
     return account
@@ -135,13 +144,30 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
 
 async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
     account_db: AccountModel | None = await account_crud.get_or_none(
-        db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE, with_for_update=True
+        db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE
     )
     if account_db is None or account_db.kind == AccountKind.EQUITY:
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
-    if account_db.kind in MONEY_ACCOUNT_KINDS and account_db.balance != 0:
+    is_money_account: bool = account_db.kind in MONEY_ACCOUNT_KINDS
+    if is_money_account:
+        locked_accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_active_money_accounts(
+            db=db, user_id=user_id
+        )
+    else:
+        locked_accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
+            db=db, ids=[account_id], user_id=user_id, status=EntityStatusType.ACTIVE
+        )
+
+    account_db: AccountModel | None = locked_accounts_db.get(account_id)
+    if account_db is None:
+        raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
+
+    if is_money_account and account_db.balance != 0:
         raise AccountDeletionForbidden(account_id=account_id, logger=logger)
+
+    if is_money_account and len(locked_accounts_db) == 1:
+        raise LastAccountDeletionForbidden(account_id=account_id, logger=logger)
 
     obj_in: dict = {"status": EntityStatusType.DELETED.value}
     account_db: AccountModel = await account_crud.update_orm(
@@ -164,7 +190,7 @@ async def restore_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) 
             db=db, obj_in=obj_in, id=account_id, user_id=user_id, status=EntityStatusType.DELETED
         )
     except IntegrityError as exc:
-        raise IntegrityException(entity=AccountModel, exception=exc, logger=logger)
+        raise _get_integrity_exception(exception=exc, user_id=user_id)
 
     account: Account = Account.model_validate(account_db)
     return account

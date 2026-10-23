@@ -12,8 +12,8 @@ from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.location import location_crud
 from app.crud.accounting.transaction import expense_transaction_crud
-from app.exceptions.conflict_409 import IntegrityException
-from app.exceptions.forbidden_403 import AccountDeletionForbidden
+from app.exceptions.conflict_409 import NameAlreadyExists
+from app.exceptions.forbidden_403 import AccountDeletionForbidden, LastAccountDeletionForbidden
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import AccountKindMismatch
 from app.models.accounting.account import Account as AccountModel
@@ -110,7 +110,7 @@ async def test_create_account_existing_name(db: AsyncSession, db_transaction: As
     await db.commit()
 
     # Act
-    with pytest.raises(IntegrityException) as exc:
+    with pytest.raises(NameAlreadyExists) as exc:
         await account_service.create_account(
             db=db_transaction, create_data=create_data, user_id=user_id, base_currency="USD"
         )
@@ -118,10 +118,10 @@ async def test_create_account_existing_name(db: AsyncSession, db_transaction: As
 
     # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
-    assert exc.value.message == "Entity integrity error"
-    assert exc.value.log_message == "Account integrity error: 23505 on accounts.account_unique_user_id_kind_name"
-    assert exc.value.log_level == LogLevelType.ERROR
-    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
+    assert exc.value.message == "Name already exists"
+    assert exc.value.log_message == f"User `{user_id}` already has an active Account with this name"
+    assert exc.value.log_level == LogLevelType.INFO
+    assert exc.value.error_code == ErrorCodeType.NAME_ALREADY_EXISTS
 
     transactions: list[AccountModel] = (await db.scalars(select(AccountModel))).all()
     assert len(transactions) == 1
@@ -300,7 +300,7 @@ async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSess
     update_data: AccountUpdate = AccountUpdate(name="Account 2")
 
     # Act
-    with pytest.raises(IntegrityException) as exc:
+    with pytest.raises(NameAlreadyExists) as exc:
         await account_service.update_account(
             db=db_transaction, account_id=account_created_1.id, user_id=user_id, update_data=update_data
         )
@@ -309,10 +309,10 @@ async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSess
 
     # Assert
     assert exc.value.status_code == status.HTTP_409_CONFLICT
-    assert exc.value.message == "Entity integrity error"
-    assert exc.value.log_message == "Account integrity error: 23505 on accounts.account_unique_user_id_kind_name"
-    assert exc.value.log_level == LogLevelType.ERROR
-    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
+    assert exc.value.message == "Name already exists"
+    assert exc.value.log_message == f"User `{user_id}` already has an active Account with this name"
+    assert exc.value.log_level == LogLevelType.INFO
+    assert exc.value.error_code == ErrorCodeType.NAME_ALREADY_EXISTS
 
     transactions: list[AccountModel] = (await db.scalars(select(AccountModel))).all()
     assert len(transactions) == 2
@@ -321,6 +321,11 @@ async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSess
 async def test_create_account_name_of_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
+    # Wallet stays active, so the deleted account is not the last money account
+    wallet_create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.ASSET, name="Wallet", currency="USD"
+    )
+    await account_service.create_account(db=db, user_id=user_id, create_data=wallet_create_data, base_currency="USD")
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
     deleted_account: Account = await account_service.create_account(
         db=db, user_id=user_id, create_data=create_data, base_currency="USD"
@@ -380,6 +385,13 @@ async def test_update_account_name_of_deleted_account(db: AsyncSession, db_trans
 async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
+    # Wallet stays active, so the deleted account is not the last money account
+    wallet_create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.ASSET, name="Wallet", currency="USD"
+    )
+    wallet: Account = await account_service.create_account(
+        db=db, user_id=user_id, create_data=wallet_create_data, base_currency="USD"
+    )
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
     account_created: Account = await account_service.create_account(
         db=db, user_id=user_id, create_data=create_data, base_currency="USD"
@@ -401,7 +413,7 @@ async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession
 
     request: AccountRequest = AccountRequest()
     accounts: Page[Account] = await account_service.get_accounts(db=db, request=request, user_id=user_id)
-    assert [account.id for account in accounts.items] == [account_created.id]
+    assert {account.id for account in accounts.items} == {wallet.id, account_created.id}
 
 
 async def test_restore_account_not_found(db_transaction: AsyncSession):
@@ -446,6 +458,11 @@ async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSes
 async def test_restore_account_name_taken(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
+    # Wallet stays active, so the deleted account is not the last money account
+    wallet_create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.ASSET, name="Wallet", currency="USD"
+    )
+    await account_service.create_account(db=db, user_id=user_id, create_data=wallet_create_data, base_currency="USD")
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
     deleted_account: Account = await account_service.create_account(
         db=db, user_id=user_id, create_data=create_data, base_currency="USD"
@@ -455,15 +472,15 @@ async def test_restore_account_name_taken(db: AsyncSession, db_transaction: Asyn
     await db.commit()
 
     # Act / Assert
-    with pytest.raises(IntegrityException) as exc:
+    with pytest.raises(NameAlreadyExists) as exc:
         await account_service.restore_account(db=db_transaction, account_id=deleted_account.id, user_id=user_id)
         await db_transaction.commit()
 
     assert exc.value.status_code == status.HTTP_409_CONFLICT
-    assert exc.value.message == "Entity integrity error"
-    assert exc.value.log_message == "Account integrity error: 23505 on accounts.account_unique_user_id_kind_name"
-    assert exc.value.log_level == LogLevelType.ERROR
-    assert exc.value.error_code == ErrorCodeType.INTEGRITY_ERROR
+    assert exc.value.message == "Name already exists"
+    assert exc.value.log_message == f"User `{user_id}` already has an active Account with this name"
+    assert exc.value.log_level == LogLevelType.INFO
+    assert exc.value.error_code == ErrorCodeType.NAME_ALREADY_EXISTS
 
     account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == deleted_account.id))
     assert account_db.status == EntityStatusType.DELETED
@@ -554,6 +571,61 @@ async def test_get_accounts_search_term(db: AsyncSession):
 
     # Assert
     assert [account.name for account in accounts.items] == ["Eating out"]
+
+
+async def test_get_accounts_statuses(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
+    await db.commit()
+    travel_db: AccountModel = await account_crud.get(db=db, user_id=user_id, name="Travel")
+    transport_db: AccountModel = await account_crud.get(db=db, user_id=user_id, name="Transport")
+    await account_service.delete_account(db=db, account_id=travel_db.id, user_id=user_id)
+    await db.commit()
+
+    deleted_request: AccountRequest = AccountRequest(statuses=[EntityStatusType.DELETED])
+    all_request: AccountRequest = AccountRequest(
+        statuses=[EntityStatusType.ACTIVE, EntityStatusType.DELETED], search_term="tra"
+    )
+
+    # Act
+    deleted_accounts: Page[Account] = await account_service.get_accounts(
+        db=db, request=deleted_request, user_id=user_id
+    )
+    all_accounts: Page[Account] = await account_service.get_accounts(db=db, request=all_request, user_id=user_id)
+
+    # Assert
+    assert [account.id for account in deleted_accounts.items] == [travel_db.id]
+    assert deleted_accounts.items[0].status == EntityStatusType.DELETED
+    # Transport is active and Travel is deleted; both match the search term
+    assert [account.id for account in all_accounts.items] == [transport_db.id, travel_db.id]
+
+
+async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.EXPENSE, name="Groceries", category_type=CategoryType.VARIABLE, color="#112233"
+    )
+    account_created: Account = await account_service.create_account(
+        db=db, user_id=user_id, create_data=create_data, base_currency="USD"
+    )
+    await db.commit()
+
+    update_data: AccountUpdate = AccountUpdate(name="Groceries", color="#AABBCC")
+
+    # Act
+    account: Account = await account_service.update_account(
+        db=db_transaction, account_id=account_created.id, user_id=user_id, update_data=update_data
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert account.color == "#AABBCC"
+    assert account.category_type == CategoryType.VARIABLE
+
+    account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
+    assert account_db.color == "#AABBCC"
 
 
 async def test_update_account_category_type_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -732,3 +804,52 @@ async def test_delete_account_equity(db: AsyncSession, db_transaction: AsyncSess
 
     await db.refresh(equity_db)
     assert equity_db.status == EntityStatusType.ACTIVE
+
+
+async def test_delete_account_last_money_account(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
+    card_create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.LIABILITY, name="Credit card", currency="USD"
+    )
+    card: Account = await account_service.create_account(
+        db=db, user_id=user_id, create_data=card_create_data, base_currency="USD"
+    )
+    await db.commit()
+    await account_service.delete_account(db=db, account_id=card.id, user_id=user_id)
+    await db.commit()
+    wallet_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.ASSET)
+
+    # Act / Assert
+    with pytest.raises(LastAccountDeletionForbidden) as exc:
+        await account_service.delete_account(db=db_transaction, account_id=wallet_db.id, user_id=user_id)
+        await db_transaction.commit()
+
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
+    assert exc.value.message == "The last money account cannot be deleted"
+    assert exc.value.log_level == LogLevelType.INFO
+    assert exc.value.error_code == ErrorCodeType.LAST_ACCOUNT_DELETION_FORBIDDEN
+
+    await db.refresh(wallet_db)
+    assert wallet_db.status == EntityStatusType.ACTIVE
+
+
+async def test_delete_account_other_money_account_active(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
+    card_create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.LIABILITY, name="Credit card", currency="USD"
+    )
+    await account_service.create_account(db=db, user_id=user_id, create_data=card_create_data, base_currency="USD")
+    await db.commit()
+    wallet_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.ASSET)
+
+    # Act
+    account: Account = await account_service.delete_account(db=db_transaction, account_id=wallet_db.id, user_id=user_id)
+    await db_transaction.commit()
+
+    # Assert
+    assert account.id == wallet_db.id
+    assert account.status == EntityStatusType.DELETED

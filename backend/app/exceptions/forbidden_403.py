@@ -40,6 +40,17 @@ class AccountDeletionForbidden(ForbiddenException):
         )
 
 
+class LastAccountDeletionForbidden(ForbiddenException):
+    def __init__(self, *, account_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="The last money account cannot be deleted",
+            log_message=f"Account `{account_id}` is the last active money account of its user",
+            logger=logger,
+            log_level=LogLevelType.INFO,
+            error_code=ErrorCodeType.LAST_ACCOUNT_DELETION_FORBIDDEN,
+        )
+
+
 class DeletedAccountTransactionForbidden(ForbiddenException):
     def __init__(self, *, account_id: UUID, logger: logging.Logger):
         super().__init__(
