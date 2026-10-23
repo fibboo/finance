@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -5,13 +6,13 @@ from fastapi import Query
 from fastapi_pagination import Params
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
+from app.schemas.base import EntityStatusType
 from app.utils import utils
 
 
 class LocationBase(BaseModel):
     name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=64)]
     description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=256)] | None = None
-    coordinates: Annotated[str, StringConstraints(min_length=3, max_length=64)] | None = None
 
 
 class LocationCreateRequest(LocationBase):
@@ -28,6 +29,9 @@ class LocationUpdate(LocationBase):
 
 class Location(LocationCreate):
     id: UUID  # noqa: A003
+    status: EntityStatusType
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,6 +41,7 @@ class LocationRequest(Params):
     size: int = Query(20, ge=1, le=100, description="Page size")
 
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
+    statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 
     def __hash__(self):
         data = self.model_dump()

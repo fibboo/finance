@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,7 +25,10 @@ async def create_location(
 
 @router.get("")
 async def get_locations(
-    *, request: LocationRequest = Depends(), user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *,
+    request: Annotated[LocationRequest, Query()],
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
 ) -> Page[Location]:
     locations: Page[Location] = await location_service.get_locations(db=db, request=request, user_id=user_id)
     return locations
@@ -49,4 +53,19 @@ async def update_location(
     location: Location = await location_service.update_location(
         db=db, location_id=location_id, update_data=update_data, user_id=user_id
     )
+    return location
+
+
+@router.delete("/{location_id}")
+async def delete_location(*, location_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Location:
+    location: Location = await location_service.delete_location(db=db, location_id=location_id, user_id=user_id)
+    return location
+
+
+@router.post("/{location_id}/restore")
+async def restore_location(*, location_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Location:
+    """
+    Restoring location is possible only if no active location has its name
+    """
+    location: Location = await location_service.restore_location(db=db, location_id=location_id, user_id=user_id)
     return location
