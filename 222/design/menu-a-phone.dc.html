@@ -43,7 +43,7 @@ button{cursor:pointer}
     </sc-if>
     <sc-if value="{{editing}}" hint-placeholder-val="{{false}}">
       <form style="display: flex; flex-direction: column; gap: 8px">
-        <label for="username-menu-a" style="font-size: 13px; color: {{t.muted}}">Username</label>
+        <label for="username-menu-a" style="font-size: 15px; font-weight: 600">Username</label>
         <div style="{{fieldStyle}}">
           <span aria-hidden="true" style="font-size: 16px; color: {{t.muted}}">@</span>
           <input id="username-menu-a" value="{{username}}" autocomplete="off" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; color: {{t.text}}">
@@ -62,12 +62,9 @@ button{cursor:pointer}
         <button type="button" aria-pressed="false" style="height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; background: transparent; color: {{t.muted}}">Light</button>
         <button type="button" aria-pressed="false" style="height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; background: transparent; color: {{t.muted}}">Dark</button>
       </div>
+      <span style="font-size: 13px; color: {{t.muted}}">Follows your device setting.</span>
     </fieldset>
-    <div style="height: 1px; background: {{t.border}}"></div>
-    <button type="button" style="height: 44px; padding: 0 4px; border: 0; display: flex; align-items: center; gap: 12px; font-size: 16px; background: transparent; color: {{t.text}}">
-      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8 6 12l4 4M6 12h9"/></svg>
-      Sign out
-    </button>
+    <button type="button" style="height: 46px; border: 1px solid {{t.border}}; border-radius: 12px; font-size: 15px; font-weight: 600; background: transparent; color: {{t.text}}">Sign out</button>
   </div>
 </div>
 </x-dc>
