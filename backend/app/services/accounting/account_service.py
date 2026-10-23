@@ -144,18 +144,29 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
 
 async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
     account_db: AccountModel | None = await account_crud.get_or_none(
-        db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE, with_for_update=True
+        db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE
     )
     if account_db is None or account_db.kind == AccountKind.EQUITY:
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
-    if account_db.kind in MONEY_ACCOUNT_KINDS and account_db.balance != 0:
+    is_money_account: bool = account_db.kind in MONEY_ACCOUNT_KINDS
+    locked_ids: list[UUID] = [account_id]
+    if is_money_account:
+        money_accounts_db: list[AccountModel] = await account_crud.get_active_money_accounts(db=db, user_id=user_id)
+        locked_ids = [money_account_db.id for money_account_db in money_accounts_db]
+
+    locked_accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
+        db=db, ids=locked_ids, user_id=user_id, status=EntityStatusType.ACTIVE
+    )
+    account_db: AccountModel | None = locked_accounts_db.get(account_id)
+    if account_db is None:
+        raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
+
+    if is_money_account and account_db.balance != 0:
         raise AccountDeletionForbidden(account_id=account_id, logger=logger)
 
-    if account_db.kind in MONEY_ACCOUNT_KINDS:
-        active_money_accounts: list[AccountModel] = await account_crud.get_active_money_accounts(db=db, user_id=user_id)
-        if len(active_money_accounts) == 1:
-            raise LastAccountDeletionForbidden(account_id=account_id, logger=logger)
+    if is_money_account and len(locked_accounts_db) == 1:
+        raise LastAccountDeletionForbidden(account_id=account_id, logger=logger)
 
     obj_in: dict = {"status": EntityStatusType.DELETED.value}
     account_db: AccountModel = await account_crud.update_orm(
