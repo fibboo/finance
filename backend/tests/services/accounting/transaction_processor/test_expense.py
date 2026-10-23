@@ -837,6 +837,67 @@ async def test_create_expense_from_emptied_account_no_base_rate(db: AsyncSession
     assert account_db_after.base_balance == Decimal("0")
 
 
+async def test_create_expense_opposite_signs_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    # a balance and a base value of opposite signs, which a deleted earlier income can leave, give no rate
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("90"),
+        "base_balance": Decimal("-50"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id,
+        kind=AccountKind.EXPENSE,
+        name="Food",
+        category_type=CategoryType.VARIABLE,
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("30"),
+        source_currency="EUR",
+        destination_amount=Decimal("30"),
+        destination_currency="EUR",
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
+        await transaction_processor.create(data=expense_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("90")
+    assert account_db_after.base_balance == Decimal("-50")
+
+
 @pytest.mark.parametrize(
     "currency, balance, base_balance, amount",
     [

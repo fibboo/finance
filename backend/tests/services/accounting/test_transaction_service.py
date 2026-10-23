@@ -417,9 +417,33 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
     )
     expense_from_deleted: Transaction = await transaction_processor.create(data=expense_create_data)
+
+    # an expense from the active checking account to a category deleted afterwards,
+    # which the filter of deleted accounts does not match, since a category holds no money
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id,
+        kind=AccountKind.EXPENSE,
+        name="Old cafe",
+        category_type=CategoryType.VARIABLE,
+    )
+    category_deleted_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data)
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=base_date + timedelta(days=7),
+        source_amount=Decimal("50"),
+        source_currency="USD",
+        destination_amount=Decimal("50"),
+        destination_currency="USD",
+        from_account_id=account_checking_db.id,
+        category_id=category_deleted_db.id,
+        location_id=location_db.id,
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    expense_to_deleted_category: Transaction = await transaction_processor.create(data=expense_create_data)
     await db.commit()
 
-    for account_db in [account_deleted_income_db, account_deleted_checking_db]:
+    for account_db in [account_deleted_income_db, account_deleted_checking_db, category_deleted_db]:
         await account_crud.update_orm(db=db, obj_in={"status": EntityStatusType.DELETED}, id=account_db.id, commit=True)
     await db.close()
 
@@ -474,10 +498,15 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         transfer_from_deleted.id,
         income_to_deleted.id,
     ]
-    assert [item.id for item in transactions_checking.items] == [transfer_from_deleted.id, expense.id]
+    assert [item.id for item in transactions_checking.items] == [
+        expense_to_deleted_category.id,
+        transfer_from_deleted.id,
+        expense.id,
+    ]
     assert [item.id for item in transactions_income.items] == [transfer_to_deleted.id, income.id]
     assert [item.id for item in transactions_deleted.items] == deleted_account_transaction_ids
     assert [item.id for item in transactions_checking_and_deleted_income.items] == [
+        expense_to_deleted_category.id,
         transfer_from_deleted.id,
         income_to_deleted.id,
         expense.id,
@@ -486,6 +515,7 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
     assert [item.id for item in transactions_checking_deleted_only.items] == [transfer_from_deleted.id]
     assert [item.id for item in transactions_income_deleted_only.items] == [transfer_to_deleted.id]
     assert [item.id for item in transactions_no_account_filter.items] == [
+        expense_to_deleted_category.id,
         *deleted_account_transaction_ids,
         income.id,
         expense.id,

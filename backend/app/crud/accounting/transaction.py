@@ -11,6 +11,7 @@ from app.crud.base import CRUDBase
 from app.models.accounting.account import Account
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
+from app.schemas.accounting.account import MONEY_ACCOUNT_KINDS
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import (
     OrderDirectionType,
@@ -76,7 +77,9 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
 
         if request.is_deleted_accounts_only:
             deleted_account_ids: Select = select(Account.id).where(
-                Account.user_id == user_id, Account.status == EntityStatusType.DELETED
+                Account.user_id == user_id,
+                Account.status == EntityStatusType.DELETED,
+                Account.kind.in_(MONEY_ACCOUNT_KINDS),
             )
             transaction_ids: Select = self.__get_account_transaction_ids(account_ids=deleted_account_ids)
             query = query.where(Transaction.id.in_(transaction_ids))

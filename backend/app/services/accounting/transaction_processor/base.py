@@ -95,7 +95,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         return currencies
 
     @staticmethod
-    def _quantize_amount(*, amount: Decimal) -> Decimal:
+    def __quantize_amount(*, amount: Decimal) -> Decimal:
         quantized_amount: Decimal = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
         quantized_amount: Decimal = max(quantized_amount, Decimal("0.01"))
         return quantized_amount
@@ -105,7 +105,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         base_currency_rate: Decimal = utils.get_base_currency_rate(
             balance=account_db.balance, base_balance=account_db.base_balance
         )
-        has_rate: bool = account_db.currency == base_currency or base_currency_rate != 0
+        has_rate: bool = account_db.currency == base_currency or base_currency_rate > 0
         return has_rate
 
     @staticmethod
@@ -115,7 +115,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         elif amount == abs(account_db.balance):
             base_amount: Decimal = abs(account_db.base_balance)
         else:
-            base_amount: Decimal = TransactionProcessor._quantize_amount(
+            base_amount: Decimal = TransactionProcessor.__quantize_amount(
                 amount=amount * account_db.base_balance / account_db.balance
             )
 
