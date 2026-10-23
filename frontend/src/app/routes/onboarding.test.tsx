@@ -44,6 +44,7 @@ test('offers the currencies of the accounting dictionary', async () => {
   expect(await screen.findByRole('radio', { name: 'EUR Euro' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Set up your account' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: 'USD US Dollar' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Main currency' })).toBeInTheDocument();
   expect(screen.getByRole('textbox', { name: 'Username' })).toHaveValue('nikita');
 });
 
@@ -60,7 +61,7 @@ test('keeps the copy in view while the currencies load', () => {
 
   // assert
   expect(screen.getByRole('heading', { name: 'Set up your account' })).toBeInTheDocument();
-  expect(screen.getByText(/can’t be changed later/)).toBeInTheDocument();
+  expect(screen.getByText(/can’t change it later/)).toBeInTheDocument();
   expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
   expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Start/ })).not.toBeInTheDocument();

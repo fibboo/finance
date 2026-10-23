@@ -23,12 +23,11 @@ type BaseCurrencyFormOutput = z.output<BaseCurrencyFormSchema>;
 type BaseCurrencyFormProps = Readonly<{
   currencies: readonly DictionaryItem[] | undefined;
   copy: ReactNode;
-  note: ReactNode;
 }>;
 
 const SKELETON_CURRENCY_COUNT = 6;
 
-export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormProps) {
+export function BaseCurrencyForm({ copy, currencies }: BaseCurrencyFormProps) {
   const [search, setSearch] = useState('');
   const errorId = useId();
   const { data: user } = useQuery(userQueries.me());
@@ -97,10 +96,7 @@ export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormPro
         })(event);
       }}
     >
-      <div className={styles['copy']}>
-        {copy}
-        <div className={styles['note']}>{note}</div>
-      </div>
+      <div className={styles['copy']}>{copy}</div>
       <div className={styles['formPanel']}>
         <div className={styles['usernamePanel']} aria-busy={isLoading}>
           {isLoading ? (
@@ -108,11 +104,25 @@ export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormPro
           ) : (
             <UsernameField
               registration={register('username')}
+              description="How you appear in finance. You can change it later."
               error={formState.errors.username?.message}
             />
           )}
         </div>
         <div className={styles['panel']} aria-busy={isLoading}>
+          <div className={styles['currencyHeader']}>
+            <h2 className={styles['currencyTitle']}>Main currency</h2>
+            <p className={styles['currencyText']}>
+              Your totals and monthly summaries are shown in it, and your first Wallet opens in it.
+            </p>
+            <p className={styles['note']}>
+              <svg className={styles['noteIcon']} aria-hidden="true" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5M12 16.5v.5" />
+              </svg>
+              You can’t change it later. Accounts in other currencies can be added any time.
+            </p>
+          </div>
           {isLoading ? (
             <>
               <Skeleton className={styles['searchSkeleton']} />
@@ -147,7 +157,7 @@ export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormPro
                 className={styles['currencies']}
                 aria-describedby={currencyError === undefined ? undefined : errorId}
               >
-                <legend className="visually-hidden">Base currency</legend>
+                <legend className="visually-hidden">Main currency</legend>
                 {shownCurrencies.map((currency) => (
                   <label key={currency.key} className={styles['currency']}>
                     <input

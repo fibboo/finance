@@ -24,23 +24,10 @@ export function Component() {
             </header>
             <div className={styles['intro']}>
               <h1 className={styles['title']}>Set up your account</h1>
-              <p className={styles['text']}>
-                Check your username and pick the currency totals are counted in. We’ll open a Wallet
-                in this currency.
-              </p>
             </div>
           </>
         }
         currencies={dictionaries?.currencies}
-        note={
-          <p className={styles['note']}>
-            <svg className={styles['noteIcon']} aria-hidden="true" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v5M12 16.5v.5" />
-            </svg>
-            The base currency can’t be changed later. The username can.
-          </p>
-        }
       />
     </main>
   );

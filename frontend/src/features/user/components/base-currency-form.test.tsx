@@ -34,7 +34,7 @@ test.each([
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  render(<BaseCurrencyForm currencies={currencies} copy={null} />);
 
   // act
   await user.type(await screen.findByRole('searchbox', { name: 'Search currency' }), search);
@@ -59,7 +59,7 @@ test('says when no currency matches the search', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  render(<BaseCurrencyForm currencies={currencies} copy={null} />);
 
   // act
   await user.type(await screen.findByRole('searchbox', { name: 'Search currency' }), 'yen');
@@ -107,7 +107,7 @@ test('keeps the given username and sets the picked currency', async () => {
   render(
     <>
       <UserInitials />
-      <BaseCurrencyForm currencies={currencies} copy={null} note={null} />
+      <BaseCurrencyForm currencies={currencies} copy={null} />
     </>,
   );
   await user.click(await screen.findByRole('radio', { name: 'GEL Georgian Lari' }));
@@ -161,7 +161,7 @@ test('sets a changed username before the base currency', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  render(<BaseCurrencyForm currencies={currencies} copy={null} />);
   const username = await screen.findByRole('textbox', { name: 'Username' });
   await user.clear(username);
   await user.type(username, ' fibbo ');
@@ -208,7 +208,7 @@ test('stops at a taken username without setting the base currency', async () => 
     }),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  render(<BaseCurrencyForm currencies={currencies} copy={null} />);
   const username = await screen.findByRole('textbox', { name: 'Username' });
   await user.clear(username);
   await user.type(username, 'anna');
@@ -239,7 +239,7 @@ test('asks for a valid username before sending anything', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  render(<BaseCurrencyForm currencies={currencies} copy={null} />);
   const username = await screen.findByRole('textbox', { name: 'Username' });
   await user.clear(username);
   await user.type(username, 'ni kita');
@@ -269,7 +269,7 @@ test('asks for a currency before sending anything', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  render(<BaseCurrencyForm currencies={currencies} copy={null} />);
 
   // act
   await user.click(await screen.findByRole('button', { name: 'Start' }));
@@ -307,7 +307,7 @@ test('shows the field error the backend returns', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  render(<BaseCurrencyForm currencies={currencies} copy={null} />);
   await user.click(await screen.findByRole('radio', { name: 'EUR Euro' }));
 
   // act
@@ -339,7 +339,7 @@ test('shows a field error the form has no field for', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  render(<BaseCurrencyForm currencies={currencies} copy={null} />);
   await user.click(await screen.findByRole('radio', { name: 'EUR Euro' }));
 
   // act
