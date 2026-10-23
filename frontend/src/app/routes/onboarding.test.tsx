@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router';
 import { expect, test } from 'vitest';
 
@@ -31,11 +31,28 @@ test('offers the currencies of the accounting dictionary', async () => {
   render(<Onboarding />);
 
   // assert
-  expect(
-    await screen.findByRole('heading', { name: 'Pick your base currency' }),
-  ).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'EUR Euro' })).toBeInTheDocument();
+  expect(await screen.findByRole('radio', { name: 'EUR Euro' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Pick your base currency' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: 'USD US Dollar' })).toBeInTheDocument();
+});
+
+test('keeps the copy in view while the currencies load', () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', async () => {
+      await delay('infinite');
+    }),
+  );
+
+  // act
+  render(<Onboarding />);
+
+  // assert
+  expect(screen.getByRole('heading', { name: 'Pick your base currency' })).toBeInTheDocument();
+  expect(screen.getByText(/can’t be changed later/)).toBeInTheDocument();
+  expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+  expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Start/ })).not.toBeInTheDocument();
 });
 
 test('signs out and leaves for sign-in', async () => {

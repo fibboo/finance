@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 
+import { Skeleton } from '@/components/skeleton/skeleton';
+import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
+
 import { transactionQueries } from '../api/transaction-queries';
 import styles from './recent-transactions.module.css';
 import { TransactionRow } from './transaction-row';
@@ -19,7 +22,7 @@ function readLocalToday(): string {
 }
 
 export function RecentTransactions() {
-  const { data: transactionPage } = useQuery(
+  const { data: transactionPage, isPending } = useQuery(
     transactionQueries.list({
       size: RECENT_TRANSACTION_COUNT,
       date_from: EARLIEST_TRANSACTION_DATE,
@@ -27,16 +30,32 @@ export function RecentTransactions() {
     }),
   );
   const titleId = useId();
-  if (transactionPage === undefined) {
+  if (!isPending && transactionPage === undefined) {
     return null;
   }
 
   return (
-    <section className={styles['recentTransactions']} aria-labelledby={titleId}>
+    <section
+      className={styles['recentTransactions']}
+      aria-labelledby={titleId}
+      aria-busy={isPending}
+    >
       <h2 id={titleId} className={styles['title']}>
         Recent
       </h2>
-      {transactionPage.items.length > 0 ? (
+      {transactionPage === undefined ? (
+        <ul className={styles['transactions']}>
+          {listSkeletonKeys(RECENT_TRANSACTION_COUNT).map((key) => (
+            <li key={key} className={styles['skeletonRow']}>
+              <Skeleton className={styles['dotSkeleton']} />
+              <Skeleton className={styles['titleSkeleton']} />
+              <Skeleton className={styles['accountsSkeleton']} />
+              <Skeleton className={styles['dateSkeleton']} />
+              <Skeleton className={styles['amountSkeleton']} />
+            </li>
+          ))}
+        </ul>
+      ) : transactionPage.items.length > 0 ? (
         <ul className={styles['transactions']}>
           {transactionPage.items.map((transaction) => (
             <TransactionRow key={transaction.id} transaction={transaction} />

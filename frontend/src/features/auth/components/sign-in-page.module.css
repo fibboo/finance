@@ -7,6 +7,12 @@
   flex-direction: column;
 }
 
+.copy {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .hero {
   flex-grow: 1;
   display: flex;
@@ -82,6 +88,12 @@
   cursor: default;
 }
 
+.buttonSkeleton {
+  height: var(--size-button-lg);
+  border-radius: var(--radius-control);
+  background-color: var(--color-bone-ground);
+}
+
 .icon {
   width: var(--size-icon);
   height: var(--size-icon);
@@ -100,7 +112,37 @@
 
 @media (--desktop) {
   .signInPage {
+    padding: var(--space-4);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .copy {
+    padding: var(--space-10) var(--space-12);
+    border-radius: var(--radius-bar);
+    background: var(--color-panel);
+  }
+
+  .hero {
     max-width: var(--size-column);
-    margin-inline: auto;
+    gap: var(--space-5);
+  }
+
+  .title {
+    font-size: var(--font-size-display-lg);
+    line-height: var(--line-height-display-lg);
+    letter-spacing: var(--letter-spacing-display-lg);
+  }
+
+  .text {
+    font-size: var(--font-size-xl);
+    line-height: var(--line-height-base);
+  }
+
+  .actions {
+    width: var(--size-actions);
+    align-self: center;
+    justify-self: center;
   }
 }

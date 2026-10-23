@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -78,7 +78,8 @@ test('shows the largest accounts that fit, with the base currency equivalent', a
   render(<AccountList baseCurrency="USD" />);
 
   // assert
-  const items = await screen.findAllByRole('listitem');
+  expect(await screen.findByText('Main card')).toBeInTheDocument();
+  const items = screen.getAllByRole('listitem');
   expect(items).toHaveLength(2);
   expect(items[0]).toHaveTextContent('Main card');
   expect(items[0]).toHaveTextContent('€3,180.00');
@@ -109,4 +110,20 @@ test('shows an account without a color in the first palette color', async () => 
   // assert
   expect(await screen.findByText('W')).toHaveStyle({ color: 'rgb(77, 143, 191)' });
   expect(screen.getByText('$412.50')).toBeInTheDocument();
+});
+
+test('shows a busy accounts panel while the accounts load', () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', async () => {
+      await delay('infinite');
+    }),
+  );
+
+  // act
+  render(<AccountList baseCurrency="USD" />);
+
+  // assert
+  expect(screen.getByRole('region', { name: 'Accounts' })).toHaveAttribute('aria-busy', 'true');
+  expect(screen.getByRole('heading', { name: 'Accounts' })).toBeInTheDocument();
 });

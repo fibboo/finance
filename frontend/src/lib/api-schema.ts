@@ -400,6 +400,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/user/me/username": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Username
+         * @description Change the username. It is stored lowercased and is unique regardless of case.
+         */
+        put: operations["set_username_user_me_username_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -538,7 +558,7 @@ export interface components {
          * ErrorCodeType
          * @enum {string}
          */
-        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "ACCOUNT_KIND_MISMATCH" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
+        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "ACCOUNT_KIND_MISMATCH" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
         /** ErrorResponse */
         ErrorResponse: {
             /** Message */
@@ -912,6 +932,11 @@ export interface components {
         UserDictionaries: {
             /** Provider Types */
             provider_types: components["schemas"]["DictionaryItem"][];
+        };
+        /** UsernameSet */
+        UsernameSet: {
+            /** Username */
+            username: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -1969,6 +1994,48 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["BaseCurrencySet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_username_user_me_username_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsernameSet"];
             };
         };
         responses: {

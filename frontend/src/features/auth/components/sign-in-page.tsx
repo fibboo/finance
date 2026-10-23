@@ -3,6 +3,8 @@ import { type ReactNode, useSyncExternalStore } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 
 import { Logo } from '@/components/logo/logo';
+import { Skeleton } from '@/components/skeleton/skeleton';
+import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import type { components } from '@/lib/api-schema';
 
 import { buildAuthorizeUrl } from '../api/pkce';
@@ -15,8 +17,10 @@ type ProviderPresentation = Readonly<{
 }>;
 
 type SignInPageProps = Readonly<{
-  providerTypes: readonly components['schemas']['DictionaryItem'][];
+  providerTypes: readonly components['schemas']['DictionaryItem'][] | undefined;
 }>;
+
+const SKELETON_PROVIDER_COUNT = 2;
 
 const providerPresentations: Record<string, ProviderPresentation> = {
   TELEGRAM: {
@@ -61,24 +65,30 @@ export function SignInPage({ providerTypes }: SignInPageProps) {
 
   return (
     <main className={styles['signInPage']}>
-      <Logo />
-      <div className={styles['hero']}>
-        <h1 className={styles['title']}>
-          Every coin
-          <br />
-          on the record.
-        </h1>
-        <p className={styles['text']}>
-          Accounts, spending and income across currencies, in one quiet place.
-        </p>
+      <div className={styles['copy']}>
+        <Logo />
+        <div className={styles['hero']}>
+          <h1 className={styles['title']}>
+            Every coin
+            <br />
+            on the record.
+          </h1>
+          <p className={styles['text']}>
+            Accounts, spending and income across currencies, in one quiet place.
+          </p>
+        </div>
       </div>
-      <div className={styles['actions']}>
+      <div className={styles['actions']} aria-busy={providerTypes === undefined}>
         {searchParams.has('error') && (
           <p role="alert" className={styles['error']}>
             Sign-in did not finish. Please try again.
           </p>
         )}
-        {providerTypes.map((providerType) => {
+        {providerTypes === undefined &&
+          listSkeletonKeys(SKELETON_PROVIDER_COUNT).map((key) => (
+            <Skeleton key={key} className={styles['buttonSkeleton']} />
+          ))}
+        {providerTypes?.map((providerType) => {
           const presentation = providerPresentations[providerType.key];
           return (
             <button

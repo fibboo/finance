@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -15,6 +16,7 @@ from app.exceptions.conflict_409 import (
     BaseCurrencyNotSet,
     IdentityLinkedToAnotherUser,
     ProviderAlreadyLinked,
+    UsernameAlreadyTaken,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
@@ -31,6 +33,7 @@ from app.services.user.user_service import (
     get_user,
     get_user_base_currency,
     set_base_currency,
+    set_username,
 )
 
 
@@ -62,7 +65,8 @@ async def test_create_user_without_base_currency(db: AsyncSession, db_transactio
     assert len(accounts_db) == 0
 
 
-async def test_create_user_username_taken(db: AsyncSession, db_transaction: AsyncSession):
+@pytest.mark.parametrize("provider_username", ["stenbot", "StenBot"], ids=["same_case", "other_case"])
+async def test_create_user_username_taken(db: AsyncSession, db_transaction: AsyncSession, provider_username: str):
     # Arrange
     await user_crud.create(
         db=db, obj_in=UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM), commit=True
@@ -70,7 +74,7 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
         external_id="1111111111",
-        username="stenbot",
+        username=provider_username,
         first_name="Sten",
         last_name=None,
         avatar=None,
@@ -84,7 +88,7 @@ async def test_create_user_username_taken(db: AsyncSession, db_transaction: Asyn
     # Assert
     created_user_db: UserModel | None = await user_crud.get_or_none(db=db, id=user_db.id)
     assert re.fullmatch(r"user_[a-z0-9]{8}", created_user_db.username) is not None
-    assert created_user_db.external_users[0].username == "stenbot"
+    assert created_user_db.external_users[0].username == provider_username
 
 
 async def test_create_user_fallback_username_taken(
@@ -325,6 +329,89 @@ async def test_set_base_currency_same_currency_again(db: AsyncSession, db_transa
 
     categories_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(categories_db) == 0
+
+
+@pytest.mark.parametrize(
+    "current_username, new_username",
+    [("stenbot", "sten.bot_1-x"), ("Stenbot", "stenbot")],
+    ids=["new_username", "case_of_own_username"],
+)
+async def test_set_username_ok(
+    db: AsyncSession, db_transaction: AsyncSession, current_username: str, new_username: str
+):
+    # Arrange
+    user_create = UserCreate(username=current_username, registration_provider=ProviderType.TELEGRAM)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+
+    # Act
+    user: User = await set_username(db=db_transaction, user_id=user_db.id, username=new_username)
+    await db_transaction.commit()
+
+    # Assert
+    assert user.id == user_db.id
+    assert user.username == new_username
+
+    await db.refresh(user_db)
+    assert user_db.username == new_username
+
+
+async def test_set_username_same_username_again(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create = UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM)
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create, commit=True)
+    updated_at: datetime = user_db.updated_at
+
+    # Act
+    user: User = await set_username(db=db_transaction, user_id=user_db.id, username="stenbot")
+    await db_transaction.commit()
+
+    # Assert
+    assert user.id == user_db.id
+    assert user.username == "stenbot"
+
+    await db.refresh(user_db)
+    assert user_db.username == "stenbot"
+    assert user_db.updated_at == updated_at
+
+
+@pytest.mark.parametrize("taken_username", ["janedoe", "JaneDoe"], ids=["same_case", "other_case"])
+async def test_set_username_already_taken(db: AsyncSession, db_transaction: AsyncSession, taken_username: str):
+    # Arrange
+    users_db: list[UserModel] = await user_crud.create_batch(
+        db=db,
+        objs_in=[
+            UserCreate(username="stenbot", registration_provider=ProviderType.TELEGRAM),
+            UserCreate(username=taken_username, registration_provider=ProviderType.TELEGRAM),
+        ],
+        commit=True,
+    )
+
+    # Act / Assert
+    with pytest.raises(UsernameAlreadyTaken) as exc:
+        await set_username(db=db_transaction, user_id=users_db[0].id, username="janedoe")
+
+    await db_transaction.rollback()
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.error_code == ErrorCodeType.USERNAME_ALREADY_TAKEN
+    assert exc.value.log_level == LogLevelType.INFO
+
+    await db.refresh(users_db[0])
+    assert users_db[0].username == "stenbot"
+
+
+async def test_set_username_user_not_found(db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # Act / Assert
+    with pytest.raises(EntityNotFound) as exc:
+        await set_username(db=db_transaction, user_id=user_id, username="stenbot")
+
+    await db_transaction.rollback()
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
 @pytest.mark.parametrize("base_currency", ["USD", None], ids=["onboarded", "not_onboarded"])

@@ -1,7 +1,7 @@
 """ledger accounts
 
 Revision ID: 3561e4292c5d
-Revises: 05fc98bcbb83
+Revises: a7c3e9d1f2b4
 Create Date: 2026-10-22 18:00:00.000000
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "3561e4292c5d"
-down_revision: Union[str, None] = "05fc98bcbb83"
+down_revision: Union[str, None] = "a7c3e9d1f2b4"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

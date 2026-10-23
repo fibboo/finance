@@ -4,6 +4,8 @@ services:
     image: postgres:18
     restart: unless-stopped
     command: [ "postgres", "-c", "shared_buffers=64MB" ]
+    ports:
+      - "172.29.172.1:5432:5432"
     volumes:
       - postgres:/var/lib/postgresql
     environment:

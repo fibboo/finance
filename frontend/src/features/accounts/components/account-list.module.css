@@ -74,6 +74,41 @@
   font-weight: var(--font-weight-medium);
 }
 
+.totalSkeleton {
+  width: var(--size-skeleton-word);
+  height: var(--size-skeleton-text);
+}
+
+.markSkeleton {
+  width: var(--size-account-mark);
+  height: var(--size-account-mark);
+  border-radius: var(--radius-segment);
+}
+
+.nameSkeleton {
+  width: 55%;
+  height: var(--size-skeleton-text);
+}
+
+.account:nth-child(even) .nameSkeleton {
+  width: 70%;
+}
+
+.detailSkeleton {
+  width: var(--size-skeleton-word);
+  height: var(--size-skeleton-text-sm);
+}
+
+.balanceSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+.identity:has(.nameSkeleton),
+.amounts:has(.balanceSkeleton) {
+  gap: var(--space-1-5);
+}
+
 @media (--desktop) {
   .accountList {
     padding: var(--space-2) var(--space-5) var(--space-5);
@@ -113,5 +148,14 @@
     font-size: var(--font-size-tile-amount);
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--letter-spacing-amount);
+  }
+
+  .markSkeleton {
+    width: var(--size-account-mark-sm);
+    height: var(--size-account-mark-sm);
+  }
+
+  .balanceSkeleton {
+    height: var(--size-skeleton-text-lg);
   }
 }

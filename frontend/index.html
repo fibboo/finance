@@ -4,9 +4,104 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Finance</title>
+    <style>
+      .boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        background: #eeeeeb;
+        color: #17181a;
+        font-family: 'Geist', system-ui, sans-serif;
+      }
+
+      .boot-label {
+        position: absolute;
+        width: 0.0625rem;
+        height: 0.0625rem;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .boot-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .boot-mark {
+        width: 0.875rem;
+        height: 0.875rem;
+        border-radius: 0.25rem;
+        background: #1f7a55;
+      }
+
+      .boot-track {
+        width: 7.5rem;
+        height: 0.1875rem;
+        border-radius: 999rem;
+        overflow: hidden;
+        background: #dcdcd7;
+      }
+
+      .boot-progress {
+        width: 40%;
+        height: 100%;
+        border-radius: 999rem;
+        background: #1f7a55;
+        animation: boot-progress 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+
+      @keyframes boot-progress {
+        from {
+          transform: translateX(-100%);
+        }
+
+        to {
+          transform: translateX(250%);
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .boot {
+          background: #0b0c0e;
+          color: #ecedee;
+        }
+
+        .boot-mark,
+        .boot-progress {
+          background: #4cc38a;
+        }
+
+        .boot-track {
+          background: #24272b;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-progress {
+          width: 100%;
+          opacity: 0.5;
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status">
+        <span class="boot-label">Loading</span>
+        <div class="boot-logo" aria-hidden="true"><span class="boot-mark"></span>finance</div>
+        <div class="boot-track"><div class="boot-progress"></div></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
