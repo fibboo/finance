@@ -62,8 +62,8 @@ class Transfer(TransactionProcessor[MovementRequest]):
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
 
-        base_amount: Decimal = self._get_base_amount(
-            account_db=from_account_db, amount=data.source_amount, base_currency=self.base_currency
+        base_amount: Decimal = await self._get_debit_base_amount(
+            account_db=from_account_db, amount=data.source_amount, transaction_date=data.transaction_date
         )
         if data.source_currency == data.destination_currency:
             destination_amount: Decimal = data.source_amount

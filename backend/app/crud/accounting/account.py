@@ -56,6 +56,15 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
         accounts_by_id: dict[UUID, Account] = {account.id: account for account in accounts}
         return accounts_by_id
 
+    async def lock_money_accounts(self, *, db: AsyncSession, user_id: UUID) -> None:
+        query: Select = (
+            select(self.model.id)
+            .where(self.model.user_id == user_id, self.model.kind.in_(MONEY_ACCOUNT_KINDS))
+            .order_by(self.model.id)
+            .with_for_update()
+        )
+        await db.execute(query)
+
     async def get_locked_by_ids(self, *, db: AsyncSession, ids: list[UUID], **kwargs) -> dict[UUID, Account]:
         query: Select = (
             self._build_get_query(with_for_update=True, **kwargs)
