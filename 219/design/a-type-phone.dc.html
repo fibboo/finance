@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Type filter sheet, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 16px; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 12px; font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; background: {{t.bg}}; color: {{t.text}}">
+  <div style="padding: 0 8px; display: flex; align-items: center; justify-content: space-between">
+    <span style="font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Transactions</span>
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: {{t.panel}}"></span>
+  </div>
+  <div style="height: 40px; border-radius: 999px; background: {{t.panel}}"></div>
+  <div style="flex-grow: 1; border-radius: 20px; background: {{t.panel}}"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.35)"></div>
+  <div role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 8px 16px 16px; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; gap: 8px; background: {{t.panel}}; box-shadow: 0 18px 50px rgba(0,0,0,.3)">
+    <span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: {{t.line}}"></span>
+    <div style="height: 44px; display: flex; align-items: center; justify-content: space-between">
+      <h2 id="sheet-title" style="margin: 0; font-size: 18px; font-weight: 600">Type</h2>
+      <a href="Main.dc.html" aria-label="Close" style="width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; color: {{t.muted}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></a>
+    </div>
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column">
+      <legend class="visually-hidden" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Transaction types</legend>
+      <sc-for list="{{types}}" as="i" hint-placeholder-count="4">
+        <label style="height: 48px; display: flex; align-items: center; gap: 12px; font-size: 15px; cursor: pointer">
+          <input type="checkbox" checked="{{i.on}}" onChange="{{i.toggle}}" style="width: 18px; height: 18px; margin: 0; accent-color: {{t.accent}}">
+          {{i.label}}
+        </label>
+      </sc-for>
+    </fieldset>
+    <p style="margin: 0; font-size: 12px; color: {{t.muted}}">None checked shows every type.</p>
+    <div style="padding-top: 8px; display: grid; grid-template-columns: 1fr 2fr; gap: 8px">
+      <button type="button" onClick="{{reset}}" style="height: 46px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 600; background: {{t.bg}}; color: {{t.text}}">Reset</button>
+      <a href="Main.dc.html" style="height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">Apply</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { picked: { Expense: true } };
+}
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', line: '#E2E2DE' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', line: '#2A2D32' };
+const t = (this.props.dark ?? true) ? D : L;
+const picked = this.state.picked;
+const types = ['Expense', 'Income', 'Transfer', 'Balance adjustment'].map((label) => ({ label, on: !!picked[label],
+toggle: () => this.setState({ picked: { ...picked, [label]: !picked[label] } }) }));
+return { t, types, reset: () => this.setState({ picked: {} }) };
+}
+}
+</script>
+</body>
+</html>

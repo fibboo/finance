@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Transactions — variant A, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{opacity:.8}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 16px 16px 104px; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 12px; font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; background: {{t.bg}}; color: {{t.text}}">
+  <div style="padding: 0 8px; display: flex; align-items: center; justify-content: space-between">
+    <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Transactions</h1>
+    <a href="#" aria-label="Account menu" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: {{t.panel}}">NI</a>
+  </div>
+  <div role="toolbar" aria-label="Filters" style="margin: 0 -16px; padding: 0 16px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none">
+    <sc-for list="{{chips}}" as="c" hint-placeholder-count="5">
+      <a href="{{c.href}}" style="{{c.style}}">
+        {{c.label}}
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </a>
+    </sc-for>
+  </div>
+  <div style="padding: 0 8px; font-size: 13px; color: {{t.muted}}">312 transactions</div>
+  <section aria-label="Transactions" style="flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 4px 16px; border-radius: 20px; display: flex; flex-direction: column; background: {{t.panel}}">
+    <sc-for list="{{days}}" as="d" hint-placeholder-count="3">
+      <div style="height: 36px; margin-top: 4px; display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 4px; font-size: 13px; color: {{t.muted}}">
+        <span style="font-weight: 600; color: {{t.text}}">{{d.label}}</span>
+        <span>{{d.total}}</span>
+      </div>
+      <ul style="margin: 0; padding: 0; list-style: none">
+        <sc-for list="{{d.rows}}" as="r" hint-placeholder-count="2">
+          <li>
+            <a href="a-details-phone.dc.html" style="height: 52px; display: flex; align-items: center; gap: 12px">
+              <span aria-hidden="true" style="{{r.dotStyle}}"></span>
+              <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span><span style="font-size: 12px; color: {{t.muted}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.accounts}}</span></span>
+              <span style="flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end"><span style="{{r.amountStyle}}">{{r.amount}}</span><sc-if value="{{r.hasBase}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: {{t.muted}}">{{r.base}}</span></sc-if></span>
+            </a>
+          </li>
+        </sc-for>
+      </ul>
+    </sc-for>
+    <div aria-label="Loading more" style="display: flex; flex-direction: column">
+      <div style="height: 52px; display: flex; align-items: center; gap: 12px"><span style="width: 8px; height: 8px; border-radius: 4px; background: {{t.bone}}"></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px"><span style="width: 128px; height: 12px; border-radius: 6px; background: {{t.bone}}"></span><span style="width: 72px; height: 9px; border-radius: 5px; background: {{t.bone}}"></span></span><span style="width: 64px; height: 12px; border-radius: 6px; background: {{t.bone}}"></span></div>
+      <div style="height: 52px; display: flex; align-items: center; gap: 12px"><span style="width: 8px; height: 8px; border-radius: 4px; background: {{t.bone}}"></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px"><span style="width: 104px; height: 12px; border-radius: 6px; background: {{t.bone}}"></span><span style="width: 88px; height: 9px; border-radius: 5px; background: {{t.bone}}"></span></span><span style="width: 56px; height: 12px; border-radius: 6px; background: {{t.bone}}"></span></div>
+    </div>
+  </section>
+  <nav aria-label="Main" style="position: absolute; left: 12px; right: 12px; bottom: 16px; height: 68px; padding: 0 6px; border-radius: 22px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; background: {{t.panel}}; border: 1px solid {{t.line}}; box-shadow: 0 10px 30px rgba(0,0,0,.28)">
+    <a href="#" style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 500; color: {{t.muted}}">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>
+      Home
+    </a>
+    <a href="#" aria-current="page" style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: {{t.text}}">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>
+      Transactions
+    </a>
+    <button type="button" disabled aria-label="Add transaction (soon)" style="justify-self: center; width: 52px; height: 52px; border: 0; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: {{t.text}}; color: {{t.bg}}; opacity: .45; cursor: not-allowed">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button type="button" disabled style="height: 56px; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 500; color: {{t.muted}}; opacity: .5; cursor: not-allowed">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/></svg>
+      Accounts
+    </button>
+    <button type="button" disabled style="height: 56px; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 500; color: {{t.muted}}; opacity: .5; cursor: not-allowed">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg>
+      Categories
+    </button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', line: '#E2E2DE', bone: '#E4E4E0', selected: '#EAF3EE' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', line: '#2A2D32', bone: '#24272B', selected: '#16241D' };
+const t = (this.props.dark ?? true) ? D : L;
+const chipBase = 'height: 40px; padding: 0 12px 0 14px; flex-shrink: 0; border-radius: 999px; display: flex; align-items: center; gap: 4px; font-size: 14px; white-space: nowrap; ';
+const chips = [
+{ label: 'Period', on: false, href: 'a-period-phone.dc.html' },
+{ label: 'Type', on: false, href: 'a-type-phone.dc.html' },
+{ label: 'Accounts', on: false, href: 'a-filter-phone.dc.html' },
+{ label: 'Categories', on: false, href: 'a-categories-phone.dc.html' },
+{ label: 'Income', on: false, href: 'a-income-phone.dc.html' },
+{ label: 'Amount', on: false, href: 'a-amount-phone.dc.html' },
+{ label: 'Newest first', on: false, href: 'a-sort-phone.dc.html' }
+].map((c) => ({ ...c, style: chipBase + (c.on ? 'font-weight: 600; background: ' + t.text + '; color: ' + t.bg : 'font-weight: 500; background: ' + t.panel + '; color: ' + t.text) }));
+const row = (title, accounts, amount, color, income, base) => ({ title, accounts, amount, base: base || '', hasBase: !!base,
+dotStyle: 'width:8px;height:8px;border-radius:4px;flex-shrink:0;background:' + color,
+amountStyle: 'font-size:15px;font-weight:500;color:' + (income ? t.accent : t.text) });
+const days = [
+{ label: 'Today', total: '−$47.30', rows: [row('Groceries', 'Wallet', '−$42.80', '#4D8FBF'), row('Cafes', 'Wallet', '−$4.50', '#4D8FBF')] },
+{ label: 'Yesterday', total: '+$2,291.30', rows: [row('Salary', 'Main card', '+€2,100.00', '#5B6CD9', true, '≈ +$2,291.30'), row('Transfer to Savings', 'Main card → Savings', '€300.00', '#2E8C7A', false, '≈ $327.40')] },
+{ label: 'Wed, Oct 15', total: '−$915.90', rows: [row('Rent', 'Main card', '−€850.00', '#5B6CD9', false, '≈ −$927.90'), row('Balance adjustment', 'Wallet', '+$12.00', '#4D8FBF')] }
+];
+return { t, chips, days };
+}
+}
+</script>
+</body>
+</html>

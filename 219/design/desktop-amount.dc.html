@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Amount filter popover, desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1280px; height: 900px; box-sizing: border-box; padding: 16px; overflow: hidden; display: flex; align-items: flex-start; gap: 16px; font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; background: {{t.bg}}; color: {{t.text}}">
+  <div aria-hidden="true" style="flex: 0 0 232px; height: 300px; border-radius: 22px; background: {{t.panel}}"></div>
+  <div style="flex: 1 1 auto; min-width: 0; height: 100%; display: flex; flex-direction: column; gap: 12px">
+    <div style="height: 76px; flex-shrink: 0; padding: 0 8px; display: flex; align-items: center"><span style="font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Transactions</span></div>
+    <div style="position: relative; display: flex; align-items: center; gap: 8px">
+      <div role="toolbar" aria-label="Filters" style="display: flex; gap: 8px">
+        <sc-for list="{{chips}}" as="c" hint-placeholder-count="5">
+          <button type="button" aria-haspopup="dialog" aria-expanded="{{c.open}}" style="{{c.style}}">{{c.label}}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        </sc-for>
+      </div>
+      <div role="dialog" aria-label="Amount" aria-describedby="amount-note" style="position: absolute; left: 519px; top: 48px; z-index: 2; width: 300px; box-sizing: border-box; padding: 16px; border-radius: 20px; display: flex; flex-direction: column; gap: 12px; background: {{t.panel}}; border: 1px solid {{t.line}}; box-shadow: 0 18px 50px rgba(0,0,0,.3)">
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: {{t.muted}}">From, USD<input inputmode="decimal" value="100" style="height: 40px; box-sizing: border-box; min-width: 0; padding: 0 10px; border: 1px solid {{t.line}}; border-radius: 10px; font-size: 14px; background: {{t.bg}}; color: {{t.text}}"></label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: {{t.muted}}">To, USD<input inputmode="decimal" placeholder="Any" style="height: 40px; box-sizing: border-box; min-width: 0; padding: 0 10px; border: 1px solid {{t.line}}; border-radius: 10px; font-size: 14px; background: {{t.bg}}; color: {{t.text}}"></label>
+        </div>
+        <p id="amount-note" style="margin: 0; font-size: 12px; line-height: 1.4; color: {{t.muted}}">Compared in your main currency, so a €100 expense counts as about $109.</p>
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px">
+          <button type="button" style="height: 40px; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600; background: {{t.bg}}; color: {{t.text}}">Reset</button>
+          <button type="button" style="height: 40px; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div aria-hidden="true" style="flex: 1 1 auto; border-radius: 22px; background: {{t.panel}}"></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', line: '#E2E2DE' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', line: '#2A2D32' };
+const t = (this.props.dark ?? true) ? D : L;
+const chipBase = 'height: 40px; padding: 0 12px 0 14px; border-radius: 999px; display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 500; white-space: nowrap; background: ' + t.panel + '; color: ' + t.text + '; ';
+const chips = ['Period', 'Type', 'Accounts', 'Categories', 'Income', 'Amount', 'Newest first'].map((label) => ({ label, open: label === 'Amount' ? 'true' : 'false', style: chipBase + (label === 'Amount' ? 'border: 2px solid ' + t.text : 'border: 0') }));
+return { t, chips };
+}
+}
+</script>
+</body>
+</html>
