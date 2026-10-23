@@ -248,20 +248,21 @@ async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSessi
             account_db.kind,
             account_db.currency,
             account_db.category_type,
-            account_db.base_currency_rate,
+            account_db.balance,
+            account_db.base_balance,
         )
 
     assert accounts == {
-        "Wallet": (AccountKind.ASSET, "EUR", None, Decimal("1")),
-        "Groceries": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0")),
-        "Eating out": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0")),
-        "Transport": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0")),
-        "Utilities": (AccountKind.EXPENSE, None, CategoryType.FIXED, Decimal("0")),
-        "Subscriptions": (AccountKind.EXPENSE, None, CategoryType.FIXED, Decimal("0")),
-        "Travel": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0")),
-        "Health": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0")),
-        "Clothing": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0")),
-        "Adjustments": (AccountKind.EQUITY, None, None, Decimal("0")),
+        "Wallet": (AccountKind.ASSET, "EUR", None, Decimal("0"), Decimal("0")),
+        "Groceries": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0"), Decimal("0")),
+        "Eating out": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0"), Decimal("0")),
+        "Transport": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0"), Decimal("0")),
+        "Utilities": (AccountKind.EXPENSE, None, CategoryType.FIXED, Decimal("0"), Decimal("0")),
+        "Subscriptions": (AccountKind.EXPENSE, None, CategoryType.FIXED, Decimal("0"), Decimal("0")),
+        "Travel": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0"), Decimal("0")),
+        "Health": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0"), Decimal("0")),
+        "Clothing": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0"), Decimal("0")),
+        "Adjustments": (AccountKind.EQUITY, None, None, Decimal("0"), Decimal("0")),
     }
 
 

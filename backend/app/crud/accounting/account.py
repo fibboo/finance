@@ -1,8 +1,9 @@
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import or_, select, Select
+from sqlalchemy import or_, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -65,6 +66,17 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
         accounts: list[Account] = (await db.scalars(query)).all()
         accounts_by_id: dict[UUID, Account] = {account.id: account for account in accounts}
         return accounts_by_id
+
+    async def add_to_balance(
+        self, *, db: AsyncSession, account_id: UUID, amount: Decimal, base_amount: Decimal
+    ) -> None:
+        query: Update = (
+            update(self.model)
+            .where(self.model.id == account_id)
+            .values(balance=self.model.balance + amount, base_balance=self.model.base_balance + base_amount)
+        )
+        await db.execute(query)
+        await db.flush()
 
 
 account_crud = CRUDAccount(model=Account)

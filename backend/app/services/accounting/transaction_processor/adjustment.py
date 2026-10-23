@@ -3,15 +3,15 @@ from uuid import UUID
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
-from app.crud.accounting.transaction import adjustment_transaction_crud, CRUDAdjustmentTransaction
 from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
+from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import AccountBalanceUnchanged, BaseCurrencyAmountNotAllowed
 from app.models.accounting.account import Account as AccountModel
-from app.models.accounting.transaction import AdjustmentTransaction as AdjustmentTransactionModel
+from app.schemas.accounting.account import AccountKind
+from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import AdjustmentRequest, TransactionCreate, TransactionType
-from app.schemas.base import CurrencyCode
+from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
-from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -21,48 +21,24 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
     def _transaction_type(self) -> TransactionType:
         return TransactionType.ADJUSTMENT
 
-    @property
-    def _transaction_crud(self) -> CRUDAdjustmentTransaction:
-        return adjustment_transaction_crud
-
-    @staticmethod
-    def _get_transaction_accounts(*, transaction_db: AdjustmentTransactionModel) -> list[AccountModel]:
-        if transaction_db.to_account is not None:
-            account_db: AccountModel = transaction_db.to_account
-        else:
-            account_db: AccountModel = transaction_db.from_account
-
-        accounts_db: list[AccountModel] = [account_db]
-        return accounts_db
-
     @staticmethod
     def _get_request_currencies(*, data: AdjustmentRequest) -> list[CurrencyCode]:
         currencies: list[CurrencyCode] = []
         return currencies
 
-    @staticmethod
-    def __has_known_rate(*, account_db: AccountModel) -> bool:
-        has_known_rate: bool = account_db.balance != 0 and account_db.base_currency_rate != 0
-        return has_known_rate
-
     def __get_base_currency_amount(
         self, *, data: AdjustmentRequest, account_db: AccountModel, amount: Decimal
     ) -> Decimal:
-        has_known_rate: bool = self.__has_known_rate(account_db=account_db)
-        if account_db.currency == self.base_currency:
+        has_rate: bool = self._has_rate(account_db=account_db, base_currency=self.base_currency)
+        if has_rate:
             if data.base_currency_amount is not None:
                 raise BaseCurrencyAmountNotAllowed(
                     account_id=account_db.id, base_currency_amount=data.base_currency_amount, logger=logger
                 )
 
-            base_currency_amount: Decimal = amount
-        elif has_known_rate:
-            if data.base_currency_amount is not None:
-                raise BaseCurrencyAmountNotAllowed(
-                    account_id=account_db.id, base_currency_amount=data.base_currency_amount, logger=logger
-                )
-
-            base_currency_amount: Decimal = self._quantize_amount(amount=amount / account_db.base_currency_rate)
+            base_currency_amount: Decimal = self._get_base_amount(
+                account_db=account_db, amount=amount, base_currency=self.base_currency
+            )
         elif data.base_currency_amount is not None:
             base_currency_amount: Decimal = data.base_currency_amount
         else:
@@ -70,34 +46,7 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
 
         return base_currency_amount
 
-    async def __update_account(
-        self,
-        *,
-        transaction_db: AdjustmentTransactionModel,
-        account_db: AccountModel,
-        delta: Decimal,
-    ) -> None:
-        new_balance: Decimal = account_db.balance + delta
-        has_known_rate: bool = self.__has_known_rate(account_db=account_db)
-        fixed_rate: Decimal | None = utils.get_fixed_base_currency_rate(
-            currency=account_db.currency, base_currency=self.base_currency
-        )
-        if fixed_rate is not None:
-            new_base_rate: Decimal = fixed_rate
-        elif new_balance == 0:
-            new_base_rate: Decimal = Decimal("0")
-        elif has_known_rate:
-            new_base_rate: Decimal = account_db.base_currency_rate
-        else:
-            new_base_rate: Decimal = self._get_first_rate(
-                amount=transaction_db.destination_amount, base_currency_amount=transaction_db.base_currency_amount
-            )
-
-        await account_crud.update_orm(
-            db=self.db, id=account_db.id, obj_in={"balance": new_balance, "base_currency_rate": new_base_rate}
-        )
-
-    async def _prepare_transaction(self, *, data: AdjustmentRequest) -> TransactionCreate:
+    async def _prepare_transaction(self, *, data: AdjustmentRequest) -> tuple[TransactionCreate, list[PostingCreate]]:
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=[data.account_id], user_id=self.user_id
         )
@@ -107,34 +56,36 @@ class Adjustment(TransactionProcessor[AdjustmentRequest]):
         if account_db.balance == data.new_balance:
             raise AccountBalanceUnchanged(account_id=account_db.id, balance=account_db.balance, logger=logger)
 
+        equity_account_db: AccountModel | None = await account_crud.get_or_none(
+            db=self.db, user_id=self.user_id, kind=AccountKind.EQUITY, status=EntityStatusType.ACTIVE
+        )
+        if equity_account_db is None:
+            raise EntityNotFound(
+                entity=AccountModel, search_params={"user_id": self.user_id, "kind": AccountKind.EQUITY}, logger=logger
+            )
+
         difference: Decimal = data.new_balance - account_db.balance
         amount: Decimal = abs(difference)
         base_currency_amount: Decimal = self.__get_base_currency_amount(data=data, account_db=account_db, amount=amount)
         transaction_data: TransactionCreate = TransactionCreate(
+            user_id=self.user_id,
+            transaction_type=self._transaction_type,
             transaction_date=data.transaction_date,
             comment=data.comment,
-            source_amount=amount,
-            source_currency=account_db.currency,
-            destination_amount=amount,
-            destination_currency=account_db.currency,
-            transaction_type=self._transaction_type,
-            user_id=self.user_id,
             base_currency_amount=base_currency_amount,
-            to_account_id=account_db.id if difference > 0 else None,
-            from_account_id=account_db.id if difference < 0 else None,
         )
-        return transaction_data
+        if difference > 0:
+            from_account_id, to_account_id = equity_account_db.id, account_db.id
+        else:
+            from_account_id, to_account_id = account_db.id, equity_account_db.id
 
-    async def _update_from_account(self, *, transaction_db: AdjustmentTransactionModel) -> None:
-        if transaction_db.from_account_id is None:
-            return
-
-        delta: Decimal = self._get_from_account_delta(transaction_db=transaction_db)
-        await self.__update_account(transaction_db=transaction_db, account_db=transaction_db.from_account, delta=delta)
-
-    async def _update_to_account(self, *, transaction_db: AdjustmentTransactionModel) -> None:
-        if transaction_db.to_account_id is None:
-            return
-
-        delta: Decimal = self._get_to_account_delta(transaction_db=transaction_db)
-        await self.__update_account(transaction_db=transaction_db, account_db=transaction_db.to_account, delta=delta)
+        postings: list[PostingCreate] = self._get_postings(
+            from_account_id=from_account_id,
+            from_amount=amount,
+            from_currency=account_db.currency,
+            to_account_id=to_account_id,
+            to_amount=amount,
+            to_currency=account_db.currency,
+            base_amount=base_currency_amount,
+        )
+        return transaction_data, postings

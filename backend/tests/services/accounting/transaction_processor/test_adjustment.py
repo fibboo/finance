@@ -18,6 +18,7 @@ from app.exceptions.unprocessable_422 import (
     BaseCurrencyAmountNotAllowed,
 )
 from app.models.accounting.account import Account as AccountModel
+from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountKind, CategoryType
@@ -37,6 +38,9 @@ async def test_create_adjustment_increase_base_currency_ok(db: AsyncSession, db_
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
+
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    equity_db: AccountModel = await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Wallet", "currency": "USD"}
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -73,7 +77,17 @@ async def test_create_adjustment_increase_base_currency_ok(db: AsyncSession, db_
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("1250.00")
-    assert account_db_after.base_currency_rate == Decimal("1")
+    assert account_db_after.base_balance == Decimal("1250.00")
+
+    # the increase is taken from the Adjustments account, whose cache stays untouched
+    postings: list[PostingModel] = (await db.scalars(select(PostingModel).order_by(PostingModel.amount))).all()
+    assert [(p.account_id, p.amount, p.currency, p.base_amount) for p in postings] == [
+        (equity_db.id, Decimal("-1250.00"), "USD", Decimal("-1250.00")),
+        (account_db.id, Decimal("1250.00"), "USD", Decimal("1250.00")),
+    ]
+    equity_db_after: AccountModel = await account_crud.get(db=db, id=equity_db.id)
+    assert equity_db_after.balance == Decimal("0")
+    assert equity_db_after.base_balance == Decimal("0")
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 1
@@ -87,13 +101,16 @@ async def test_create_adjustment_decrease_ok(db: AsyncSession, db_transaction: A
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    equity_db: AccountModel = await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet",
         "currency": "USD",
         "balance": Decimal("1000"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("1000"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -125,7 +142,13 @@ async def test_create_adjustment_decrease_ok(db: AsyncSession, db_transaction: A
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("400.00")
-    assert account_db_after.base_currency_rate == Decimal("1")
+    assert account_db_after.base_balance == Decimal("400.00")
+
+    postings: list[PostingModel] = (await db.scalars(select(PostingModel).order_by(PostingModel.amount))).all()
+    assert [(p.account_id, p.amount, p.base_amount) for p in postings] == [
+        (account_db.id, Decimal("-600.00"), Decimal("-600.00")),
+        (equity_db.id, Decimal("600.00"), Decimal("600.00")),
+    ]
 
 
 async def test_create_adjustment_other_currency_with_rate_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -136,13 +159,17 @@ async def test_create_adjustment_other_currency_with_rate_ok(db: AsyncSession, d
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
+    # 900 EUR worth 1000 USD is a rate of 0.9
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet EUR",
         "currency": "EUR",
         "balance": Decimal("900"),
-        "base_currency_rate": Decimal("0.9"),
+        "base_balance": Decimal("1000"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -167,10 +194,11 @@ async def test_create_adjustment_other_currency_with_rate_ok(db: AsyncSession, d
     assert transaction.destination_currency == "EUR"
     assert transaction.base_currency_amount == Decimal("500.00")
     assert transaction.to_account_id == account_db.id
+    assert transaction.to_account.base_currency_rate == Decimal("0.9")
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("1350.00")
-    assert account_db_after.base_currency_rate == Decimal("0.9000")
+    assert account_db_after.base_balance == Decimal("1500.00")
 
 
 async def test_create_adjustment_other_currency_without_rate_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -180,6 +208,9 @@ async def test_create_adjustment_other_currency_without_rate_ok(db: AsyncSession
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
+
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Wallet EUR", "currency": "EUR"}
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -203,10 +234,11 @@ async def test_create_adjustment_other_currency_without_rate_ok(db: AsyncSession
     assert transaction.source_amount == Decimal("900.00")
     assert transaction.base_currency_amount == Decimal("1000.00")
     assert transaction.to_account_id == account_db.id
+    assert transaction.to_account.base_currency_rate == Decimal("0.9")
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("900.00")
-    assert account_db_after.base_currency_rate == Decimal("0.9000")
+    assert account_db_after.base_balance == Decimal("1000.00")
 
 
 async def test_create_adjustment_other_currency_tiny_difference_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -217,13 +249,16 @@ async def test_create_adjustment_other_currency_tiny_difference_ok(db: AsyncSess
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet RSD",
         "currency": "RSD",
         "balance": Decimal("1000"),
-        "base_currency_rate": Decimal("117"),
+        "base_balance": Decimal("8.55"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -240,14 +275,14 @@ async def test_create_adjustment_other_currency_tiny_difference_ok(db: AsyncSess
     await db_transaction.commit()
 
     # Assert
-    # 0.01 / 117 rounds to 0.00, so the smallest positive amount is stored
+    # 0.01 * 8.55 / 1000 rounds to 0.00, so the smallest positive amount is stored
     assert transaction.source_amount == Decimal("0.01")
     assert transaction.base_currency_amount == Decimal("0.01")
     assert transaction.to_account_id == account_db.id
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("1000.01")
-    assert account_db_after.base_currency_rate == Decimal("117")
+    assert account_db_after.base_balance == Decimal("8.56")
 
 
 async def test_create_adjustment_other_currency_crossing_zero_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -258,13 +293,16 @@ async def test_create_adjustment_other_currency_crossing_zero_ok(db: AsyncSessio
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Card RSD",
         "currency": "RSD",
         "balance": Decimal("-117.00"),
-        "base_currency_rate": Decimal("117"),
+        "base_balance": Decimal("-1.00"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -281,14 +319,14 @@ async def test_create_adjustment_other_currency_crossing_zero_ok(db: AsyncSessio
     await db_transaction.commit()
 
     # Assert
-    # 117.01 / 117 rounds to 1.00, which must not feed back into the rate
+    # 117.01 at the rate of 117 rounds to 1.00, which leaves the remaining 0.01 RSD without a base value
     assert transaction.source_amount == Decimal("117.01")
     assert transaction.base_currency_amount == Decimal("1.00")
     assert transaction.to_account_id == account_db.id
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("0.01")
-    assert account_db_after.base_currency_rate == Decimal("117")
+    assert account_db_after.base_balance == Decimal("0.00")
 
 
 async def test_create_adjustment_other_currency_decrease_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -299,13 +337,16 @@ async def test_create_adjustment_other_currency_decrease_ok(db: AsyncSession, db
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet EUR",
         "currency": "EUR",
         "balance": Decimal("900"),
-        "base_currency_rate": Decimal("0.9"),
+        "base_balance": Decimal("1000"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -325,26 +366,15 @@ async def test_create_adjustment_other_currency_decrease_ok(db: AsyncSession, db
     assert transaction.source_amount == Decimal("450.00")
     assert transaction.base_currency_amount == Decimal("500.00")
     assert transaction.from_account_id == account_db.id
+    assert transaction.from_account.base_currency_rate == Decimal("0.9")
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("450.00")
-    assert account_db_after.base_currency_rate == Decimal("0.9")
+    assert account_db_after.base_balance == Decimal("500.00")
 
 
-@pytest.mark.parametrize(
-    "currency, balance, base_currency_rate",
-    [
-        ("USD", Decimal("0"), Decimal("0")),
-        ("USD", Decimal("0"), Decimal("1")),
-        ("EUR", Decimal("900"), Decimal("0.9")),
-    ],
-)
-async def test_create_adjustment_base_currency_amount_not_allowed(
-    db: AsyncSession,
-    db_transaction: AsyncSession,
-    currency: str,
-    balance: Decimal,
-    base_currency_rate: Decimal,
+async def test_create_adjustment_other_currency_to_zero_takes_base_balance(
+    db: AsyncSession, db_transaction: AsyncSession
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -353,13 +383,74 @@ async def test_create_adjustment_base_currency_amount_not_allowed(
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
+    # 1000 RSD worth 8.55 USD
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Wallet RSD",
+        "currency": "RSD",
+        "balance": Decimal("1000"),
+        "base_balance": Decimal("8.55"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 10), account_id=account_db.id, new_balance=Decimal("0.00")
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=adjustment_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    # emptying the account takes all of its base value
+    assert transaction.source_amount == Decimal("1000.00")
+    assert transaction.base_currency_amount == Decimal("8.55")
+    assert transaction.from_account.base_currency_rate == Decimal("0")
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("0")
+    assert account_db_after.base_balance == Decimal("0")
+
+
+@pytest.mark.parametrize(
+    "currency, balance, base_balance",
+    [
+        ("USD", Decimal("0"), Decimal("0")),
+        ("EUR", Decimal("900"), Decimal("1000")),
+    ],
+)
+async def test_create_adjustment_base_currency_amount_not_allowed(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    currency: str,
+    balance: Decimal,
+    base_balance: Decimal,
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet",
         "currency": currency,
         "balance": balance,
-        "base_currency_rate": base_currency_rate,
+        "base_balance": base_balance,
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -390,13 +481,14 @@ async def test_create_adjustment_base_currency_amount_not_allowed(
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == balance
+    assert account_db_after.base_balance == base_balance
 
 
 @pytest.mark.parametrize(
-    "currency, base_currency_amount, base_currency_rate",
+    "currency, base_currency_amount, expected_base_balance",
     [
-        ("USD", None, Decimal("1")),
-        ("EUR", Decimal("500.00"), Decimal("0.9000")),
+        ("USD", None, Decimal("-450.00")),
+        ("EUR", Decimal("500.00"), Decimal("-500.00")),
     ],
 )
 async def test_create_adjustment_decrease_without_rate_ok(
@@ -404,7 +496,7 @@ async def test_create_adjustment_decrease_without_rate_ok(
     db_transaction: AsyncSession,
     currency: str,
     base_currency_amount: Decimal | None,
-    base_currency_rate: Decimal,
+    expected_base_balance: Decimal,
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -412,6 +504,9 @@ async def test_create_adjustment_decrease_without_rate_ok(
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
+
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Card", "currency": currency}
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -436,10 +531,10 @@ async def test_create_adjustment_decrease_without_rate_ok(
     assert transaction.from_account_id == account_db.id
     assert transaction.to_account_id is None
 
-    # the account gets a rate, so expenses and transfers can debit it
+    # the debt has a base value, so expenses and transfers can debit the account
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("-450.00")
-    assert account_db_after.base_currency_rate == base_currency_rate
+    assert account_db_after.base_balance == expected_base_balance
 
 
 async def test_create_adjustment_other_currency_without_rate_and_base_amount(
@@ -451,6 +546,9 @@ async def test_create_adjustment_other_currency_without_rate_and_base_amount(
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
+
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Wallet EUR", "currency": "EUR"}
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -476,103 +574,6 @@ async def test_create_adjustment_other_currency_without_rate_and_base_amount(
     assert len(transactions) == 0
 
 
-@pytest.mark.parametrize(
-    "new_balance, base_currency_amount, base_currency_rate",
-    [
-        (Decimal("500.00"), Decimal("540.00"), Decimal("0.9259259259")),
-        (Decimal("-450.00"), Decimal("500.00"), Decimal("0.9000")),
-    ],
-)
-async def test_create_adjustment_emptied_account_restarts_rate(
-    db: AsyncSession,
-    db_transaction: AsyncSession,
-    new_balance: Decimal,
-    base_currency_amount: Decimal,
-    base_currency_rate: Decimal,
-):
-    # Arrange
-    user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
-    )
-    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
-    user_id: UUID = user_db.id
-
-    # an expense emptied the account and left the rate of the money it spent
-    account_create_data: dict = {
-        "kind": AccountKind.ASSET,
-        "user_id": user_id,
-        "name": "Wallet EUR",
-        "currency": "EUR",
-        "balance": Decimal("0"),
-        "base_currency_rate": Decimal("1.1"),
-    }
-    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
-
-    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
-        transaction_date=date(2025, 2, 10),
-        account_id=account_db.id,
-        new_balance=new_balance,
-        base_currency_amount=base_currency_amount,
-    )
-    await db.close()
-
-    # Act
-    transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
-    )
-    transaction: Transaction = await transaction_processor.create(data=adjustment_create_data)
-    await db_transaction.commit()
-
-    # Assert
-    assert transaction.source_amount == abs(new_balance)
-    assert transaction.base_currency_amount == base_currency_amount
-
-    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
-    assert account_db_after.balance == new_balance
-    assert account_db_after.base_currency_rate == base_currency_rate
-
-
-async def test_create_adjustment_emptied_account_without_base_amount(db: AsyncSession, db_transaction: AsyncSession):
-    # Arrange
-    user_create_data: UserCreate = UserCreate(
-        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
-    )
-    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
-    user_id: UUID = user_db.id
-
-    # an expense emptied the account and left the rate of the money it spent
-    account_create_data: dict = {
-        "kind": AccountKind.ASSET,
-        "user_id": user_id,
-        "name": "Wallet EUR",
-        "currency": "EUR",
-        "balance": Decimal("0"),
-        "base_currency_rate": Decimal("1.1"),
-    }
-    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
-
-    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
-        transaction_date=date(2025, 2, 10), account_id=account_db.id, new_balance=Decimal("500.00")
-    )
-
-    # Act
-    transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
-    )
-    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
-        await transaction_processor.create(data=adjustment_create_data)
-        await db_transaction.commit()
-
-    # Assert
-    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
-    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE
-
-    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
-    assert len(transactions) == 0
-    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
-    assert account_db_after.base_currency_rate == Decimal("1.1")
-
-
 async def test_create_adjustment_emptied_base_currency_account_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -581,13 +582,16 @@ async def test_create_adjustment_emptied_base_currency_account_ok(db: AsyncSessi
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet",
         "currency": "USD",
         "balance": Decimal("0"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("0"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -605,10 +609,11 @@ async def test_create_adjustment_emptied_base_currency_account_ok(db: AsyncSessi
 
     # Assert
     assert transaction.base_currency_amount == Decimal("300.00")
+    assert transaction.from_account.base_currency_rate == Decimal("1")
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("-300.00")
-    assert account_db_after.base_currency_rate == Decimal("1")
+    assert account_db_after.base_balance == Decimal("-300.00")
 
 
 async def test_create_adjustment_balance_unchanged(db: AsyncSession, db_transaction: AsyncSession):
@@ -619,13 +624,16 @@ async def test_create_adjustment_balance_unchanged(db: AsyncSession, db_transact
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet",
         "currency": "USD",
         "balance": Decimal("1000"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("1000"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -652,6 +660,39 @@ async def test_create_adjustment_balance_unchanged(db: AsyncSession, db_transact
     assert len(transactions) == 0
 
 
+async def test_create_adjustment_without_equity_account(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Wallet", "currency": "USD"}
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 10), account_id=account_db.id, new_balance=Decimal("100.00")
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
+    )
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_processor.create(data=adjustment_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    assert account_db_after.balance == Decimal("0")
+
+
 async def test_create_adjustment_account_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -659,6 +700,9 @@ async def test_create_adjustment_account_of_other_user(db: AsyncSession, db_tran
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
+
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": uuid4(), "name": "Wallet", "currency": "USD"}
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -692,6 +736,9 @@ async def test_create_adjustment_deleted_account(db: AsyncSession, db_transactio
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
@@ -724,15 +771,23 @@ async def test_create_adjustment_deleted_account(db: AsyncSession, db_transactio
 
 
 @pytest.mark.parametrize(
-    "balance_before, new_balance",
+    "currency, balance_before, base_balance_before, new_balance, base_currency_amount",
     [
-        (Decimal("0"), Decimal("1250.00")),
-        (Decimal("1000"), Decimal("400.00")),
-        (Decimal("0"), Decimal("-500.00")),
+        ("USD", Decimal("0"), Decimal("0"), Decimal("1250.00"), None),
+        ("USD", Decimal("1000"), Decimal("1000"), Decimal("400.00"), None),
+        ("USD", Decimal("0"), Decimal("0"), Decimal("-500.00"), None),
+        ("EUR", Decimal("900"), Decimal("1000"), Decimal("0.00"), None),
+        ("EUR", Decimal("0"), Decimal("0"), Decimal("900.00"), Decimal("1000.00")),
     ],
 )
 async def test_delete_adjustment_ok(
-    db: AsyncSession, db_transaction: AsyncSession, balance_before: Decimal, new_balance: Decimal
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    currency: str,
+    balance_before: Decimal,
+    base_balance_before: Decimal,
+    new_balance: Decimal,
+    base_currency_amount: Decimal | None,
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -741,18 +796,24 @@ async def test_delete_adjustment_ok(
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet",
-        "currency": "USD",
+        "currency": currency,
         "balance": balance_before,
-        "base_currency_rate": Decimal("1"),
+        "base_balance": base_balance_before,
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
     adjustment_create_data: AdjustmentRequest = AdjustmentRequest(
-        transaction_date=date(2025, 2, 10), account_id=account_db.id, new_balance=new_balance
+        transaction_date=date(2025, 2, 10),
+        account_id=account_db.id,
+        new_balance=new_balance,
+        base_currency_amount=base_currency_amount,
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=adjustment_create_data.transaction_type
@@ -772,14 +833,16 @@ async def test_delete_adjustment_ok(
     # Assert
     assert transaction.status == EntityStatusType.DELETED != transaction_before.status
 
+    # the postings stay, and the cache no longer counts them
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == balance_before
-    assert account_db_after.base_currency_rate == account_create_data["base_currency_rate"]
+    assert account_db_after.base_balance == base_balance_before
+
+    postings: list[PostingModel] = (await db.scalars(select(PostingModel))).all()
+    assert len(postings) == 2
 
 
-async def test_create_adjustment_base_currency_account_to_zero_keeps_rate(
-    db: AsyncSession, db_transaction: AsyncSession
-):
+async def test_create_adjustment_base_currency_account_to_zero_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
         username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
@@ -787,13 +850,16 @@ async def test_create_adjustment_base_currency_account_to_zero_keeps_rate(
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
     account_create_data: dict = {
         "kind": AccountKind.ASSET,
         "user_id": user_id,
         "name": "Wallet",
         "currency": "USD",
         "balance": Decimal("1000"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("1000"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -814,7 +880,7 @@ async def test_create_adjustment_base_currency_account_to_zero_keeps_rate(
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("0")
-    assert account_db_after.base_currency_rate == Decimal("1")
+    assert account_db_after.base_balance == Decimal("0")
 
 
 async def test_create_adjustment_category_account(db: AsyncSession, db_transaction: AsyncSession):
@@ -824,6 +890,9 @@ async def test_create_adjustment_category_account(db: AsyncSession, db_transacti
     )
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
+
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     account_create_data: dict = {
         "kind": AccountKind.EXPENSE,

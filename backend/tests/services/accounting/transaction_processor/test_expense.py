@@ -22,6 +22,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import AccountKindMismatch
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
+from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountKind, CategoryType
 from app.schemas.accounting.location import LocationCreate
@@ -48,18 +49,16 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
-    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
+    base_balance_before: Decimal = copy(account_db.base_balance)
 
     category_create_data: AccountCreate = AccountCreate(
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -96,7 +95,8 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
 
     assert transaction.from_account_id == account_db.id
     assert transaction.from_account.balance == Decimal("-1") != account_balance_before
-    assert transaction.from_account.base_currency_rate == Decimal("1") == base_currency_rate_before
+    assert transaction.from_account.base_currency_balance == Decimal("-1")
+    assert transaction.from_account.base_currency_rate == Decimal("1")
     assert transaction.to_account_id is None
     assert transaction.to_account is None
 
@@ -110,22 +110,45 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 1
+    assert transactions[0].location_id == location_db.id
+    assert transactions[0].income_period is None
+
+    postings: list[PostingModel] = (
+        await db.scalars(
+            select(PostingModel).where(PostingModel.transaction_id == transaction.id).order_by(PostingModel.amount)
+        )
+    ).all()
+    assert [(posting.account_id, posting.amount, posting.currency, posting.base_amount) for posting in postings] == [
+        (account_db.id, Decimal("-1"), "USD", Decimal("-1")),
+        (category_db.id, Decimal("111"), "RSD", Decimal("1")),
+    ]
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("-1")
+    assert account_db_after.base_balance == Decimal("-1")
+    assert account_db_after.base_balance == Decimal("-1")
+    category_db_after: AccountModel = await account_crud.get(db=db, id=category_db.id)
+    await db.refresh(category_db_after)
+    assert category_db_after.balance == Decimal("0")
+    assert category_db_after.base_balance == Decimal("0")
 
 
-# 100 EUR at 0.9523809524 is 104.9999999979... USD, more than the two places an amount keeps,
-# and 0.50 RSD at 117 is 0.0042... USD, which rounds below a cent and is kept at 0.01
+# 100 of 300 EUR worth 315.01 USD is 105.0033... USD, more than the two places an amount keeps,
+# and 0.50 of 200 RSD worth 1.71 USD is 0.0042... USD, which rounds below a cent and is kept at 0.01
 @pytest.mark.parametrize(
-    "currency, base_currency_rate, amount, expected_base_currency_amount",
+    "currency, balance, base_balance, amount, expected_base_currency_amount",
     [
-        ("EUR", Decimal("0.9523809524"), Decimal("100"), Decimal("105.00")),
-        ("RSD", Decimal("117"), Decimal("0.50"), Decimal("0.01")),
+        ("EUR", Decimal("300"), Decimal("315.01"), Decimal("100"), Decimal("105.00")),
+        ("RSD", Decimal("200"), Decimal("1.71"), Decimal("0.50"), Decimal("0.01")),
     ],
 )
 async def test_create_expense_other_currency_rounds_base_amount(
     db: AsyncSession,
     db_transaction: AsyncSession,
     currency: str,
-    base_currency_rate: Decimal,
+    balance: Decimal,
+    base_balance: Decimal,
     amount: Decimal,
     expected_base_currency_amount: Decimal,
 ):
@@ -141,8 +164,8 @@ async def test_create_expense_other_currency_rounds_base_amount(
         "user_id": user_id,
         "name": f"Wallet {currency}",
         "currency": currency,
-        "balance": Decimal("200"),
-        "base_currency_rate": base_currency_rate,
+        "balance": balance,
+        "base_balance": base_balance,
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -151,7 +174,6 @@ async def test_create_expense_other_currency_rounds_base_amount(
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -178,8 +200,11 @@ async def test_create_expense_other_currency_rounds_base_amount(
 
     # Assert
     assert transaction.base_currency_amount == expected_base_currency_amount
-    assert transaction.from_account.balance == Decimal("200") - amount
-    assert transaction.from_account.base_currency_rate == base_currency_rate
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == balance - amount
+    assert account_db_after.base_balance == base_balance - expected_base_currency_amount
 
 
 async def test_create_expense_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
@@ -195,7 +220,6 @@ async def test_create_expense_account_not_found(db: AsyncSession, db_transaction
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -242,18 +266,17 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
     user_id: UUID = user_db.id
 
     account_create_data: AccountCreate = AccountCreate(
-        kind=AccountKind.ASSET, user_id=user_id, name="Income EUR", currency="EUR", base_currency_rate=Decimal("0")
+        kind=AccountKind.ASSET, user_id=user_id, name="Income EUR", currency="EUR"
     )
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
-    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
+    base_balance_before: Decimal = copy(account_db.base_balance)
 
     category_create_data: AccountCreate = AccountCreate(
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -289,8 +312,9 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == account_balance_before
-    assert account_db_after.base_currency_rate == base_currency_rate_before
+    assert account_db_after.base_balance == base_balance_before
 
 
 async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction: AsyncSession):
@@ -306,18 +330,16 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
-    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
+    base_balance_before: Decimal = copy(account_db.base_balance)
 
     category_create_data: AccountCreate = AccountCreate(
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -356,8 +378,9 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == account_balance_before
-    assert account_db_after.base_currency_rate == base_currency_rate_before
+    assert account_db_after.base_balance == base_balance_before
 
 
 async def test_create_expense_unknown_destination_currency(db: AsyncSession, db_transaction: AsyncSession):
@@ -374,7 +397,7 @@ async def test_create_expense_unknown_destination_currency(db: AsyncSession, db_
         "name": "Wallet",
         "currency": "USD",
         "balance": Decimal("100"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("100"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -383,7 +406,6 @@ async def test_create_expense_unknown_destination_currency(db: AsyncSession, db_
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -417,6 +439,7 @@ async def test_create_expense_unknown_destination_currency(db: AsyncSession, db_
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == Decimal("100")
 
 
@@ -438,18 +461,16 @@ async def test_create_expense_category_of_other_user(db: AsyncSession, db_transa
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
-    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
+    base_balance_before: Decimal = copy(account_db.base_balance)
 
     category_create_data: AccountCreate = AccountCreate(
         user_id=other_user_db.id,
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -484,8 +505,9 @@ async def test_create_expense_category_of_other_user(db: AsyncSession, db_transa
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == account_balance_before
-    assert account_db_after.base_currency_rate == base_currency_rate_before
+    assert account_db_after.base_balance == base_balance_before
 
 
 async def test_create_expense_deleted_category(db: AsyncSession, db_transaction: AsyncSession):
@@ -501,11 +523,10 @@ async def test_create_expense_deleted_category(db: AsyncSession, db_transaction:
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
-    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
+    base_balance_before: Decimal = copy(account_db.base_balance)
 
     category_create_data: dict = {
         "kind": AccountKind.EXPENSE,
@@ -547,8 +568,9 @@ async def test_create_expense_deleted_category(db: AsyncSession, db_transaction:
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == account_balance_before
-    assert account_db_after.base_currency_rate == base_currency_rate_before
+    assert account_db_after.base_balance == base_balance_before
 
 
 async def test_create_expense_location_of_other_user(db: AsyncSession, db_transaction: AsyncSession):
@@ -569,18 +591,16 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     account_balance_before: Decimal = copy(account_db.balance)
-    base_currency_rate_before: Decimal = copy(account_db.base_currency_rate)
+    base_balance_before: Decimal = copy(account_db.base_balance)
 
     category_create_data: AccountCreate = AccountCreate(
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -620,8 +640,9 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == account_balance_before
-    assert account_db_after.base_currency_rate == base_currency_rate_before
+    assert account_db_after.base_balance == base_balance_before
 
 
 async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -637,7 +658,6 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -646,7 +666,6 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -685,25 +704,214 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     assert len(transactions) == 1
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == Decimal("0")
-    assert account_db_after.base_currency_rate == Decimal("1")
+    assert account_db_after.base_balance == Decimal("0")
+
+    postings: list[PostingModel] = (
+        await db.scalars(select(PostingModel).where(PostingModel.transaction_id == transaction.id))
+    ).all()
+    assert len(postings) == 2
+
+
+# a debit that empties the account takes its whole base balance and leaves both sums at zero
+async def test_create_expense_emptying_account_takes_base_balance(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("30"),
+        "base_balance": Decimal("10.01"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id,
+        kind=AccountKind.EXPENSE,
+        name="Food",
+        category_type=CategoryType.VARIABLE,
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("30"),
+        source_currency="EUR",
+        destination_amount=Decimal("30"),
+        destination_currency="EUR",
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    transaction: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.base_currency_amount == Decimal("10.01")
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("0")
+    assert account_db_after.base_balance == Decimal("0")
+
+
+# the emptied account keeps no rate, so a further debit has nothing to be valued at
+async def test_create_expense_from_emptied_account_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("30"),
+        "base_balance": Decimal("33"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id,
+        kind=AccountKind.EXPENSE,
+        name="Food",
+        category_type=CategoryType.VARIABLE,
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("30"),
+        source_currency="EUR",
+        destination_amount=Decimal("30"),
+        destination_currency="EUR",
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    await transaction_processor.create(data=expense_create_data)
+    await db.commit()
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
+        await transaction_processor.create(data=expense_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 1
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("0")
+    assert account_db_after.base_balance == Decimal("0")
+
+
+async def test_create_expense_opposite_signs_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    # a balance and a base value of opposite signs, which a deleted earlier income can leave, give no rate
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("90"),
+        "base_balance": Decimal("-50"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id,
+        kind=AccountKind.EXPENSE,
+        name="Food",
+        category_type=CategoryType.VARIABLE,
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: ExpenseRequest = ExpenseRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("30"),
+        source_currency="EUR",
+        destination_amount=Decimal("30"),
+        destination_currency="EUR",
+        from_account_id=account_db.id,
+        category_id=category_db.id,
+        location_id=location_db.id,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=expense_create_data.transaction_type
+    )
+    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
+        await transaction_processor.create(data=expense_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("90")
+    assert account_db_after.base_balance == Decimal("-50")
 
 
 @pytest.mark.parametrize(
-    "currency, balance, base_currency_rate, amount, expected_rate",
+    "currency, balance, base_balance, amount",
     [
-        ("USD", Decimal("100"), Decimal("1"), Decimal("50"), Decimal("1")),
-        ("EUR", Decimal("110"), Decimal("1.1"), Decimal("55"), Decimal("1.1")),
+        ("USD", Decimal("100"), Decimal("100"), Decimal("50")),
+        ("EUR", Decimal("110"), Decimal("100"), Decimal("55")),
     ],
 )
-async def test_delete_expense_of_account_without_rate_sets_rate(
+async def test_delete_expense_restores_account_balances(
     db: AsyncSession,
     db_transaction: AsyncSession,
     currency: str,
     balance: Decimal,
-    base_currency_rate: Decimal,
+    base_balance: Decimal,
     amount: Decimal,
-    expected_rate: Decimal,
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -718,7 +926,7 @@ async def test_delete_expense_of_account_without_rate_sets_rate(
         "name": f"Card {currency}",
         "currency": currency,
         "balance": balance,
-        "base_currency_rate": base_currency_rate,
+        "base_balance": base_balance,
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -727,7 +935,6 @@ async def test_delete_expense_of_account_without_rate_sets_rate(
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -749,25 +956,24 @@ async def test_delete_expense_of_account_without_rate_sets_rate(
     )
     transaction_before: Transaction = await transaction_processor.create(data=expense_create_data)
     await db.commit()
-
-    # deleting an earlier income emptied the account, which left it at balance 0 and rate 0
-    await account_crud.update_orm(
-        db=db, obj_in={"balance": Decimal("0"), "base_currency_rate": Decimal("0")}, id=account_db.id, commit=True
-    )
     await db.close()
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
-    await transaction_processor.delete(transaction_id=transaction_before.id)
+    transaction: Transaction = await transaction_processor.delete(transaction_id=transaction_before.id)
     await db_transaction.commit()
     await db_transaction.close()
 
     # Assert
+    assert transaction.status == EntityStatusType.DELETED
+    assert transaction.from_account.balance == balance
+
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
-    assert account_db_after.balance == amount
-    assert account_db_after.base_currency_rate == expected_rate
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == balance
+    assert account_db_after.base_balance == base_balance
 
 
 async def test_delete_not_found(db: AsyncSession, db_transaction: AsyncSession):
@@ -812,7 +1018,6 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
         "status": EntityStatusType.DELETED,
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
@@ -822,7 +1027,6 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -859,6 +1063,7 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == Decimal("0")
 
 
@@ -875,7 +1080,6 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -884,7 +1088,6 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -931,7 +1134,9 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     )
     assert transaction_db.status == EntityStatusType.ACTIVE
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == Decimal("-1")
+    assert account_db_after.base_balance == Decimal("-1")
 
 
 async def test_create_expense_concurrent_keeps_both_balance_changes(
@@ -950,7 +1155,7 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
         "name": "Checking USD",
         "currency": "USD",
         "balance": Decimal("100"),
-        "base_currency_rate": Decimal("1"),
+        "base_balance": Decimal("100"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -959,7 +1164,6 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1004,6 +1208,7 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
     account_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     await db.refresh(account_after)
     assert account_after.balance == Decimal("80")
+    assert account_after.base_balance == Decimal("80")
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 2
@@ -1020,9 +1225,7 @@ async def test_create_expense_new_base_currency_account_ok(db: AsyncSession, db_
     account_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="Cash", currency="USD"
     )
-    account: Account = await account_service.create_account(
-        db=db, create_data=account_create_data, user_id=user_id, base_currency="USD"
-    )
+    account: Account = await account_service.create_account(db=db, create_data=account_create_data, user_id=user_id)
     await db.commit()
 
     category_create_data: AccountCreate = AccountCreate(
@@ -1030,7 +1233,6 @@ async def test_create_expense_new_base_currency_account_ok(db: AsyncSession, db_
         kind=AccountKind.EXPENSE,
         name="Food",
         category_type=CategoryType.VARIABLE,
-        base_currency_rate=Decimal("0"),
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1059,8 +1261,9 @@ async def test_create_expense_new_base_currency_account_ok(db: AsyncSession, db_
     assert transaction.base_currency_amount == Decimal("10")
 
     account_db_after: AccountModel = await account_crud.get(db=db, id=account.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == Decimal("-10")
-    assert account_db_after.base_currency_rate == Decimal("1")
+    assert account_db_after.base_balance == Decimal("-10")
 
 
 async def test_create_expense_from_income_account(db: AsyncSession, db_transaction: AsyncSession):
@@ -1127,7 +1330,6 @@ async def test_create_expense_category_of_other_kind(db: AsyncSession, db_transa
         "user_id": user_id,
         "name": "Checking USD",
         "currency": "USD",
-        "base_currency_rate": Decimal("1"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     income_account_create_data: dict = {"kind": AccountKind.INCOME, "user_id": user_id, "name": "Salary"}
@@ -1163,4 +1365,5 @@ async def test_create_expense_category_of_other_kind(db: AsyncSession, db_transa
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
     assert account_db_after.balance == Decimal("0")
