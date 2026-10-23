@@ -7,6 +7,7 @@ from starlette import status
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
 from app.schemas.accounting.account import AccountKind
+from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
 
@@ -69,6 +70,26 @@ class MovementNotAllowed(UnprocessableException):
             log_message=f"Money can not move from a {from_kind.value} account to a {to_kind.value} account",
             logger=logger,
             error_code=ErrorCodeType.MOVEMENT_NOT_ALLOWED,
+        )
+
+
+class FieldRequired(UnprocessableException):
+    def __init__(self, *, transaction_type: TransactionType, field: str, logger: logging.Logger):
+        super().__init__(
+            message=f"Field {field} required",
+            log_message=f"Transaction type {transaction_type.value} needs {field}",
+            logger=logger,
+            error_code=ErrorCodeType.FIELD_REQUIRED,
+        )
+
+
+class FieldNotAllowed(UnprocessableException):
+    def __init__(self, *, transaction_type: TransactionType, field: str, logger: logging.Logger):
+        super().__init__(
+            message=f"Field {field} not allowed",
+            log_message=f"Transaction type {transaction_type.value} does not take {field}",
+            logger=logger,
+            error_code=ErrorCodeType.FIELD_NOT_ALLOWED,
         )
 
 

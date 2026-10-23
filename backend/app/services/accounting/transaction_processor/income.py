@@ -39,7 +39,8 @@ class Income(TransactionProcessor[MovementRequest]):
 
     async def _prepare_transaction(self, *, data: MovementRequest) -> tuple[TransactionCreate, list[PostingCreate]]:
         self._validate_fields(
-            data=data, required_fields=["income_period", "destination_amount"], forbidden_fields=["location_id"]
+            required_fields={"income_period": data.income_period, "destination_amount": data.destination_amount},
+            forbidden_fields={"location_id": data.location_id},
         )
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=[data.to_account_id], user_id=self.user_id

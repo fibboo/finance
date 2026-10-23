@@ -951,3 +951,34 @@ async def test_create_adjustment_category_account(db: AsyncSession, db_transacti
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("0")
+
+
+async def test_create_adjustment_equity_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    equity_create_data: dict = {"kind": AccountKind.EQUITY, "user_id": user_id, "name": "Adjustments"}
+    equity_db: AccountModel = await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+
+    adjustment_create_data: AdjustmentCreate = AdjustmentCreate(
+        transaction_date=date(2025, 2, 10), account_id=equity_db.id, new_balance=Decimal("100.00")
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.ADJUSTMENT
+    )
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_processor.create(data=adjustment_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0

@@ -21,7 +21,8 @@ from app.exceptions.unprocessable_422 import (
     AccountKindMismatch,
     BaseCurrencyAmountNotAllowed,
     BaseCurrencyAmountRequired,
-    UnprocessableException,
+    FieldNotAllowed,
+    FieldRequired,
 )
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.posting import Posting as PostingModel
@@ -1106,11 +1107,36 @@ async def test_create_income_into_base_currency_account_takes_credited_amount(
 
 
 @pytest.mark.parametrize(
-    "destination_amount, income_period, has_location, expected_log_message",
+    "destination_amount, income_period, has_location, expected_exception, expected_message, expected_error_code, "
+    "expected_log_message",
     [
-        (Decimal("1"), None, False, "Transaction type INCOME needs income_period"),
-        (None, date(2025, 1, 1), False, "Transaction type INCOME needs destination_amount"),
-        (Decimal("1"), date(2025, 1, 1), True, "Transaction type INCOME does not take location_id"),
+        (
+            Decimal("1"),
+            None,
+            False,
+            FieldRequired,
+            "Field income_period required",
+            ErrorCodeType.FIELD_REQUIRED,
+            "Transaction type INCOME needs income_period",
+        ),
+        (
+            None,
+            date(2025, 1, 1),
+            False,
+            FieldRequired,
+            "Field destination_amount required",
+            ErrorCodeType.FIELD_REQUIRED,
+            "Transaction type INCOME needs destination_amount",
+        ),
+        (
+            Decimal("1"),
+            date(2025, 1, 1),
+            True,
+            FieldNotAllowed,
+            "Field location_id not allowed",
+            ErrorCodeType.FIELD_NOT_ALLOWED,
+            "Transaction type INCOME does not take location_id",
+        ),
     ],
 )
 async def test_create_income_fields_by_type(
@@ -1119,6 +1145,9 @@ async def test_create_income_fields_by_type(
     destination_amount: Decimal | None,
     income_period: date | None,
     has_location: bool,
+    expected_exception: type[FieldRequired | FieldNotAllowed],
+    expected_message: str,
+    expected_error_code: ErrorCodeType,
     expected_log_message: str,
 ):
     # Arrange
@@ -1153,15 +1182,16 @@ async def test_create_income_fields_by_type(
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
     )
-    with pytest.raises(UnprocessableException) as exc:
+    with pytest.raises((FieldRequired, FieldNotAllowed)) as exc:
         await transaction_processor.create(data=income_create_data)
         await db_transaction.commit()
 
     # Assert
+    assert type(exc.value) is expected_exception
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-    assert exc.value.message == "Unprocessable entity"
+    assert exc.value.message == expected_message
     assert exc.value.log_message == expected_log_message
-    assert exc.value.error_code is None
+    assert exc.value.error_code == expected_error_code
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0

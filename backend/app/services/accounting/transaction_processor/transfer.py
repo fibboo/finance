@@ -4,7 +4,6 @@ from uuid import UUID
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.exceptions.unprocessable_422 import (
-    BaseCurrencyAmountNotAllowed,
     DestinationAmountNotAllowed,
     TransferAmountMismatch,
     UnprocessableException,
@@ -25,12 +24,6 @@ class Transfer(TransactionProcessor[MovementRequest]):
     async def __validate_transaction(
         self, *, data: MovementRequest, to_account_db: AccountModel, from_account_db: AccountModel
     ) -> None:
-        self._validate_fields(data=data, required_fields=[], forbidden_fields=["location_id", "income_period"])
-        if data.base_currency_amount is not None:
-            raise BaseCurrencyAmountNotAllowed(
-                account_id=data.from_account_id, base_currency_amount=data.base_currency_amount, logger=logger
-            )
-
         await self._validate_transaction_from_account(data=data, from_account_db=from_account_db)
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
@@ -57,6 +50,11 @@ class Transfer(TransactionProcessor[MovementRequest]):
             )
 
     async def _prepare_transaction(self, *, data: MovementRequest) -> tuple[TransactionCreate, list[PostingCreate]]:
+        self._validate_fields(
+            required_fields={}, forbidden_fields={"location_id": data.location_id, "income_period": data.income_period}
+        )
+        self._validate_base_currency_amount_not_sent(data=data)
+
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=[data.from_account_id, data.to_account_id], user_id=self.user_id
         )

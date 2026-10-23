@@ -51,6 +51,9 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
             db=self.db, ids=[data.account_id], user_id=self.user_id
         )
         account_db: AccountModel | None = accounts_db.get(data.account_id)
+        if account_db is not None and account_db.kind == AccountKind.EQUITY:
+            raise EntityNotFound(entity=AccountModel, search_params={"id": data.account_id}, logger=logger)
+
         self._validate_account_is_active(account_id=data.account_id, account_db=account_db)
 
         if account_db.balance == data.new_balance:

@@ -15,7 +15,12 @@ from app.exceptions.forbidden_403 import (
     NoAccountBaseCurrencyRate,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.unprocessable_422 import AccountKindMismatch, UnprocessableException
+from app.exceptions.unprocessable_422 import (
+    AccountKindMismatch,
+    BaseCurrencyAmountNotAllowed,
+    FieldNotAllowed,
+    FieldRequired,
+)
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
@@ -62,20 +67,21 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         if account_db.kind not in MONEY_ACCOUNT_KINDS:
             raise AccountKindMismatch(account_id=account_db.id, kinds=MONEY_ACCOUNT_KINDS, logger=logger)
 
-    def _validate_fields(
-        self, *, data: MovementRequest, required_fields: list[str], forbidden_fields: list[str]
-    ) -> None:
-        for field in required_fields:
-            if getattr(data, field) is None:
-                raise UnprocessableException(
-                    log_message=f"Transaction type {self._transaction_type.value} needs {field}", logger=logger
-                )
+    def _validate_fields(self, *, required_fields: dict[str, object], forbidden_fields: dict[str, object]) -> None:
+        for field, value in required_fields.items():
+            if value is None:
+                raise FieldRequired(transaction_type=self._transaction_type, field=field, logger=logger)
 
-        for field in forbidden_fields:
-            if getattr(data, field) is not None:
-                raise UnprocessableException(
-                    log_message=f"Transaction type {self._transaction_type.value} does not take {field}", logger=logger
-                )
+        for field, value in forbidden_fields.items():
+            if value is not None:
+                raise FieldNotAllowed(transaction_type=self._transaction_type, field=field, logger=logger)
+
+    @staticmethod
+    def _validate_base_currency_amount_not_sent(*, data: MovementRequest) -> None:
+        if data.base_currency_amount is not None:
+            raise BaseCurrencyAmountNotAllowed(
+                account_id=data.from_account_id, base_currency_amount=data.base_currency_amount, logger=logger
+            )
 
     async def _validate_counter_account(self, *, account_id: UUID, kind: AccountKind) -> None:
         account_db: AccountModel | None = await account_crud.get_or_none(

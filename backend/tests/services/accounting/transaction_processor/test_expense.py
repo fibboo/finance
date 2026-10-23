@@ -22,7 +22,8 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import (
     AccountKindMismatch,
     BaseCurrencyAmountNotAllowed,
-    UnprocessableException,
+    FieldNotAllowed,
+    FieldRequired,
 )
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
@@ -1367,15 +1368,39 @@ async def test_create_expense_category_of_other_kind(db: AsyncSession, db_transa
 
 
 @pytest.mark.parametrize(
-    "request_fields, log_message",
+    "request_fields, expected_exception, expected_message, expected_error_code, log_message",
     [
-        ({"location_id": None}, "Transaction type EXPENSE needs location_id"),
-        ({"destination_amount": None}, "Transaction type EXPENSE needs destination_amount"),
-        ({"income_period": date(2025, 2, 1)}, "Transaction type EXPENSE does not take income_period"),
+        (
+            {"location_id": None},
+            FieldRequired,
+            "Field location_id required",
+            ErrorCodeType.FIELD_REQUIRED,
+            "Transaction type EXPENSE needs location_id",
+        ),
+        (
+            {"destination_amount": None},
+            FieldRequired,
+            "Field destination_amount required",
+            ErrorCodeType.FIELD_REQUIRED,
+            "Transaction type EXPENSE needs destination_amount",
+        ),
+        (
+            {"income_period": date(2025, 2, 1)},
+            FieldNotAllowed,
+            "Field income_period not allowed",
+            ErrorCodeType.FIELD_NOT_ALLOWED,
+            "Transaction type EXPENSE does not take income_period",
+        ),
     ],
 )
 async def test_create_expense_field_not_allowed_for_type(
-    db: AsyncSession, db_transaction: AsyncSession, request_fields: dict, log_message: str
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    request_fields: dict,
+    expected_exception: type[FieldRequired | FieldNotAllowed],
+    expected_message: str,
+    expected_error_code: ErrorCodeType,
+    log_message: str,
 ):
     # Arrange
     user_create_data: UserCreate = UserCreate(
@@ -1423,15 +1448,16 @@ async def test_create_expense_field_not_allowed_for_type(
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
-    with pytest.raises(UnprocessableException) as exc:
+    with pytest.raises((FieldRequired, FieldNotAllowed)) as exc:
         await transaction_processor.create(data=expense_create_data)
         await db_transaction.commit()
 
     # Assert
+    assert type(exc.value) is expected_exception
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-    assert exc.value.message == "Unprocessable entity"
+    assert exc.value.message == expected_message
     assert exc.value.log_message == log_message
-    assert exc.value.error_code is None
+    assert exc.value.error_code == expected_error_code
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0

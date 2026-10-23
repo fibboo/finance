@@ -18,6 +18,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import (
     BaseCurrencyAmountNotAllowed,
     DestinationAmountNotAllowed,
+    FieldNotAllowed,
     TransferAmountMismatch,
     UnprocessableException,
 )
@@ -1462,10 +1463,15 @@ async def test_account_cache_equals_active_postings(db: AsyncSession, db_transac
 
 
 @pytest.mark.parametrize(
-    "location_id_is_sent, income_period, expected_log_message",
+    "location_id_is_sent, income_period, expected_message, expected_log_message",
     [
-        (True, None, "Transaction type TRANSFER does not take location_id"),
-        (False, date(2025, 2, 1), "Transaction type TRANSFER does not take income_period"),
+        (True, None, "Field location_id not allowed", "Transaction type TRANSFER does not take location_id"),
+        (
+            False,
+            date(2025, 2, 1),
+            "Field income_period not allowed",
+            "Transaction type TRANSFER does not take income_period",
+        ),
     ],
 )
 async def test_create_transfer_field_not_allowed(
@@ -1473,6 +1479,7 @@ async def test_create_transfer_field_not_allowed(
     db_transaction: AsyncSession,
     location_id_is_sent: bool,
     income_period: date | None,
+    expected_message: str,
     expected_log_message: str,
 ):
     # Arrange
@@ -1515,15 +1522,15 @@ async def test_create_transfer_field_not_allowed(
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
-    with pytest.raises(UnprocessableException) as exc:
+    with pytest.raises(FieldNotAllowed) as exc:
         await transaction_processor.create(data=transfer_create_data)
         await db_transaction.commit()
 
     # Assert
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-    assert exc.value.message == "Unprocessable entity"
+    assert exc.value.message == expected_message
     assert exc.value.log_message == expected_log_message
-    assert exc.value.error_code is None
+    assert exc.value.error_code == ErrorCodeType.FIELD_NOT_ALLOWED
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 0
