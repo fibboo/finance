@@ -36,7 +36,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Account
-         * @description Deleting account is possible only if balance is 0
+         * @description Deleting an ASSET or LIABILITY account is possible only if balance is 0
          */
         delete: operations["delete_account_accounting_accounts__account_id__delete"];
         options?: never;
@@ -58,82 +58,6 @@ export interface paths {
          * @description Restoring account is possible only if no active account has its name
          */
         post: operations["restore_account_accounting_accounts__account_id__restore_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/accounting/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Categories */
-        get: operations["get_categories_accounting_categories_get"];
-        put?: never;
-        /** Create Category */
-        post: operations["create_category_accounting_categories_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/accounting/categories/{category_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Category By Id */
-        get: operations["get_category_by_id_accounting_categories__category_id__get"];
-        /** Update Category */
-        put: operations["update_category_accounting_categories__category_id__put"];
-        post?: never;
-        /**
-         * Delete Category
-         * @description Deleted category is hidden from the list and cannot be used by a new expense; existing expenses keep it
-         */
-        delete: operations["delete_category_accounting_categories__category_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/accounting/income_sources": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Income Sources */
-        get: operations["get_income_sources_accounting_income_sources_get"];
-        put?: never;
-        /** Create Income Source */
-        post: operations["create_income_source_accounting_income_sources_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/accounting/income_sources/{income_source_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Income Source */
-        get: operations["get_income_source_accounting_income_sources__income_source_id__get"];
-        /** Update Income Source */
-        put: operations["update_income_source_accounting_income_sources__income_source_id__put"];
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -533,12 +457,14 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+            kind: components["schemas"]["AccountKind"];
             /** Balance */
             balance: string;
             /** Currency */
-            currency: string;
+            currency: string | null;
             /** Color */
             color: string | null;
+            category_type: components["schemas"]["CategoryType"] | null;
             /** Base Currency Rate */
             base_currency_rate: string;
             status: components["schemas"]["EntityStatusType"];
@@ -551,22 +477,32 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
+            kind: components["schemas"]["AccountKind"];
             /** Currency */
-            currency: string;
+            currency?: string | null;
             /** Color */
             color?: string | null;
+            category_type?: components["schemas"]["CategoryType"] | null;
         };
+        /**
+         * AccountKind
+         * @enum {string}
+         */
+        AccountKind: "ASSET" | "LIABILITY" | "EQUITY" | "INCOME" | "EXPENSE";
         /** AccountUpdate */
         AccountUpdate: {
             /** Name */
             name: string;
             /** Description */
             description?: string | null;
+            category_type?: components["schemas"]["CategoryType"] | null;
         };
         /** AccountingDictionaries */
         AccountingDictionaries: {
             /** Currencies */
             currencies: components["schemas"]["DictionaryItem"][];
+            /** Account Kinds */
+            account_kinds: components["schemas"]["DictionaryItem"][];
             /** Category Types */
             category_types: components["schemas"]["DictionaryItem"][];
         };
@@ -601,56 +537,11 @@ export interface components {
             /** Base Currency */
             base_currency: string;
         };
-        /** Category */
-        Category: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            type: components["schemas"]["CategoryType"];
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
-            status: components["schemas"]["EntityStatusType"];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
-        /** CategoryCreateRequest */
-        CategoryCreateRequest: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            type: components["schemas"]["CategoryType"];
-        };
         /**
          * CategoryType
          * @enum {string}
          */
         CategoryType: "VARIABLE" | "FIXED" | "PERIODIC";
-        /** CategoryUpdate */
-        CategoryUpdate: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            type: components["schemas"]["CategoryType"];
-        };
         /** DictionaryItem */
         DictionaryItem: {
             /** Key */
@@ -667,7 +558,7 @@ export interface components {
          * ErrorCodeType
          * @enum {string}
          */
-        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
+        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "ACCOUNT_KIND_MISMATCH" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
         /** ErrorResponse */
         ErrorResponse: {
             /** Message */
@@ -779,37 +670,6 @@ export interface components {
             /** Base Currency Amount */
             base_currency_amount?: number | string | null;
         };
-        /** IncomeSource */
-        IncomeSource: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-        };
-        /** IncomeSourceCreateRequest */
-        IncomeSourceCreateRequest: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-        };
-        /** IncomeSourceUpdate */
-        IncomeSourceUpdate: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-        };
         /** LinkCompleteRequest */
         LinkCompleteRequest: {
             /** Code */
@@ -875,32 +735,6 @@ export interface components {
         Page_Account_: {
             /** Items */
             items: components["schemas"]["Account"][];
-            /** Total */
-            total: number;
-            /** Page */
-            page: number;
-            /** Size */
-            size: number;
-            /** Pages */
-            pages: number;
-        };
-        /** Page[Category] */
-        Page_Category_: {
-            /** Items */
-            items: components["schemas"]["Category"][];
-            /** Total */
-            total: number;
-            /** Page */
-            page: number;
-            /** Size */
-            size: number;
-            /** Pages */
-            pages: number;
-        };
-        /** Page[IncomeSource] */
-        Page_IncomeSource_: {
-            /** Items */
-            items: components["schemas"]["IncomeSource"][];
             /** Total */
             total: number;
             /** Page */
@@ -1026,10 +860,10 @@ export interface components {
              */
             id: string;
             status: components["schemas"]["EntityStatusType"];
-            income_source?: components["schemas"]["IncomeSource"] | null;
+            income_source?: components["schemas"]["Account"] | null;
             from_account?: components["schemas"]["Account"] | null;
             to_account?: components["schemas"]["Account"] | null;
-            category?: components["schemas"]["Category"] | null;
+            category?: components["schemas"]["Account"] | null;
             location?: components["schemas"]["Location"] | null;
             /**
              * Created At
@@ -1129,8 +963,12 @@ export interface operations {
     get_accounts_accounting_accounts_get: {
         parameters: {
             query?: {
+                /** @description Page number */
                 page?: number;
+                /** @description Page size */
                 size?: number;
+                search_term?: string | null;
+                kinds?: components["schemas"]["AccountKind"][];
             };
             header?: never;
             path?: never;
@@ -1351,386 +1189,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Account"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_categories_accounting_categories_get: {
-        parameters: {
-            query?: {
-                page?: number;
-                size?: number;
-                search_term?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["CategoryType"][];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Page_Category_"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_category_accounting_categories_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CategoryCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Category"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_category_by_id_accounting_categories__category_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                category_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Category"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_category_accounting_categories__category_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                category_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CategoryUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Category"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_category_accounting_categories__category_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                category_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Category"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_income_sources_accounting_income_sources_get: {
-        parameters: {
-            query?: {
-                page?: number;
-                size?: number;
-                search_term?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Page_IncomeSource_"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_income_source_accounting_income_sources_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IncomeSourceCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IncomeSource"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_income_source_accounting_income_sources__income_source_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                income_source_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IncomeSource"];
-                };
-            };
-            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
-            418: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_income_source_accounting_income_sources__income_source_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                income_source_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IncomeSourceUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IncomeSource"];
                 };
             };
             /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */

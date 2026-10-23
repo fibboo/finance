@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
@@ -8,7 +9,6 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
-from app.crud.accounting.category import category_crud
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import (
@@ -20,9 +20,8 @@ from app.exceptions.conflict_409 import (
 )
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
-from app.models.accounting.category import Category as CategoryModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.category import CategoryType
+from app.schemas.accounting.account import AccountKind, CategoryType
 from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ExternalUserCreate, ProviderType
@@ -243,21 +242,26 @@ async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSessi
     assert user_db.base_currency == "EUR"
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
-    assert len(accounts_db) == 1
-    assert accounts_db[0].name == "Wallet"
-    assert accounts_db[0].currency == "EUR"
+    accounts: dict[str, tuple] = {}
+    for account_db in accounts_db:
+        accounts[account_db.name] = (
+            account_db.kind,
+            account_db.currency,
+            account_db.category_type,
+            account_db.base_currency_rate,
+        )
 
-    categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
-    category_types: dict[str, CategoryType] = {category_db.name: category_db.type for category_db in categories_db}
-    assert category_types == {
-        "Groceries": CategoryType.VARIABLE,
-        "Eating out": CategoryType.VARIABLE,
-        "Transport": CategoryType.VARIABLE,
-        "Utilities": CategoryType.FIXED,
-        "Subscriptions": CategoryType.FIXED,
-        "Travel": CategoryType.PERIODIC,
-        "Health": CategoryType.PERIODIC,
-        "Clothing": CategoryType.PERIODIC,
+    assert accounts == {
+        "Wallet": (AccountKind.ASSET, "EUR", None, Decimal("1")),
+        "Groceries": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0")),
+        "Eating out": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0")),
+        "Transport": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0")),
+        "Utilities": (AccountKind.EXPENSE, None, CategoryType.FIXED, Decimal("0")),
+        "Subscriptions": (AccountKind.EXPENSE, None, CategoryType.FIXED, Decimal("0")),
+        "Travel": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0")),
+        "Health": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0")),
+        "Clothing": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0")),
+        "Adjustments": (AccountKind.EQUITY, None, None, Decimal("0")),
     }
 
 
@@ -303,7 +307,7 @@ async def test_set_base_currency_already_set(db: AsyncSession, db_transaction: A
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 0
 
-    categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
+    categories_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(categories_db) == 0
 
 
@@ -323,7 +327,7 @@ async def test_set_base_currency_same_currency_again(db: AsyncSession, db_transa
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 0
 
-    categories_db: list[CategoryModel] = await category_crud.get_batch(db=db, user_id=user_db.id)
+    categories_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(categories_db) == 0
 
 

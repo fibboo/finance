@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,7 +29,10 @@ async def create_account(
 
 @router.get("")
 async def get_accounts(
-    *, request: AccountRequest = Depends(), user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *,
+    request: Annotated[AccountRequest, Query()],
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
 ) -> Page[Account]:
     accounts: Page[Account] = await account_service.get_accounts(db=db, request=request, user_id=user_id)
     return accounts
@@ -59,7 +63,7 @@ async def update_account(
 @router.delete("/{account_id}")
 async def delete_account(*, account_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Account:
     """
-    Deleting account is possible only if balance is 0
+    Deleting an ASSET or LIABILITY account is possible only if balance is 0
     """
     account: Account = await account_service.delete_account(db=db, account_id=account_id, user_id=user_id)
     return account

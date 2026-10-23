@@ -6,6 +6,7 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.exceptions.base import AppBaseException
+from app.schemas.accounting.account import AccountKind
 from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
 
@@ -47,6 +48,17 @@ class AccountBalanceUnchanged(UnprocessableException):
             log_message=f"Account `{account_id}` already has the balance {balance}",
             logger=logger,
             error_code=ErrorCodeType.ACCOUNT_BALANCE_UNCHANGED,
+        )
+
+
+class AccountKindMismatch(UnprocessableException):
+    def __init__(self, *, account_id: UUID, kinds: list[AccountKind], logger: logging.Logger):
+        expected_kinds: str = ", ".join(kind.value for kind in kinds)
+        super().__init__(
+            message="Account kind mismatch",
+            log_message=f"Account `{account_id}` is not an active account of kind {expected_kinds}",
+            logger=logger,
+            error_code=ErrorCodeType.ACCOUNT_KIND_MISMATCH,
         )
 
 

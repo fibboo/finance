@@ -26,7 +26,7 @@ Setup, permission modes and Git troubleshooting: `docs/agent-setup.md`. Tool nam
 
 ## Project Overview
 
-Finance is a personal finance service: accounts, categories, locations, income sources, and income, expense, transfer and balance adjustment transactions. Users sign in through Telegram or Google. A FastAPI backend lives in `backend/` and a React frontend in `frontend/`.
+Finance is a personal finance service: ledger accounts (money accounts, categories as EXPENSE accounts and income sources as INCOME accounts), locations, and income, expense, transfer and balance adjustment transactions. Users sign in through Telegram or Google. A FastAPI backend lives in `backend/` and a React frontend in `frontend/`.
 
 Tech stack: Python 3.15, FastAPI, SQLAlchemy 2 (async, asyncpg), Pydantic 2, pydantic-settings, PostgreSQL, Alembic, Docker, pytest with pytest-postgresql and pytest-xdist.
 

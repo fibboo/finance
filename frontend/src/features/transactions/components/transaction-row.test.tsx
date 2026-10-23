@@ -10,9 +10,11 @@ const wallet = {
   name: 'Wallet',
   id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
   user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  kind: 'ASSET',
   balance: '412.50',
   currency: 'USD',
   color: null,
+  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -41,20 +43,27 @@ const transaction = {
 } satisfies components['schemas']['Transaction'];
 
 const category = {
+  ...wallet,
   name: 'Groceries',
-  type: 'VARIABLE',
   id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
-  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-  status: 'ACTIVE',
-  created_at: '2026-10-01T09:00:00Z',
-  updated_at: '2026-10-01T09:00:00Z',
-} satisfies components['schemas']['Category'];
+  kind: 'EXPENSE',
+  balance: '0',
+  currency: null,
+  category_type: 'VARIABLE',
+  base_currency_rate: '0',
+  base_currency_balance: '0.00',
+} satisfies components['schemas']['Account'];
 
 const incomeSource = {
+  ...wallet,
   name: 'Salary',
   id: '2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f',
-  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-} satisfies components['schemas']['IncomeSource'];
+  kind: 'INCOME',
+  balance: '0',
+  currency: null,
+  base_currency_rate: '0',
+  base_currency_balance: '0.00',
+} satisfies components['schemas']['Account'];
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });

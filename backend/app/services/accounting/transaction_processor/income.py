@@ -7,8 +7,8 @@ from app.crud.accounting.transaction import CRUDIncomeTransaction, income_transa
 from app.exceptions.unprocessable_422 import BaseCurrencyAmountNotAllowed, BaseCurrencyAmountRequired
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import IncomeTransaction as IncomeTransactionModel
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.transaction import IncomeRequest, TransactionCreate, TransactionType
-from app.services.accounting import income_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(logger_name=__name__)
@@ -59,7 +59,7 @@ class Income(TransactionProcessor[IncomeRequest]):
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
-        await income_service.get_income_source(db=self.db, income_source_id=data.income_source_id, user_id=self.user_id)
+        await self._validate_counter_account(account_id=data.income_source_id, kind=AccountKind.INCOME)
 
         base_currency_amount: Decimal = self.__get_base_currency_amount(data=data)
         transaction_data: TransactionCreate = TransactionCreate(

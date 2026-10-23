@@ -21,6 +21,7 @@ test('offers the currencies of the accounting dictionary', async () => {
           { key: 'EUR', label: 'Euro' },
           { key: 'USD', label: 'US Dollar' },
         ],
+        account_kinds: [],
         category_types: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
@@ -61,6 +62,7 @@ test('signs out and leaves for sign-in', async () => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'EUR', label: 'Euro' }],
+        account_kinds: [],
         category_types: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),

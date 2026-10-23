@@ -16,7 +16,7 @@ type AccountListProps = Readonly<{ baseCurrency: string }>;
 
 export function AccountList({ baseCurrency }: AccountListProps) {
   const { data: accountPage, isPending } = useQuery(
-    accountQueries.list({ size: ACCOUNT_PAGE_SIZE }),
+    accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: ['ASSET', 'LIABILITY'] }),
   );
   const { ref, count } = useFittingCount();
   const titleId = useId();
@@ -25,6 +25,9 @@ export function AccountList({ baseCurrency }: AccountListProps) {
   }
 
   const largestAccounts = (accountPage?.items ?? [])
+    .flatMap((account) =>
+      account.currency === null ? [] : [{ ...account, currency: account.currency }],
+    )
     .toSorted(
       (first, second) => Number(second.base_currency_balance) - Number(first.base_currency_balance),
     )

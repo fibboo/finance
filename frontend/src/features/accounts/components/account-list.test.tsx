@@ -13,9 +13,11 @@ const accounts = [
     name: 'Freelance',
     id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a01',
     user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+    kind: 'ASSET',
     balance: '1940.00',
     currency: 'USD',
     color: '#A15CB8',
+    category_type: null,
     base_currency_rate: '1',
     status: 'ACTIVE',
     base_currency_balance: '1940.00',
@@ -24,9 +26,11 @@ const accounts = [
     name: 'Main card',
     id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a02',
     user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+    kind: 'ASSET',
     balance: '3180.00',
     currency: 'EUR',
     color: '#5B6CD9',
+    category_type: null,
     base_currency_rate: '0.9161',
     status: 'ACTIVE',
     base_currency_balance: '3471.20',
@@ -35,9 +39,11 @@ const accounts = [
     name: 'Wallet',
     id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
     user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+    kind: 'ASSET',
     balance: '412.50',
     currency: 'USD',
     color: null,
+    category_type: null,
     base_currency_rate: '1',
     status: 'ACTIVE',
     base_currency_balance: '412.50',
@@ -48,7 +54,8 @@ test('shows the largest accounts that fit, with the base currency equivalent', a
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) =>
-      new URL(request.url).searchParams.get('size') === '100'
+      new URL(request.url).searchParams.get('size') === '100' &&
+      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET,LIABILITY'
         ? HttpResponse.json({
             items: accounts,
             total: 3,

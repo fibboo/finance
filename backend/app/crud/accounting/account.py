@@ -2,12 +2,12 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import select, Select
+from sqlalchemy import or_, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
 from app.models.accounting.account import Account
-from app.schemas.accounting.account import AccountCreate, AccountRequest, AccountUpdate
+from app.schemas.accounting.account import AccountCreate, AccountRequest, AccountUpdate, MONEY_ACCOUNT_KINDS
 from app.schemas.base import EntityStatusType
 
 
@@ -15,17 +15,31 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
     async def get_accounts(self, *, db: AsyncSession, request: AccountRequest, user_id: UUID) -> Page[Account]:
         query = (
             select(self.model)
-            .where(self.model.user_id == user_id, self.model.status == EntityStatusType.ACTIVE)
+            .where(
+                self.model.user_id == user_id,
+                self.model.status == EntityStatusType.ACTIVE,
+                self.model.kind.in_(request.kinds),
+            )
             .order_by(self.model.name)
             .order_by(self.model.id)
         )
 
+        if request.search_term is not None:
+            query = query.where(
+                or_(
+                    self.model.name.icontains(request.search_term, autoescape=True),
+                    self.model.description.icontains(request.search_term, autoescape=True),
+                )
+            )
+
         paginated_accounts = await apaginate(db, query, request)
         return paginated_accounts
 
-    async def get_active_accounts(self, *, db: AsyncSession, user_id: UUID) -> list[Account]:
+    async def get_active_money_accounts(self, *, db: AsyncSession, user_id: UUID) -> list[Account]:
         query: Select = select(self.model).where(
-            self.model.user_id == user_id, self.model.status == EntityStatusType.ACTIVE
+            self.model.user_id == user_id,
+            self.model.status == EntityStatusType.ACTIVE,
+            self.model.kind.in_(MONEY_ACCOUNT_KINDS),
         )
         accounts: list[Account] = (await db.scalars(query)).all()
         return accounts

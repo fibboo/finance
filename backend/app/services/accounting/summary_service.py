@@ -33,7 +33,7 @@ async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) ->
     month_date: date = datetime.now(UTC).date() if month is None else month
     first_day, last_day = _get_month_bounds(month=month_date)
 
-    accounts_db: list[AccountModel] = await account_crud.get_active_accounts(db=db, user_id=user_id)
+    accounts_db: list[AccountModel] = await account_crud.get_active_money_accounts(db=db, user_id=user_id)
     sums: Row = await transaction_crud.get_income_and_expense_sums(
         db=db, user_id=user_id, date_from=first_day, date_to=last_day
     )
