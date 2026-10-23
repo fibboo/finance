@@ -1,0 +1,68 @@
+@import '@/styles/media.css';
+
+.usernameField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.control {
+  height: var(--size-button);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-ground);
+}
+
+.control:has(:focus-visible) {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.control:has([aria-invalid='true']) {
+  box-shadow: inset 0 0 0 var(--size-focus) var(--color-danger);
+}
+
+.prefix {
+  font-size: var(--font-size-lg);
+  color: var(--color-muted);
+}
+
+.input {
+  flex-grow: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: var(--font-size-lg);
+}
+
+.hint,
+.error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-note);
+}
+
+.hint {
+  color: var(--color-muted);
+}
+
+.error {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
+}
+
+@media (--desktop) {
+  .control {
+    height: var(--size-field-lg);
+    padding: 0 var(--space-3-5);
+  }
+}

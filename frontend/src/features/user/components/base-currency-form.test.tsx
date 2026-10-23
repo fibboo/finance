@@ -21,11 +21,23 @@ test.each([
   { search: ' usd ', shown: 'USD US Dollar' },
 ])('filters the currencies by "$search"', async ({ search, shown }) => {
   // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+  );
   const user = userEvent.setup();
   render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
 
   // act
-  await user.type(screen.getByRole('searchbox', { name: 'Search currency' }), search);
+  await user.type(await screen.findByRole('searchbox', { name: 'Search currency' }), search);
 
   // assert
   expect(screen.getAllByRole('radio')).toHaveLength(1);
@@ -34,41 +46,59 @@ test.each([
 
 test('says when no currency matches the search', async () => {
   // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+  );
   const user = userEvent.setup();
   render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
 
   // act
-  await user.type(screen.getByRole('searchbox', { name: 'Search currency' }), 'yen');
+  await user.type(await screen.findByRole('searchbox', { name: 'Search currency' }), 'yen');
 
   // assert
   expect(screen.queryAllByRole('radio')).toHaveLength(0);
   expect(screen.getByText('No currency matches the search.')).toBeInTheDocument();
 });
 
-test('sets the picked currency and reloads the user', async () => {
+test('keeps the given username and sets the picked currency', async () => {
   // arrange
+  const requestPaths: string[] = [];
   const requestBodies: unknown[] = [];
   let userRequestCount = 0;
   server.use(
     http.put('http://localhost/api/user/me/base_currency', async ({ request }) => {
+      requestPaths.push(new URL(request.url).pathname);
       requestBodies.push(await request.json());
       return HttpResponse.json({
         id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-        username: 'nikita',
+        username: 'Nikita Ionov',
         avatar: null,
         registration_provider: 'GOOGLE',
         base_currency: 'GEL',
         external_users: [],
       } satisfies components['schemas']['User']);
     }),
+    http.put('http://localhost/api/user/me/username', ({ request }) => {
+      requestPaths.push(new URL(request.url).pathname);
+      return HttpResponse.json(null, { status: 500 });
+    }),
     http.get('http://localhost/api/user/me', () => {
       userRequestCount += 1;
       return HttpResponse.json({
         id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-        username: 'nikita',
+        username: 'Nikita Ionov',
         avatar: null,
         registration_provider: 'GOOGLE',
-        base_currency: 'GEL',
+        base_currency: userRequestCount > 1 ? 'GEL' : null,
         external_users: [],
       } satisfies components['schemas']['User']);
     }),
@@ -80,8 +110,7 @@ test('sets the picked currency and reloads the user', async () => {
       <BaseCurrencyForm currencies={currencies} copy={null} note={null} />
     </>,
   );
-  await screen.findByText('NI');
-  await user.click(screen.getByRole('radio', { name: 'GEL Georgian Lari' }));
+  await user.click(await screen.findByRole('radio', { name: 'GEL Georgian Lari' }));
 
   // act
   await user.click(screen.getByRole('button', { name: 'Start with GEL' }));
@@ -90,16 +119,160 @@ test('sets the picked currency and reloads the user', async () => {
   await vi.waitFor(() => {
     expect(userRequestCount).toBe(2);
   });
+  expect(requestPaths).toEqual(['/api/user/me/base_currency']);
   expect(requestBodies).toEqual([{ base_currency: 'GEL' }]);
+});
+
+test('sets a changed username before the base currency', async () => {
+  // arrange
+  const requests: unknown[] = [];
+  server.use(
+    http.put('http://localhost/api/user/me/username', async ({ request }) => {
+      requests.push({ username: await request.json() });
+      return HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'fibbo',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']);
+    }),
+    http.put('http://localhost/api/user/me/base_currency', async ({ request }) => {
+      requests.push({ base_currency: await request.json() });
+      return HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'fibbo',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']);
+    }),
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: requests.length > 0 ? 'fibbo' : 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: requests.length > 1 ? 'EUR' : null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  const username = await screen.findByRole('textbox', { name: 'Username' });
+  await user.clear(username);
+  await user.type(username, ' fibbo ');
+  await user.click(screen.getByRole('radio', { name: 'EUR Euro' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Start with EUR' }));
+
+  // assert
+  await vi.waitFor(() => {
+    expect(requests).toEqual([
+      { username: { username: 'fibbo' } },
+      { base_currency: { base_currency: 'EUR' } },
+    ]);
+  });
+});
+
+test('stops at a taken username without setting the base currency', async () => {
+  // arrange
+  let baseCurrencyRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.put('http://localhost/api/user/me/username', () =>
+      HttpResponse.json(
+        {
+          message: 'Username is already taken',
+          error_code: 'USERNAME_ALREADY_TAKEN',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 409 },
+      ),
+    ),
+    http.put('http://localhost/api/user/me/base_currency', () => {
+      baseCurrencyRequestCount += 1;
+      return HttpResponse.json(null, { status: 500 });
+    }),
+  );
+  const user = userEvent.setup();
+  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  const username = await screen.findByRole('textbox', { name: 'Username' });
+  await user.clear(username);
+  await user.type(username, 'anna');
+  await user.click(screen.getByRole('radio', { name: 'EUR Euro' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Start with EUR' }));
+
+  // assert
+  expect(await screen.findByText('Username is already taken')).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'Username' })).toHaveAttribute('aria-invalid', 'true');
+  expect(baseCurrencyRequestCount).toBe(0);
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+});
+
+test('asks for a valid username before sending anything', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
+  const username = await screen.findByRole('textbox', { name: 'Username' });
+  await user.clear(username);
+  await user.type(username, 'ni kita');
+  await user.click(screen.getByRole('radio', { name: 'EUR Euro' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Start with EUR' }));
+
+  // assert
+  expect(
+    await screen.findByText('Use 3–32 letters, digits, dots, underscores or hyphens.'),
+  ).toBeInTheDocument();
 });
 
 test('asks for a currency before sending anything', async () => {
   // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+  );
   const user = userEvent.setup();
   render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
 
   // act
-  await user.click(screen.getByRole('button', { name: 'Start' }));
+  await user.click(await screen.findByRole('button', { name: 'Start' }));
 
   // assert
   expect(await screen.findByText('Pick your base currency.')).toBeInTheDocument();
@@ -108,6 +281,16 @@ test('asks for a currency before sending anything', async () => {
 test('shows the field error the backend returns', async () => {
   // arrange
   server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
     http.put('http://localhost/api/user/me/base_currency', () =>
       HttpResponse.json(
         {
@@ -125,7 +308,7 @@ test('shows the field error the backend returns', async () => {
   );
   const user = userEvent.setup();
   render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
-  await user.click(screen.getByRole('radio', { name: 'EUR Euro' }));
+  await user.click(await screen.findByRole('radio', { name: 'EUR Euro' }));
 
   // act
   await user.click(screen.getByRole('button', { name: 'Start with EUR' }));
@@ -138,6 +321,16 @@ test('shows the field error the backend returns', async () => {
 test('shows a field error the form has no field for', async () => {
   // arrange
   server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
     http.put('http://localhost/api/user/me/base_currency', () =>
       HttpResponse.json(
         { detail: [{ loc: ['body'], msg: 'Field required', type: 'missing' }] },
@@ -147,7 +340,7 @@ test('shows a field error the form has no field for', async () => {
   );
   const user = userEvent.setup();
   render(<BaseCurrencyForm currencies={currencies} copy={null} note={null} />);
-  await user.click(screen.getByRole('radio', { name: 'EUR Euro' }));
+  await user.click(await screen.findByRole('radio', { name: 'EUR Euro' }));
 
   // act
   await user.click(screen.getByRole('button', { name: 'Start with EUR' }));

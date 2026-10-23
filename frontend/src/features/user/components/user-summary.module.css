@@ -18,6 +18,7 @@
 }
 
 .identity {
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
   gap: var(--space-0-5);
@@ -35,4 +36,38 @@
 .provider {
   font-size: var(--font-size-sm);
   color: var(--color-muted);
+}
+
+.change {
+  flex: none;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.change:hover {
+  color: var(--color-ink);
+}
+
+.change:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+}
+
+.changeIcon {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

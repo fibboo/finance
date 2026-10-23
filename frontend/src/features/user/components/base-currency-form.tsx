@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { type ReactNode, useId, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
@@ -10,12 +10,15 @@ import type { components } from '@/lib/api-schema';
 import { ApiError } from '@/lib/api-error';
 
 import { userMutations } from '../api/user-mutations';
-import { baseCurrencyFormSchema } from '../schemas/base-currency-form';
+import { userQueries } from '../api/user-queries';
+import { createBaseCurrencyFormSchema } from '../schemas/base-currency-form';
 import styles from './base-currency-form.module.css';
+import { UsernameField } from './username-field';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
-type BaseCurrencyFormInput = z.input<typeof baseCurrencyFormSchema>;
-type BaseCurrencyFormOutput = z.output<typeof baseCurrencyFormSchema>;
+type BaseCurrencyFormSchema = ReturnType<typeof createBaseCurrencyFormSchema>;
+type BaseCurrencyFormInput = z.input<BaseCurrencyFormSchema>;
+type BaseCurrencyFormOutput = z.output<BaseCurrencyFormSchema>;
 
 type BaseCurrencyFormProps = Readonly<{
   currencies: readonly DictionaryItem[] | undefined;
@@ -28,13 +31,22 @@ const SKELETON_CURRENCY_COUNT = 6;
 export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormProps) {
   const [search, setSearch] = useState('');
   const errorId = useId();
+  const { data: user } = useQuery(userQueries.me());
+  const givenUsername = user?.username ?? '';
   const { control, register, handleSubmit, setError, formState } = useForm<
     BaseCurrencyFormInput,
     unknown,
     BaseCurrencyFormOutput
-  >({ resolver: zodResolver(baseCurrencyFormSchema), defaultValues: { base_currency: '' } });
+  >({
+    resolver: zodResolver(createBaseCurrencyFormSchema({ givenUsername })),
+    values: { username: givenUsername, base_currency: '' },
+    resetOptions: { keepDirtyValues: true },
+  });
   const pickedCurrency = useWatch({ control, name: 'base_currency' });
+  const setUsername = useMutation(userMutations.setUsername());
   const setBaseCurrency = useMutation(userMutations.setBaseCurrency());
+  const isLoading = currencies === undefined || user === undefined;
+  const isSaving = setUsername.isPending || setBaseCurrency.isPending;
   const searchText = search.trim().toLowerCase();
   const shownCurrencies = (currencies ?? []).filter(
     (currency) =>
@@ -44,23 +56,44 @@ export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormPro
   const currencyError = formState.errors.base_currency?.message;
   const requestError = formState.errors.root?.['server']?.message;
 
+  function showFieldErrors(error: Error) {
+    if (error instanceof ApiError) {
+      error.fieldErrors.forEach((fieldError) => {
+        setError(
+          fieldError.field === 'username' || fieldError.field === 'base_currency'
+            ? fieldError.field
+            : 'root.server',
+          { message: fieldError.message },
+        );
+      });
+    }
+  }
+
   return (
     <form
       className={styles['baseCurrencyForm']}
       noValidate
       onSubmit={(event) => {
-        void handleSubmit((values) => {
-          setBaseCurrency.mutate(values, {
-            onError: (error) => {
-              if (error instanceof ApiError) {
-                error.fieldErrors.forEach((fieldError) => {
-                  setError(fieldError.field === 'base_currency' ? 'base_currency' : 'root.server', {
-                    message: fieldError.message,
-                  });
-                });
-              }
-            },
-          });
+        void handleSubmit(async (values) => {
+          if (values.username !== givenUsername) {
+            const isUsernameSet = await setUsername.mutateAsync({ username: values.username }).then(
+              () => true,
+              (error: unknown) => {
+                if (error instanceof Error) {
+                  showFieldErrors(error);
+                }
+                return false;
+              },
+            );
+            if (!isUsernameSet) {
+              return;
+            }
+          }
+
+          setBaseCurrency.mutate(
+            { base_currency: values.base_currency },
+            { onError: showFieldErrors },
+          );
         })(event);
       }}
     >
@@ -69,8 +102,18 @@ export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormPro
         <div className={styles['note']}>{note}</div>
       </div>
       <div className={styles['formPanel']}>
-        <div className={styles['panel']} aria-busy={currencies === undefined}>
-          {currencies === undefined ? (
+        <div className={styles['usernamePanel']} aria-busy={isLoading}>
+          {isLoading ? (
+            <Skeleton className={styles['usernameSkeleton']} />
+          ) : (
+            <UsernameField
+              registration={register('username')}
+              error={formState.errors.username?.message}
+            />
+          )}
+        </div>
+        <div className={styles['panel']} aria-busy={isLoading}>
+          {isLoading ? (
             <>
               <Skeleton className={styles['searchSkeleton']} />
               <div className={styles['currencies']}>
@@ -137,10 +180,10 @@ export function BaseCurrencyForm({ copy, currencies, note }: BaseCurrencyFormPro
             {requestError}
           </p>
         )}
-        {currencies === undefined ? (
+        {isLoading ? (
           <Skeleton className={styles['startSkeleton']} />
         ) : (
-          <button type="submit" className={styles['start']} disabled={setBaseCurrency.isPending}>
+          <button type="submit" className={styles['start']} disabled={isSaving}>
             {pickedCurrency === '' ? 'Start' : `Start with ${pickedCurrency}`}
           </button>
         )}

@@ -22,6 +22,19 @@
   order: 2;
 }
 
+.usernamePanel {
+  flex-shrink: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sheet);
+  background: var(--color-panel);
+}
+
+.usernameSkeleton {
+  height: var(--size-button);
+  border-radius: var(--radius-control);
+  background-color: var(--color-ground);
+}
+
 .panel {
   flex-grow: 1;
   min-height: 0;
@@ -156,6 +169,7 @@
   padding: 0 var(--space-2);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
 }
 
 .searchSkeleton {
@@ -240,6 +254,16 @@
 
   .note {
     margin-top: auto;
+  }
+
+  .usernamePanel {
+    padding: 0 0 var(--space-4);
+    border-bottom: var(--size-border) solid var(--color-border);
+    border-radius: 0;
+  }
+
+  .usernameSkeleton {
+    height: var(--size-field-lg);
   }
 
   .panel {
