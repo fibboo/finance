@@ -16,7 +16,9 @@ from app.crud.user.user import user_crud
 from app.exceptions.forbidden_403 import DeletedAccountTransactionForbidden, NoAccountBaseCurrencyRate
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import (
+    BaseCurrencyAmountNotAllowed,
     DestinationAmountNotAllowed,
+    FieldNotAllowed,
     TransferAmountMismatch,
     UnprocessableException,
 )
@@ -25,16 +27,15 @@ from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryType, MONEY_ACCOUNT_KINDS
-from app.schemas.accounting.location import LocationCreate
-from app.schemas.accounting.transaction import (
-    AdjustmentRequest,
-    ExpenseRequest,
-    IncomeRequest,
-    Transaction,
-    TransactionType,
-    TransferRequest,
+from app.schemas.accounting.account import (
+    AccountCreate,
+    AccountKind,
+    AdjustmentCreate,
+    CategoryType,
+    MONEY_ACCOUNT_KINDS,
 )
+from app.schemas.accounting.location import LocationCreate
+from app.schemas.accounting.transaction import MovementRequest, Transaction, TransactionType
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
@@ -65,7 +66,7 @@ async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction:
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
@@ -76,7 +77,7 @@ async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction:
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
@@ -85,32 +86,24 @@ async def test_create_transfer_base_to_base_ok(db: AsyncSession, db_transaction:
     assert transaction.transaction_type == TransactionType.TRANSFER
     assert transaction.transaction_date == transfer_create_data.transaction_date
     assert transaction.comment == transfer_create_data.comment
-    assert transaction.source_amount == Decimal("1")
-    assert transaction.source_currency == "USD"
-    assert transaction.destination_amount == Decimal("1")
-    assert transaction.destination_currency == "USD"
     assert transaction.base_currency_amount == Decimal("1")
-
-    assert transaction.from_account_id == account_from_db.id
-    assert transaction.from_account is not None
-    assert transaction.from_account.balance == Decimal("-1") != account_from_balance_before
-    assert transaction.from_account.base_currency_balance == Decimal("-1")
-    assert transaction.from_account.base_currency_rate == Decimal("1")
-    assert transaction.from_account.currency == transfer_create_data.source_currency
-
-    assert transaction.to_account_id == account_to_db.id
-    assert transaction.to_account is not None
-    assert transaction.to_account.balance == Decimal("1") != account_to_balance_before
-    assert transaction.to_account.base_currency_balance == Decimal("1")
-    assert transaction.to_account.base_currency_rate == Decimal("1")
-
-    assert transaction.category_id is None
-    assert transaction.category is None
-    assert transaction.location_id is None
     assert transaction.location is None
+    assert transaction.income_period is None
 
-    assert transaction.income_source_id is None
-    assert transaction.income_source is None
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (account_from_db.id, Decimal("-1"), "USD", Decimal("-1")),
+        (account_to_db.id, Decimal("1"), "USD", Decimal("1")),
+    ]
+
+    assert transaction.postings[0].account.balance == Decimal("-1") != account_from_balance_before
+    assert transaction.postings[0].account.base_currency_balance == Decimal("-1")
+    assert transaction.postings[0].account.base_currency_rate == Decimal("1")
+
+    assert transaction.postings[1].account.balance == Decimal("1") != account_to_balance_before
+    assert transaction.postings[1].account.base_currency_balance == Decimal("1")
+    assert transaction.postings[1].account.base_currency_rate == Decimal("1")
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 1
@@ -138,7 +131,7 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("105"),
         source_currency="USD",
@@ -150,7 +143,7 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
@@ -159,33 +152,24 @@ async def test_create_transfer_base_to_other_ok(db: AsyncSession, db_transaction
     assert transaction.transaction_type == TransactionType.TRANSFER
     assert transaction.transaction_date == transfer_create_data.transaction_date
     assert transaction.comment == transfer_create_data.comment
-    assert transaction.source_amount == Decimal("105")
-    assert transaction.source_currency == "USD"
-    assert transaction.destination_amount == Decimal("100")
-    assert transaction.destination_currency == "EUR"
     assert transaction.base_currency_amount == Decimal("105")
-
-    assert transaction.from_account_id == account_from_db.id
-    assert transaction.from_account is not None
-    assert transaction.from_account.balance == Decimal("-105") != account_from_balance_before
-    assert transaction.from_account.base_currency_balance == Decimal("-105")
-    assert transaction.from_account.base_currency_rate == Decimal("1")
-    assert transaction.from_account.currency == transfer_create_data.source_currency
-
-    assert transaction.to_account_id == account_to_db.id
-    assert transaction.to_account is not None
-    assert transaction.to_account.balance == Decimal("100") != account_to_balance_before
-    assert transaction.to_account.base_currency_balance == Decimal("105")
-    assert transaction.to_account.base_currency_rate == Decimal("0.9523809524")
-    assert transaction.to_account.currency == transfer_create_data.destination_currency
-
-    assert transaction.category_id is None
-    assert transaction.category is None
-    assert transaction.location_id is None
     assert transaction.location is None
+    assert transaction.income_period is None
 
-    assert transaction.income_source_id is None
-    assert transaction.income_source is None
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (account_from_db.id, Decimal("-105"), "USD", Decimal("-105")),
+        (account_to_db.id, Decimal("100"), "EUR", Decimal("105")),
+    ]
+
+    assert transaction.postings[0].account.balance == Decimal("-105") != account_from_balance_before
+    assert transaction.postings[0].account.base_currency_balance == Decimal("-105")
+    assert transaction.postings[0].account.base_currency_rate == Decimal("1")
+
+    assert transaction.postings[1].account.balance == Decimal("100") != account_to_balance_before
+    assert transaction.postings[1].account.base_currency_balance == Decimal("105")
+    assert transaction.postings[1].account.base_currency_rate == Decimal("0.9523809524")
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 1
@@ -218,7 +202,7 @@ async def test_create_transfer_to_negative_account_adds_base_amount(db: AsyncSes
     }
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("105"),
         source_currency="USD",
@@ -231,7 +215,7 @@ async def test_create_transfer_to_negative_account_adds_base_amount(db: AsyncSes
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
@@ -243,7 +227,7 @@ async def test_create_transfer_to_negative_account_adds_base_amount(db: AsyncSes
     account_to_db_after: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_to_db_after.balance == Decimal("45")
     assert account_to_db_after.base_balance == Decimal("55")
-    assert transaction.to_account.base_currency_rate == Decimal("0.8181818182")
+    assert transaction.postings[1].account.base_currency_rate == Decimal("0.8181818182")
 
 
 async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -271,7 +255,7 @@ async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction
     account_to_balance_before: Decimal = copy(account_to_db.balance)
 
     # 100 of 1000 EUR worth 1050 USD is 105 USD
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("100"),
         source_currency="EUR",
@@ -282,7 +266,7 @@ async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
@@ -291,32 +275,24 @@ async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction
     assert transaction.transaction_type == TransactionType.TRANSFER
     assert transaction.transaction_date == transfer_create_data.transaction_date
     assert transaction.comment == transfer_create_data.comment
-    assert transaction.source_amount == Decimal("100")
-    assert transaction.source_currency == "EUR"
-    assert transaction.destination_amount == Decimal("105")
-    assert transaction.destination_currency == "USD"
     assert transaction.base_currency_amount == Decimal("105")
-
-    assert transaction.from_account_id == account_from_db.id
-    assert transaction.from_account is not None
-    assert transaction.from_account.balance == Decimal("900") != account_from_balance_before
-    assert transaction.from_account.base_currency_balance == Decimal("945")
-    assert transaction.from_account.base_currency_rate == Decimal("0.9523809524")
-    assert transaction.from_account.currency == transfer_create_data.source_currency
-
-    assert transaction.to_account_id == account_to_db.id
-    assert transaction.to_account is not None
-    assert transaction.to_account.balance == Decimal("105") != account_to_balance_before
-    assert transaction.to_account.base_currency_balance == Decimal("105")
-    assert transaction.to_account.base_currency_rate == Decimal("1")
-
-    assert transaction.category_id is None
-    assert transaction.category is None
-    assert transaction.location_id is None
     assert transaction.location is None
+    assert transaction.income_period is None
 
-    assert transaction.income_source_id is None
-    assert transaction.income_source is None
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (account_from_db.id, Decimal("-100"), "EUR", Decimal("-105")),
+        (account_to_db.id, Decimal("105"), "USD", Decimal("105")),
+    ]
+
+    assert transaction.postings[0].account.balance == Decimal("900") != account_from_balance_before
+    assert transaction.postings[0].account.base_currency_balance == Decimal("945")
+    assert transaction.postings[0].account.base_currency_rate == Decimal("0.9523809524")
+
+    assert transaction.postings[1].account.balance == Decimal("105") != account_to_balance_before
+    assert transaction.postings[1].account.base_currency_balance == Decimal("105")
+    assert transaction.postings[1].account.base_currency_rate == Decimal("1")
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 1
@@ -351,7 +327,7 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("100"),
         source_currency="EUR",
@@ -363,7 +339,7 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
@@ -372,29 +348,24 @@ async def test_create_transfer_other_to_other_ok(db: AsyncSession, db_transactio
     assert transaction.transaction_type == TransactionType.TRANSFER
     assert transaction.transaction_date == transfer_create_data.transaction_date
     assert transaction.comment == transfer_create_data.comment
-    assert transaction.source_amount == Decimal("100")
-    assert transaction.source_currency == "EUR"
-    assert transaction.destination_amount == Decimal("11700")
-    assert transaction.destination_currency == "RSD"
     assert transaction.base_currency_amount == Decimal("105")
+    assert transaction.location is None
+    assert transaction.income_period is None
 
-    assert transaction.from_account_id == account_from_db.id
-    assert transaction.from_account is not None
-    assert transaction.from_account.balance == Decimal("900") != account_from_balance_before
-    assert transaction.from_account.base_currency_rate == Decimal("0.9523809524")
-    assert transaction.from_account.currency == transfer_create_data.source_currency
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (account_from_db.id, Decimal("-100"), "EUR", Decimal("-105")),
+        (account_to_db.id, Decimal("11700"), "RSD", Decimal("105")),
+    ]
+
+    assert transaction.postings[0].account.balance == Decimal("900") != account_from_balance_before
+    assert transaction.postings[0].account.base_currency_rate == Decimal("0.9523809524")
 
     # 22800 RSD worth 100 + 105 USD
-    assert transaction.to_account_id == account_to_db.id
-    assert transaction.to_account is not None
-    assert transaction.to_account.balance == Decimal("22800") != account_to_balance_before
-    assert transaction.to_account.base_currency_balance == Decimal("205")
-    assert transaction.to_account.base_currency_rate == Decimal("111.2195121951")
-
-    assert transaction.category_id is None
-    assert transaction.category is None
-    assert transaction.location_id is None
-    assert transaction.location is None
+    assert transaction.postings[1].account.balance == Decimal("22800") != account_to_balance_before
+    assert transaction.postings[1].account.base_currency_balance == Decimal("205")
+    assert transaction.postings[1].account.base_currency_rate == Decimal("111.2195121951")
 
     postings: list[PostingModel] = (
         await db.scalars(select(PostingModel).where(PostingModel.transaction_id == transaction.id))
@@ -436,7 +407,7 @@ async def test_create_transfer_other_to_other_tiny_amount_keeps_a_cent(db: Async
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
     # 0.50 of 1000 RSD worth 8.55 USD is 0.0042... USD, which rounds below a cent
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("0.50"),
         source_currency="RSD",
@@ -448,20 +419,17 @@ async def test_create_transfer_other_to_other_tiny_amount_keeps_a_cent(db: Async
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
 
     # Assert
     assert transaction.base_currency_amount == Decimal("0.01")
-    assert transaction.from_account.balance == Decimal("999.50")
-    assert transaction.from_account.base_currency_balance == Decimal("8.54")
-    assert transaction.to_account.balance == Decimal("100.01")
-    assert transaction.to_account.base_currency_balance == Decimal("111.12")
-
-    assert transaction.income_source_id is None
-    assert transaction.income_source is None
+    assert transaction.postings[0].account.balance == Decimal("999.50")
+    assert transaction.postings[0].account.base_currency_balance == Decimal("8.54")
+    assert transaction.postings[1].account.balance == Decimal("100.01")
+    assert transaction.postings[1].account.base_currency_balance == Decimal("111.12")
 
     transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
     assert len(transactions) == 1
@@ -491,7 +459,7 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
     account_to_balance_before: Decimal = copy(account_to_db.balance)
     account_to_base_balance_before: Decimal = copy(account_to_db.base_balance)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
@@ -502,7 +470,7 @@ async def test_create_transfer_base_to_other_not_destination_amount(db: AsyncSes
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     with pytest.raises(UnprocessableException) as exc:
         await transaction_processor.create(data=transfer_create_data)
@@ -584,7 +552,7 @@ async def test_create_transfer_other_to_other_to_account_without_rate_ok(
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=source_amount,
         source_currency="EUR",
@@ -597,14 +565,14 @@ async def test_create_transfer_other_to_other_to_account_without_rate_ok(
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
 
     # Assert
     assert transaction.base_currency_amount == expected_base_currency_amount
-    assert transaction.to_account.base_currency_rate == expected_to_rate
+    assert transaction.postings[1].account.base_currency_rate == expected_to_rate
 
     account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
     assert account_from.balance == expected_from_balance
@@ -631,7 +599,7 @@ async def test_create_transfer_from_empty_account_without_rate(db: AsyncSession,
     )
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("10"),
         source_currency="EUR",
@@ -642,7 +610,7 @@ async def test_create_transfer_from_empty_account_without_rate(db: AsyncSession,
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     with pytest.raises(NoAccountBaseCurrencyRate) as exc:
         await transaction_processor.create(data=transfer_create_data)
@@ -686,7 +654,7 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
     # 50 of 100 EUR worth 105 USD is 52.50 USD
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("50"),
         source_currency="EUR",
@@ -697,7 +665,7 @@ async def test_delete_other_to_other_ok(db: AsyncSession, db_transaction: AsyncS
         comment="test",
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction_before: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db.commit()
@@ -755,7 +723,7 @@ async def test_delete_transfer_that_emptied_account_restores_base_balance(
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
     # the whole balance takes the whole base value, 100.01 USD
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("110"),
         source_currency="EUR",
@@ -764,7 +732,7 @@ async def test_delete_transfer_that_emptied_account_restores_base_balance(
         to_account_id=account_to_db.id,
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction_before: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db.commit()
@@ -780,9 +748,9 @@ async def test_delete_transfer_that_emptied_account_restores_base_balance(
 
     # Assert
     assert transaction_before.base_currency_amount == Decimal("100.01")
-    assert transaction_before.destination_amount == Decimal("100.01")
-    assert transaction_before.from_account.balance == Decimal("0")
-    assert transaction_before.from_account.base_currency_balance == Decimal("0")
+    assert transaction_before.postings[1].amount == Decimal("100.01")
+    assert transaction_before.postings[0].account.balance == Decimal("0")
+    assert transaction_before.postings[0].account.base_currency_balance == Decimal("0")
 
     account_db_from_after: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
     assert account_db_from_after.balance == Decimal("110")
@@ -819,7 +787,7 @@ async def test_create_transfer_to_account_of_other_user(db: AsyncSession, db_tra
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     account_to_balance_before: Decimal = copy(account_to_db.balance)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
@@ -830,7 +798,7 @@ async def test_create_transfer_to_account_of_other_user(db: AsyncSession, db_tra
     )
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     with pytest.raises(EntityNotFound) as exc:
         await transaction_processor.create(data=transfer_create_data)
@@ -879,7 +847,7 @@ async def test_create_transfer_deleted_account(
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     deleted_account_db: AccountModel = account_from_db if is_from_account_deleted else account_to_db
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
@@ -890,7 +858,7 @@ async def test_create_transfer_deleted_account(
     )
     # Act / Assert
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     with pytest.raises(DeletedAccountTransactionForbidden) as exc:
         await transaction_processor.create(data=transfer_create_data)
@@ -934,7 +902,7 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
     deleted_account_db: AccountModel = account_from_db if is_from_account_deleted else account_to_db
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="USD",
@@ -944,7 +912,7 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
         comment="test",
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction_before: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db.commit()
@@ -1007,7 +975,7 @@ async def test_create_transfer_opposite_concurrent_no_deadlock(
     second_account_db: AccountModel = await account_crud.create(db=db, obj_in=second_account_create_data, commit=True)
     lower_account_db, higher_account_db = sorted([first_account_db, second_account_db], key=lambda account: account.id)
 
-    lower_to_higher_data: TransferRequest = TransferRequest(
+    lower_to_higher_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("10"),
         source_currency="USD",
@@ -1015,7 +983,7 @@ async def test_create_transfer_opposite_concurrent_no_deadlock(
         from_account_id=lower_account_db.id,
         to_account_id=higher_account_db.id,
     )
-    higher_to_lower_data: TransferRequest = TransferRequest(
+    higher_to_lower_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("30"),
         source_currency="USD",
@@ -1024,10 +992,10 @@ async def test_create_transfer_opposite_concurrent_no_deadlock(
         to_account_id=lower_account_db.id,
     )
     first_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=lower_to_higher_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     second_processor: TransactionProcessor = factory.get_processor(
-        db=other_db_transaction, user_id=user_db.id, transaction_type=higher_to_lower_data.transaction_type
+        db=other_db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     waiting_on_lock_query: TextClause = text(
         "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'"
@@ -1101,7 +1069,7 @@ async def test_create_transfer_same_currency_ok(
     }
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("55"),
         source_currency="EUR",
@@ -1114,17 +1082,21 @@ async def test_create_transfer_same_currency_ok(
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
 
     # Assert
-    assert transaction.source_amount == Decimal("55")
-    assert transaction.destination_amount == Decimal("55")
     assert transaction.base_currency_amount == Decimal("50")
-    assert transaction.from_account.base_currency_rate == Decimal("1.1")
-    assert transaction.to_account.base_currency_rate == Decimal("1.1")
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (account_from_db.id, Decimal("-55"), "EUR", Decimal("-50")),
+        (account_to_db.id, Decimal("55"), "EUR", Decimal("50")),
+    ]
+    assert transaction.postings[0].account.base_currency_rate == Decimal("1.1")
+    assert transaction.postings[1].account.base_currency_rate == Decimal("1.1")
 
     account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
     assert account_from.balance == Decimal("55")
@@ -1171,7 +1143,7 @@ async def test_create_transfer_same_currency_amount_mismatch(
     }
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("100"),
         source_currency=currency,
@@ -1184,7 +1156,7 @@ async def test_create_transfer_same_currency_amount_mismatch(
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     with pytest.raises(TransferAmountMismatch) as exc:
         await transaction_processor.create(data=transfer_create_data)
@@ -1248,7 +1220,7 @@ async def test_create_transfer_same_currency_credits_source_base_amount(
     }
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("1"),
         source_currency="EUR",
@@ -1260,13 +1232,13 @@ async def test_create_transfer_same_currency_credits_source_base_amount(
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     transaction: Transaction = await transaction_processor.create(data=transfer_create_data)
     await db_transaction.commit()
 
     # Assert
-    assert transaction.destination_amount == Decimal("1")
+    assert transaction.postings[1].amount == Decimal("1")
     assert transaction.base_currency_amount == Decimal("0.91")
 
     account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
@@ -1306,7 +1278,7 @@ async def test_create_transfer_other_to_base_destination_amount_not_allowed(
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
 
     # 55 of 110 EUR worth 100 USD is 50 USD
-    transfer_create_data: TransferRequest = TransferRequest(
+    transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
         source_amount=Decimal("55"),
         source_currency="EUR",
@@ -1319,7 +1291,7 @@ async def test_create_transfer_other_to_base_destination_amount_not_allowed(
 
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
-        db=db_transaction, user_id=user_db.id, transaction_type=transfer_create_data.transaction_type
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
     )
     with pytest.raises(DestinationAmountNotAllowed) as exc:
         await transaction_processor.create(data=transfer_create_data)
@@ -1369,61 +1341,79 @@ async def test_account_cache_equals_active_postings(db: AsyncSession, db_transac
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
     # each step commits through the plain session before the next one reads the cache it left
-    requests: list[IncomeRequest | ExpenseRequest | TransferRequest | AdjustmentRequest] = [
-        IncomeRequest(
-            transaction_date=date(2025, 2, 1),
-            income_period=date(2025, 2, 1),
-            source_amount=Decimal("1000"),
-            source_currency="USD",
-            destination_amount=Decimal("1000"),
-            destination_currency="USD",
-            income_source_id=income_source_db.id,
-            to_account_id=wallet_db.id,
+    requests: list[tuple[TransactionType, MovementRequest | AdjustmentCreate]] = [
+        (
+            TransactionType.INCOME,
+            MovementRequest(
+                transaction_date=date(2025, 2, 1),
+                income_period=date(2025, 2, 1),
+                source_amount=Decimal("1000"),
+                source_currency="USD",
+                destination_amount=Decimal("1000"),
+                destination_currency="USD",
+                from_account_id=income_source_db.id,
+                to_account_id=wallet_db.id,
+            ),
         ),
-        IncomeRequest(
-            transaction_date=date(2025, 2, 2),
-            income_period=date(2025, 2, 1),
-            source_amount=Decimal("500"),
-            source_currency="EUR",
-            destination_amount=Decimal("500"),
-            destination_currency="EUR",
-            base_currency_amount=Decimal("550"),
-            income_source_id=income_source_db.id,
-            to_account_id=card_db.id,
+        (
+            TransactionType.INCOME,
+            MovementRequest(
+                transaction_date=date(2025, 2, 2),
+                income_period=date(2025, 2, 1),
+                source_amount=Decimal("500"),
+                source_currency="EUR",
+                destination_amount=Decimal("500"),
+                destination_currency="EUR",
+                base_currency_amount=Decimal("550"),
+                from_account_id=income_source_db.id,
+                to_account_id=card_db.id,
+            ),
         ),
-        ExpenseRequest(
-            transaction_date=date(2025, 2, 3),
-            source_amount=Decimal("30"),
-            source_currency="EUR",
-            destination_amount=Decimal("30"),
-            destination_currency="EUR",
-            from_account_id=card_db.id,
-            category_id=category_db.id,
-            location_id=location_db.id,
+        (
+            TransactionType.EXPENSE,
+            MovementRequest(
+                transaction_date=date(2025, 2, 3),
+                source_amount=Decimal("30"),
+                source_currency="EUR",
+                destination_amount=Decimal("30"),
+                destination_currency="EUR",
+                from_account_id=card_db.id,
+                to_account_id=category_db.id,
+                location_id=location_db.id,
+            ),
         ),
-        TransferRequest(
-            transaction_date=date(2025, 2, 4),
-            source_amount=Decimal("100"),
-            source_currency="USD",
-            destination_amount=Decimal("90"),
-            destination_currency="EUR",
-            from_account_id=wallet_db.id,
-            to_account_id=card_db.id,
+        (
+            TransactionType.TRANSFER,
+            MovementRequest(
+                transaction_date=date(2025, 2, 4),
+                source_amount=Decimal("100"),
+                source_currency="USD",
+                destination_amount=Decimal("90"),
+                destination_currency="EUR",
+                from_account_id=wallet_db.id,
+                to_account_id=card_db.id,
+            ),
         ),
-        TransferRequest(
-            transaction_date=date(2025, 2, 5),
-            source_amount=Decimal("50"),
-            source_currency="EUR",
-            destination_currency="USD",
-            from_account_id=card_db.id,
-            to_account_id=wallet_db.id,
+        (
+            TransactionType.TRANSFER,
+            MovementRequest(
+                transaction_date=date(2025, 2, 5),
+                source_amount=Decimal("50"),
+                source_currency="EUR",
+                destination_currency="USD",
+                from_account_id=card_db.id,
+                to_account_id=wallet_db.id,
+            ),
         ),
-        AdjustmentRequest(transaction_date=date(2025, 2, 6), account_id=card_db.id, new_balance=Decimal("400")),
+        (
+            TransactionType.ADJUSTMENT,
+            AdjustmentCreate(transaction_date=date(2025, 2, 6), account_id=card_db.id, new_balance=Decimal("400")),
+        ),
     ]
     transactions_before: list[Transaction] = []
-    for request in requests:
+    for transaction_type, request in requests:
         transaction_processor: TransactionProcessor = factory.get_processor(
-            db=db, user_id=user_db.id, transaction_type=request.transaction_type
+            db=db, user_id=user_db.id, transaction_type=transaction_type
         )
         transactions_before.append(await transaction_processor.create(data=request))
         await db.commit()
@@ -1470,3 +1460,139 @@ async def test_account_cache_equals_active_postings(db: AsyncSession, db_transac
     transaction_base_sums: list[Decimal] = (await db.scalars(transaction_sums_query)).all()
     assert len(transaction_base_sums) == 5
     assert set(transaction_base_sums) == {Decimal("0")}
+
+
+@pytest.mark.parametrize(
+    "location_id_is_sent, income_period, expected_message, expected_log_message",
+    [
+        (True, None, "Field location_id not allowed", "Transaction type TRANSFER does not take location_id"),
+        (
+            False,
+            date(2025, 2, 1),
+            "Field income_period not allowed",
+            "Transaction type TRANSFER does not take income_period",
+        ),
+    ],
+)
+async def test_create_transfer_field_not_allowed(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    location_id_is_sent: bool,
+    income_period: date | None,
+    expected_message: str,
+    expected_log_message: str,
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_db.id,
+        "name": "Checking USD",
+        "currency": "USD",
+        "balance": Decimal("100"),
+        "base_balance": Decimal("100"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: AccountCreate = AccountCreate(
+        kind=AccountKind.ASSET, user_id=user_db.id, name="Savings USD", currency="USD"
+    )
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+
+    location_create_data: LocationCreate = LocationCreate(user_id=user_db.id, name="Some shop")
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    transfer_create_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("10"),
+        source_currency="USD",
+        destination_currency="USD",
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+        location_id=location_db.id if location_id_is_sent else None,
+        income_period=income_period,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
+    )
+    with pytest.raises(FieldNotAllowed) as exc:
+        await transaction_processor.create(data=transfer_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.message == expected_message
+    assert exc.value.log_message == expected_log_message
+    assert exc.value.error_code == ErrorCodeType.FIELD_NOT_ALLOWED
+
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 0
+    account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_from.balance == Decimal("100")
+    account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to.balance == Decimal("0")
+
+
+async def test_create_transfer_base_currency_amount_not_allowed(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+
+    account_from_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_db.id,
+        "name": "Card EUR",
+        "currency": "EUR",
+        "balance": Decimal("110"),
+        "base_balance": Decimal("100"),
+    }
+    account_from_db: AccountModel = await account_crud.create(db=db, obj_in=account_from_create_data, commit=True)
+
+    account_to_create_data: AccountCreate = AccountCreate(
+        kind=AccountKind.ASSET, user_id=user_db.id, name="Savings EUR", currency="EUR"
+    )
+    account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+
+    transfer_create_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("55"),
+        source_currency="EUR",
+        destination_currency="EUR",
+        base_currency_amount=Decimal("50"),
+        from_account_id=account_from_db.id,
+        to_account_id=account_to_db.id,
+    )
+    await db.close()
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_db.id, transaction_type=TransactionType.TRANSFER
+    )
+    with pytest.raises(BaseCurrencyAmountNotAllowed) as exc:
+        await transaction_processor.create(data=transfer_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.message == "Base currency amount not allowed"
+    assert exc.value.log_message == (
+        f"A base_currency_amount of 50 was sent for account `{account_from_db.id}`, "
+        f"whose base currency amount is derived"
+    )
+    assert exc.value.error_code == ErrorCodeType.BASE_CURRENCY_AMOUNT_NOT_ALLOWED
+
+    transactions: list[TransactionModel] = (await db.execute(select(TransactionModel))).scalars().all()
+    assert len(transactions) == 0
+    account_from: AccountModel = await account_crud.get(db=db, id=account_from_db.id)
+    assert account_from.balance == Decimal("110")
+    account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
+    assert account_to.balance == Decimal("0")

@@ -5,16 +5,16 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.accounting.transaction import TransactionRequest, TransferRequest
+from app.schemas.accounting.transaction import MovementRequest, TransactionRequest
 
 
-def test_transfer_request_same_account():
+def test_movement_request_same_account():
     # Arrange
     account_id: UUID = uuid4()
 
     # Act / Assert
     with pytest.raises(ValidationError) as exc:
-        TransferRequest(
+        MovementRequest(
             transaction_date=date(2025, 2, 10),
             source_amount=Decimal("100"),
             source_currency="USD",
@@ -24,6 +24,23 @@ def test_transfer_request_same_account():
         )
 
     assert "from_account_id and to_account_id should be different" in str(exc.value)
+
+
+def test_movement_request_income_period_first_of_month():
+    # Act
+    request: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("100"),
+        source_currency="USD",
+        destination_amount=Decimal("100"),
+        destination_currency="USD",
+        from_account_id=uuid4(),
+        to_account_id=uuid4(),
+        income_period=date(2025, 2, 17),
+    )
+
+    # Assert
+    assert request.income_period == date(2025, 2, 1)
 
 
 def test_transaction_request_date_from_after_date_to():

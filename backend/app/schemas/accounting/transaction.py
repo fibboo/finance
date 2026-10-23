@@ -6,23 +6,15 @@ from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-    StringConstraints,
-    WithJsonSchema,
-)
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, WithJsonSchema
 
-from app.schemas.accounting.account import Account, AccountKind
+from app.schemas.accounting.account import AdjustmentCreate
 from app.schemas.accounting.location import Location
-from app.schemas.base import CurrencyCode, EntityStatusType
+from app.schemas.accounting.posting import Posting
+from app.schemas.base import CurrencyCode, EntityStatusType, RequestAmount, TransactionComment
 from app.utils import utils
 
 PositiveAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), decimal_places=2)]
-RequestAmount: TypeAlias = Annotated[Decimal, Field(gt=Decimal("0"), max_digits=15, decimal_places=2)]
 
 
 class TransactionType(str, Enum):
@@ -32,95 +24,35 @@ class TransactionType(str, Enum):
     ADJUSTMENT = "ADJUSTMENT"
 
 
-class TransactionBase(BaseModel):
+class MovementRequest(BaseModel):
     transaction_date: date
-    comment: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
-    source_amount: PositiveAmount
-    source_currency: CurrencyCode
-    destination_amount: PositiveAmount
-    destination_currency: CurrencyCode
-    transaction_type: TransactionType
-
-
-class TransactionCreateRequestBase(TransactionBase):
-    source_amount: RequestAmount
-    destination_amount: RequestAmount
-
-
-class ExpenseRequest(TransactionCreateRequestBase):
-    transaction_type: TransactionType = TransactionType.EXPENSE
+    comment: TransactionComment | None = None
     from_account_id: UUID
-    category_id: UUID
-    location_id: UUID
-
-    @field_validator("transaction_type", mode="after")
-    def validate_transaction_type(cls, transaction_type: TransactionType):
-        if transaction_type != TransactionType.EXPENSE:
-            raise ValueError(f"transaction_type should be {TransactionType.EXPENSE} for expense transactions")
-
-        return transaction_type
-
-
-class IncomeRequest(TransactionCreateRequestBase):
-    transaction_type: TransactionType = TransactionType.INCOME
-    income_period: date
-    income_source_id: UUID
     to_account_id: UUID
+    source_amount: RequestAmount
+    source_currency: CurrencyCode
+    destination_amount: RequestAmount | None = None
+    destination_currency: CurrencyCode
     base_currency_amount: RequestAmount | None = None
-
-    @field_validator("transaction_type", mode="after")
-    def validate_transaction_type(cls, transaction_type: TransactionType):
-        if transaction_type != TransactionType.INCOME:
-            raise ValueError(f"transaction_type should be {TransactionType.INCOME} for income transactions")
-
-        return transaction_type
+    location_id: UUID | None = None
+    income_period: date | None = None
 
     @field_validator("income_period", mode="after")
-    def validate_income_period(cls, income_period: date):
-        if income_period.day != 1:
+    def validate_income_period(cls, income_period: date | None):
+        if income_period is not None and income_period.day != 1:
             income_period = income_period.replace(day=1)
 
         return income_period
 
-
-class TransferRequest(TransactionCreateRequestBase):
-    transaction_type: TransactionType = TransactionType.TRANSFER
-    destination_amount: RequestAmount | None = None
-    from_account_id: UUID
-    to_account_id: UUID
-
-    @field_validator("transaction_type", mode="after")
-    def validate_transaction_type(cls, transaction_type: TransactionType):
-        if transaction_type != TransactionType.TRANSFER:
-            raise ValueError(f"transaction_type should be {TransactionType.TRANSFER} for transfer transactions")
-
-        return transaction_type
-
     @model_validator(mode="after")
-    def validate_accounts(self) -> TransferRequest:
+    def validate_accounts(self) -> MovementRequest:
         if self.from_account_id == self.to_account_id:
             raise ValueError("from_account_id and to_account_id should be different")
 
         return self
 
 
-class AdjustmentRequest(BaseModel):
-    transaction_type: TransactionType = TransactionType.ADJUSTMENT
-    transaction_date: date
-    comment: Annotated[str, StringConstraints(min_length=3, max_length=256)] | None = None
-    account_id: UUID
-    new_balance: Annotated[Decimal, Field(max_digits=15, decimal_places=2)]
-    base_currency_amount: RequestAmount | None = None
-
-    @field_validator("transaction_type", mode="after")
-    def validate_transaction_type(cls, transaction_type: TransactionType):
-        if transaction_type != TransactionType.ADJUSTMENT:
-            raise ValueError(f"transaction_type should be {TransactionType.ADJUSTMENT} for adjustment transactions")
-
-        return transaction_type
-
-
-TransactionCreateRequest = ExpenseRequest | IncomeRequest | TransferRequest | AdjustmentRequest
+TransactionCreateRequest = MovementRequest | AdjustmentCreate
 
 
 class TransactionCreate(BaseModel):
@@ -133,75 +65,21 @@ class TransactionCreate(BaseModel):
     income_period: date | None = None
 
 
-TRANSACTION_SIDES: frozendict[TransactionType, tuple[str, str]] = frozendict(
-    {
-        TransactionType.EXPENSE: ("from_account", "category"),
-        TransactionType.INCOME: ("income_source", "to_account"),
-        TransactionType.TRANSFER: ("from_account", "to_account"),
-        TransactionType.ADJUSTMENT: ("from_account", "to_account"),
-    }
-)
-
-
-class Transaction(TransactionBase):
-    user_id: UUID
-    base_currency_amount: PositiveAmount
-
-    category_id: UUID | None = None
-    location_id: UUID | None = None
-
-    income_period: date | None = None
-    income_source_id: UUID | None = None
-
-    from_account_id: UUID | None = None
-    to_account_id: UUID | None = None
-
+class Transaction(BaseModel):
     id: UUID  # noqa: A003
+    user_id: UUID
+    transaction_type: TransactionType
+    transaction_date: date
+    comment: str | None
+    base_currency_amount: PositiveAmount
+    location: Location | None
+    income_period: date | None
     status: EntityStatusType
-
-    income_source: Account | None = None
-    from_account: Account | None = None
-    to_account: Account | None = None
-
-    category: Account | None = None
-    location: Location | None = None
-
+    postings: list[Posting]
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-    @model_validator(mode="before")
-    @classmethod
-    def read_postings(cls, transaction: Any) -> Any:
-        if isinstance(transaction, dict):
-            return transaction
-
-        debit, credit = transaction.postings
-        data: dict[str, Any] = {
-            "id": transaction.id,
-            "user_id": transaction.user_id,
-            "transaction_type": transaction.transaction_type,
-            "transaction_date": transaction.transaction_date,
-            "comment": transaction.comment,
-            "status": transaction.status,
-            "base_currency_amount": transaction.base_currency_amount,
-            "location_id": transaction.location_id,
-            "location": transaction.location,
-            "income_period": transaction.income_period,
-            "source_amount": -debit.amount,
-            "source_currency": debit.currency,
-            "destination_amount": credit.amount,
-            "destination_currency": credit.currency,
-            "created_at": transaction.created_at,
-            "updated_at": transaction.updated_at,
-        }
-        for side, posting in zip(TRANSACTION_SIDES[transaction.transaction_type], (debit, credit)):
-            if posting.account.kind != AccountKind.EQUITY:
-                data[side] = posting.account
-                data[f"{side}_id"] = posting.account_id
-
-        return data
 
 
 class OrderFieldType(str, Enum):
