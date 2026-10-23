@@ -473,3 +473,55 @@ async def test_restore_location_name_taken(db: AsyncSession, db_transaction: Asy
     location_db: LocationModel = await location_crud.get(db=db, id=deleted_location.id)
     await db.refresh(location_db)
     assert location_db.status == EntityStatusType.DELETED
+
+
+async def test_update_location_deleted(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id = uuid4()
+    location_create_data: dict = {"user_id": user_id, "name": "Test place", "status": EntityStatusType.DELETED}
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    location_update = LocationUpdate(name="Location updated")
+
+    # Act
+    with pytest.raises(EntityNotFound) as exc:
+        await location_service.update_location(
+            db=db_transaction, location_id=location_db.id, update_data=location_update, user_id=user_id
+        )
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    search_params = {"id": location_db.id, "user_id": user_id}
+    assert exc.value.log_message == f"{LocationModel.__name__} not found by {search_params}"
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    await db.refresh(location_db)
+    assert location_db.name == "Test place"
+    assert location_db.status == EntityStatusType.DELETED
+
+
+async def test_update_location_name_of_deleted_location(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id = uuid4()
+    deleted_location: Location = await location_service.create_location(
+        db=db, create_data=LocationCreateRequest(name="Deleted place"), user_id=user_id
+    )
+    await location_service.delete_location(db=db, location_id=deleted_location.id, user_id=user_id)
+    created_location: Location = await location_service.create_location(
+        db=db, create_data=LocationCreateRequest(name="Test place"), user_id=user_id
+    )
+    await db.commit()
+
+    location_update = LocationUpdate(name="Deleted place")
+
+    # Act
+    location: Location = await location_service.update_location(
+        db=db_transaction, location_id=created_location.id, update_data=location_update, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert location.id == created_location.id
+    assert location.name == "Deleted place"
+    assert location.status == EntityStatusType.ACTIVE

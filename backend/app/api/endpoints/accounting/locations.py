@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,7 +25,10 @@ async def create_location(
 
 @router.get("")
 async def get_locations(
-    *, request: LocationRequest = Depends(), user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *,
+    request: Annotated[LocationRequest, Query()],
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
 ) -> Page[Location]:
     locations: Page[Location] = await location_service.get_locations(db=db, request=request, user_id=user_id)
     return locations

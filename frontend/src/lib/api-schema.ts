@@ -1231,19 +1231,18 @@ export interface operations {
     get_locations_accounting_locations_get: {
         parameters: {
             query?: {
+                /** @description Page number */
                 page?: number;
+                /** @description Page size */
                 size?: number;
                 search_term?: string | null;
+                statuses?: components["schemas"]["EntityStatusType"][];
             };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["EntityStatusType"][];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
