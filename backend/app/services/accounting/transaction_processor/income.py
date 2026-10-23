@@ -7,18 +7,18 @@ from app.exceptions.unprocessable_422 import BaseCurrencyAmountNotAllowed, BaseC
 from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.posting import PostingCreate
-from app.schemas.accounting.transaction import IncomeRequest, TransactionCreate, TransactionType
+from app.schemas.accounting.transaction import MovementRequest, TransactionCreate, TransactionType
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(logger_name=__name__)
 
 
-class Income(TransactionProcessor[IncomeRequest]):
+class Income(TransactionProcessor[MovementRequest]):
     @property
     def _transaction_type(self) -> TransactionType:
         return TransactionType.INCOME
 
-    def __get_base_currency_amount(self, *, data: IncomeRequest) -> Decimal:
+    def __get_base_currency_amount(self, *, data: MovementRequest) -> Decimal:
         is_base_currency_amount_derived: bool = self.base_currency in (data.source_currency, data.destination_currency)
         if is_base_currency_amount_derived and data.base_currency_amount is not None:
             raise BaseCurrencyAmountNotAllowed(
@@ -37,14 +37,18 @@ class Income(TransactionProcessor[IncomeRequest]):
 
         return base_currency_amount
 
-    async def _prepare_transaction(self, *, data: IncomeRequest) -> tuple[TransactionCreate, list[PostingCreate]]:
+    async def _prepare_transaction(self, *, data: MovementRequest) -> tuple[TransactionCreate, list[PostingCreate]]:
+        self._validate_fields(
+            required_fields={"income_period": data.income_period, "destination_amount": data.destination_amount},
+            forbidden_fields={"location_id": data.location_id},
+        )
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=[data.to_account_id], user_id=self.user_id
         )
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self._validate_transaction_to_account(data=data, to_account_db=to_account_db)
 
-        await self._validate_counter_account(account_id=data.income_source_id, kind=AccountKind.INCOME)
+        await self._validate_counter_account(account_id=data.from_account_id, kind=AccountKind.INCOME)
 
         base_currency_amount: Decimal = self.__get_base_currency_amount(data=data)
         transaction_data: TransactionCreate = TransactionCreate(
@@ -56,7 +60,7 @@ class Income(TransactionProcessor[IncomeRequest]):
             income_period=data.income_period,
         )
         postings: list[PostingCreate] = self._get_postings(
-            from_account_id=data.income_source_id,
+            from_account_id=data.from_account_id,
             from_amount=data.source_amount,
             from_currency=data.source_currency,
             to_account_id=data.to_account_id,

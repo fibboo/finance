@@ -29,17 +29,17 @@ function requireField<Field>({
 }
 
 function readTransactionView(transaction: Readonly<Transaction>): TransactionView {
-  const sourceAmount = Number(transaction.source_amount);
+  const debit = requireField({ value: transaction.postings[0], name: 'debit' });
+  const credit = requireField({ value: transaction.postings[1], name: 'credit' });
   switch (transaction.transaction_type) {
     case 'EXPENSE': {
-      const account = requireField({ value: transaction.from_account, name: 'account' });
       const view = {
-        title: requireField({ value: transaction.category, name: 'category' }).name,
-        accountNames: account.name,
-        markedAccount: account,
+        title: credit.account.name,
+        accountNames: debit.account.name,
+        markedAccount: debit.account,
         amount: formatMoney({
-          amount: -sourceAmount,
-          currency: transaction.source_currency,
+          amount: Number(debit.amount),
+          currency: debit.currency,
           signDisplay: 'exceptZero',
         }),
         isIncome: false,
@@ -47,14 +47,13 @@ function readTransactionView(transaction: Readonly<Transaction>): TransactionVie
       return view;
     }
     case 'INCOME': {
-      const account = requireField({ value: transaction.to_account, name: 'account' });
       const view = {
-        title: requireField({ value: transaction.income_source, name: 'income source' }).name,
-        accountNames: account.name,
-        markedAccount: account,
+        title: debit.account.name,
+        accountNames: credit.account.name,
+        markedAccount: credit.account,
         amount: formatMoney({
-          amount: Number(transaction.destination_amount),
-          currency: transaction.destination_currency,
+          amount: Number(credit.amount),
+          currency: credit.currency,
           signDisplay: 'exceptZero',
         }),
         isIncome: true,
@@ -62,30 +61,24 @@ function readTransactionView(transaction: Readonly<Transaction>): TransactionVie
       return view;
     }
     case 'TRANSFER': {
-      const fromAccount = requireField({ value: transaction.from_account, name: 'source account' });
-      const toAccount = requireField({ value: transaction.to_account, name: 'target account' });
       const view = {
-        title: `Transfer to ${toAccount.name}`,
-        accountNames: `${fromAccount.name} → ${toAccount.name}`,
-        markedAccount: toAccount,
-        amount: formatMoney({ amount: sourceAmount, currency: transaction.source_currency }),
+        title: `Transfer to ${credit.account.name}`,
+        accountNames: `${debit.account.name} → ${credit.account.name}`,
+        markedAccount: credit.account,
+        amount: formatMoney({ amount: -Number(debit.amount), currency: debit.currency }),
         isIncome: false,
       };
       return view;
     }
     case 'ADJUSTMENT': {
-      const isIncrease = transaction.to_account !== null && transaction.to_account !== undefined;
-      const account = requireField({
-        value: isIncrease ? transaction.to_account : transaction.from_account,
-        name: 'account',
-      });
+      const posting = credit.account.kind === 'EQUITY' ? debit : credit;
       const view = {
         title: 'Balance adjustment',
-        accountNames: account.name,
-        markedAccount: account,
+        accountNames: posting.account.name,
+        markedAccount: posting.account,
         amount: formatMoney({
-          amount: isIncrease ? sourceAmount : -sourceAmount,
-          currency: transaction.source_currency,
+          amount: Number(posting.amount),
+          currency: posting.currency,
           signDisplay: 'exceptZero',
         }),
         isIncome: false,

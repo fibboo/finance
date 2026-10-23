@@ -31,16 +31,24 @@ const transaction = {
   id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c4d',
   user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
   transaction_date: '2026-10-20',
-  source_amount: '42.80',
-  source_currency: 'USD',
-  destination_amount: '42.80',
-  destination_currency: 'USD',
+  comment: null,
   base_currency_amount: '42.80',
+  location: null,
+  income_period: null,
   transaction_type: 'EXPENSE',
   status: 'ACTIVE',
   created_at: '2026-10-20T09:00:00Z',
   updated_at: '2026-10-20T09:00:00Z',
+  postings: [],
 } satisfies components['schemas']['Transaction'];
+
+const posting = {
+  id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a6b',
+  amount: '0',
+  currency: 'USD',
+  base_amount: '0',
+  account: wallet,
+} satisfies components['schemas']['Posting'];
 
 const category = {
   ...wallet,
@@ -50,6 +58,17 @@ const category = {
   balance: '0',
   currency: null,
   category_type: 'VARIABLE',
+  base_currency_rate: '0',
+  base_currency_balance: '0.00',
+} satisfies components['schemas']['Account'];
+
+const equity = {
+  ...wallet,
+  name: 'Adjustments',
+  id: '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a',
+  kind: 'EQUITY',
+  balance: '0',
+  currency: null,
   base_currency_rate: '0',
   base_currency_balance: '0.00',
 } satisfies components['schemas']['Account'];
@@ -77,7 +96,13 @@ afterEach(() => {
 test.each([
   {
     kind: 'an expense',
-    row: { ...transaction, from_account: wallet, category },
+    row: {
+      ...transaction,
+      postings: [
+        { ...posting, amount: '-42.80', base_amount: '-42.80', account: wallet },
+        { ...posting, amount: '42.80', base_amount: '42.80', account: category },
+      ],
+    },
     texts: ['Groceries', 'Wallet', 'Today', '-$42.80'],
   },
   {
@@ -86,10 +111,11 @@ test.each([
       ...transaction,
       transaction_type: 'INCOME',
       transaction_date: '2026-10-19',
-      destination_amount: '2100.00',
-      destination_currency: 'EUR',
-      to_account: wallet,
-      income_source: incomeSource,
+      income_period: '2026-10-01',
+      postings: [
+        { ...posting, amount: '-2100.00', currency: 'EUR', account: incomeSource },
+        { ...posting, amount: '2100.00', currency: 'EUR', account: wallet },
+      ],
     },
     texts: ['Salary', 'Wallet', 'Yesterday', '+€2,100.00'],
   },
@@ -99,10 +125,10 @@ test.each([
       ...transaction,
       transaction_type: 'TRANSFER',
       transaction_date: '2026-10-16',
-      source_amount: '300.00',
-      source_currency: 'EUR',
-      from_account: wallet,
-      to_account: savings,
+      postings: [
+        { ...posting, amount: '-300.00', currency: 'EUR', account: wallet },
+        { ...posting, amount: '300.00', currency: 'EUR', account: savings },
+      ],
     },
     texts: ['Transfer to Savings', 'Wallet → Savings', 'Oct 16', '€300.00'],
   },
@@ -112,10 +138,24 @@ test.each([
       ...transaction,
       transaction_type: 'ADJUSTMENT',
       transaction_date: '2025-12-31',
-      source_amount: '12.00',
-      from_account: savings,
+      postings: [
+        { ...posting, amount: '-12.00', account: savings },
+        { ...posting, amount: '12.00', account: equity },
+      ],
     },
     texts: ['Balance adjustment', 'Savings', 'Dec 31, 2025', '-$12.00'],
+  },
+  {
+    kind: 'an increasing adjustment',
+    row: {
+      ...transaction,
+      transaction_type: 'ADJUSTMENT',
+      postings: [
+        { ...posting, amount: '-25.00', account: equity },
+        { ...posting, amount: '25.00', account: savings },
+      ],
+    },
+    texts: ['Balance adjustment', 'Savings', 'Today', '+$25.00'],
   },
 ] satisfies { kind: string; row: components['schemas']['Transaction']; texts: string[] }[])(
   'describes $kind',

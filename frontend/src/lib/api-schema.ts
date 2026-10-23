@@ -64,6 +64,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounting/accounts/{account_id}/adjustment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjust Balance
+         * @description Sets the account to `new_balance` with an ADJUSTMENT transaction between the account and the Adjustments account.
+         *     Its amounts are the difference from the current balance in the account currency. `base_currency_amount` is
+         *     required only for an account outside the base currency that has no base currency rate yet.
+         */
+        post: operations["adjust_balance_accounting_accounts__account_id__adjustment_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounting/locations": {
         parameters: {
             query?: never;
@@ -119,7 +141,10 @@ export interface paths {
         put?: never;
         /**
          * Create Transaction
-         * @description Creates a new transaction.
+         * @description Moves money from one account to another. The kinds of the two accounts give the transaction type:
+         *     a money (ASSET or LIABILITY) account to an EXPENSE account is an expense, an INCOME account to a money account
+         *     is an income, and a money account to another money account is a transfer. Any other pair is refused with
+         *     `MOVEMENT_NOT_ALLOWED`.
          *
          *     **Transaction fields:**
          *     - `source_amount` — Amount in the withdrawal currency
@@ -130,18 +155,17 @@ export interface paths {
          *
          *     **Context-specific behavior:**
          *     - **Expenses:** `source_*` refers to the amount **withdrawn from the account**.
-         *     `destination_*` refers to the amount in **the seller's currency**.
+         *     `destination_*` refers to the amount in **the seller's currency**. `location_id` is required,
+         *     `income_period` and `base_currency_amount` are refused.
          *     - **Income:** `source_*` refers to the incoming amount in **its original currency**.
-         *     `destination_*` refers to the credited amount in **the receiving account**. `base_currency_amount` is required
-         *     when neither currency is the base currency, and refused otherwise, since it is then derived.
+         *     `destination_*` refers to the credited amount in **the receiving account**. `income_period` is required and
+         *     `location_id` refused. `base_currency_amount` is required when neither currency is the base currency,
+         *     and refused otherwise, since it is then derived.
          *     - **Transfers:** `source_*` refers to **the withdrawal from one account**.
          *     `destination_*` refers to the deposit to **another account**. When both currencies are the same,
          *     `destination_amount` may be omitted and otherwise must equal `source_amount`. When only `destination_currency`
          *     is the base currency, `destination_amount` is derived from the source account's rate and must not be sent.
-         *     - **Adjustments:** the request carries the account and its `new_balance`. `source_*` and `destination_*` are both
-         *     the difference from the current balance in the account currency, on `to_account` for an increase and on
-         *     `from_account` for a decrease. `base_currency_amount` is required only for an account outside the base currency
-         *     that has no base currency rate yet.
+         *     `location_id`, `income_period` and `base_currency_amount` are refused.
          */
         post: operations["create_transaction_accounting_transactions_post"];
         delete?: never;
@@ -510,8 +534,6 @@ export interface components {
         };
         /** AdjustmentRequest */
         AdjustmentRequest: {
-            /** @default ADJUSTMENT */
-            transaction_type: components["schemas"]["TransactionType"];
             /**
              * Transaction Date
              * Format: date
@@ -519,11 +541,6 @@ export interface components {
             transaction_date: string;
             /** Comment */
             comment?: string | null;
-            /**
-             * Account Id
-             * Format: uuid
-             */
-            account_id: string;
             /** New Balance */
             new_balance: number | string;
             /** Base Currency Amount */
@@ -560,47 +577,12 @@ export interface components {
          * ErrorCodeType
          * @enum {string}
          */
-        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "ACCOUNT_KIND_MISMATCH" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
+        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
         /** ErrorResponse */
         ErrorResponse: {
             /** Message */
             message: string;
             error_code?: components["schemas"]["ErrorCodeType"] | null;
-        };
-        /** ExpenseRequest */
-        ExpenseRequest: {
-            /**
-             * Transaction Date
-             * Format: date
-             */
-            transaction_date: string;
-            /** Comment */
-            comment?: string | null;
-            /** Source Amount */
-            source_amount: number | string;
-            /** Source Currency */
-            source_currency: string;
-            /** Destination Amount */
-            destination_amount: number | string;
-            /** Destination Currency */
-            destination_currency: string;
-            /** @default EXPENSE */
-            transaction_type: components["schemas"]["TransactionType"];
-            /**
-             * From Account Id
-             * Format: uuid
-             */
-            from_account_id: string;
-            /**
-             * Category Id
-             * Format: uuid
-             */
-            category_id: string;
-            /**
-             * Location Id
-             * Format: uuid
-             */
-            location_id: string;
         };
         /** ExternalUser */
         ExternalUser: {
@@ -634,43 +616,6 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
-        };
-        /** IncomeRequest */
-        IncomeRequest: {
-            /**
-             * Transaction Date
-             * Format: date
-             */
-            transaction_date: string;
-            /** Comment */
-            comment?: string | null;
-            /** Source Amount */
-            source_amount: number | string;
-            /** Source Currency */
-            source_currency: string;
-            /** Destination Amount */
-            destination_amount: number | string;
-            /** Destination Currency */
-            destination_currency: string;
-            /** @default INCOME */
-            transaction_type: components["schemas"]["TransactionType"];
-            /**
-             * Income Period
-             * Format: date
-             */
-            income_period: string;
-            /**
-             * Income Source Id
-             * Format: uuid
-             */
-            income_source_id: string;
-            /**
-             * To Account Id
-             * Format: uuid
-             */
-            to_account_id: string;
-            /** Base Currency Amount */
-            base_currency_amount?: number | string | null;
         };
         /** LinkCompleteRequest */
         LinkCompleteRequest: {
@@ -717,6 +662,40 @@ export interface components {
             description?: string | null;
             /** Coordinates */
             coordinates?: string | null;
+        };
+        /** MovementRequest */
+        MovementRequest: {
+            /**
+             * Transaction Date
+             * Format: date
+             */
+            transaction_date: string;
+            /** Comment */
+            comment?: string | null;
+            /**
+             * From Account Id
+             * Format: uuid
+             */
+            from_account_id: string;
+            /**
+             * To Account Id
+             * Format: uuid
+             */
+            to_account_id: string;
+            /** Source Amount */
+            source_amount: number | string;
+            /** Source Currency */
+            source_currency: string;
+            /** Destination Amount */
+            destination_amount?: number | string | null;
+            /** Destination Currency */
+            destination_currency: string;
+            /** Base Currency Amount */
+            base_currency_amount?: number | string | null;
+            /** Location Id */
+            location_id?: string | null;
+            /** Income Period */
+            income_period?: string | null;
         };
         /** Order */
         Order: {
@@ -772,6 +751,21 @@ export interface components {
             /** Pages */
             pages: number;
         };
+        /** Posting */
+        Posting: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            account: components["schemas"]["Account"];
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string;
+            /** Base Amount */
+            base_amount: string;
+        };
         /**
          * ProviderType
          * @enum {string}
@@ -822,51 +816,31 @@ export interface components {
         /** Transaction */
         Transaction: {
             /**
-             * Transaction Date
-             * Format: date
+             * Id
+             * Format: uuid
              */
-            transaction_date: string;
-            /** Comment */
-            comment?: string | null;
-            /** Source Amount */
-            source_amount: string;
-            /** Source Currency */
-            source_currency: string;
-            /** Destination Amount */
-            destination_amount: string;
-            /** Destination Currency */
-            destination_currency: string;
-            transaction_type: components["schemas"]["TransactionType"];
+            id: string;
             /**
              * User Id
              * Format: uuid
              */
             user_id: string;
+            transaction_type: components["schemas"]["TransactionType"];
+            /**
+             * Transaction Date
+             * Format: date
+             */
+            transaction_date: string;
+            /** Comment */
+            comment: string | null;
             /** Base Currency Amount */
             base_currency_amount: string;
-            /** Category Id */
-            category_id?: string | null;
-            /** Location Id */
-            location_id?: string | null;
+            location: components["schemas"]["Location"] | null;
             /** Income Period */
-            income_period?: string | null;
-            /** Income Source Id */
-            income_source_id?: string | null;
-            /** From Account Id */
-            from_account_id?: string | null;
-            /** To Account Id */
-            to_account_id?: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
+            income_period: string | null;
             status: components["schemas"]["EntityStatusType"];
-            income_source?: components["schemas"]["Account"] | null;
-            from_account?: components["schemas"]["Account"] | null;
-            to_account?: components["schemas"]["Account"] | null;
-            category?: components["schemas"]["Account"] | null;
-            location?: components["schemas"]["Location"] | null;
+            /** Postings */
+            postings: components["schemas"]["Posting"][];
             /**
              * Created At
              * Format: date-time
@@ -883,36 +857,6 @@ export interface components {
          * @enum {string}
          */
         TransactionType: "EXPENSE" | "INCOME" | "TRANSFER" | "ADJUSTMENT";
-        /** TransferRequest */
-        TransferRequest: {
-            /**
-             * Transaction Date
-             * Format: date
-             */
-            transaction_date: string;
-            /** Comment */
-            comment?: string | null;
-            /** Source Amount */
-            source_amount: number | string;
-            /** Source Currency */
-            source_currency: string;
-            /** Destination Amount */
-            destination_amount?: number | string | null;
-            /** Destination Currency */
-            destination_currency: string;
-            /** @default TRANSFER */
-            transaction_type: components["schemas"]["TransactionType"];
-            /**
-             * From Account Id
-             * Format: uuid
-             */
-            from_account_id: string;
-            /**
-             * To Account Id
-             * Format: uuid
-             */
-            to_account_id: string;
-        };
         /** User */
         User: {
             /** Username */
@@ -1214,6 +1158,50 @@ export interface operations {
             };
         };
     };
+    adjust_balance_accounting_accounts__account_id__adjustment_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_locations_accounting_locations_get: {
         parameters: {
             query?: {
@@ -1443,7 +1431,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ExpenseRequest"] | components["schemas"]["IncomeRequest"] | components["schemas"]["TransferRequest"] | components["schemas"]["AdjustmentRequest"];
+                "application/json": components["schemas"]["MovementRequest"];
             };
         };
         responses: {
