@@ -25,6 +25,16 @@ test('offers the currencies of the accounting dictionary', async () => {
         category_types: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'TELEGRAM',
+        base_currency: null,
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
   );
 
   // act
@@ -32,8 +42,10 @@ test('offers the currencies of the accounting dictionary', async () => {
 
   // assert
   expect(await screen.findByRole('radio', { name: 'EUR Euro' })).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'Pick your base currency' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Set up your account' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: 'USD US Dollar' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Main currency' })).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'Username' })).toHaveValue('nikita');
 });
 
 test('keeps the copy in view while the currencies load', () => {
@@ -48,8 +60,8 @@ test('keeps the copy in view while the currencies load', () => {
   render(<Onboarding />);
 
   // assert
-  expect(screen.getByRole('heading', { name: 'Pick your base currency' })).toBeInTheDocument();
-  expect(screen.getByText(/can’t be changed later/)).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Set up your account' })).toBeInTheDocument();
+  expect(screen.getByText(/can’t change it later/)).toBeInTheDocument();
   expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
   expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Start/ })).not.toBeInTheDocument();

@@ -23,25 +23,11 @@ export function Component() {
               <SignOutButton appearance="text" />
             </header>
             <div className={styles['intro']}>
-              <h1 className={styles['title']}>Pick your base currency</h1>
-              <p className={styles['text']}>
-                Totals and monthly summaries are counted in it. We’ll open a Wallet in this
-                currency.
-              </p>
+              <h1 className={styles['title']}>Set up your account</h1>
             </div>
           </>
         }
         currencies={dictionaries?.currencies}
-        note={
-          <p className={styles['note']}>
-            <svg className={styles['noteIcon']} aria-hidden="true" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v5M12 16.5v.5" />
-            </svg>
-            The base currency can’t be changed later. Accounts in other currencies can be added any
-            time.
-          </p>
-        }
       />
     </main>
   );
