@@ -116,6 +116,27 @@ export interface paths {
         /** Update Location */
         put: operations["update_location_accounting_locations__location_id__put"];
         post?: never;
+        /** Delete Location */
+        delete: operations["delete_location_accounting_locations__location_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounting/locations/{location_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Location
+         * @description Restoring location is possible only if no active location has its name
+         */
+        post: operations["restore_location_accounting_locations__location_id__restore_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -632,8 +653,6 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
-            /** Coordinates */
-            coordinates?: string | null;
             /**
              * User Id
              * Format: uuid
@@ -644,6 +663,17 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            status: components["schemas"]["EntityStatusType"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** LocationCreateRequest */
         LocationCreateRequest: {
@@ -651,8 +681,6 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
-            /** Coordinates */
-            coordinates?: string | null;
         };
         /** LocationUpdate */
         LocationUpdate: {
@@ -660,8 +688,6 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
-            /** Coordinates */
-            coordinates?: string | null;
         };
         /** MovementRequest */
         MovementRequest: {
@@ -1213,7 +1239,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["EntityStatusType"][];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -1340,6 +1370,86 @@ export interface operations {
                 "application/json": components["schemas"]["LocationUpdate"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Location"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_location_accounting_locations__location_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Location"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_location_accounting_locations__location_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

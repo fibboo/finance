@@ -643,6 +643,73 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
     assert account_db_after.base_balance == base_balance_before
 
 
+async def test_create_expense_deleted_location(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Checking USD",
+        "currency": "USD",
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    account_balance_before: Decimal = copy(account_db.balance)
+    base_balance_before: Decimal = copy(account_db.base_balance)
+
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id,
+        kind=AccountKind.EXPENSE,
+        name="Food",
+        category_type=CategoryType.VARIABLE,
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+
+    location_create_data: dict = {"user_id": user_id, "name": "Some shop", "status": EntityStatusType.DELETED}
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    expense_create_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("1"),
+        source_currency="USD",
+        destination_amount=Decimal("111"),
+        destination_currency="RSD",
+        from_account_id=account_db.id,
+        to_account_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_processor.create(data=expense_create_data)
+        await db_transaction.commit()
+
+    # Assert
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.message == "Entity not found"
+    assert (
+        exc.value.log_message
+        == f"Location not found by {{'id': UUID('{location_db.id}'), 'user_id': UUID('{user_id}')}}"
+    )
+    assert exc.value.logger is not None
+    assert exc.value.log_level == LogLevelType.ERROR
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
+    assert len(transactions) == 0
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == account_balance_before
+    assert account_db_after.base_balance == base_balance_before
+
+
 async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
