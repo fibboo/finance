@@ -1,6 +1,6 @@
 from decimal import Decimal
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, TypeAlias
 from uuid import UUID
 
 from fastapi import Query
@@ -32,6 +32,8 @@ ACCOUNT_KIND_LABELS: frozendict[AccountKind, str] = frozendict(
 MONEY_ACCOUNT_KINDS: list[AccountKind] = [AccountKind.ASSET, AccountKind.LIABILITY]
 VISIBLE_ACCOUNT_KINDS: list[AccountKind] = [kind for kind in AccountKind if kind != AccountKind.EQUITY]
 
+AccountColor: TypeAlias = Annotated[str, StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$")]
+
 
 class CategoryType(str, Enum):
     VARIABLE = "VARIABLE"
@@ -56,7 +58,7 @@ class AccountBase(BaseModel):
 class AccountCreateBase(AccountBase):
     kind: AccountKind
     currency: CurrencyCode | None = None
-    color: Annotated[str, StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$")] | None = None
+    color: AccountColor | None = None
     category_type: CategoryType | None = None
 
 
@@ -83,6 +85,7 @@ class AccountCreate(AccountCreateBase):
 
 
 class AccountUpdate(AccountBase):
+    color: AccountColor | None = None
     category_type: CategoryType | None = None
 
     @model_validator(mode="after")
@@ -122,6 +125,7 @@ class AccountRequest(Params):
 
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
     kinds: list[AccountKind] = VISIBLE_ACCOUNT_KINDS
+    statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
 
     def __hash__(self):
         data = self.model_dump()

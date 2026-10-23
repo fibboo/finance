@@ -17,7 +17,7 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
             select(self.model)
             .where(
                 self.model.user_id == user_id,
-                self.model.status == EntityStatusType.ACTIVE,
+                self.model.status.in_(request.statuses),
                 self.model.kind.in_(request.kinds),
             )
             .order_by(self.model.name)

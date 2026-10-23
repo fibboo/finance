@@ -11,12 +11,14 @@ from app.models.base import Base
 from app.schemas.accounting.account import AccountKind, CategoryType
 from app.schemas.base import EntityStatusType
 
+ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_kind_name"
+
 
 class Account(Base):
     __tablename__ = "accounts"
     __table_args__ = (
         Index(
-            "account_unique_user_id_kind_name",
+            ACCOUNT_UNIQUE_NAME_INDEX,
             "user_id",
             "kind",
             "name",

@@ -50,6 +50,17 @@ class IntegrityException(ConflictException):
         )
 
 
+class NameAlreadyExists(ConflictException):
+    def __init__(self, *, entity: type[Base], user_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Name already exists",
+            log_message=f"User `{user_id}` already has an active {entity.__name__} with this name",
+            error_code=ErrorCodeType.NAME_ALREADY_EXISTS,
+            logger=logger,
+            log_level=LogLevelType.INFO,
+        )
+
+
 class BaseCurrencyNotSet(ConflictException):
     def __init__(self, *, user_id: UUID, logger: logging.Logger):
         super().__init__(
