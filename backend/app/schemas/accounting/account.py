@@ -53,12 +53,14 @@ class AccountBase(BaseModel):
     description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=4096)] | None = None
 
 
-class AccountCreateRequest(AccountBase):
+class AccountCreateBase(AccountBase):
     kind: AccountKind
     currency: CurrencyCode | None = None
     color: Annotated[str, StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$")] | None = None
     category_type: CategoryType | None = None
 
+
+class AccountCreateRequest(AccountCreateBase):
     @model_validator(mode="after")
     def validate_kind_fields(self) -> AccountCreateRequest:
         if self.kind == AccountKind.EQUITY:
@@ -75,17 +77,20 @@ class AccountCreateRequest(AccountBase):
         return self
 
 
-class AccountCreate(AccountBase):
+class AccountCreate(AccountCreateBase):
     user_id: UUID
-    kind: AccountKind
-    currency: CurrencyCode | None = None
-    color: str | None = None
-    category_type: CategoryType | None = None
     base_currency_rate: Decimal
 
 
 class AccountUpdate(AccountBase):
     category_type: CategoryType | None = None
+
+    @model_validator(mode="after")
+    def validate_category_type(self) -> AccountUpdate:
+        if "category_type" in self.model_fields_set and self.category_type is None:
+            raise ValueError("category_type can not be null")
+
+        return self
 
 
 class Account(AccountBase):

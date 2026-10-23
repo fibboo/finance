@@ -45,12 +45,13 @@ DEFAULT_CATEGORIES: frozendict[str, CategoryType] = frozendict(
 async def create_account(
     *, db: AsyncSession, create_data: AccountCreateRequest, user_id: UUID, base_currency: CurrencyCode
 ) -> Account:
+    base_currency_rate: Decimal = Decimal("0")
     if create_data.currency is not None:
         await currency_service.get_currency(db=db, code=create_data.currency)
+        base_currency_rate = utils.get_new_account_base_currency_rate(
+            currency=create_data.currency, base_currency=base_currency
+        )
 
-    base_currency_rate: Decimal = utils.get_new_account_base_currency_rate(
-        currency=create_data.currency, base_currency=base_currency
-    )
     create_data: AccountCreate = AccountCreate(
         **create_data.model_dump(), user_id=user_id, base_currency_rate=base_currency_rate
     )
@@ -118,9 +119,7 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
     if account_db is None or account_db.kind == AccountKind.EQUITY:
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
-    is_category_type_sent: bool = "category_type" in update_data.model_fields_set
-    is_expense_account: bool = account_db.kind == AccountKind.EXPENSE
-    if is_category_type_sent and is_expense_account != (update_data.category_type is not None):
+    if update_data.category_type is not None and account_db.kind != AccountKind.EXPENSE:
         raise AccountKindMismatch(account_id=account_id, kinds=[AccountKind.EXPENSE], logger=logger)
 
     try:

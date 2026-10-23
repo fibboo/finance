@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.accounting.account import AccountCreateRequest, AccountKind, CategoryType
+from app.schemas.accounting.account import AccountCreateRequest, AccountKind, AccountUpdate, CategoryType
 
 
 @pytest.mark.parametrize(
@@ -65,3 +65,11 @@ def test_account_create_request_category_type_mismatch(
         AccountCreateRequest(kind=kind, name="Account", currency=currency, category_type=category_type)
 
     assert "category_type should be filled for EXPENSE accounts only" in str(exc.value)
+
+
+def test_account_update_null_category_type():
+    # Act / Assert
+    with pytest.raises(ValidationError) as exc:
+        AccountUpdate(name="Groceries", category_type=None)
+
+    assert "category_type can not be null" in str(exc.value)

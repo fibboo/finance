@@ -84,6 +84,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     _delete_accounting_rows()
+    op.execute("UPDATE users SET base_currency = NULL")
 
     op.drop_constraint("account_category_type_by_kind", "accounts", type_="check")
     op.drop_constraint("account_currency_by_kind", "accounts", type_="check")

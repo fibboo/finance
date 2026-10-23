@@ -582,33 +582,19 @@ async def test_update_account_category_type_ok(db: AsyncSession, db_transaction:
     assert account_db.category_type == CategoryType.FIXED
 
 
-@pytest.mark.parametrize(
-    "kind, currency, category_type, update_category_type",
-    [
-        (AccountKind.ASSET, "USD", None, CategoryType.FIXED),
-        (AccountKind.INCOME, None, None, CategoryType.FIXED),
-        (AccountKind.EXPENSE, None, CategoryType.VARIABLE, None),
-    ],
-)
+@pytest.mark.parametrize("kind, currency", [(AccountKind.ASSET, "USD"), (AccountKind.INCOME, None)])
 async def test_update_account_category_type_mismatch(
-    db: AsyncSession,
-    db_transaction: AsyncSession,
-    kind: AccountKind,
-    currency: str | None,
-    category_type: CategoryType | None,
-    update_category_type: CategoryType | None,
+    db: AsyncSession, db_transaction: AsyncSession, kind: AccountKind, currency: str | None
 ):
     # Arrange
     user_id: UUID = uuid4()
-    create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=kind, name="Account", currency=currency, category_type=category_type
-    )
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", currency=currency)
     account_created: Account = await account_service.create_account(
         db=db, user_id=user_id, create_data=create_data, base_currency="USD"
     )
     await db.commit()
 
-    update_data: AccountUpdate = AccountUpdate(name="Updated", category_type=update_category_type)
+    update_data: AccountUpdate = AccountUpdate(name="Updated", category_type=CategoryType.FIXED)
 
     # Act / Assert
     with pytest.raises(AccountKindMismatch) as exc:
@@ -623,7 +609,7 @@ async def test_update_account_category_type_mismatch(
 
     account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
     assert account_db.name == "Account"
-    assert account_db.category_type == category_type
+    assert account_db.category_type is None
 
 
 async def test_update_account_equity(db: AsyncSession, db_transaction: AsyncSession):
