@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from decimal import Decimal, ROUND_HALF_EVEN
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
@@ -34,9 +34,8 @@ from app.schemas.accounting.transaction import (
     TransactionType,
 )
 from app.schemas.base import CurrencyCode, EntityStatusType
-from app.services.accounting import currency_service
+from app.services.accounting import currency_service, ledger_service
 from app.services.user import user_service
-from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -93,7 +92,12 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     async def _validate_transaction_from_account(self, *, data: T, from_account_db: AccountModel | None) -> None:
         self._validate_account_is_active(account_id=data.from_account_id, account_db=from_account_db)
 
-        has_rate: bool = self._has_rate(account_db=from_account_db, base_currency=self.base_currency)
+        has_rate: bool = ledger_service.has_base_currency_rate(
+            currency=from_account_db.currency,
+            balance=from_account_db.balance,
+            base_balance=from_account_db.base_balance,
+            base_currency=self.base_currency,
+        )
         if not has_rate:
             raise NoAccountBaseCurrencyRate(account_id=from_account_db.id, logger=logger)
 
@@ -120,33 +124,6 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
     def _get_request_currencies(*, data: T) -> list[CurrencyCode]:
         currencies: list[CurrencyCode] = sorted({data.source_currency, data.destination_currency})
         return currencies
-
-    @staticmethod
-    def __quantize_amount(*, amount: Decimal) -> Decimal:
-        quantized_amount: Decimal = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
-        quantized_amount: Decimal = max(quantized_amount, Decimal("0.01"))
-        return quantized_amount
-
-    @staticmethod
-    def _has_rate(*, account_db: AccountModel, base_currency: CurrencyCode | None) -> bool:
-        base_currency_rate: Decimal = utils.get_base_currency_rate(
-            balance=account_db.balance, base_balance=account_db.base_balance
-        )
-        has_rate: bool = account_db.currency == base_currency or base_currency_rate > 0
-        return has_rate
-
-    @staticmethod
-    def _get_base_amount(*, account_db: AccountModel, amount: Decimal, base_currency: CurrencyCode | None) -> Decimal:
-        if account_db.currency == base_currency:
-            base_amount: Decimal = amount
-        elif amount == abs(account_db.balance):
-            base_amount: Decimal = abs(account_db.base_balance)
-        else:
-            base_amount: Decimal = TransactionProcessor.__quantize_amount(
-                amount=amount * account_db.base_balance / account_db.balance
-            )
-
-        return base_amount
 
     @staticmethod
     def _get_postings(
@@ -179,6 +156,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
     async def create(self, *, data: T) -> Transaction:
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
+        await account_crud.lock_money_accounts(db=self.db, user_id=self.user_id)
 
         currencies: list[CurrencyCode] = self._get_request_currencies(data=data)
         for currency in currencies:
@@ -194,7 +172,13 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)
 
         await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("1"))
+        await ledger_service.recalculate_accounts(
+            db=self.db, transaction_db=transaction_db, base_currency=self.base_currency
+        )
 
+        transaction_db: TransactionModel = await transaction_crud.get_refreshed(
+            db=self.db, transaction_id=transaction_db.id
+        )
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction
 
@@ -212,6 +196,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
                 entity=TransactionModel, search_params={"id": transaction_id, "user_id": self.user_id}, logger=logger
             )
 
+        self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
+        await account_crud.lock_money_accounts(db=self.db, user_id=self.user_id)
+
         account_ids: list[UUID] = [
             posting_db.account_id
             for posting_db in transaction_db.postings
@@ -228,6 +215,12 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             db=self.db, db_obj=transaction_db, obj_in=delete_update_data
         )
         await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("-1"))
+        await ledger_service.recalculate_accounts(
+            db=self.db, transaction_db=transaction_db, base_currency=self.base_currency
+        )
 
+        transaction_db: TransactionModel = await transaction_crud.get_refreshed(
+            db=self.db, transaction_id=transaction_db.id
+        )
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction

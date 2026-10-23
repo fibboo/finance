@@ -11,6 +11,7 @@ from app.exceptions.unprocessable_422 import (
 from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import MovementRequest, TransactionCreate, TransactionType
+from app.services.accounting import ledger_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(logger_name=__name__)
@@ -62,8 +63,12 @@ class Transfer(TransactionProcessor[MovementRequest]):
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
 
-        base_amount: Decimal = self._get_base_amount(
-            account_db=from_account_db, amount=data.source_amount, base_currency=self.base_currency
+        base_amount: Decimal = ledger_service.get_debit_base_amount(
+            currency=from_account_db.currency,
+            balance=from_account_db.balance,
+            base_balance=from_account_db.base_balance,
+            amount=data.source_amount,
+            base_currency=self.base_currency,
         )
         if data.source_currency == data.destination_currency:
             destination_amount: Decimal = data.source_amount

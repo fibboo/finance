@@ -11,6 +11,7 @@ from app.schemas.accounting.account import AccountKind, AdjustmentCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
+from app.services.accounting import ledger_service
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(logger_name=__name__)
@@ -29,15 +30,24 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
     def __get_base_currency_amount(
         self, *, data: AdjustmentCreate, account_db: AccountModel, amount: Decimal
     ) -> Decimal:
-        has_rate: bool = self._has_rate(account_db=account_db, base_currency=self.base_currency)
+        has_rate: bool = ledger_service.has_base_currency_rate(
+            currency=account_db.currency,
+            balance=account_db.balance,
+            base_balance=account_db.base_balance,
+            base_currency=self.base_currency,
+        )
         if has_rate:
             if data.base_currency_amount is not None:
                 raise BaseCurrencyAmountNotAllowed(
                     account_id=account_db.id, base_currency_amount=data.base_currency_amount, logger=logger
                 )
 
-            base_currency_amount: Decimal = self._get_base_amount(
-                account_db=account_db, amount=amount, base_currency=self.base_currency
+            base_currency_amount: Decimal = ledger_service.get_debit_base_amount(
+                currency=account_db.currency,
+                balance=account_db.balance,
+                base_balance=account_db.base_balance,
+                amount=amount,
+                base_currency=self.base_currency,
             )
         elif data.base_currency_amount is not None:
             base_currency_amount: Decimal = data.base_currency_amount

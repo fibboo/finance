@@ -1,9 +1,10 @@
 from datetime import date
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import asc, ColumnElement, desc, func, Row, select, Select
+from sqlalchemy import asc, ColumnElement, desc, func, Row, select, Select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
@@ -39,11 +40,39 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         db.add(transaction_db)
         await db.flush()
 
+        transaction_db: Transaction = await self.get_refreshed(db=db, transaction_id=transaction_db.id)
+        return transaction_db
+
+    async def get_refreshed(self, *, db: AsyncSession, transaction_id: UUID) -> Transaction:
         query: Select = (
-            select(self.model).where(self.model.id == transaction_db.id).execution_options(populate_existing=True)
+            select(self.model).where(self.model.id == transaction_id).execution_options(populate_existing=True)
         )
         transaction_db: Transaction = (await db.scalars(query)).one()
         return transaction_db
+
+    async def get_account_transactions_from_date(
+        self, *, db: AsyncSession, account_id: UUID, date_from: date
+    ) -> list[Transaction]:
+        transaction_ids: Select = self.__get_account_transaction_ids(account_ids=[account_id])
+        query: Select = (
+            select(self.model)
+            .where(
+                self.model.id.in_(transaction_ids),
+                self.model.status == EntityStatusType.ACTIVE,
+                self.model.transaction_date >= date_from,
+            )
+            .order_by(self.model.transaction_date, self.model.id)
+            .execution_options(populate_existing=True)
+        )
+        transactions_db: list[Transaction] = (await db.scalars(query)).all()
+        return transactions_db
+
+    async def update_base_currency_amounts(self, *, db: AsyncSession, amounts: dict[UUID, Decimal]) -> None:
+        values: list[dict] = [
+            {"id": transaction_id, "base_currency_amount": amount} for transaction_id, amount in amounts.items()
+        ]
+        await db.execute(update(self.model), values)
+        await db.flush()
 
     async def get_transactions(
         self, *, db: AsyncSession, request: TransactionRequest, user_id: UUID
