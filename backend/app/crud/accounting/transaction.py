@@ -1,10 +1,11 @@
+from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import asc, ColumnElement, desc, func, Row, select, Select, update
+from sqlalchemy import asc, ColumnElement, desc, false, func, Row, select, Select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
@@ -12,7 +13,7 @@ from app.crud.base import CRUDBase
 from app.models.accounting.account import Account
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
-from app.schemas.accounting.account import MONEY_ACCOUNT_KINDS
+from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import (
     OrderDirectionType,
@@ -101,8 +102,21 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             query = query.where(Transaction.status.in_(statuses))
 
         if len(request.account_ids) > 0:
-            transaction_ids: Select = self.__get_account_transaction_ids(account_ids=request.account_ids)
-            query = query.where(Transaction.id.in_(transaction_ids))
+            accounts_query: Select = select(Account.id, Account.kind).where(
+                Account.user_id == user_id, Account.id.in_(request.account_ids)
+            )
+            accounts: Sequence[Row] = (await db.execute(accounts_query)).all()
+            account_ids_by_kind: dict[AccountKind, list[UUID]] = {}
+            for account_id, kind in accounts:
+                filter_kind: AccountKind = AccountKind.ASSET if kind in MONEY_ACCOUNT_KINDS else kind
+                account_ids_by_kind.setdefault(filter_kind, []).append(account_id)
+
+            if len(accounts) < len(set(request.account_ids)):
+                query = query.where(false())
+
+            for kind_account_ids in account_ids_by_kind.values():
+                transaction_ids: Select = self.__get_account_transaction_ids(account_ids=kind_account_ids)
+                query = query.where(Transaction.id.in_(transaction_ids))
 
         if request.is_deleted_accounts_only:
             deleted_account_ids: Select = select(Account.id).where(
@@ -122,7 +136,8 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             func_ordering = desc if order.ordering == OrderDirectionType.DESC else asc
             query = query.order_by(func_ordering(order_fields_map[order.field]))
 
-        query = query.order_by(Transaction.id)
+        is_descending: bool = len(request.orders) > 0 and request.orders[0].ordering == OrderDirectionType.DESC
+        query = query.order_by(desc(Transaction.id) if is_descending else asc(Transaction.id))
 
         paginated_expenses = await apaginate(db, query, request)
         return paginated_expenses

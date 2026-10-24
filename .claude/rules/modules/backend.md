@@ -82,7 +82,9 @@ A transaction is a header row of `transactions` (`app/models/accounting/transact
 | Transfer | the source money account | the receiving money account |
 | Adjustment | the EQUITY account, or the account for a decrease | the account for an increase, or the EQUITY account |
 
-`Transaction` (`app/schemas/accounting/transaction.py`) returns the header and its `postings`, each with its whole account (`Posting` in `app/schemas/accounting/posting.py`). The relationship is ordered by amount, so the debit comes first, and an adjustment shows its EQUITY posting too. The account filter of the list is one condition on `postings.account_id`, so it matches either side.
+`Transaction` (`app/schemas/accounting/transaction.py`) returns the header and its `postings`, each with its whole account (`Posting` in `app/schemas/accounting/posting.py`). The relationship is ordered by amount, so the debit comes first, and an adjustment shows its EQUITY posting too.
+
+The list (`transaction_crud.get_transactions`) reads the kinds of the requested `account_ids` and groups them: ASSET and LIABILITY form one money group, and every other kind its own. Each group is one condition on `postings.account_id`, so accounts of one group match either side of a transaction with OR, while the groups combine with AND: a card and a category list the card's expenses in that category, which the client's separate account, category and income source filters rely on. An id that is not one of the user's accounts lists nothing, even next to known ones, since dropping it would lift its kind's condition and widen the list. The list breaks ties by id in the direction of the first order; a UUIDv7 id follows creation, so the four orders of the dictionary, which name one field each, keep a day's transactions in the order they were entered. Without `date_from` the list has no lower bound, so the client pages through the whole history. `TransactionType` with `TRANSACTION_TYPE_LABELS` and the four sort orders of `TRANSACTION_ORDER_LABELS`, keyed by their `orders` query value, are served by `GET /dictionaries/accounting` as `transaction_types` and `transaction_orders`.
 
 ## Movements
 

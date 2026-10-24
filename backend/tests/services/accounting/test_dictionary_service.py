@@ -31,3 +31,15 @@ async def test_get_accounting_dictionaries(db: AsyncSession):
         DictionaryItem(key="FIXED", label="Fixed"),
         DictionaryItem(key="PERIODIC", label="Periodic"),
     ]
+    assert dictionaries.transaction_types == [
+        DictionaryItem(key="EXPENSE", label="Expense"),
+        DictionaryItem(key="INCOME", label="Income"),
+        DictionaryItem(key="TRANSFER", label="Transfer"),
+        DictionaryItem(key="ADJUSTMENT", label="Balance adjustment"),
+    ]
+    assert dictionaries.transaction_orders == [
+        DictionaryItem(key="transaction_date:desc", label="Newest first"),
+        DictionaryItem(key="transaction_date:asc", label="Oldest first"),
+        DictionaryItem(key="base_currency_amount:desc", label="Largest first"),
+        DictionaryItem(key="base_currency_amount:asc", label="Smallest first"),
+    ]

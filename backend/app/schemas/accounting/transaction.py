@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, UTC
+from datetime import date, datetime, UTC
 from decimal import Decimal
 from enum import Enum
 from typing import Annotated, Any, TypeAlias
@@ -22,6 +22,16 @@ class TransactionType(str, Enum):
     INCOME = "INCOME"
     TRANSFER = "TRANSFER"
     ADJUSTMENT = "ADJUSTMENT"
+
+
+TRANSACTION_TYPE_LABELS: frozendict[TransactionType, str] = frozendict(
+    {
+        TransactionType.EXPENSE: "Expense",
+        TransactionType.INCOME: "Income",
+        TransactionType.TRANSFER: "Transfer",
+        TransactionType.ADJUSTMENT: "Balance adjustment",
+    }
+)
 
 
 class MovementRequest(BaseModel):
@@ -93,6 +103,24 @@ class OrderDirectionType(str, Enum):
     DESC = "desc"
 
 
+ORDER_QUERY_SEPARATOR: str = ":"
+
+
+def get_order_query_value(*, field: OrderFieldType, direction: OrderDirectionType) -> str:
+    order_query_value: str = f"{field.value}{ORDER_QUERY_SEPARATOR}{direction.value}"
+    return order_query_value
+
+
+TRANSACTION_ORDER_LABELS: frozendict[str, str] = frozendict(
+    {
+        get_order_query_value(field=OrderFieldType.TRANSACTION_DATE, direction=OrderDirectionType.DESC): "Newest first",
+        get_order_query_value(field=OrderFieldType.TRANSACTION_DATE, direction=OrderDirectionType.ASC): "Oldest first",
+        get_order_query_value(field=OrderFieldType.AMOUNT, direction=OrderDirectionType.DESC): "Largest first",
+        get_order_query_value(field=OrderFieldType.AMOUNT, direction=OrderDirectionType.ASC): "Smallest first",
+    }
+)
+
+
 class Order(BaseModel):
     field: OrderFieldType
     ordering: OrderDirectionType | None = None
@@ -101,7 +129,7 @@ class Order(BaseModel):
     @classmethod
     def parse_query_value(cls, value: Any) -> Any:
         if isinstance(value, str):
-            field, _, ordering = value.partition(":")
+            field, _, ordering = value.partition(ORDER_QUERY_SEPARATOR)
             return {"field": field, "ordering": ordering or None}
 
         return value
@@ -109,7 +137,7 @@ class Order(BaseModel):
 
 ORDER_QUERY_PATTERN: str = (
     f"^({'|'.join(field.value for field in OrderFieldType)})"
-    f"(:({'|'.join(direction.value for direction in OrderDirectionType)}))?$"
+    f"({ORDER_QUERY_SEPARATOR}({'|'.join(direction.value for direction in OrderDirectionType)}))?$"
 )
 OrderQueryValue: TypeAlias = Annotated[Order, WithJsonSchema({"type": "string", "pattern": ORDER_QUERY_PATTERN})]
 
@@ -118,8 +146,7 @@ class TransactionRequest(Params):
     page: int = Query(1, ge=1, description="Page number")
     size: int = Query(20, ge=1, le=100, description="Page size")
     orders: Annotated[list[OrderQueryValue], Field(validate_default=True)] = [
-        f"{OrderFieldType.TRANSACTION_DATE.value}:{OrderDirectionType.DESC.value}",
-        f"{OrderFieldType.CREATED_AT.value}:{OrderDirectionType.DESC.value}",
+        get_order_query_value(field=OrderFieldType.TRANSACTION_DATE, direction=OrderDirectionType.DESC)
     ]
 
     base_currency_amount_from: Annotated[Decimal, Field(ge=Decimal("0"), decimal_places=2)] | None = None
@@ -135,14 +162,11 @@ class TransactionRequest(Params):
     is_deleted_accounts_only: bool = False
 
     @model_validator(mode="after")
-    def fill_default_dates(self) -> TransactionRequest:
+    def fill_default_date_to(self) -> TransactionRequest:
         if self.date_to is None:
             self.date_to = datetime.now(UTC).date()
 
-        if self.date_from is None:
-            self.date_from = self.date_to - timedelta(days=90)
-
-        if self.date_from > self.date_to:
+        if self.date_from is not None and self.date_from > self.date_to:
             raise ValueError("date_from should not be later than date_to")
 
         return self
