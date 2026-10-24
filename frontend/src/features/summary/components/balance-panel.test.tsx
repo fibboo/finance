@@ -18,6 +18,7 @@ test('shows the total balance and the month in the base currency', async () => {
         earned: '2312.00',
         spent: '1046.70',
         left_over: '1265.30',
+        unvalued_spent: [],
       } satisfies components['schemas']['Summary']),
     ),
   );
@@ -43,6 +44,7 @@ test('shows zero amounts without a sign', async () => {
         earned: '0.00',
         spent: '0.00',
         left_over: '0.00',
+        unvalued_spent: [],
       } satisfies components['schemas']['Summary']),
     ),
   );

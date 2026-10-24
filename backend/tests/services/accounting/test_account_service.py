@@ -671,16 +671,23 @@ async def test_update_account_equity(db: AsyncSession, db_transaction: AsyncSess
     assert equity_db.name == "Adjustments"
 
 
-async def test_delete_account_with_balance(db: AsyncSession, db_transaction: AsyncSession):
+# a zero balance with a base value left over is refused too, since deleting it would drop that value
+@pytest.mark.parametrize(
+    "currency, balance, base_balance",
+    [("USD", Decimal("-100.00"), Decimal("-100.00")), ("EUR", Decimal("0"), Decimal("-10.00"))],
+)
+async def test_delete_account_with_balance(
+    db: AsyncSession, db_transaction: AsyncSession, currency: str, balance: Decimal, base_balance: Decimal
+):
     # Arrange
     user_id: UUID = uuid4()
     account_create_data: dict = {
         "user_id": user_id,
         "kind": AccountKind.LIABILITY,
         "name": "Credit card",
-        "currency": "USD",
-        "balance": Decimal("-100.00"),
-        "base_balance": Decimal("-100.00"),
+        "currency": currency,
+        "balance": balance,
+        "base_balance": base_balance,
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 

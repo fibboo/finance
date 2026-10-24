@@ -21,7 +21,7 @@ class Posting(Base):
 
     amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), ForeignKey(Currency.code), nullable=False)
-    base_amount: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    base_amount: Mapped[Decimal | None] = mapped_column(Numeric, nullable=True)
 
     account: Mapped[Account] = relationship(Account, lazy="selectin")
 

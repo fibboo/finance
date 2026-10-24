@@ -70,7 +70,7 @@ class TransactionCreate(BaseModel):
     transaction_type: TransactionType
     transaction_date: date
     comment: str | None = None
-    base_currency_amount: PositiveAmount
+    base_currency_amount: PositiveAmount | None
     location_id: UUID | None = None
     income_period: date | None = None
 
@@ -81,7 +81,7 @@ class Transaction(BaseModel):
     transaction_type: TransactionType
     transaction_date: date
     comment: str | None
-    base_currency_amount: PositiveAmount
+    base_currency_amount: PositiveAmount | None
     location: Location | None
     income_period: date | None
     status: EntityStatusType

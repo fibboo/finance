@@ -201,6 +201,9 @@ async def test_create_transfer_to_negative_account_adds_base_amount(db: AsyncSes
         "base_balance": Decimal("-50"),
     }
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+    equity_account_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_db.id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
 
     transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),
@@ -223,11 +226,18 @@ async def test_create_transfer_to_negative_account_adds_base_amount(db: AsyncSes
     # Assert
     assert transaction.base_currency_amount == Decimal("105")
 
-    # the credit brings its own 105 USD, so the cached sums move by the posting: -55 + 100 EUR and -50 + 105 USD
+    # the credit repays the debt of -55 EUR worth -50 USD and leaves 45 EUR at its own rate, 47.25 USD,
+    # so the -7.75 USD left over by the debt's rate goes to the EQUITY account
+    exchange_postings: list[tuple[UUID, Decimal, Decimal]] = sorted(
+        (posting.account.id, posting.amount, posting.base_amount) for posting in transaction.postings[2:]
+    )
+    assert exchange_postings == sorted(
+        [(account_to_db.id, Decimal("0"), Decimal("-7.75")), (equity_account_db.id, Decimal("0"), Decimal("7.75"))]
+    )
+
     account_to_db_after: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_to_db_after.balance == Decimal("45")
-    assert account_to_db_after.base_balance == Decimal("55")
-    assert transaction.postings[1].account.base_currency_rate == Decimal("0.8181818182")
+    assert account_to_db_after.base_balance == Decimal("47.25")
 
 
 async def test_create_transfer_other_to_base_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -1177,13 +1187,13 @@ async def test_create_transfer_same_currency_amount_mismatch(
     assert account_to.balance == Decimal("11")
 
 
-# 1 of 110 EUR worth 100 USD is 0.91 USD, which the receiving account adds to its base value
-# whatever it held before, an empty account and one whose balance crosses zero alike
+# 1 of 110 EUR worth 100 USD is 0.91 USD; a receiving account whose balance crosses zero
+# keeps the 0.4 EUR left at that rate, 0.36 USD
 @pytest.mark.parametrize(
     "to_balance, to_base_balance, expected_to_balance, expected_to_base_balance",
     [
         (Decimal("0"), Decimal("0"), Decimal("1"), Decimal("0.91")),
-        (Decimal("-0.6"), Decimal("-0.5"), Decimal("0.4"), Decimal("0.41")),
+        (Decimal("-0.6"), Decimal("-0.5"), Decimal("0.4"), Decimal("0.36")),
     ],
 )
 async def test_create_transfer_same_currency_credits_source_base_amount(
@@ -1219,6 +1229,9 @@ async def test_create_transfer_same_currency_credits_source_base_amount(
         "base_balance": to_base_balance,
     }
     account_to_db: AccountModel = await account_crud.create(db=db, obj_in=account_to_create_data, commit=True)
+    await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_db.id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
 
     transfer_create_data: MovementRequest = MovementRequest(
         transaction_date=date(2025, 2, 10),

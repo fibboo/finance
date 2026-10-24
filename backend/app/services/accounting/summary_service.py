@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.models.accounting.account import Account as AccountModel
-from app.schemas.accounting.summary import Summary
+from app.schemas.accounting.summary import CurrencyAmount, Summary
 from app.utils import utils
 
 
@@ -36,10 +36,22 @@ async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) ->
         db=db, user_id=user_id, date_from=first_day, date_to=last_day
     )
 
+    unvalued_sums: list[Row] = await transaction_crud.get_unvalued_expense_sums(
+        db=db, user_id=user_id, date_from=first_day, date_to=last_day
+    )
+
     total_balance: Decimal = _get_total_balance(accounts_db=accounts_db)
     earned: Decimal = utils.round_to_cents(amount=sums.income)
     spent: Decimal = utils.round_to_cents(amount=sums.expense)
+    unvalued_spent: list[CurrencyAmount] = [
+        CurrencyAmount(currency=unvalued_sum.currency, amount=unvalued_sum.amount) for unvalued_sum in unvalued_sums
+    ]
     summary = Summary(
-        month=first_day, total_balance=total_balance, earned=earned, spent=spent, left_over=earned - spent
+        month=first_day,
+        total_balance=total_balance,
+        earned=earned,
+        spent=spent,
+        left_over=earned - spent,
+        unvalued_spent=unvalued_spent,
     )
     return summary

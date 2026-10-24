@@ -13,7 +13,6 @@ from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import (
     CurrencyMismatchException,
     DeletedAccountTransactionForbidden,
-    NoAccountBaseCurrencyRate,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import (
@@ -119,7 +118,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
     async def _get_debit_base_amount(
         self, *, account_db: AccountModel, amount: Decimal, transaction_date: date
-    ) -> Decimal:
+    ) -> Decimal | None:
         balance, base_balance = await ledger_service.get_balances_at_date(
             db=self.db, account_db=account_db, transaction_date=transaction_date
         )
@@ -127,7 +126,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             currency=account_db.currency, balance=balance, base_balance=base_balance, base_currency=self.base_currency
         )
         if not has_rate:
-            raise NoAccountBaseCurrencyRate(account_id=account_db.id, logger=logger)
+            return None
 
         base_amount: Decimal = ledger_service.get_base_amount(
             currency=account_db.currency,
@@ -147,11 +146,12 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         to_account_id: UUID,
         to_amount: Decimal,
         to_currency: CurrencyCode,
-        base_amount: Decimal,
+        base_amount: Decimal | None,
     ) -> list[PostingCreate]:
+        from_base_amount: Decimal | None = None if base_amount is None else -base_amount
         postings: list[PostingCreate] = [
             PostingCreate(
-                account_id=from_account_id, amount=-from_amount, currency=from_currency, base_amount=-base_amount
+                account_id=from_account_id, amount=-from_amount, currency=from_currency, base_amount=from_base_amount
             ),
             PostingCreate(account_id=to_account_id, amount=to_amount, currency=to_currency, base_amount=base_amount),
         ]
@@ -164,7 +164,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
                     db=self.db,
                     account_id=posting_db.account_id,
                     amount=sign * posting_db.amount,
-                    base_amount=sign * posting_db.base_amount,
+                    base_amount=sign * ledger_service.get_valued_amount(base_amount=posting_db.base_amount),
                 )
 
     async def create(self, *, data: T) -> Transaction:

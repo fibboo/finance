@@ -136,7 +136,7 @@ async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -
     if account_db is None:
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
-    if is_money_account and account_db.balance != 0:
+    if is_money_account and (account_db.balance != 0 or account_db.base_balance != 0):
         raise AccountDeletionForbidden(account_id=account_id, logger=logger)
 
     if is_money_account and len(locked_accounts_db) == 1:

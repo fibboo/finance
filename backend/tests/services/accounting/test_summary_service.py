@@ -275,6 +275,7 @@ async def test_get_summary_ok(db: AsyncSession):
         "earned": "2312.00",
         "spent": "1046.70",
         "left_over": "1265.30",
+        "unvalued_spent": [],
     }
 
 
@@ -305,6 +306,7 @@ async def test_get_summary_empty_month(db: AsyncSession):
         "earned": "0.00",
         "spent": "0.00",
         "left_over": "0.00",
+        "unvalued_spent": [],
     }
 
 
@@ -365,6 +367,7 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
         "earned": "0.00",
         "spent": "800.25",
         "left_over": "-800.25",
+        "unvalued_spent": [],
     }
 
 
@@ -451,3 +454,109 @@ async def test_get_summary_money_accounts_only(db: AsyncSession):
 
     # Assert
     assert summary.total_balance == Decimal("30.00")
+
+
+async def test_get_summary_unvalued_spent_by_currency(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    eur_card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.LIABILITY,
+            "user_id": user_id,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("-45.50"),
+        },
+        commit=True,
+    )
+    rsd_card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.LIABILITY,
+            "user_id": user_id,
+            "name": "Card RSD",
+            "currency": "RSD",
+            "balance": Decimal("-1200"),
+        },
+        commit=True,
+    )
+    usd_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Checking",
+            "currency": "USD",
+            "balance": Decimal("80"),
+            "base_balance": Decimal("80"),
+        },
+        commit=True,
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    # unvalued: 30 + 15.50 EUR and 1200 RSD in October; one more in September and a deleted one are left out
+    unvalued_expenses: list[tuple[AccountModel, str, Decimal, date, EntityStatusType]] = [
+        (eur_card_db, "EUR", Decimal("30"), date(2026, 10, 3), EntityStatusType.ACTIVE),
+        (eur_card_db, "EUR", Decimal("15.50"), date(2026, 10, 20), EntityStatusType.ACTIVE),
+        (rsd_card_db, "RSD", Decimal("1200"), date(2026, 10, 7), EntityStatusType.ACTIVE),
+        (eur_card_db, "EUR", Decimal("70"), date(2026, 9, 30), EntityStatusType.ACTIVE),
+        (eur_card_db, "EUR", Decimal("9"), date(2026, 10, 9), EntityStatusType.DELETED),
+    ]
+    for account_db, currency, amount, transaction_date, transaction_status in unvalued_expenses:
+        transaction_db: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=None,
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(account_id=account_db.id, amount=-amount, currency=currency, base_amount=None),
+                PostingCreate(account_id=category_db.id, amount=amount, currency=currency, base_amount=None),
+            ],
+        )
+        transaction_db.status = transaction_status
+
+    # a valued expense of 20 USD counts in spent only
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2026, 10, 5),
+            base_currency_amount=Decimal("20"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(
+                account_id=usd_account_db.id, amount=Decimal("-20"), currency="USD", base_amount=Decimal("-20")
+            ),
+            PostingCreate(account_id=category_db.id, amount=Decimal("20"), currency="USD", base_amount=Decimal("20")),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    summary: Summary = await summary_service.get_summary(db=db, user_id=user_id, month=date(2026, 10, 1))
+
+    # Assert
+    assert summary.model_dump(mode="json") == {
+        "month": "2026-10-01",
+        "total_balance": "80.00",
+        "earned": "0.00",
+        "spent": "20.00",
+        "left_over": "-20.00",
+        "unvalued_spent": [{"currency": "EUR", "amount": "45.50"}, {"currency": "RSD", "amount": "1200"}],
+    }
