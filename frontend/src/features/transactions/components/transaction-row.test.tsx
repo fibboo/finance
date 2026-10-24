@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { expect, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -84,15 +84,6 @@ const incomeSource = {
   base_currency_balance: '0.00',
 } satisfies components['schemas']['Account'];
 
-beforeEach(() => {
-  vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date(2026, 9, 20, 12));
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
-
 test.each([
   {
     kind: 'an expense',
@@ -103,7 +94,8 @@ test.each([
         { ...posting, amount: '42.80', base_amount: '42.80', account: category },
       ],
     },
-    texts: ['Groceries', 'Wallet', 'Today', '-$42.80'],
+    texts: ['Groceries', 'Wallet', '-$42.80'],
+    absentTexts: ['≈'],
   },
   {
     kind: 'an income',
@@ -113,11 +105,18 @@ test.each([
       transaction_date: '2026-10-19',
       income_period: '2026-10-01',
       postings: [
-        { ...posting, amount: '-2100.00', currency: 'EUR', account: incomeSource },
-        { ...posting, amount: '2100.00', currency: 'EUR', account: wallet },
+        {
+          ...posting,
+          amount: '-2100.00',
+          currency: 'EUR',
+          base_amount: '-2291.30',
+          account: incomeSource,
+        },
+        { ...posting, amount: '2100.00', currency: 'EUR', base_amount: '2291.30', account: wallet },
       ],
     },
-    texts: ['Salary', 'Wallet', 'Yesterday', '+€2,100.00'],
+    texts: ['Salary', 'Wallet', '+€2,100.00', '≈ +$2,291.30'],
+    absentTexts: [],
   },
   {
     kind: 'a transfer',
@@ -126,11 +125,12 @@ test.each([
       transaction_type: 'TRANSFER',
       transaction_date: '2026-10-16',
       postings: [
-        { ...posting, amount: '-300.00', currency: 'EUR', account: wallet },
-        { ...posting, amount: '300.00', currency: 'EUR', account: savings },
+        { ...posting, amount: '-300.00', currency: 'EUR', base_amount: '-327.40', account: wallet },
+        { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
-    texts: ['Transfer to Savings', 'Wallet → Savings', 'Oct 16', '€300.00'],
+    texts: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '≈ $327.40'],
+    absentTexts: [],
   },
   {
     kind: 'a decreasing adjustment',
@@ -143,7 +143,8 @@ test.each([
         { ...posting, amount: '12.00', account: equity },
       ],
     },
-    texts: ['Balance adjustment', 'Savings', 'Dec 31, 2025', '-$12.00'],
+    texts: ['Balance adjustment', 'Savings', '-$12.00'],
+    absentTexts: ['≈'],
   },
   {
     kind: 'an increasing adjustment',
@@ -155,17 +156,23 @@ test.each([
         { ...posting, amount: '25.00', account: savings },
       ],
     },
-    texts: ['Balance adjustment', 'Savings', 'Today', '+$25.00'],
+    texts: ['Balance adjustment', 'Savings', '+$25.00'],
+    absentTexts: ['≈'],
   },
-] satisfies { kind: string; row: components['schemas']['Transaction']; texts: string[] }[])(
-  'describes $kind',
-  async ({ row, texts }) => {
-    // act
-    render(<TransactionRow transaction={row} />);
+] satisfies {
+  kind: string;
+  row: components['schemas']['Transaction'];
+  texts: string[];
+  absentTexts: string[];
+}[])('describes $kind', async ({ row, texts, absentTexts }) => {
+  // act
+  render(<TransactionRow transaction={row} baseCurrency="USD" />);
 
-    // assert
-    for (const text of texts) {
-      expect(await screen.findByText(text)).toBeInTheDocument();
-    }
-  },
-);
+  // assert
+  for (const text of texts) {
+    expect(await screen.findByText(text)).toBeInTheDocument();
+  }
+  for (const text of absentTexts) {
+    expect(screen.queryByText(text, { exact: false })).not.toBeInTheDocument();
+  }
+});

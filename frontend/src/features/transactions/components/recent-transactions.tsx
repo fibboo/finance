@@ -6,10 +6,9 @@ import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 
 import { transactionQueries } from '../api/transaction-queries';
 import styles from './recent-transactions.module.css';
-import { TransactionRow } from './transaction-row';
+import { TransactionDayList } from './transaction-day-list';
 
 const RECENT_TRANSACTION_COUNT = 6;
-const EARLIEST_TRANSACTION_DATE = '0001-01-01';
 
 function readLocalToday(): string {
   const today = new Date();
@@ -21,11 +20,12 @@ function readLocalToday(): string {
   return localToday;
 }
 
-export function RecentTransactions() {
+type RecentTransactionsProps = Readonly<{ baseCurrency: string }>;
+
+export function RecentTransactions({ baseCurrency }: RecentTransactionsProps) {
   const { data: transactionPage, isPending } = useQuery(
     transactionQueries.list({
       size: RECENT_TRANSACTION_COUNT,
-      date_from: EARLIEST_TRANSACTION_DATE,
       date_to: readLocalToday(),
     }),
   );
@@ -50,17 +50,12 @@ export function RecentTransactions() {
               <Skeleton className={styles['dotSkeleton']} />
               <Skeleton className={styles['titleSkeleton']} />
               <Skeleton className={styles['accountsSkeleton']} />
-              <Skeleton className={styles['dateSkeleton']} />
               <Skeleton className={styles['amountSkeleton']} />
             </li>
           ))}
         </ul>
       ) : transactionPage.items.length > 0 ? (
-        <ul className={styles['transactions']}>
-          {transactionPage.items.map((transaction) => (
-            <TransactionRow key={transaction.id} transaction={transaction} />
-          ))}
-        </ul>
+        <TransactionDayList transactions={transactionPage.items} baseCurrency={baseCurrency} />
       ) : (
         <p className={styles['empty']}>
           <span className={styles['emptyTitle']}>Nothing here yet</span>

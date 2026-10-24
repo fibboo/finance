@@ -5,8 +5,8 @@
   display: grid;
   grid-template-columns: var(--size-dot) minmax(0, 1fr) auto;
   grid-template-areas:
-    'dot title amount'
-    'dot meta amount';
+    'dot title amounts'
+    'dot accounts amounts';
   align-content: center;
   align-items: center;
   column-gap: var(--space-3);
@@ -20,76 +20,56 @@
   background: currentColor;
 }
 
-.title {
-  grid-area: title;
+.title,
+.accounts {
+  min-width: 0;
   overflow: hidden;
-  font-size: var(--font-size-base);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.meta {
-  grid-area: meta;
-  min-width: 0;
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: flex-end;
-  gap: var(--space-1);
+.title {
+  grid-area: title;
+  font-size: var(--font-size-base);
+}
+
+.accounts {
+  grid-area: accounts;
   font-size: var(--font-size-xs);
   color: var(--color-muted);
 }
 
-.accounts {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.accounts::before {
-  content: '· ';
-}
-
-.date {
-  flex: none;
+.amounts {
+  grid-area: amounts;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .amount,
 .incomeAmount {
-  grid-area: amount;
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
-  text-align: right;
 }
 
 .incomeAmount {
   color: var(--color-accent);
 }
 
+.baseAmount {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
 @media (--desktop) {
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
-    grid-template-columns: var(--size-dot) 2fr 2fr 1fr var(--size-amount-column);
-    grid-template-areas: 'dot title accounts date amount';
+    grid-template-columns: var(--size-dot) 2fr 2fr var(--size-amount-column);
+    grid-template-areas: 'dot title accounts amounts';
     column-gap: var(--space-3-5);
   }
 
-  .meta {
-    display: contents;
-  }
-
   .accounts {
-    grid-area: accounts;
     font-size: var(--font-size-md);
-    color: var(--color-muted);
-  }
-
-  .accounts::before {
-    content: none;
-  }
-
-  .date {
-    grid-area: date;
-    font-size: var(--font-size-md);
-    color: var(--color-muted);
   }
 }
