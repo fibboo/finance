@@ -111,7 +111,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
                 filter_kind: AccountKind = AccountKind.ASSET if kind in MONEY_ACCOUNT_KINDS else kind
                 account_ids_by_kind.setdefault(filter_kind, []).append(account_id)
 
-            if len(account_ids_by_kind) == 0:
+            if len(accounts) < len(set(request.account_ids)):
                 query = query.where(false())
 
             for kind_account_ids in account_ids_by_kind.values():
@@ -136,7 +136,8 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             func_ordering = desc if order.ordering == OrderDirectionType.DESC else asc
             query = query.order_by(func_ordering(order_fields_map[order.field]))
 
-        query = query.order_by(Transaction.id)
+        is_descending: bool = len(request.orders) > 0 and request.orders[0].ordering == OrderDirectionType.DESC
+        query = query.order_by(desc(Transaction.id) if is_descending else asc(Transaction.id))
 
         paginated_expenses = await apaginate(db, query, request)
         return paginated_expenses

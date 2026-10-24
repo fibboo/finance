@@ -158,7 +158,8 @@ export interface paths {
          *     `date_from` later than `date_to` is refused. `account_ids` of one kind match a transaction with a posting on any
          *     of them, and kinds combine: a transaction is listed only when it has a posting on a listed account of every kind
          *     sent. ASSET and LIABILITY accounts count as one kind, so a card and a category list the card's expenses in that
-         *     category.
+         *     category. An id that is not one of the user's accounts leaves the list empty. Transactions that tie on the
+         *     sort fields follow the order they were created in, in the direction of the first order.
          */
         get: operations["get_transactions_accounting_transactions_get"];
         put?: never;
