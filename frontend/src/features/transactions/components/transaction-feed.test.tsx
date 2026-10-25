@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
@@ -131,6 +132,100 @@ test('loads the next page of the whole history when the end of the list comes in
   expect(within(transactions).getAllByRole('heading', { name: 'Today' })).toHaveLength(1);
   expect(within(transactions).getByText('-$47.30')).toBeInTheDocument();
   expect(screen.getByText('2 transactions')).toBeInTheDocument();
+});
+
+test('shows a transaction moved to the next page once and the latest total', async () => {
+  // arrange
+  // a transaction added before page 2 loads pushes the last row of page 1 onto page 2
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) =>
+      new URL(request.url).searchParams.get('page') === '1'
+        ? HttpResponse.json({
+            items: [expense],
+            total: 2,
+            page: 1,
+            size: 15,
+            pages: 2,
+          } satisfies components['schemas']['Page_Transaction_'])
+        : HttpResponse.json({
+            items: [
+              expense,
+              {
+                ...expense,
+                id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+                postings: [
+                  { ...walletPosting, amount: '-4.50', base_amount: '-4.50' },
+                  { ...categoryPosting, amount: '4.50', base_amount: '4.50', account: cafes },
+                ],
+              },
+            ],
+            total: 3,
+            page: 2,
+            size: 15,
+            pages: 2,
+          } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+
+  // act
+  render(<TransactionFeed baseCurrency="USD" />);
+
+  // assert
+  const transactions = screen.getByRole('region', { name: 'Transactions' });
+  expect(await within(transactions).findByText('Cafes')).toBeInTheDocument();
+  expect(within(transactions).getAllByText('Groceries')).toHaveLength(1);
+  expect(within(transactions).getByText('-$47.30')).toBeInTheDocument();
+  expect(screen.getByText('3 transactions')).toBeInTheDocument();
+});
+
+test('stops loading after the next page fails until Try again is pressed', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let nextPageRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      if (new URL(request.url).searchParams.get('page') === '1') {
+        return HttpResponse.json({
+          items: [expense],
+          total: 2,
+          page: 1,
+          size: 15,
+          pages: 2,
+        } satisfies components['schemas']['Page_Transaction_']);
+      }
+
+      nextPageRequestCount += 1;
+      return nextPageRequestCount === 1
+        ? HttpResponse.json(null, { status: 400 })
+        : HttpResponse.json({
+            items: [
+              {
+                ...expense,
+                id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+                postings: [
+                  { ...walletPosting, amount: '-4.50', base_amount: '-4.50' },
+                  { ...categoryPosting, amount: '4.50', base_amount: '4.50', account: cafes },
+                ],
+              },
+            ],
+            total: 2,
+            page: 2,
+            size: 15,
+            pages: 2,
+          } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<TransactionFeed baseCurrency="USD" />);
+  expect(await screen.findByText("Couldn't load more")).toBeInTheDocument();
+  expect(nextPageRequestCount).toBe(1);
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+  // assert
+  expect(await screen.findByText('Cafes')).toBeInTheDocument();
+  expect(screen.queryByText("Couldn't load more")).not.toBeInTheDocument();
+  expect(nextPageRequestCount).toBe(2);
 });
 
 test('shows the empty state without transactions', async () => {

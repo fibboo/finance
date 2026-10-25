@@ -1,21 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
-
+import { useBaseCurrency } from '@/app/use-base-currency';
+import { Page } from '@/components/page/page';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
-import { userQueries } from '@/features/user/api/user-queries';
-
-import styles from './transactions.module.css';
 
 export function Component() {
-  const { data: user } = useQuery(userQueries.me());
-  if (user?.base_currency === null) {
-    throw new Error('The signed-in user has no base currency yet.');
-  }
-
-  const baseCurrency = user?.base_currency;
+  const baseCurrency = useBaseCurrency();
   return (
-    <div className={styles['transactions']}>
-      <h1 className={styles['title']}>Transactions</h1>
+    <Page title="Transactions">
       {baseCurrency !== undefined && <TransactionFeed baseCurrency={baseCurrency} />}
-    </div>
+    </Page>
   );
 }

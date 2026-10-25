@@ -21,6 +21,32 @@
   background: var(--color-panel);
 }
 
+.loadMoreError {
+  min-height: var(--size-transaction-row);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.retry {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-4);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+  font-weight: var(--font-weight-semibold);
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--color-ground);
+}
+
 @media (--desktop) {
   .count {
     font-size: var(--font-size-md);
