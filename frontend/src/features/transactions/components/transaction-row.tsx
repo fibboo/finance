@@ -29,7 +29,7 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
             signDisplay: view.signDisplay,
           })}
         </span>
-        {view.currency !== baseCurrency && (
+        {view.currency !== baseCurrency && view.baseAmount !== null && (
           <BaseAmountEstimate
             amount={view.baseAmount}
             currency={baseCurrency}

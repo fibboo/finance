@@ -21,6 +21,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.alter_column("postings", "base_amount", existing_type=sa.Numeric(), nullable=True)
     op.alter_column("transactions", "base_currency_amount", existing_type=sa.Numeric(), nullable=True)
+    op.add_column("transactions", sa.Column("valued_on", sa.Date(), nullable=True))
     op.execute("""
         CREATE FUNCTION check_transaction_valuation() RETURNS trigger AS $$
         DECLARE
@@ -65,7 +66,25 @@ def downgrade() -> None:
         WHERE accounts.id = exchange.account_id
         """)
     op.execute("DELETE FROM postings WHERE amount = 0")
-    op.execute("UPDATE postings SET base_amount = 0 WHERE base_amount IS NULL")
-    op.execute("UPDATE transactions SET base_currency_amount = 0 WHERE base_currency_amount IS NULL")
+    op.execute("""
+        UPDATE accounts SET balance = accounts.balance - unvalued.amount
+        FROM (
+            SELECT postings.account_id, sum(postings.amount) AS amount
+            FROM postings JOIN transactions ON transactions.id = postings.transaction_id
+            WHERE transactions.base_currency_amount IS NULL AND transactions.status = 'ACTIVE'
+            GROUP BY postings.account_id
+        ) AS unvalued
+        WHERE accounts.id = unvalued.account_id AND accounts.kind IN ('ASSET', 'LIABILITY')
+        """)
+    op.execute("""
+        DELETE FROM postings USING transactions
+        WHERE transactions.id = postings.transaction_id AND transactions.base_currency_amount IS NULL
+        """)
+    op.execute("""
+        DELETE FROM transactions
+        WHERE base_currency_amount IS NULL
+           OR NOT EXISTS (SELECT 1 FROM postings WHERE postings.transaction_id = transactions.id)
+        """)
+    op.drop_column("transactions", "valued_on")
     op.alter_column("transactions", "base_currency_amount", existing_type=sa.Numeric(), nullable=False)
     op.alter_column("postings", "base_amount", existing_type=sa.Numeric(), nullable=False)

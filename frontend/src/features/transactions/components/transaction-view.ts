@@ -8,7 +8,7 @@ type TransactionView = Readonly<{
   accountNames: string;
   markedAccount: Account;
   amount: number;
-  baseAmount: number;
+  baseAmount: number | null;
   currency: string;
   signDisplay: Intl.NumberFormatOptions['signDisplay'];
   isIncome: boolean;
@@ -35,7 +35,7 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
         accountNames: debit.account.name,
         markedAccount: debit.account,
         amount: Number(debit.amount),
-        baseAmount: Number(debit.base_amount),
+        baseAmount: debit.base_amount === null ? null : Number(debit.base_amount),
         currency: debit.currency,
         signDisplay: 'exceptZero',
         isIncome: false,

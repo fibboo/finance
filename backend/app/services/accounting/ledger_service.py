@@ -80,23 +80,19 @@ def get_exchange_difference(
 async def get_balances_at_date(
     *, db: AsyncSession, account_db: AccountModel, transaction_date: date
 ) -> tuple[Decimal, Decimal]:
-    later_sums: Row = await posting_crud.get_sums_after_date(
-        db=db, account_id=account_db.id, transaction_date=transaction_date
-    )
+    sums: Row = await posting_crud.get_sums_at_date(db=db, account_id=account_db.id, transaction_date=transaction_date)
     balances: tuple[Decimal, Decimal] = (
-        account_db.balance - later_sums.amount,
-        account_db.base_balance - later_sums.base_amount,
+        account_db.balance - sums.later_amount - sums.waiting_amount,
+        account_db.base_balance - sums.later_base_amount - sums.waiting_base_amount,
     )
     return balances
 
 
 def _get_revalued_amounts(
     *, account_db: AccountModel, transactions_db: list[TransactionModel], base_currency: CurrencyCode
-) -> tuple[dict[UUID, Decimal], dict[UUID, Decimal]]:
-    adjustment_ids: set[UUID] = {
-        transaction_db.id
-        for transaction_db in transactions_db
-        if transaction_db.transaction_type == TransactionType.ADJUSTMENT
+) -> tuple[dict[UUID, Decimal | None], dict[UUID, date | None], dict[UUID, Decimal]]:
+    transactions_by_id: dict[UUID, TransactionModel] = {
+        transaction_db.id: transaction_db for transaction_db in transactions_db
     }
     postings_db: list[PostingModel] = [
         posting_db
@@ -112,42 +108,54 @@ def _get_revalued_amounts(
         get_valued_amount(base_amount=posting_db.base_amount) for posting_db in postings_db
     )
 
-    revalued_amounts: dict[UUID, Decimal] = {}
+    revalued_amounts: dict[UUID, Decimal | None] = {}
+    valued_dates: dict[UUID, date | None] = {}
     exchange_differences: dict[UUID, Decimal] = {}
-    unvalued_postings_db: list[PostingModel] = []
+    waiting_postings_db: list[PostingModel] = []
     for posting_db in postings_db:
         if posting_db.amount == 0:
             continue
 
+        transaction_db: TransactionModel = transactions_by_id[posting_db.transaction_id]
+        valued_balance: Decimal = balance - sum(waiting_posting_db.amount for waiting_posting_db in waiting_postings_db)
         has_rate: bool = has_base_currency_rate(
-            currency=account_db.currency, balance=balance, base_balance=base_balance, base_currency=base_currency
+            currency=account_db.currency, balance=valued_balance, base_balance=base_balance, base_currency=base_currency
         )
-        is_valued_at_rate: bool = posting_db.amount < 0 or posting_db.transaction_id in adjustment_ids
+        is_adjustment: bool = transaction_db.transaction_type == TransactionType.ADJUSTMENT
+        is_expense_debit: bool = posting_db.amount < 0 and transaction_db.transaction_type == TransactionType.EXPENSE
         base_amount: Decimal | None = posting_db.base_amount
-        if is_valued_at_rate and has_rate:
+        exchange_difference: Decimal = Decimal("0")
+        if (posting_db.amount < 0 or is_adjustment) and has_rate:
             base_currency_amount: Decimal = get_base_amount(
                 currency=account_db.currency,
-                balance=balance,
+                balance=valued_balance,
                 base_balance=base_balance,
                 amount=abs(posting_db.amount),
                 base_currency=base_currency,
             )
             base_amount: Decimal = base_currency_amount if posting_db.amount > 0 else -base_currency_amount
-        elif base_amount is None:
-            unvalued_postings_db.append(posting_db)
-        elif posting_db.amount > 0:
-            for unvalued_posting_db in unvalued_postings_db:
-                unvalued_base_amount: Decimal = get_base_amount(
+        elif is_expense_debit:
+            waiting_postings_db.append(posting_db)
+            balance += posting_db.amount
+            continue
+        elif posting_db.amount > 0 and not is_adjustment:
+            for waiting_posting_db in waiting_postings_db:
+                waiting_base_amount: Decimal = get_base_amount(
                     currency=account_db.currency,
                     balance=posting_db.amount,
                     base_balance=base_amount,
-                    amount=abs(unvalued_posting_db.amount),
+                    amount=abs(waiting_posting_db.amount),
                     base_currency=base_currency,
                 )
-                revalued_amounts[unvalued_posting_db.transaction_id] = unvalued_base_amount
-                base_balance -= unvalued_base_amount
+                if -waiting_base_amount != waiting_posting_db.base_amount:
+                    revalued_amounts[waiting_posting_db.transaction_id] = waiting_base_amount
 
-            unvalued_postings_db = []
+                if transactions_by_id[waiting_posting_db.transaction_id].valued_on != transaction_db.transaction_date:
+                    valued_dates[waiting_posting_db.transaction_id] = transaction_db.transaction_date
+
+                base_balance -= waiting_base_amount
+
+            waiting_postings_db = []
             exchange_difference: Decimal = get_exchange_difference(
                 currency=account_db.currency,
                 balance=balance,
@@ -156,35 +164,43 @@ def _get_revalued_amounts(
                 base_amount=base_amount,
                 base_currency=base_currency,
             )
-            exchange_posting_db: PostingModel | None = exchange_postings_db.get(posting_db.transaction_id)
-            stored_exchange_difference: Decimal = (
-                Decimal("0") if exchange_posting_db is None else exchange_posting_db.base_amount
-            )
-            if exchange_difference != stored_exchange_difference:
-                exchange_differences[posting_db.transaction_id] = exchange_difference
 
-            base_balance += exchange_difference
+        exchange_posting_db: PostingModel | None = exchange_postings_db.get(posting_db.transaction_id)
+        stored_exchange_difference: Decimal = (
+            Decimal("0") if exchange_posting_db is None else exchange_posting_db.base_amount
+        )
+        if exchange_difference != stored_exchange_difference:
+            exchange_differences[posting_db.transaction_id] = exchange_difference
 
         if base_amount != posting_db.base_amount:
             revalued_amounts[posting_db.transaction_id] = abs(base_amount)
 
-        balance += posting_db.amount
-        base_balance += get_valued_amount(base_amount=base_amount)
+        if transaction_db.valued_on is not None:
+            valued_dates[posting_db.transaction_id] = None
 
-    return revalued_amounts, exchange_differences
+        balance += posting_db.amount
+        base_balance += get_valued_amount(base_amount=base_amount) + exchange_difference
+
+    for waiting_posting_db in waiting_postings_db:
+        if waiting_posting_db.base_amount is not None:
+            revalued_amounts[waiting_posting_db.transaction_id] = None
+
+        if transactions_by_id[waiting_posting_db.transaction_id].valued_on is not None:
+            valued_dates[waiting_posting_db.transaction_id] = None
+
+    return revalued_amounts, valued_dates, exchange_differences
 
 
 def _get_revalued_postings(
     *,
     account_id: UUID,
     transactions_db: list[TransactionModel],
-    revalued_amounts: dict[UUID, Decimal],
+    revalued_amounts: dict[UUID, Decimal | None],
     exchange_differences: dict[UUID, Decimal],
     base_currency: CurrencyCode,
-) -> dict[UUID, tuple[Decimal, Decimal]]:
-    revalued_postings: dict[UUID, tuple[Decimal, Decimal]] = {}
+) -> dict[UUID, tuple[Decimal, Decimal | None]]:
+    revalued_postings: dict[UUID, tuple[Decimal, Decimal | None]] = {}
     for transaction_db in transactions_db:
-        base_currency_amount: Decimal | None = revalued_amounts.get(transaction_db.id)
         exchange_difference: Decimal = exchange_differences.get(transaction_db.id, Decimal("0"))
         for posting_db in transaction_db.postings:
             if posting_db.amount == 0 and exchange_difference != 0:
@@ -192,7 +208,12 @@ def _get_revalued_postings(
                 base_amount: Decimal = exchange_difference if is_account_posting else -exchange_difference
                 revalued_postings[posting_db.id] = (posting_db.amount, base_amount)
 
-            if posting_db.amount == 0 or base_currency_amount is None:
+            if posting_db.amount == 0 or transaction_db.id not in revalued_amounts:
+                continue
+
+            base_currency_amount: Decimal | None = revalued_amounts[transaction_db.id]
+            if base_currency_amount is None:
+                revalued_postings[posting_db.id] = (posting_db.amount, None)
                 continue
 
             base_amount: Decimal = base_currency_amount if posting_db.amount > 0 else -base_currency_amount
@@ -207,14 +228,10 @@ def _get_revalued_postings(
     return revalued_postings
 
 
-def _get_exchange_postings(
-    *,
-    account_db: AccountModel,
-    transactions_db: list[TransactionModel],
-    exchange_differences: dict[UUID, Decimal],
-    equity_account_db: AccountModel | None,
-) -> tuple[list[dict], list[PostingModel]]:
-    new_postings: list[dict] = []
+def _get_exchange_changes(
+    *, transactions_db: list[TransactionModel], exchange_differences: dict[UUID, Decimal]
+) -> tuple[dict[UUID, Decimal], list[PostingModel]]:
+    created_differences: dict[UUID, Decimal] = {}
     removed_postings_db: list[PostingModel] = []
     for transaction_db in transactions_db:
         exchange_difference: Decimal | None = exchange_differences.get(transaction_db.id)
@@ -226,30 +243,29 @@ def _get_exchange_postings(
         ]
         if exchange_difference == 0:
             removed_postings_db.extend(exchange_postings_db)
-            continue
+        elif len(exchange_postings_db) == 0:
+            created_differences[transaction_db.id] = exchange_difference
 
-        if len(exchange_postings_db) > 0:
-            continue
+    return created_differences, removed_postings_db
 
-        if equity_account_db is None:
-            raise EntityNotFound(
-                entity=AccountModel,
-                search_params={"user_id": account_db.user_id, "kind": AccountKind.EQUITY},
-                logger=logger,
-            )
 
+def _get_exchange_postings(
+    *, account_db: AccountModel, equity_account_id: UUID, created_differences: dict[UUID, Decimal]
+) -> list[dict]:
+    new_postings: list[dict] = []
+    for transaction_id, exchange_difference in created_differences.items():
         new_postings.extend(
             [
                 {
-                    "transaction_id": transaction_db.id,
+                    "transaction_id": transaction_id,
                     "account_id": account_db.id,
                     "amount": Decimal("0"),
                     "currency": account_db.currency,
                     "base_amount": exchange_difference,
                 },
                 {
-                    "transaction_id": transaction_db.id,
-                    "account_id": equity_account_db.id,
+                    "transaction_id": transaction_id,
+                    "account_id": equity_account_id,
                     "amount": Decimal("0"),
                     "currency": account_db.currency,
                     "base_amount": -exchange_difference,
@@ -257,7 +273,7 @@ def _get_exchange_postings(
             ]
         )
 
-    return new_postings, removed_postings_db
+    return new_postings
 
 
 async def recalculate_accounts(
@@ -268,42 +284,57 @@ async def recalculate_accounts(
         if posting_db.account.kind in MONEY_ACCOUNT_KINDS:
             pending_dates[posting_db.account_id] = transaction_db.transaction_date
 
-    equity_account_db: AccountModel | None = await account_crud.get_or_none(
-        db=db, user_id=transaction_db.user_id, kind=AccountKind.EQUITY, status=EntityStatusType.ACTIVE
-    )
+    equity_account_db: AccountModel | None = None
     changed_accounts_db: dict[UUID, AccountModel] = {}
     balance_changes: dict[UUID, tuple[Decimal, Decimal]] = {}
     while len(pending_dates) > 0:
         account_id: UUID = min(pending_dates, key=pending_dates.get)
         date_from: date = pending_dates.pop(account_id)
-        first_unvalued_date: date | None = await posting_crud.get_first_unvalued_date(db=db, account_id=account_id)
-        if first_unvalued_date is not None:
-            date_from: date = min(date_from, first_unvalued_date)
+        first_revaluable_date: date | None = await posting_crud.get_first_revaluable_date(
+            db=db, account_id=account_id, date_from=date_from
+        )
+        if first_revaluable_date is not None:
+            date_from: date = min(date_from, first_revaluable_date)
 
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(db=db, ids=[account_id])
         account_db: AccountModel = accounts_db[account_id]
         transactions_db: list[TransactionModel] = await transaction_crud.get_account_transactions_from_date(
             db=db, account_id=account_id, date_from=date_from
         )
-        revalued_amounts, exchange_differences = _get_revalued_amounts(
+        revalued_amounts, valued_dates, exchange_differences = _get_revalued_amounts(
             account_db=account_db, transactions_db=transactions_db, base_currency=base_currency
         )
-        revalued_postings: dict[UUID, tuple[Decimal, Decimal]] = _get_revalued_postings(
+        revalued_postings: dict[UUID, tuple[Decimal, Decimal | None]] = _get_revalued_postings(
             account_id=account_id,
             transactions_db=transactions_db,
             revalued_amounts=revalued_amounts,
             exchange_differences=exchange_differences,
             base_currency=base_currency,
         )
-        new_postings, removed_postings_db = _get_exchange_postings(
-            account_db=account_db,
-            transactions_db=transactions_db,
-            exchange_differences=exchange_differences,
-            equity_account_db=equity_account_db,
+        created_differences, removed_postings_db = _get_exchange_changes(
+            transactions_db=transactions_db, exchange_differences=exchange_differences
         )
-        exchange_base_change: Decimal = sum(
-            posting["base_amount"] for posting in new_postings if posting["account_id"] == account_id
-        ) - sum(posting_db.base_amount for posting_db in removed_postings_db if posting_db.account_id == account_id)
+        new_postings: list[dict] = []
+        if len(created_differences) > 0:
+            if equity_account_db is None:
+                equity_account_db: AccountModel | None = await account_crud.get_or_none(
+                    db=db, user_id=account_db.user_id, kind=AccountKind.EQUITY, status=EntityStatusType.ACTIVE
+                )
+
+            if equity_account_db is None:
+                raise EntityNotFound(
+                    entity=AccountModel,
+                    search_params={"user_id": account_db.user_id, "kind": AccountKind.EQUITY},
+                    logger=logger,
+                )
+
+            new_postings: list[dict] = _get_exchange_postings(
+                account_db=account_db, equity_account_id=equity_account_db.id, created_differences=created_differences
+            )
+
+        exchange_base_change: Decimal = sum(created_differences.values()) - sum(
+            posting_db.base_amount for posting_db in removed_postings_db if posting_db.account_id == account_id
+        )
         if exchange_base_change != 0:
             await account_crud.add_to_balance(
                 db=db, account_id=account_id, amount=Decimal("0"), base_amount=exchange_base_change
@@ -316,12 +347,12 @@ async def recalculate_accounts(
 
         for revalued_transaction_db in transactions_db:
             for posting_db in revalued_transaction_db.postings:
-                revalued_posting: tuple[Decimal, Decimal] | None = revalued_postings.get(posting_db.id)
+                revalued_posting: tuple[Decimal, Decimal | None] | None = revalued_postings.get(posting_db.id)
                 if revalued_posting is None or posting_db.account.kind not in MONEY_ACCOUNT_KINDS:
                     continue
 
                 amount_change: Decimal = revalued_posting[0] - posting_db.amount
-                base_amount_change: Decimal = revalued_posting[1] - get_valued_amount(
+                base_amount_change: Decimal = get_valued_amount(base_amount=revalued_posting[1]) - get_valued_amount(
                     base_amount=posting_db.base_amount
                 )
                 await account_crud.add_to_balance(
@@ -348,6 +379,9 @@ async def recalculate_accounts(
 
         if len(revalued_amounts) > 0:
             await transaction_crud.update_base_currency_amounts(db=db, amounts=revalued_amounts)
+
+        if len(valued_dates) > 0:
+            await transaction_crud.update_valued_dates(db=db, valued_dates=valued_dates)
 
         if len(new_postings) > 0:
             await posting_crud.create_batch(db=db, objs_in=new_postings)

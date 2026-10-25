@@ -671,23 +671,16 @@ async def test_update_account_equity(db: AsyncSession, db_transaction: AsyncSess
     assert equity_db.name == "Adjustments"
 
 
-# a zero balance with a base value left over is refused too, since deleting it would drop that value
-@pytest.mark.parametrize(
-    "currency, balance, base_balance",
-    [("USD", Decimal("-100.00"), Decimal("-100.00")), ("EUR", Decimal("0"), Decimal("-10.00"))],
-)
-async def test_delete_account_with_balance(
-    db: AsyncSession, db_transaction: AsyncSession, currency: str, balance: Decimal, base_balance: Decimal
-):
+async def test_delete_account_with_balance(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
     account_create_data: dict = {
         "user_id": user_id,
         "kind": AccountKind.LIABILITY,
         "name": "Credit card",
-        "currency": currency,
-        "balance": balance,
-        "base_balance": base_balance,
+        "currency": "USD",
+        "balance": Decimal("-100.00"),
+        "base_balance": Decimal("-100.00"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -701,6 +694,52 @@ async def test_delete_account_with_balance(
 
     await db.refresh(account_db)
     assert account_db.status == EntityStatusType.ACTIVE
+
+
+# a zero balance with a base value left over is written off to the EQUITY account by an adjustment
+async def test_delete_account_writes_off_base_balance(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    card_create_data: dict = {
+        "user_id": user_id,
+        "kind": AccountKind.LIABILITY,
+        "name": "Credit card",
+        "currency": "EUR",
+        "balance": Decimal("0"),
+        "base_balance": Decimal("-10.00"),
+    }
+    card_db: AccountModel = await account_crud.create(db=db, obj_in=card_create_data, commit=True)
+    await account_crud.create(
+        db=db,
+        obj_in={"user_id": user_id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
+        commit=True,
+    )
+    equity_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
+
+    # Act
+    account: Account = await account_service.delete_account(db=db_transaction, account_id=card_db.id, user_id=user_id)
+    await db_transaction.commit()
+
+    # Assert
+    assert account.status == EntityStatusType.DELETED
+
+    await db.refresh(card_db)
+    assert card_db.balance == Decimal("0")
+    assert card_db.base_balance == Decimal("0")
+
+    write_off_db: TransactionModel = (
+        await db.scalars(select(TransactionModel).where(TransactionModel.user_id == user_id))
+    ).one()
+    assert write_off_db.transaction_type == TransactionType.ADJUSTMENT
+    assert write_off_db.base_currency_amount == Decimal("10.00")
+    postings: list[tuple[UUID, Decimal, Decimal]] = sorted(
+        (posting_db.account_id, posting_db.amount, posting_db.base_amount) for posting_db in write_off_db.postings
+    )
+    assert postings == sorted(
+        [(card_db.id, Decimal("0"), Decimal("10.00")), (equity_db.id, Decimal("0"), Decimal("-10.00"))]
+    )
 
 
 async def test_delete_account_category_keeps_transactions(db: AsyncSession, db_transaction: AsyncSession):

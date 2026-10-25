@@ -68,9 +68,16 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         transactions_db: list[Transaction] = (await db.scalars(query)).all()
         return transactions_db
 
-    async def update_base_currency_amounts(self, *, db: AsyncSession, amounts: dict[UUID, Decimal]) -> None:
+    async def update_base_currency_amounts(self, *, db: AsyncSession, amounts: dict[UUID, Decimal | None]) -> None:
         values: list[dict] = [
             {"id": transaction_id, "base_currency_amount": amount} for transaction_id, amount in amounts.items()
+        ]
+        await db.execute(update(self.model), values)
+        await db.flush()
+
+    async def update_valued_dates(self, *, db: AsyncSession, valued_dates: dict[UUID, date | None]) -> None:
+        values: list[dict] = [
+            {"id": transaction_id, "valued_on": valued_on} for transaction_id, valued_on in valued_dates.items()
         ]
         await db.execute(update(self.model), values)
         await db.flush()

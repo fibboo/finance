@@ -38,6 +38,7 @@ class Transaction(Base):
     )
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     base_currency_amount: Mapped[Decimal | None] = mapped_column(Numeric, nullable=True, index=True)
+    valued_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     location_id: Mapped[UUID | None] = mapped_column(DB_UUID, ForeignKey(Location.id), nullable=True, index=True)
     income_period: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
