@@ -12,7 +12,6 @@ type TransactionView = Readonly<{
   currency: string;
   signDisplay: Intl.NumberFormatOptions['signDisplay'];
   isIncome: boolean;
-  dayTotalAmount: number;
 }>;
 
 function requireField<Field>({
@@ -40,7 +39,6 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
         currency: debit.currency,
         signDisplay: 'exceptZero',
         isIncome: false,
-        dayTotalAmount: Number(debit.base_amount),
       } satisfies TransactionView;
       return view;
     }
@@ -54,7 +52,6 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
         currency: credit.currency,
         signDisplay: 'exceptZero',
         isIncome: true,
-        dayTotalAmount: Number(credit.base_amount),
       } satisfies TransactionView;
       return view;
     }
@@ -68,7 +65,6 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
         currency: debit.currency,
         signDisplay: 'auto',
         isIncome: false,
-        dayTotalAmount: 0,
       } satisfies TransactionView;
       return view;
     }
@@ -83,7 +79,6 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
         currency: posting.currency,
         signDisplay: 'exceptZero',
         isIncome: false,
-        dayTotalAmount: Number(posting.base_amount),
       } satisfies TransactionView;
       return view;
     }

@@ -1,3 +1,4 @@
+import { BaseAmountEstimate } from '@/components/base-amount-estimate/base-amount-estimate';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
@@ -29,13 +30,11 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
           })}
         </span>
         {view.currency !== baseCurrency && (
-          <span className={styles['baseAmount']}>
-            {`≈ ${formatMoney({
-              amount: view.baseAmount,
-              currency: baseCurrency,
-              signDisplay: view.signDisplay,
-            })}`}
-          </span>
+          <BaseAmountEstimate
+            amount={view.baseAmount}
+            currency={baseCurrency}
+            signDisplay={view.signDisplay}
+          />
         )}
       </span>
     </li>

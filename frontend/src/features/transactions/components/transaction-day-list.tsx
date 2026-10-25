@@ -2,6 +2,7 @@ import type { components } from '@/lib/api-schema';
 import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import styles from './transaction-day-list.module.css';
+import { useToday } from '../hooks/use-today';
 import { TransactionRow } from './transaction-row';
 import { readTransactionView } from './transaction-view';
 
@@ -31,12 +32,11 @@ function groupByDay(transactions: readonly Transaction[]): readonly TransactionD
 function readDayLabel({
   transactionDate,
   today,
-}: Readonly<{ transactionDate: string; today: Date }>): string {
+}: Readonly<{ transactionDate: string; today: string }>): string {
   const date = new Date(`${transactionDate}T00:00:00Z`);
-  const daysAgo =
-    (Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - date.getTime()) /
-    DAY_MILLISECONDS;
-  const isThisYear = date.getUTCFullYear() === today.getFullYear();
+  const todayDate = new Date(`${today}T00:00:00Z`);
+  const daysAgo = (todayDate.getTime() - date.getTime()) / DAY_MILLISECONDS;
+  const isThisYear = date.getUTCFullYear() === todayDate.getUTCFullYear();
   const dayLabel =
     daysAgo === 0
       ? 'Today'
@@ -54,7 +54,10 @@ function readDayLabel({
 
 function readDayTotal(transactions: readonly Transaction[]): number {
   const dayTotal = transactions.reduce(
-    (total, transaction) => total + readTransactionView(transaction).dayTotalAmount,
+    (total, transaction) =>
+      transaction.transaction_type === 'TRANSFER'
+        ? total
+        : total + readTransactionView(transaction).baseAmount,
     0,
   );
   return dayTotal;
@@ -66,7 +69,7 @@ type TransactionDayListProps = Readonly<{
 }>;
 
 export function TransactionDayList({ transactions, baseCurrency }: TransactionDayListProps) {
-  const today = new Date();
+  const today = useToday();
   return (
     <div className={styles['transactionDayList']}>
       {groupByDay(transactions).map((day) => (
@@ -75,13 +78,17 @@ export function TransactionDayList({ transactions, baseCurrency }: TransactionDa
             <h3 className={styles['dayLabel']}>
               {readDayLabel({ transactionDate: day.transactionDate, today })}
             </h3>
-            <span className={styles['dayTotal']}>
-              {formatMoney({
-                amount: readDayTotal(day.transactions),
-                currency: baseCurrency,
-                signDisplay: 'exceptZero',
-              })}
-            </span>
+            {day.transactions.some(
+              (transaction) => transaction.transaction_type !== 'TRANSFER',
+            ) && (
+              <span className={styles['dayTotal']}>
+                {formatMoney({
+                  amount: readDayTotal(day.transactions),
+                  currency: baseCurrency,
+                  signDisplay: 'exceptZero',
+                })}
+              </span>
+            )}
           </div>
           <ul className={styles['transactions']}>
             {day.transactions.map((transaction) => (

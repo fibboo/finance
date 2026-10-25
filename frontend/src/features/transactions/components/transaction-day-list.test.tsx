@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -148,6 +148,17 @@ test('groups the transactions by day with each day total in the base currency', 
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
+    // a day of transfers only has no total
+    {
+      ...transaction,
+      id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c46',
+      transaction_date: '2026-10-18',
+      transaction_type: 'TRANSFER',
+      postings: [
+        { ...posting, amount: '-50.00', base_amount: '-50.00', account: wallet },
+        { ...posting, amount: '50.00', base_amount: '50.00', account: savings },
+      ],
+    },
     {
       ...transaction,
       id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c44',
@@ -178,12 +189,41 @@ test('groups the transactions by day with each day total in the base currency', 
   expect(headings.map((heading) => heading.textContent)).toEqual([
     'Today',
     'Yesterday',
+    'Sun, Oct 18',
     'Thu, Oct 15',
     'Wed, Dec 31, 2025',
   ]);
-  expect(screen.getAllByRole('list').map((list) => list.children.length)).toEqual([2, 2, 1, 1]);
+  expect(
+    screen.getAllByRole('list').map((list) => within(list).getAllByRole('listitem').length),
+  ).toEqual([2, 2, 1, 1, 1]);
+  expect(screen.queryByText('$0.00')).not.toBeInTheDocument();
   expect(screen.getByText('-$47.30')).toBeInTheDocument();
   expect(screen.getAllByText('+$2,291.30')).toHaveLength(1);
   expect(screen.getAllByText('+$25.00')).toHaveLength(2);
   expect(screen.getAllByText('-$12.00')).toHaveLength(2);
+});
+
+test('names the day again after midnight', () => {
+  // arrange
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+  vi.setSystemTime(new Date(2026, 9, 20, 23, 59));
+  const transactions = [
+    {
+      ...transaction,
+      postings: [
+        { ...posting, amount: '-42.80', base_amount: '-42.80', account: wallet },
+        { ...posting, amount: '42.80', base_amount: '42.80', account: category },
+      ],
+    },
+  ] satisfies components['schemas']['Transaction'][];
+  render(<TransactionDayList transactions={transactions} baseCurrency="USD" />);
+  expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
+
+  // act
+  act(() => {
+    vi.advanceTimersByTime(60_000);
+  });
+
+  // assert
+  expect(screen.getByRole('heading', { name: 'Yesterday' })).toBeInTheDocument();
 });

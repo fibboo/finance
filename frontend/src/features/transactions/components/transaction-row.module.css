@@ -56,11 +56,6 @@
   color: var(--color-accent);
 }
 
-.baseAmount {
-  font-size: var(--font-size-xs);
-  color: var(--color-muted);
-}
-
 @media (--desktop) {
   .transactionRow {
     min-height: var(--size-transaction-row-lg);

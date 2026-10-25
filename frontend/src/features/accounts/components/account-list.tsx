@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 
+import { BaseAmountEstimate } from '@/components/base-amount-estimate/base-amount-estimate';
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { formatMoney } from '@/lib/format-money';
@@ -69,13 +70,10 @@ export function AccountList({ baseCurrency }: AccountListProps) {
                 {formatMoney({ amount: Number(account.balance), currency: account.currency })}
               </span>
               {account.currency !== baseCurrency && (
-                <span className={styles['detail']}>
-                  ≈{' '}
-                  {formatMoney({
-                    amount: Number(account.base_currency_balance),
-                    currency: baseCurrency,
-                  })}
-                </span>
+                <BaseAmountEstimate
+                  amount={Number(account.base_currency_balance)}
+                  currency={baseCurrency}
+                />
               )}
             </span>
           </li>
