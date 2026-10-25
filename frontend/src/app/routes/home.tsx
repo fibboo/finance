@@ -21,9 +21,9 @@ export function Component() {
         <>
           <BalancePanel baseCurrency={baseCurrency} />
           <AccountList baseCurrency={baseCurrency} />
+          <RecentTransactions baseCurrency={baseCurrency} />
         </>
       )}
-      <RecentTransactions />
     </div>
   );
 }

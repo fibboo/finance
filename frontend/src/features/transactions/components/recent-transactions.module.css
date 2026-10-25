@@ -57,10 +57,6 @@
   height: var(--size-skeleton-text-sm);
 }
 
-.dateSkeleton {
-  display: none;
-}
-
 .amountSkeleton {
   grid-area: amount;
   width: var(--size-skeleton-amount);
@@ -116,20 +112,13 @@
 
   .skeletonRow {
     height: var(--size-transaction-row-lg);
-    grid-template-columns: var(--size-dot) 2fr 2fr 1fr var(--size-amount-column);
-    grid-template-areas: 'dot title accounts date amount';
+    grid-template-columns: var(--size-dot) 2fr 2fr var(--size-amount-column);
+    grid-template-areas: 'dot title accounts amount';
     column-gap: var(--space-3-5);
   }
 
-  .accountsSkeleton,
-  .dateSkeleton {
-    display: block;
+  .accountsSkeleton {
     height: var(--size-skeleton-text);
-  }
-
-  .dateSkeleton {
-    grid-area: date;
-    width: var(--size-skeleton-word);
   }
 
   .amountSkeleton {

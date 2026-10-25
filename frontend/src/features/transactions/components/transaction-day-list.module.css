@@ -1,0 +1,38 @@
+@import '@/styles/media.css';
+
+.transactionDayList {
+  display: flex;
+  flex-direction: column;
+}
+
+.dayHeader {
+  height: var(--size-day-header);
+  padding-bottom: var(--space-1);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.dayLabel {
+  margin: 0;
+  font-size: inherit;
+  font-weight: var(--font-weight-semibold);
+}
+
+.dayTotal {
+  color: var(--color-muted);
+}
+
+.transactions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (--desktop) {
+  .dayHeader {
+    height: var(--size-day-header-lg);
+  }
+}

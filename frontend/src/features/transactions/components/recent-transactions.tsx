@@ -5,28 +5,20 @@ import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 
 import { transactionQueries } from '../api/transaction-queries';
+import { useToday } from '../hooks/use-today';
 import styles from './recent-transactions.module.css';
-import { TransactionRow } from './transaction-row';
+import { TransactionDayList } from './transaction-day-list';
 
 const RECENT_TRANSACTION_COUNT = 6;
-const EARLIEST_TRANSACTION_DATE = '0001-01-01';
 
-function readLocalToday(): string {
-  const today = new Date();
-  const localToday = [
-    String(today.getFullYear()).padStart(4, '0'),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0'),
-  ].join('-');
-  return localToday;
-}
+type RecentTransactionsProps = Readonly<{ baseCurrency: string }>;
 
-export function RecentTransactions() {
+export function RecentTransactions({ baseCurrency }: RecentTransactionsProps) {
+  const today = useToday();
   const { data: transactionPage, isPending } = useQuery(
     transactionQueries.list({
       size: RECENT_TRANSACTION_COUNT,
-      date_from: EARLIEST_TRANSACTION_DATE,
-      date_to: readLocalToday(),
+      date_to: today,
     }),
   );
   const titleId = useId();
@@ -50,17 +42,12 @@ export function RecentTransactions() {
               <Skeleton className={styles['dotSkeleton']} />
               <Skeleton className={styles['titleSkeleton']} />
               <Skeleton className={styles['accountsSkeleton']} />
-              <Skeleton className={styles['dateSkeleton']} />
               <Skeleton className={styles['amountSkeleton']} />
             </li>
           ))}
         </ul>
       ) : transactionPage.items.length > 0 ? (
-        <ul className={styles['transactions']}>
-          {transactionPage.items.map((transaction) => (
-            <TransactionRow key={transaction.id} transaction={transaction} />
-          ))}
-        </ul>
+        <TransactionDayList transactions={transactionPage.items} baseCurrency={baseCurrency} />
       ) : (
         <p className={styles['empty']}>
           <span className={styles['emptyTitle']}>Nothing here yet</span>

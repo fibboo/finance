@@ -23,7 +23,7 @@ test('shows the latest transactions of the whole history up to the local today',
     http.get('http://localhost/api/accounting/transactions', ({ request }) => {
       const searchParams = new URL(request.url).searchParams;
       return searchParams.get('size') === '6' &&
-        searchParams.get('date_from') === '0001-01-01' &&
+        !searchParams.has('date_from') &&
         searchParams.get('date_to') === '2026-10-20'
         ? HttpResponse.json({
             items: [
@@ -91,12 +91,14 @@ test('shows the latest transactions of the whole history up to the local today',
   );
 
   // act
-  render(<RecentTransactions />);
+  render(<RecentTransactions baseCurrency="USD" />);
 
   // assert
-  expect(await screen.findByRole('listitem')).toHaveTextContent('Design project');
-  expect(screen.getByText('+$640.00')).toBeInTheDocument();
-  expect(screen.getByText('Mar 2', { exact: false })).toBeInTheDocument();
+  const row = await screen.findByRole('listitem');
+  expect(row).toHaveTextContent('Design project');
+  expect(row).toHaveTextContent('+$640.00');
+  expect(row).not.toHaveTextContent('≈');
+  expect(screen.getByRole('heading', { name: 'Mon, Mar 2' })).toBeInTheDocument();
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });
 
@@ -115,7 +117,7 @@ test('shows the empty state without transactions', async () => {
   );
 
   // act
-  render(<RecentTransactions />);
+  render(<RecentTransactions baseCurrency="USD" />);
 
   // assert
   expect(await screen.findByText('Nothing here yet')).toBeInTheDocument();
@@ -132,7 +134,7 @@ test('shows a busy recent panel while the transactions load', () => {
   );
 
   // act
-  render(<RecentTransactions />);
+  render(<RecentTransactions baseCurrency="USD" />);
 
   // assert
   expect(screen.getByRole('region', { name: 'Recent' })).toHaveAttribute('aria-busy', 'true');
