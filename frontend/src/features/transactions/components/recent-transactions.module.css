@@ -8,82 +8,31 @@
   background: var(--color-panel);
 }
 
-.title {
-  margin: 0;
+.header {
   min-height: var(--size-section-header-sm);
   display: flex;
   align-items: center;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
-.transactions {
+.title {
   margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.skeletonRow {
-  height: var(--size-transaction-row);
-  display: grid;
-  grid-template-columns: var(--size-dot) minmax(0, 1fr) auto;
-  grid-template-areas:
-    'dot title amount'
-    'dot accounts amount';
-  align-content: center;
-  align-items: center;
-  gap: var(--space-1-5) var(--space-3);
-}
-
-.dotSkeleton {
-  grid-area: dot;
-  width: var(--size-dot);
-  height: var(--size-dot);
-}
-
-.titleSkeleton {
-  grid-area: title;
-  width: 40%;
-  height: var(--size-skeleton-text);
-}
-
-.skeletonRow:nth-child(even) .titleSkeleton {
-  width: 30%;
-}
-
-.accountsSkeleton {
-  grid-area: accounts;
-  width: 55%;
-  height: var(--size-skeleton-text-sm);
-}
-
-.amountSkeleton {
-  grid-area: amount;
-  width: var(--size-skeleton-amount);
-  height: var(--size-skeleton-text);
-}
-
-.empty {
-  height: var(--size-empty-state);
-  margin: 0 0 var(--space-2-5);
-  border-radius: var(--radius-track);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  text-align: center;
-  background: var(--color-ground);
-}
-
-.emptyTitle {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
 }
 
-.emptyText {
-  font-size: var(--font-size-sm);
+.allLink {
+  min-height: var(--size-touch);
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-md);
   color: var(--color-muted);
+  text-decoration: none;
+}
+
+.allLink:hover {
+  color: var(--color-ink);
 }
 
 @media (--desktop) {
@@ -92,36 +41,11 @@
     border-radius: var(--radius-bar);
   }
 
-  .title {
+  .header {
     min-height: var(--size-section-header-lg);
+  }
+
+  .title {
     font-size: var(--font-size-lg);
-  }
-
-  .empty {
-    height: var(--size-empty-state-lg);
-    margin-bottom: var(--space-4);
-  }
-
-  .emptyTitle {
-    font-size: var(--font-size-lg);
-  }
-
-  .emptyText {
-    font-size: var(--font-size-md);
-  }
-
-  .skeletonRow {
-    height: var(--size-transaction-row-lg);
-    grid-template-columns: var(--size-dot) 2fr 2fr var(--size-amount-column);
-    grid-template-areas: 'dot title accounts amount';
-    column-gap: var(--space-3-5);
-  }
-
-  .accountsSkeleton {
-    height: var(--size-skeleton-text);
-  }
-
-  .amountSkeleton {
-    justify-self: end;
   }
 }

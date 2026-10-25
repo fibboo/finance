@@ -53,6 +53,11 @@ const routes: RouteObject[] = [
                     ErrorBoundary: RootErrorBoundary,
                     lazy: () => import('@/app/routes/home'),
                   },
+                  {
+                    path: 'transactions',
+                    ErrorBoundary: RootErrorBoundary,
+                    lazy: () => import('@/app/routes/transactions'),
+                  },
                 ],
               },
             ],

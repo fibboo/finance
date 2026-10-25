@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
 import type { components, operations } from '@/lib/api-schema';
@@ -20,6 +20,15 @@ export const transactionQueries = {
     return queryOptions({
       queryKey: ['transactions', 'list', query],
       queryFn: () => fetchTransactions(query),
+    });
+  },
+  feed(query: Readonly<Omit<TransactionListQuery, 'page'>>) {
+    return infiniteQueryOptions({
+      queryKey: ['transactions', 'feed', query],
+      queryFn: ({ pageParam }) => fetchTransactions({ ...query, page: pageParam }),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) =>
+        lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined,
     });
   },
 };

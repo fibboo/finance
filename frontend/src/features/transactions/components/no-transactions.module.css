@@ -1,0 +1,39 @@
+@import '@/styles/media.css';
+
+.noTransactions {
+  height: var(--size-empty-state);
+  margin: 0 0 var(--space-2-5);
+  border-radius: var(--radius-track);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  text-align: center;
+  background: var(--color-ground);
+}
+
+.title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.text {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .noTransactions {
+    height: var(--size-empty-state-lg);
+    margin-bottom: var(--space-4);
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
+
+  .text {
+    font-size: var(--font-size-md);
+  }
+}
