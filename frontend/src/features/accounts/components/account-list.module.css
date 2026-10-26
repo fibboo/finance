@@ -60,6 +60,11 @@
   flex-direction: column;
 }
 
+.accountBalance {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
 .accounts .debtAmounts > * {
   color: var(--color-danger);
 }

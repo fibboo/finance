@@ -50,7 +50,7 @@ const accounts = [
   },
 ] satisfies components['schemas']['Account'][];
 
-test('shows every account, the largest first, with the base currency equivalent', async () => {
+test('shows every account, the largest first, in the base currency over its own', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) =>
@@ -75,10 +75,10 @@ test('shows every account, the largest first, with the base currency equivalent'
   const items = screen.getAllByRole('listitem');
   expect(items).toHaveLength(3);
   expect(items[0]).toHaveTextContent('Main card');
-  expect(items[0]).toHaveTextContent('€3,180.00');
-  expect(items[0]).toHaveTextContent('≈ $3,471.20');
+  expect(items[0]).toHaveTextContent('$3,471.20€3,180.00');
   expect(items[1]).toHaveTextContent('Freelance');
-  expect(items[1]).not.toHaveTextContent('≈');
+  expect(items[1]).toHaveTextContent('$1,940.00');
+  expect(items[1]).not.toHaveTextContent('€');
   expect(items[2]).toHaveTextContent('Wallet');
   // every account fits the wide jsdom strip, so neither arrow shows
   expect(screen.queryByRole('button', { name: 'Next accounts' })).not.toBeInTheDocument();

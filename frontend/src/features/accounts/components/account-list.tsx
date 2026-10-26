@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useRef } from 'react';
 
-import { BaseAmountEstimate } from '@/components/base-amount-estimate/base-amount-estimate';
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { formatMoney } from '@/lib/format-money';
@@ -87,13 +86,15 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
                 className={Number(account.balance) < 0 ? styles['debtAmounts'] : styles['amounts']}
               >
                 <span className={styles['balance']}>
-                  {formatMoney({ amount: Number(account.balance), currency: account.currency })}
+                  {formatMoney({
+                    amount: Number(account.base_currency_balance),
+                    currency: baseCurrency,
+                  })}
                 </span>
                 {account.currency !== baseCurrency && (
-                  <BaseAmountEstimate
-                    amount={Number(account.base_currency_balance)}
-                    currency={baseCurrency}
-                  />
+                  <span className={styles['accountBalance']}>
+                    {formatMoney({ amount: Number(account.balance), currency: account.currency })}
+                  </span>
                 )}
               </span>
             </li>
