@@ -12,6 +12,7 @@ type TransactionPage = components['schemas']['Page_Transaction_'];
 type Transaction = components['schemas']['Transaction'];
 
 const LOADING_MORE_ROW_COUNT = 2;
+const NEXT_PAGE_MARGIN = '0% 0% 50% 0%';
 
 function mergePages(pages: readonly TransactionPage[]): readonly Transaction[] {
   const seenIds = new Set<string>();
@@ -50,11 +51,14 @@ export function TransactionFeed({ feed, baseCurrency, label, header }: Transacti
       return undefined;
     }
 
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting) && !isFetching) {
-        void fetchNextPage();
-      }
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !isFetching) {
+          void fetchNextPage();
+        }
+      },
+      { root: end.parentElement, rootMargin: NEXT_PAGE_MARGIN },
+    );
     observer.observe(end);
     return () => {
       observer.disconnect();
