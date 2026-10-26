@@ -72,8 +72,15 @@ export function TransactionDayList({ transactions, baseCurrency }: TransactionDa
   const today = useToday();
   return (
     <div className={styles['transactionDayList']}>
+      <div className={styles['columns']} aria-hidden="true">
+        <span />
+        <span>Transaction</span>
+        <span>Account</span>
+        <span className={styles['amountColumn']}>Original</span>
+        <span className={styles['amountColumn']}>Amount</span>
+      </div>
       {groupByDay(transactions).map((day) => (
-        <div key={day.transactionDate}>
+        <div key={day.transactionDate} className={styles['day']}>
           <div className={styles['dayHeader']}>
             <h3 className={styles['dayLabel']}>
               {readDayLabel({ transactionDate: day.transactionDate, today })}

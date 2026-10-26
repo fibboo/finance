@@ -1,26 +1,57 @@
 @import '@/styles/media.css';
 
 .transactionRow {
+  position: relative;
+  grid-column: 1 / -1;
   min-height: var(--size-transaction-row);
   display: grid;
-  grid-template-columns: var(--size-dot) minmax(0, 1fr) auto;
-  grid-template-areas:
-    'dot title amounts'
-    'dot accounts amounts';
-  align-content: center;
+  grid-template-columns: subgrid;
   align-items: center;
-  column-gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.income,
+.transfer,
+.adjustment {
+  isolation: isolate;
+}
+
+.income::before,
+.transfer::before,
+.adjustment::before {
+  content: '';
+  position: absolute;
+  inset: var(--space-1-5) calc(var(--space-2) * -1);
+  z-index: -1;
+  border-radius: var(--radius-badge);
+  background: var(--color-income-row);
+}
+
+.transfer::before {
+  background: var(--color-transfer-row);
+}
+
+.adjustment::before {
+  background: var(--color-adjustment-row);
+}
+
+.transactionRow + .transactionRow {
+  border-top: var(--size-border) solid var(--color-border);
 }
 
 .dot {
-  grid-area: dot;
   width: var(--size-dot);
   height: var(--size-dot);
   border-radius: var(--radius-full);
   background: currentColor;
 }
 
+.wideTitle {
+  grid-column: span 2;
+}
+
 .title,
+.wideTitle,
 .accounts {
   min-width: 0;
   overflow: hidden;
@@ -28,27 +59,25 @@
   white-space: nowrap;
 }
 
-.title {
-  grid-area: title;
-  font-size: var(--font-size-base);
-}
-
-.accounts {
-  grid-area: accounts;
+.accounts,
+.originalAmount {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
 }
 
-.amounts {
-  grid-area: amounts;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+.amount,
+.incomeAmount,
+.originalAmount {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.originalAmount {
+  font-size: var(--font-size-2xs);
 }
 
 .amount,
 .incomeAmount {
-  font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
 }
 
@@ -57,14 +86,19 @@
 }
 
 @media (--desktop) {
-  .transactionRow {
-    min-height: var(--size-transaction-row-lg);
-    grid-template-columns: var(--size-dot) 2fr 2fr var(--size-amount-column);
-    grid-template-areas: 'dot title accounts amounts';
-    column-gap: var(--space-3-5);
+  .income::before,
+  .transfer::before,
+  .adjustment::before {
+    border-radius: var(--radius-segment);
   }
 
-  .accounts {
+  .transactionRow {
+    min-height: var(--size-transaction-row-lg);
+    font-size: var(--font-size-base);
+  }
+
+  .accounts,
+  .originalAmount {
     font-size: var(--font-size-md);
   }
 }

@@ -1,28 +1,65 @@
 @import '@/styles/media.css';
 
 .transactionDayList {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns:
+    var(--size-dot) minmax(0, auto) minmax(0, auto) max-content
+    max-content;
+  column-gap: var(--space-1);
+}
+
+.columns,
+.day,
+.transactions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+.columns {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: var(--size-columns-header);
+  margin-inline: calc(var(--space-2) * -1);
+  padding-inline: var(--space-2);
+  border-bottom: var(--size-border) solid var(--color-border);
+  align-items: center;
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+  background: var(--color-panel);
+}
+
+.amountColumn {
+  text-align: right;
 }
 
 .dayHeader {
-  height: var(--size-day-header);
-  padding-bottom: var(--space-1);
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3);
-  font-size: var(--font-size-sm);
+  grid-column: 1 / -1;
+  min-height: var(--size-day-header);
+  margin: var(--space-1) calc(var(--space-2) * -1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-badge);
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  background: var(--color-band);
 }
 
 .dayLabel {
+  grid-column: 1 / 5;
   margin: 0;
+  white-space: nowrap;
   font-size: inherit;
   font-weight: var(--font-weight-semibold);
 }
 
 .dayTotal {
+  grid-column: 5;
+  justify-self: end;
   color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .transactions {
@@ -32,7 +69,23 @@
 }
 
 @media (--desktop) {
+  .transactionDayList {
+    grid-template-columns:
+      var(--size-dot) minmax(0, 1fr) var(--size-account-column-lg)
+      var(--size-amount-column-lg) var(--size-amount-column-lg);
+    column-gap: var(--space-4);
+  }
+
+  .columns {
+    min-height: var(--size-columns-header-lg);
+    border-bottom: 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+  }
+
   .dayHeader {
-    height: var(--size-day-header-lg);
+    min-height: var(--size-day-header-lg);
+    border-radius: var(--radius-segment);
+    font-size: var(--font-size-sm);
   }
 }
