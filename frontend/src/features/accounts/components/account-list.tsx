@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useId } from 'react';
 
 import { BaseAmountEstimate } from '@/components/base-amount-estimate/base-amount-estimate';
 import { Skeleton } from '@/components/skeleton/skeleton';
@@ -21,7 +20,6 @@ export function AccountList({ baseCurrency }: AccountListProps) {
     accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: ['ASSET', 'LIABILITY'] }),
   );
   const { ref, count } = useFittingCount();
-  const titleId = useId();
   if (!isPending && accountPage === undefined) {
     return null;
   }
@@ -35,15 +33,7 @@ export function AccountList({ baseCurrency }: AccountListProps) {
     )
     .slice(0, count);
   return (
-    <section className={styles['accountList']} aria-labelledby={titleId} aria-busy={isPending}>
-      <h2 id={titleId} className={styles['title']}>
-        Accounts{' '}
-        {accountPage === undefined ? (
-          <Skeleton className={styles['totalSkeleton']} />
-        ) : (
-          <span className={styles['total']}>{accountPage.total}</span>
-        )}
-      </h2>
+    <section className={styles['accountList']} aria-label="Accounts" aria-busy={isPending}>
       <ul ref={ref} className={styles['accounts']}>
         {accountPage === undefined &&
           listSkeletonKeys(Number.isFinite(count) ? count : ACCOUNT_SKELETON_COUNT).map((key) => (

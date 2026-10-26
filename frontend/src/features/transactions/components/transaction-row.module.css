@@ -10,6 +10,10 @@
   font-size: var(--font-size-sm);
 }
 
+.transactionRow + .transactionRow {
+  border-top: var(--size-border) solid var(--color-border);
+}
+
 .dot {
   width: var(--size-dot);
   height: var(--size-dot);
@@ -51,10 +55,6 @@
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
     font-size: var(--font-size-base);
-  }
-
-  .transactionRow + .transactionRow {
-    border-top: var(--size-border) solid var(--color-border);
   }
 
   .accounts,

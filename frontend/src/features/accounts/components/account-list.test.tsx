@@ -86,7 +86,6 @@ test('shows the largest accounts that fit, with the base currency equivalent', a
   expect(items[1]).toHaveTextContent('Freelance');
   expect(items[1]).not.toHaveTextContent('≈');
   expect(screen.queryByText('Wallet')).not.toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'Accounts 3' })).toBeInTheDocument();
 });
 
 test('shows every account in the phone strip', async () => {
@@ -114,7 +113,9 @@ test('shows every account in the phone strip', async () => {
 
   // assert
   expect(await screen.findByText('Wallet')).toBeInTheDocument();
-  expect(screen.getAllByRole('listitem')).toHaveLength(3);
+  const items = screen.getAllByRole('listitem');
+  expect(items).toHaveLength(3);
+  expect(items[0]).toHaveTextContent('≈ $3,471.20');
 });
 
 test('shows an account without a color in the first palette color', async () => {
@@ -152,5 +153,4 @@ test('shows a busy accounts panel while the accounts load', () => {
 
   // assert
   expect(screen.getByRole('region', { name: 'Accounts' })).toHaveAttribute('aria-busy', 'true');
-  expect(screen.getByRole('heading', { name: 'Accounts' })).toBeInTheDocument();
 });

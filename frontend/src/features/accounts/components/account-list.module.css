@@ -2,27 +2,11 @@
 
 .accountList {
   flex: none;
-  padding: 0 0 var(--space-2-5);
+  padding: var(--space-2-5) 0;
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
   background: var(--color-panel);
-}
-
-.title {
-  margin: 0;
-  min-height: var(--size-panel-header);
-  padding: 0 var(--space-3-5);
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-}
-
-.total {
-  font-weight: normal;
-  color: var(--color-muted);
 }
 
 .accounts {
@@ -36,12 +20,12 @@
 
 .account {
   flex: none;
-  min-height: var(--size-account-pill);
-  padding: 0 var(--space-3) 0 var(--space-1-5);
-  border-radius: var(--radius-full);
-  display: flex;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
+  border-radius: var(--radius-control);
+  display: grid;
+  grid-template-columns: auto auto;
   align-items: center;
-  gap: var(--space-2);
+  gap: 0 var(--space-2);
   background: var(--color-ground);
   white-space: nowrap;
 }
@@ -57,12 +41,12 @@
 }
 
 .detail,
-.detailSkeleton,
-.amounts > :not(.balance, .balanceSkeleton) {
+.detailSkeleton {
   display: none;
 }
 
 .amounts {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
 }
@@ -70,11 +54,6 @@
 .balance {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-}
-
-.totalSkeleton {
-  width: var(--size-skeleton-word);
-  height: var(--size-skeleton-text);
 }
 
 .markSkeleton {
@@ -109,15 +88,9 @@
 
 @media (--desktop) {
   .accountList {
-    padding: var(--space-1) var(--space-4) var(--space-4);
+    padding: var(--space-4);
     border-radius: var(--radius-panel);
     gap: var(--space-0-5);
-  }
-
-  .title {
-    min-height: var(--size-section-header-sm);
-    padding: 0 var(--space-2);
-    font-size: var(--font-size-base);
   }
 
   .accounts {
@@ -154,8 +127,7 @@
     white-space: nowrap;
   }
 
-  .detail,
-  .amounts > :not(.balance) {
+  .detail {
     display: inline;
   }
 
