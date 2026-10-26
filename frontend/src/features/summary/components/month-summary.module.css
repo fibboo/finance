@@ -1,0 +1,102 @@
+@import '@/styles/media.css';
+
+.monthSummary {
+  flex: none;
+  padding: var(--space-2-5) var(--space-3-5);
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  background: var(--color-panel);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.figures {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.figure {
+  min-width: 0;
+  padding-inline: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.figure:first-child {
+  padding-left: 0;
+}
+
+.figure + .figure {
+  border-left: var(--size-border) solid var(--color-border);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.amount,
+.accent,
+.danger {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accent {
+  color: var(--color-accent);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.labelSkeleton {
+  width: 55%;
+  height: var(--size-skeleton-text-sm);
+}
+
+.amountSkeleton {
+  width: 75%;
+  height: var(--size-skeleton-text);
+}
+
+.figure:has(.labelSkeleton) {
+  gap: var(--space-1-5);
+}
+
+@media (--desktop) {
+  .monthSummary {
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
+
+  .figure {
+    padding-inline: var(--space-5);
+  }
+
+  .label {
+    font-size: var(--font-size-sm);
+  }
+
+  .amount,
+  .accent,
+  .danger {
+    font-size: var(--font-size-xl);
+  }
+}

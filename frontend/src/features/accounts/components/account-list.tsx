@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 
 import { BaseAmountEstimate } from '@/components/base-amount-estimate/base-amount-estimate';
 import { Skeleton } from '@/components/skeleton/skeleton';
@@ -13,9 +14,9 @@ import styles from './account-list.module.css';
 const ACCOUNT_PAGE_SIZE = 100;
 const ACCOUNT_SKELETON_COUNT = 3;
 
-type AccountListProps = Readonly<{ baseCurrency: string }>;
+type AccountListProps = Readonly<{ baseCurrency: string; header?: ReactNode }>;
 
-export function AccountList({ baseCurrency }: AccountListProps) {
+export function AccountList({ baseCurrency, header }: AccountListProps) {
   const { data: accountPage, isPending } = useQuery(
     accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: ['ASSET', 'LIABILITY'] }),
   );
@@ -34,6 +35,7 @@ export function AccountList({ baseCurrency }: AccountListProps) {
     .slice(0, count);
   return (
     <section className={styles['accountList']} aria-label="Accounts" aria-busy={isPending}>
+      {header !== undefined && <div className={styles['header']}>{header}</div>}
       <ul ref={ref} className={styles['accounts']}>
         {accountPage === undefined &&
           listSkeletonKeys(Number.isFinite(count) ? count : ACCOUNT_SKELETON_COUNT).map((key) => (

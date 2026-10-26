@@ -9,6 +9,10 @@
   background: var(--color-panel);
 }
 
+.header {
+  padding: 0 var(--space-3-5) var(--space-2-5);
+}
+
 .accounts {
   margin: 0;
   padding: 0 var(--space-3-5);
@@ -89,6 +93,10 @@
 @media (--desktop) {
   .accountList {
     padding: var(--space-4);
+  }
+
+  .header {
+    padding: 0 0 var(--space-3);
     border-radius: var(--radius-panel);
     gap: var(--space-0-5);
   }
