@@ -1,17 +1,11 @@
 import { type RefCallback, useState } from 'react';
 
-function countFittingRows(style: Readonly<CSSStyleDeclaration>): number {
-  const maxHeight = Number.parseFloat(style.maxHeight);
-  const rowCount = Number.isNaN(maxHeight)
-    ? 1
-    : Math.floor(maxHeight / Number.parseFloat(style.gridAutoRows));
-  return rowCount;
-}
-
-function countFittingCells(grid: Element): number {
-  const style = getComputedStyle(grid);
-  const columnCount = style.gridTemplateColumns.split(' ').filter((track) => track !== '').length;
-  const cellCount = Math.max(1, columnCount * countFittingRows(style));
+function countFittingCells(list: Element): number {
+  const style = getComputedStyle(list);
+  const cellCount =
+    style.display === 'grid'
+      ? Math.max(1, style.gridTemplateColumns.split(' ').filter((track) => track !== '').length)
+      : Number.POSITIVE_INFINITY;
   return cellCount;
 }
 

@@ -12,6 +12,7 @@ import { AccountMark } from './account-mark';
 import styles from './account-list.module.css';
 
 const ACCOUNT_PAGE_SIZE = 100;
+const ACCOUNT_SKELETON_COUNT = 3;
 
 type AccountListProps = Readonly<{ baseCurrency: string }>;
 
@@ -45,7 +46,7 @@ export function AccountList({ baseCurrency }: AccountListProps) {
       </h2>
       <ul ref={ref} className={styles['accounts']}>
         {accountPage === undefined &&
-          listSkeletonKeys(count).map((key) => (
+          listSkeletonKeys(Math.min(count, ACCOUNT_SKELETON_COUNT)).map((key) => (
             <li key={key} className={styles['account']}>
               <Skeleton className={styles['markSkeleton']} />
               <span className={styles['identity']}>

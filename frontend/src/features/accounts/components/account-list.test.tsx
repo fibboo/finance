@@ -66,11 +66,10 @@ test('shows the largest accounts that fit, with the base currency equivalent', a
         : HttpResponse.json(null, { status: 400 }),
     ),
   );
-  // the list measures one column with room for two rows
+  // the desktop grid measures room for two tiles in its one row
   vi.stubGlobal('getComputedStyle', () => ({
-    gridTemplateColumns: '358px',
-    maxHeight: '96px',
-    gridAutoRows: '48px',
+    display: 'grid',
+    gridTemplateColumns: '200px 200px',
     getPropertyValue: () => '',
   }));
 
@@ -88,6 +87,34 @@ test('shows the largest accounts that fit, with the base currency equivalent', a
   expect(items[1]).not.toHaveTextContent('≈');
   expect(screen.queryByText('Wallet')).not.toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Accounts 3' })).toBeInTheDocument();
+});
+
+test('shows every account in the phone strip', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: accounts,
+        total: 3,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  // the phone strip is a scrolling flex row
+  vi.stubGlobal('getComputedStyle', () => ({
+    display: 'flex',
+    gridTemplateColumns: 'none',
+    getPropertyValue: () => '',
+  }));
+
+  // act
+  render(<AccountList baseCurrency="USD" />);
+
+  // assert
+  expect(await screen.findByText('Wallet')).toBeInTheDocument();
+  expect(screen.getAllByRole('listitem')).toHaveLength(3);
 });
 
 test('shows an account without a color in the first palette color', async () => {

@@ -1,12 +1,12 @@
 @import '@/styles/media.css';
 
 .balancePanel {
-  height: var(--size-balance-panel);
-  padding: var(--space-4);
+  flex: none;
+  padding: var(--space-3-5) var(--space-4);
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2-5);
   background: var(--color-panel);
 }
 
@@ -43,13 +43,15 @@
 }
 
 .totalAmount {
-  font-size: var(--font-size-balance);
+  font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-display);
   line-height: var(--line-height-tight);
 }
 
 .month {
+  padding-top: var(--space-2-5);
+  border-top: var(--size-border) solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -63,12 +65,9 @@
 }
 
 .tile {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-control);
   display: flex;
   flex-direction: column;
   gap: var(--space-0-5);
-  background: var(--color-ground);
 }
 
 .tileSkeleton {
@@ -130,6 +129,8 @@
 
   .month {
     flex: 0 1 var(--size-month);
+    padding-top: 0;
+    border-top: 0;
     gap: var(--space-2);
   }
 
@@ -140,6 +141,7 @@
   .tile {
     padding: var(--space-3) var(--space-4);
     border-radius: var(--radius-track);
+    background: var(--color-ground);
   }
 
   .tileLabel {
