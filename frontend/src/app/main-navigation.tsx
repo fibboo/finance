@@ -3,9 +3,9 @@ import { NavLink } from 'react-router';
 import styles from './main-navigation.module.css';
 
 const HOME_ICON_PATH = 'M4 11 12 4l8 7v9h-5v-6H9v6H4z';
+const TRANSACTIONS_ICON_PATH = 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01';
 const ADD_ICON_PATH = 'M12 5v14M5 12h14';
 const SOON_SECTIONS = [
-  { name: 'Transactions', iconPath: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01' },
   {
     name: 'Accounts',
     iconPath:
@@ -31,6 +31,12 @@ export function MainNavigation() {
           <path d={HOME_ICON_PATH} />
         </svg>
         <span className={styles['label']}>Home</span>
+      </NavLink>
+      <NavLink to="/transactions" className={styles['section'] ?? ''}>
+        <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+          <path d={TRANSACTIONS_ICON_PATH} />
+        </svg>
+        <span className={styles['label']}>Transactions</span>
       </NavLink>
       {SOON_SECTIONS.map((section) => (
         <button key={section.name} type="button" className={styles['section']} disabled>

@@ -1,0 +1,59 @@
+@import '@/styles/media.css';
+
+.transactionFeed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.count {
+  margin: 0;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.transactions {
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-panel);
+}
+
+.loadMoreError {
+  min-height: var(--size-transaction-row);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.retry {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-4);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+  font-weight: var(--font-weight-semibold);
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--color-ground);
+}
+
+@media (--desktop) {
+  .count {
+    font-size: var(--font-size-md);
+  }
+
+  .transactions {
+    padding: var(--space-1) var(--space-5);
+    border-radius: var(--radius-bar);
+  }
+}

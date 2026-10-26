@@ -1,0 +1,64 @@
+@import '@/styles/media.css';
+
+.transactionSkeletonRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skeletonRow {
+  height: var(--size-transaction-row);
+  display: grid;
+  grid-template-columns: var(--size-dot) minmax(0, 1fr) auto;
+  grid-template-areas:
+    'dot title amount'
+    'dot accounts amount';
+  align-content: center;
+  align-items: center;
+  gap: var(--space-1-5) var(--space-3);
+}
+
+.dotSkeleton {
+  grid-area: dot;
+  width: var(--size-dot);
+  height: var(--size-dot);
+}
+
+.titleSkeleton {
+  grid-area: title;
+  width: 40%;
+  height: var(--size-skeleton-text);
+}
+
+.skeletonRow:nth-child(even) .titleSkeleton {
+  width: 30%;
+}
+
+.accountsSkeleton {
+  grid-area: accounts;
+  width: 55%;
+  height: var(--size-skeleton-text-sm);
+}
+
+.amountSkeleton {
+  grid-area: amount;
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+@media (--desktop) {
+  .skeletonRow {
+    height: var(--size-transaction-row-lg);
+    grid-template-columns: var(--size-dot) 2fr 2fr var(--size-amount-column);
+    grid-template-areas: 'dot title accounts amount';
+    column-gap: var(--space-3-5);
+  }
+
+  .accountsSkeleton {
+    height: var(--size-skeleton-text);
+  }
+
+  .amountSkeleton {
+    justify-self: end;
+  }
+}
