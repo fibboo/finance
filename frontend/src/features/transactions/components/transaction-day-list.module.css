@@ -21,6 +21,8 @@
   top: 0;
   z-index: 1;
   min-height: var(--size-columns-header);
+  margin-inline: calc(var(--space-2) * -1);
+  padding-inline: var(--space-2);
   border-bottom: var(--size-border) solid var(--color-border);
   align-items: center;
   font-size: var(--font-size-2xs);
@@ -73,6 +75,8 @@
 
   .columns {
     min-height: var(--size-columns-header-lg);
+    margin-inline: calc(var(--space-3) * -1);
+    padding-inline: var(--space-3);
     border-bottom: 0;
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);

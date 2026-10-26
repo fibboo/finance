@@ -1,6 +1,7 @@
 @import '@/styles/media.css';
 
 .transactionRow {
+  position: relative;
   grid-column: 1 / -1;
   min-height: var(--size-transaction-row);
   display: grid;

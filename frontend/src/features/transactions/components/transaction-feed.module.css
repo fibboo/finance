@@ -16,6 +16,7 @@
   padding-inline: var(--space-2);
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
 
