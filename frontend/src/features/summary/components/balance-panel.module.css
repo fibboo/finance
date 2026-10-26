@@ -4,23 +4,29 @@
   flex: none;
   padding: var(--space-3) var(--space-3-5);
   border-radius: var(--radius-panel);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'label caption'
+    'amount amount'
+    'tiles tiles';
+  align-items: baseline;
+  column-gap: var(--space-3);
+  row-gap: var(--space-0-5);
   background: var(--color-panel);
 }
 
 .total,
-.totalSkeleton {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
+.month {
+  display: contents;
 }
 
 .totalSkeleton {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
 }
 
@@ -36,11 +42,13 @@
 }
 
 .totalLabel {
+  grid-area: label;
   font-size: var(--font-size-xs);
   color: var(--color-muted);
 }
 
 .totalAmount {
+  grid-area: amount;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-display);
@@ -48,47 +56,49 @@
   white-space: nowrap;
 }
 
-.month {
-  margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.monthLabelSkeleton {
-  display: none;
+.monthLabel {
+  grid-area: caption;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .tiles {
-  margin: 0;
+  grid-area: tiles;
+  margin: var(--space-2) 0 0;
   display: grid;
-  grid-template-columns: auto auto;
-  column-gap: var(--space-2);
-  row-gap: var(--space-0-5);
-  font-size: var(--font-size-xs);
-  text-align: right;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1-5);
 }
 
-.tile {
-  display: contents;
+.tile,
+.tileSkeleton {
+  min-width: 0;
+  padding: var(--space-1-5) var(--space-2-5);
+  border-radius: var(--radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  background: var(--color-ground);
 }
 
 .tileSkeleton {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  gap: var(--space-1-5);
 }
 
 .tileLabelSkeleton {
-  width: var(--size-skeleton-label);
+  width: 55%;
   height: var(--size-skeleton-text-sm);
 }
 
 .tileAmountSkeleton {
-  display: none;
+  width: 70%;
+  height: var(--size-skeleton-text-sm);
 }
 
 .tileLabel {
+  font-size: var(--font-size-xs);
   color: var(--color-muted);
   white-space: nowrap;
 }
@@ -96,8 +106,11 @@
 .tileAmount,
 .tileAccent {
   margin: 0;
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tileAccent {
@@ -107,14 +120,22 @@
 @media (--desktop) {
   .balancePanel {
     padding: var(--space-4) var(--space-6);
-    border-radius: var(--radius-panel);
+    display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
+    justify-content: space-between;
     gap: var(--space-5);
   }
 
   .total {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-1);
+  }
+
+  .totalSkeleton {
+    gap: var(--space-2);
   }
 
   .totalLabel {
@@ -136,57 +157,31 @@
 
   .month {
     flex: 0 1 var(--size-month);
-    margin-left: 0;
-    align-items: stretch;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-1-5);
   }
 
   .monthLabel {
     font-size: var(--font-size-sm);
-    color: var(--color-muted);
-  }
-
-  .monthLabelSkeleton {
-    display: block;
-    width: var(--size-skeleton-word);
-    height: var(--size-skeleton-text-sm);
   }
 
   .tiles {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
     gap: var(--space-2-5);
-    text-align: left;
   }
 
   .tile,
   .tileSkeleton {
     padding: var(--space-2) var(--space-3-5);
-    border-radius: var(--radius-control);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-0-5);
-    background: var(--color-ground);
   }
 
   .tileSkeleton {
-    grid-column: auto;
-    justify-content: center;
     gap: var(--space-2);
   }
 
-  .tileLabelSkeleton {
-    width: 55%;
-    height: var(--size-skeleton-text-sm);
-  }
-
   .tileAmountSkeleton {
-    display: block;
-    width: 70%;
     height: var(--size-skeleton-text);
-  }
-
-  .tileMonth {
-    display: none;
   }
 
   .tileAmount,

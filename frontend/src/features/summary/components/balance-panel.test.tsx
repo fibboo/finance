@@ -32,7 +32,7 @@ test('shows the total balance and the month in the base currency', async () => {
   expect(screen.getByText('+$2,312.00')).toBeInTheDocument();
   expect(screen.getByText('-$1,046.70')).toBeInTheDocument();
   expect(screen.getByText('+$1,265.30')).toBeInTheDocument();
-  expect(screen.getByText('October')).toBeInTheDocument();
+  expect(screen.getByText('This month')).toBeInTheDocument();
   expect(screen.getByText('Left')).toBeInTheDocument();
 });
 
