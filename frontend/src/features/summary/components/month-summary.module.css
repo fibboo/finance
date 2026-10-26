@@ -1,0 +1,132 @@
+@import '@/styles/media.css';
+
+.monthSummary {
+  flex: none;
+  padding: var(--space-2-5) var(--space-3-5);
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--color-panel);
+}
+
+.header,
+.legend {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.left {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.amount,
+.accent,
+.danger {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.accent {
+  color: var(--color-accent);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.track {
+  position: relative;
+  height: var(--size-pace-bar);
+  border-radius: var(--radius-full);
+  background: var(--color-track);
+}
+
+.onPace,
+.ahead,
+.over {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+
+.ahead {
+  background: var(--color-warning);
+}
+
+.over {
+  background: var(--color-danger);
+}
+
+.today {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  bottom: calc(var(--space-1) * -1);
+  width: var(--size-border);
+  margin-left: calc(var(--size-border) / -2);
+  background: var(--color-ink);
+}
+
+.legend {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1-5);
+}
+
+.figure .amount,
+.figure .accent {
+  font-size: var(--font-size-sm);
+}
+
+.leftSkeleton,
+.legendSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text-sm);
+}
+
+@media (--desktop) {
+  .monthSummary {
+    padding: var(--space-4);
+    gap: var(--space-2-5);
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
+
+  .left,
+  .legend {
+    font-size: var(--font-size-sm);
+  }
+
+  .amount,
+  .accent,
+  .danger {
+    font-size: var(--font-size-xl);
+  }
+
+  .figure .amount,
+  .figure .accent {
+    font-size: var(--font-size-md);
+  }
+}
