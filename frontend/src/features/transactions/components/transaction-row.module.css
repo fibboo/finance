@@ -56,6 +56,10 @@
   color: var(--color-accent);
 }
 
+.clipped {
+  visibility: hidden;
+}
+
 @media (--desktop) {
   .transactionRow {
     min-height: var(--size-transaction-row-lg);

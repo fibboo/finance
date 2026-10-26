@@ -11,10 +11,14 @@ import { RecentTransactions } from './recent-transactions';
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 9, 20, 0, 30));
+  // 768 px of jsdom's window over 52 px rows give pages of 15
+  document.documentElement.style.fontSize = '16px';
+  document.documentElement.style.setProperty('--size-transaction-row', '3.25rem');
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  document.documentElement.removeAttribute('style');
 });
 
 test('shows the latest transactions of the whole history up to the local today', async () => {
@@ -22,7 +26,7 @@ test('shows the latest transactions of the whole history up to the local today',
   server.use(
     http.get('http://localhost/api/accounting/transactions', ({ request }) => {
       const searchParams = new URL(request.url).searchParams;
-      return searchParams.get('size') === '6' &&
+      return searchParams.get('size') === '15' &&
         !searchParams.has('date_from') &&
         searchParams.get('date_to') === '2026-10-20'
         ? HttpResponse.json({
@@ -83,7 +87,7 @@ test('shows the latest transactions of the whole history up to the local today',
             ],
             total: 1,
             page: 1,
-            size: 6,
+            size: 15,
             pages: 1,
           } satisfies components['schemas']['Page_Transaction_'])
         : HttpResponse.json(null, { status: 400 });
@@ -110,7 +114,7 @@ test('shows the empty state without transactions', async () => {
         items: [],
         total: 0,
         page: 1,
-        size: 6,
+        size: 15,
         pages: 0,
       } satisfies components['schemas']['Page_Transaction_']),
     ),

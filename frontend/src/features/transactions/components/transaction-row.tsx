@@ -8,12 +8,22 @@ import { readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 
-type TransactionRowProps = Readonly<{ transaction: Readonly<Transaction>; baseCurrency: string }>;
+type TransactionRowProps = Readonly<{
+  transaction: Readonly<Transaction>;
+  baseCurrency: string;
+  isClipped?: boolean;
+}>;
 
-export function TransactionRow({ transaction, baseCurrency }: TransactionRowProps) {
+export function TransactionRow({
+  transaction,
+  baseCurrency,
+  isClipped = false,
+}: TransactionRowProps) {
   const view = readTransactionView(transaction);
   return (
-    <li className={styles['transactionRow']}>
+    <li
+      className={`${styles['transactionRow'] ?? ''} ${isClipped ? (styles['clipped'] ?? '') : ''}`}
+    >
       <span
         className={styles['dot']}
         style={{ color: readAccountColor(view.markedAccount) }}
