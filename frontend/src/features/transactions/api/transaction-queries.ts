@@ -1,4 +1,4 @@
-import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
 import type { components, operations } from '@/lib/api-schema';
@@ -16,12 +16,6 @@ async function fetchTransactions(query: Readonly<TransactionListQuery>): Promise
 }
 
 export const transactionQueries = {
-  list(query: Readonly<TransactionListQuery>) {
-    return queryOptions({
-      queryKey: ['transactions', 'list', query],
-      queryFn: () => fetchTransactions(query),
-    });
-  },
   feed(query: Readonly<Omit<TransactionListQuery, 'page'>>) {
     return infiniteQueryOptions({
       queryKey: ['transactions', 'feed', query],

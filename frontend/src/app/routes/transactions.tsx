@@ -8,7 +8,9 @@ export function Component() {
   const feed = useTransactionFeed();
   return (
     <Page title="Transactions" count={feed.query.data?.pages.at(-1)?.total}>
-      {baseCurrency !== undefined && <TransactionFeed feed={feed} baseCurrency={baseCurrency} />}
+      {baseCurrency !== undefined && (
+        <TransactionFeed feed={feed} baseCurrency={baseCurrency} label="Transactions" />
+      )}
     </Page>
   );
 }

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { components } from '@/lib/api-schema';
 
 import type { TransactionFeedQuery } from '../hooks/use-transaction-feed';
@@ -24,9 +26,14 @@ function mergePages(pages: readonly TransactionPage[]): readonly Transaction[] {
   return transactions;
 }
 
-type TransactionFeedProps = Readonly<{ feed: TransactionFeedQuery; baseCurrency: string }>;
+type TransactionFeedProps = Readonly<{
+  feed: TransactionFeedQuery;
+  baseCurrency: string;
+  label: string;
+  header?: ReactNode;
+}>;
 
-export function TransactionFeed({ feed, baseCurrency }: TransactionFeedProps) {
+export function TransactionFeed({ feed, baseCurrency, label, header }: TransactionFeedProps) {
   const { query, pageSize } = feed;
   const {
     data,
@@ -57,10 +64,11 @@ export function TransactionFeed({ feed, baseCurrency }: TransactionFeedProps) {
   const transactions = data === undefined ? [] : mergePages(data.pages);
   return (
     <section
-      aria-label="Transactions"
+      aria-label={label}
       aria-busy={isPending || isFetchingNextPage}
-      className={styles['transactions']}
+      className={header === undefined ? styles['transactions'] : styles['transactionsWithHeader']}
     >
+      {header}
       <div className={styles['rows']}>
         {data === undefined ? (
           <TransactionSkeletonRows count={pageSize} />

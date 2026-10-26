@@ -10,6 +10,11 @@
   background: var(--color-panel);
 }
 
+.transactionsWithHeader {
+  composes: transactions;
+  padding-top: 0;
+}
+
 .rows {
   flex: 1 1 auto;
   min-height: 0;
