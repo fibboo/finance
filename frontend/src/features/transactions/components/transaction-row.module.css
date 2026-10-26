@@ -55,14 +55,14 @@
 }
 
 .accounts,
-.baseAmount {
+.originalAmount {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
 }
 
 .amount,
 .incomeAmount,
-.baseAmount {
+.originalAmount {
   text-align: right;
   white-space: nowrap;
 }
@@ -89,7 +89,7 @@
   }
 
   .accounts,
-  .baseAmount {
+  .originalAmount {
     font-size: var(--font-size-md);
   }
 }

@@ -23,28 +23,26 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
       <span className={styles['title']}>{view.title}</span>
       <span className={styles['accounts']}>{view.accountNames}</span>
       <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
-        {formatMoney({
-          amount: view.amount,
-          currency: view.currency,
-          signDisplay: view.signDisplay,
-        })}
-      </span>
-      <span className={styles['baseAmount']}>
         {view.baseAmount === null ? (
           <>
             <span aria-hidden="true">—</span>
             <span className="visually-hidden">not valued yet</span>
           </>
         ) : (
-          <>
-            <span className="visually-hidden">≈ </span>
-            {formatMoney({
-              amount: view.baseAmount,
-              currency: baseCurrency,
-              signDisplay: view.signDisplay,
-            })}
-          </>
+          formatMoney({
+            amount: view.baseAmount,
+            currency: baseCurrency,
+            signDisplay: view.signDisplay,
+          })
         )}
+      </span>
+      <span className={styles['originalAmount']}>
+        {view.currency !== baseCurrency &&
+          formatMoney({
+            amount: view.amount,
+            currency: view.currency,
+            signDisplay: view.signDisplay,
+          })}
       </span>
     </li>
   );
