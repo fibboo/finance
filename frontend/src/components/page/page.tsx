@@ -3,20 +3,21 @@ import type { ReactNode } from 'react';
 import { LOCALE } from '@/lib/format-money';
 
 import styles from './page.module.css';
+import { useIsLogoShownOnPhone } from './use-is-logo-shown-on-phone';
 
 type PageProps = Readonly<{
   title: string;
   count?: Readonly<{ value: number; label: string }> | undefined;
-  isTitleHiddenOnPhone?: boolean;
   children?: ReactNode;
 }>;
 
-export function Page({ title, count, isTitleHiddenOnPhone = false, children }: PageProps) {
+export function Page({ title, count, children }: PageProps) {
+  const isLogoShownOnPhone = useIsLogoShownOnPhone();
   return (
     <div className={styles['page']}>
       <div className={styles['header']}>
         <h1
-          className={`${styles['title'] ?? ''} ${isTitleHiddenOnPhone ? 'visually-hidden-on-phone' : ''}`}
+          className={`${styles['title'] ?? ''} ${isLogoShownOnPhone ? 'visually-hidden-on-phone' : ''}`}
         >
           {title}
           {count !== undefined && (

@@ -173,6 +173,24 @@ test('shows the empty state without transactions', async () => {
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 
+test('hides Recent when its transactions fail to load', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json(null, { status: 500 }),
+    ),
+  );
+
+  // act
+  render(<RecentTransactions baseCurrency="USD" />);
+
+  // assert
+  await vi.waitFor(() => {
+    expect(screen.queryByRole('region', { name: 'Recent' })).not.toBeInTheDocument();
+  });
+  expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+});
+
 test('shows a busy recent panel while the transactions load', () => {
   // arrange
   server.use(

@@ -7,7 +7,11 @@ import { TransactionFeed } from './transaction-feed';
 type RecentTransactionsProps = Readonly<{ baseCurrency: string }>;
 
 export function RecentTransactions({ baseCurrency }: RecentTransactionsProps) {
-  const feed = useTransactionFeed();
+  const feed = useTransactionFeed({ isOpeningDayKept: false, isFirstPageErrorThrown: false });
+  if (feed.query.isError && feed.query.data === undefined) {
+    return null;
+  }
+
   return (
     <div className={styles['recentTransactions']}>
       <TransactionFeed

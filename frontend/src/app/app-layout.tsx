@@ -1,28 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, Outlet, useMatches } from 'react-router';
+import { Link, Outlet } from 'react-router';
 
 import styles from './app-layout.module.css';
 import { MainNavigation } from './main-navigation';
 
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';
+import { useIsLogoShownOnPhone } from '@/components/page/use-is-logo-shown-on-phone';
 import { ThemeSwitch } from '@/components/theme-switch/theme-switch';
 import { SignOutButton } from '@/features/auth/components/sign-out-button';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { UserInitials } from '@/features/user/components/user-initials';
 import { UserSummary } from '@/features/user/components/user-summary';
 
-function readIsLogoShownOnPhone(handle: unknown): boolean {
-  const isLogoShownOnPhone =
-    typeof handle === 'object' &&
-    handle !== null &&
-    'isLogoShownOnPhone' in handle &&
-    handle.isLogoShownOnPhone === true;
-  return isLogoShownOnPhone;
-}
-
 export function AppLayout() {
-  const isLogoShownOnPhone = useMatches().some((match) => readIsLogoShownOnPhone(match.handle));
+  const isLogoShownOnPhone = useIsLogoShownOnPhone();
   const { data: userDictionaries } = useQuery(dictionaryQueries.user());
 
   return (

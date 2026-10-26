@@ -18,13 +18,22 @@ export type TransactionFeedQuery = Readonly<{
   pageSize: number;
 }>;
 
-export function useTransactionFeed(): TransactionFeedQuery {
+type TransactionFeedOptions = Readonly<{
+  isOpeningDayKept: boolean;
+  isFirstPageErrorThrown: boolean;
+}>;
+
+export function useTransactionFeed({
+  isOpeningDayKept,
+  isFirstPageErrorThrown,
+}: TransactionFeedOptions): TransactionFeedQuery {
   const today = useToday();
-  const [dateTo] = useState(today);
+  const [openingDay] = useState(today);
   const pageSize = usePageSize();
   const query = useInfiniteQuery({
-    ...transactionQueries.feed({ size: pageSize, date_to: dateTo }),
-    throwOnError: (_error, failedQuery) => failedQuery.state.data === undefined,
+    ...transactionQueries.feed({ size: pageSize, date_to: isOpeningDayKept ? openingDay : today }),
+    throwOnError: (_error, failedQuery) =>
+      isFirstPageErrorThrown && failedQuery.state.data === undefined,
   });
   return { query, pageSize };
 }

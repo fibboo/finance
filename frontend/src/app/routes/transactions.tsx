@@ -15,7 +15,7 @@ function readTransactionCount(
 
 export function Component() {
   const baseCurrency = useBaseCurrency();
-  const feed = useTransactionFeed();
+  const feed = useTransactionFeed({ isOpeningDayKept: true, isFirstPageErrorThrown: true });
   return (
     <Page title="Transactions" count={readTransactionCount(feed.query.data?.pages.at(-1)?.total)}>
       {baseCurrency !== undefined && (

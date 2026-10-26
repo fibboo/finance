@@ -9,7 +9,7 @@ export const handle = { isLogoShownOnPhone: true };
 export function Component() {
   const baseCurrency = useBaseCurrency();
   return (
-    <Page title="Home" isTitleHiddenOnPhone={handle.isLogoShownOnPhone}>
+    <Page title="Home">
       {baseCurrency !== undefined && (
         <>
           <BalancePanel baseCurrency={baseCurrency} />

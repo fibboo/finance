@@ -31,7 +31,6 @@
   display: flex;
   gap: var(--space-1-5);
   overflow-x: auto;
-  scrollbar-width: none;
   list-style: none;
 }
 
