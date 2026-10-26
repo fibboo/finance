@@ -126,7 +126,7 @@ test.each([
         { ...posting, amount: '2100.00', currency: 'EUR', base_amount: '2291.30', account: wallet },
       ],
     },
-    cells: ['Salary', 'Wallet', '+€2,100.00', '+$2,291.30'],
+    cells: ['Salary', 'Wallet', '+€2,100.00', '+$2,291.30', '0.9165'],
   },
   {
     kind: 'a transfer',
@@ -139,7 +139,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
-    cells: ['Transfer Wallet → Savings', '€300.00', '$327.40'],
+    cells: ['Transfer Wallet → Savings', '€300.00', '$327.40', '0.9163'],
   },
   {
     kind: 'a transfer not valued yet',

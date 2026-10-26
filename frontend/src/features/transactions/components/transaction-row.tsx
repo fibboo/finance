@@ -1,11 +1,16 @@
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
-import { formatMoney } from '@/lib/format-money';
+import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import styles from './transaction-row.module.css';
 import { readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
+
+const RATE_FORMAT = new Intl.NumberFormat(LOCALE, {
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 4,
+});
 
 type TransactionRowProps = Readonly<{ transaction: Readonly<Transaction>; baseCurrency: string }>;
 
@@ -49,6 +54,12 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
             signDisplay: view.signDisplay,
           })
         )}
+      </span>
+      <span className={styles['rate']}>
+        {view.currency !== baseCurrency &&
+          view.baseAmount !== null &&
+          view.baseAmount !== 0 &&
+          RATE_FORMAT.format(Math.abs(view.amount / view.baseAmount))}
       </span>
     </li>
   );
