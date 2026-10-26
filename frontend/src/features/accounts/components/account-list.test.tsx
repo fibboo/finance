@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -119,4 +119,23 @@ test('shows a busy accounts panel while the accounts load', () => {
 
   // assert
   expect(screen.getByRole('region', { name: 'Accounts' })).toHaveAttribute('aria-busy', 'true');
+});
+
+test('keeps the header when the accounts fail to load', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json(null, { status: 500 }),
+    ),
+  );
+
+  // act
+  render(<AccountList baseCurrency="USD" header={<p>Total balance · USD</p>} />);
+
+  // assert
+  await vi.waitFor(() => {
+    expect(screen.getByRole('region', { name: 'Accounts' })).toHaveAttribute('aria-busy', 'false');
+  });
+  expect(screen.getByText('Total balance · USD')).toBeInTheDocument();
+  expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });

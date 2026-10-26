@@ -27,9 +27,12 @@ function readMonthProgress({
 }>): MonthProgress {
   const [year = 0, monthNumber = 0] = month.split('-').map(Number);
   const daysInMonth = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
-  const elapsedDays = today.startsWith(month.slice(0, 7))
-    ? Number(today.slice(8, 10))
-    : daysInMonth;
+  const elapsedDays =
+    today < month
+      ? 0
+      : today.startsWith(month.slice(0, 7))
+        ? Number(today.slice(8, 10))
+        : daysInMonth;
   const elapsedShare = elapsedDays / daysInMonth;
   const spentShare = earned > 0 ? Math.min(spent / earned, 1) : Number(spent > 0);
   const pace: SpendingPace = left < 0 ? 'over' : spentShare <= elapsedShare ? 'onPace' : 'ahead';

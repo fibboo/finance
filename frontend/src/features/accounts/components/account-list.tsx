@@ -22,7 +22,8 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
   );
   const accountsRef = useRef<HTMLUListElement>(null);
   const { observeFirst, observeLast, isFirstInView, isLastInView } = useStripEdges();
-  if (!isPending && accountPage === undefined) {
+  const isFailed = !isPending && accountPage === undefined;
+  if (isFailed && header === undefined) {
     return null;
   }
 
@@ -41,78 +42,86 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
   return (
     <section className={styles['accountList']} aria-label="Accounts" aria-busy={isPending}>
       {header !== undefined && <div className={styles['header']}>{header}</div>}
-      <div className={styles['strip']}>
-        {!isFirstInView && (
-          <button
-            type="button"
-            className={styles['previous']}
-            aria-label="Previous accounts"
-            onClick={() => {
-              scrollStrip(-1);
-            }}
-          >
-            ‹
-          </button>
-        )}
-        <ul ref={accountsRef} className={styles['accounts']}>
-          {accountPage === undefined &&
-            listSkeletonKeys(ACCOUNT_SKELETON_COUNT).map((key) => (
-              <li key={key} className={styles['account']}>
-                <Skeleton className={styles['markSkeleton']} />
+      {!isFailed && (
+        <div className={styles['strip']}>
+          {accounts.length > 1 && !isFirstInView && (
+            <button
+              type="button"
+              className={styles['previous']}
+              aria-label="Previous accounts"
+              onClick={() => {
+                scrollStrip(-1);
+              }}
+            >
+              ‹
+            </button>
+          )}
+          <ul ref={accountsRef} className={styles['accounts']}>
+            {accountPage === undefined &&
+              listSkeletonKeys(ACCOUNT_SKELETON_COUNT).map((key) => (
+                <li key={key} className={styles['account']}>
+                  <Skeleton className={styles['markSkeleton']} />
+                  <span className={styles['identity']}>
+                    <Skeleton className={styles['nameSkeleton']} />
+                    <Skeleton className={styles['detailSkeleton']} />
+                  </span>
+                  <span className={styles['amounts']}>
+                    <Skeleton className={styles['balanceSkeleton']} />
+                    <Skeleton className={styles['detailSkeleton']} />
+                  </span>
+                </li>
+              ))}
+            {accounts.map((account, index) => (
+              <li
+                key={account.id}
+                ref={
+                  index === 0
+                    ? observeFirst
+                    : index === accounts.length - 1
+                      ? observeLast
+                      : undefined
+                }
+                className={styles['account']}
+              >
+                <AccountMark account={account} />
                 <span className={styles['identity']}>
-                  <Skeleton className={styles['nameSkeleton']} />
-                  <Skeleton className={styles['detailSkeleton']} />
+                  <span className={styles['name']}>{account.name}</span>
+                  <span className={styles['detail']}>{account.currency}</span>
                 </span>
-                <span className={styles['amounts']}>
-                  <Skeleton className={styles['balanceSkeleton']} />
-                  <Skeleton className={styles['detailSkeleton']} />
+                <span
+                  className={
+                    Number(account.balance) < 0 ? styles['debtAmounts'] : styles['amounts']
+                  }
+                >
+                  <span className={styles['balance']}>
+                    {formatMoney({
+                      amount: Number(account.base_currency_balance),
+                      currency: baseCurrency,
+                    })}
+                  </span>
+                  {account.currency !== baseCurrency && (
+                    <span className={styles['accountBalance']}>
+                      {formatMoney({ amount: Number(account.balance), currency: account.currency })}
+                    </span>
+                  )}
                 </span>
               </li>
             ))}
-          {accounts.map((account, index) => (
-            <li
-              key={account.id}
-              ref={
-                index === 0 ? observeFirst : index === accounts.length - 1 ? observeLast : undefined
-              }
-              className={styles['account']}
+          </ul>
+          {accounts.length > 1 && !isLastInView && (
+            <button
+              type="button"
+              className={styles['next']}
+              aria-label="Next accounts"
+              onClick={() => {
+                scrollStrip(1);
+              }}
             >
-              <AccountMark account={account} />
-              <span className={styles['identity']}>
-                <span className={styles['name']}>{account.name}</span>
-                <span className={styles['detail']}>{account.currency}</span>
-              </span>
-              <span
-                className={Number(account.balance) < 0 ? styles['debtAmounts'] : styles['amounts']}
-              >
-                <span className={styles['balance']}>
-                  {formatMoney({
-                    amount: Number(account.base_currency_balance),
-                    currency: baseCurrency,
-                  })}
-                </span>
-                {account.currency !== baseCurrency && (
-                  <span className={styles['accountBalance']}>
-                    {formatMoney({ amount: Number(account.balance), currency: account.currency })}
-                  </span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-        {!isLastInView && (
-          <button
-            type="button"
-            className={styles['next']}
-            aria-label="Next accounts"
-            onClick={() => {
-              scrollStrip(1);
-            }}
-          >
-            ›
-          </button>
-        )}
-      </div>
+              ›
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -70,7 +70,7 @@ export function TransactionFeed({ feed, baseCurrency, label, header }: Transacti
     <section
       aria-label={label}
       aria-busy={isPending || isFetchingNextPage}
-      className={header === undefined ? styles['transactions'] : styles['transactionsWithHeader']}
+      className={styles['transactions']}
     >
       {header}
       <div className={styles['rows']}>

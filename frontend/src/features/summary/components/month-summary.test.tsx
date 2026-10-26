@@ -69,6 +69,30 @@ test('shows a negative left over with its minus', async () => {
   expect(screen.getByText('100% of the earnings spent, 84% of the month gone')).toBeInTheDocument();
 });
 
+test('counts no days gone for a month the backend has started before the local today', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/summary', () =>
+      HttpResponse.json({
+        month: '2026-11-01',
+        total_balance: '13713.25',
+        earned: '0.00',
+        spent: '0.00',
+        left_over: '0.00',
+        unvalued_spent: [],
+      } satisfies components['schemas']['Summary']),
+    ),
+  );
+
+  // act
+  render(<MonthSummary baseCurrency="USD" />);
+
+  // assert
+  expect(
+    await screen.findByText('0% of the earnings spent, 0% of the month gone'),
+  ).toBeInTheDocument();
+});
+
 test('shows a busy month while the summary loads', () => {
   // arrange
   server.use(
