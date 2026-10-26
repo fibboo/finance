@@ -67,6 +67,10 @@
   white-space: nowrap;
 }
 
+.originalAmount {
+  font-size: var(--font-size-2xs);
+}
+
 .amount,
 .incomeAmount {
   font-weight: var(--font-weight-medium);
