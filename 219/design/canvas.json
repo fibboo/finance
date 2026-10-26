@@ -112,7 +112,7 @@
       "x": 2720,
       "y": 1928,
       "w": 1280,
-      "h": 900,
+      "h": 800,
       "title": "Empty state (desktop)"
     },
     "desktop-type.dc.html": {
@@ -162,61 +162,33 @@
       "title": "Sort popover (desktop)",
       "is_interactive": true
     },
-    "home-phone.dc.html": {
-      "x": 0,
-      "y": 4988,
-      "w": 390,
-      "h": 1000,
-      "title": "Home, Recent by day (phone)"
-    },
-    "home-desktop.dc.html": {
-      "x": 470,
-      "y": 4988,
-      "w": 1280,
-      "h": 1000,
-      "title": "Home, Recent by day (desktop)"
-    },
-    "home-phone-compact-a.dc.html": {
-      "x": 1830,
-      "y": 4988,
-      "w": 390,
-      "h": 844,
-      "title": "Compact Home A: tile strip (phone)"
-    },
-    "home-phone-compact-b.dc.html": {
-      "x": 2300,
-      "y": 4988,
-      "w": 390,
-      "h": 844,
-      "title": "Compact Home B: one-line month, chips (phone)"
-    },
     "dense-home-phone.dc.html": {
       "x": 0,
-      "y": 6060,
+      "y": 4988,
       "w": 390,
       "h": 844,
-      "title": "Dense Home (phone)"
+      "title": "Home (phone)"
     },
     "dense-transactions-phone.dc.html": {
       "x": 470,
-      "y": 6060,
+      "y": 4988,
       "w": 390,
       "h": 844,
-      "title": "Dense Transactions (phone)"
+      "title": "Transactions (phone)"
     },
     "dense-home-desktop.dc.html": {
       "x": 940,
-      "y": 6060,
+      "y": 4988,
       "w": 1280,
       "h": 800,
-      "title": "Dense Home (desktop)"
+      "title": "Home (desktop)"
     },
     "dense-transactions-desktop.dc.html": {
       "x": 2300,
-      "y": 6060,
+      "y": 4988,
       "w": 1280,
       "h": 800,
-      "title": "Dense Transactions (desktop)"
+      "title": "Transactions (desktop)"
     }
   },
   "order": [
@@ -240,10 +212,6 @@
     "desktop-income.dc.html",
     "desktop-amount.dc.html",
     "desktop-sort.dc.html",
-    "home-phone.dc.html",
-    "home-desktop.dc.html",
-    "home-phone-compact-a.dc.html",
-    "home-phone-compact-b.dc.html",
     "dense-home-phone.dc.html",
     "dense-transactions-phone.dc.html",
     "dense-home-desktop.dc.html",

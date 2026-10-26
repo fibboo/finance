@@ -2,95 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Transactions empty state, desktop</title>
+<title>Empty state (desktop)</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0}
-a{color:inherit;text-decoration:none}a:hover{opacity:.8}
-button{font:inherit;cursor:pointer}
 </style>
 </helmet>
-<div style="width: 1280px; height: 900px; box-sizing: border-box; padding: 16px; overflow: hidden; display: flex; align-items: flex-start; gap: 16px; font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; background: {{t.bg}}; color: {{t.text}}">
-  <nav aria-label="Main" style="flex: 0 0 232px; box-sizing: border-box; padding: 16px 12px; border-radius: 22px; display: flex; flex-direction: column; gap: 4px; background: {{t.panel}}">
-    <div style="height: 44px; padding: 0 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px">
-      <span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>
-      finance
-    </div>
-    <button type="button" disabled style="height: 44px; margin-bottom: 10px; border: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}; opacity: .45; cursor: not-allowed">
-      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      Add transaction
-    </button>
-    <sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
-      <sc-if value="{{n.link}}" hint-placeholder-val="{{true}}">
-        <a href="#" style="{{n.style}}">
-          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{n.icon}}"/></svg>
-          {{n.label}}
-        </a>
-      </sc-if>
-      <sc-if value="{{n.soon}}" hint-placeholder-val="{{false}}">
-        <button type="button" disabled style="height: 44px; padding: 0 12px; border: 0; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; background: transparent; color: {{t.muted}}; cursor: not-allowed">
-          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="opacity: .55"><path d="{{n.icon}}"/></svg>
-          <span style="opacity: .55">{{n.label}}</span>
-          <span style="margin-left: auto; padding: 2px 8px; border-radius: 8px; font-size: 11px; background: {{t.bg}}">Soon</span>
-        </button>
-      </sc-if>
-    </sc-for>
-  </nav>
-  <div style="flex: 1 1 auto; min-width: 0; height: 100%; display: flex; flex-direction: column; gap: 12px">
-    <div style="height: 44px; margin-top: 16px; flex-shrink: 0; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px">
-      <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Transactions <span style="font-weight: 400; color: {t.muted}">0</span></h1>
-      <a href="#" aria-label="Account menu" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: {{t.panel}}">NI</a>
-    </div>
-    <div style="display: flex; align-items: center; gap: 8px">
-      <div role="toolbar" aria-label="Filters" style="display: flex; flex-wrap: wrap; gap: 8px">
-        <sc-for list="{{chips}}" as="c" hint-placeholder-count="5">
-          <button type="button" aria-haspopup="dialog" style="{{c.style}}">
-            {{c.label}}
-            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-        </sc-for>
-      </div>
-    </div>
-    <section aria-label="Transactions" style="flex: 1 1 auto; padding: 24px; border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; background: {{t.panel}}">
-      <span aria-hidden="true" style="width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: {{t.bg}}; color: {{t.muted}}">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>
-      </span>
-      <h2 style="margin: 0; font-size: 20px; font-weight: 600">Nothing matches these filters</h2>
-      <p style="margin: 0; max-width: 340px; font-size: 14px; line-height: 1.4; color: {{t.muted}}">No transfers over $5,000. Try fewer filters.</p>
-      <button type="button" style="margin-top: 8px; height: 46px; padding: 0 20px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">Reset filters</button>
-    </section>
-  </div>
-</div>
+<img src="{{src}}" alt="Empty state (desktop), captured from the app" width="1280" height="800" style="display: block; width: 1280px; height: 800px">
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":800}}'>
 class Component extends DCLogic {
 renderVals() {
-const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55' };
-const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A' };
-const t = (this.props.dark ?? true) ? D : L;
-const chipBase = 'height: 40px; padding: 0 12px 0 14px; border: 0; border-radius: 999px; display: flex; align-items: center; gap: 4px; font-size: 14px; white-space: nowrap; ';
-const chips = [
-{ label: 'Period', on: false },
-{ label: 'Transfer', on: true },
-{ label: 'Accounts', on: false },
-{ label: 'Categories', on: false },
-{ label: 'Income', on: false },
-{ label: 'Over $5,000', on: true },
-{ label: 'Newest first', on: false }
-].map((c) => ({ ...c, style: chipBase + (c.on ? 'font-weight: 600; background: ' + t.text + '; color: ' + t.bg : 'font-weight: 500; background: ' + t.panel + '; color: ' + t.text) }));
-const navBase = 'height: 44px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 15px; ';
-const nav = [
-{ label: 'Home', icon: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z', link: true },
-{ label: 'Transactions', icon: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01', link: true, active: true },
-{ label: 'Accounts', icon: 'M6 6h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3zM3 10h18M16 14.5h2' },
-{ label: 'Categories', icon: 'M3 12V4h8l10 10-8 8zM7.5 8.5h.01' }
-].map((n) => ({ ...n, link: !!n.link, soon: !n.link, style: navBase + (n.active ? 'font-weight: 600; background: ' + t.bg : 'font-weight: 500; color: ' + t.muted) }));
-return { t, chips, nav };
+const dark = this.props.dark ?? true;
+return { src: `./shots/transactions-empty-desktop-${dark ? 'dark' : 'light'}.png` };
 }
 }
 </script>
