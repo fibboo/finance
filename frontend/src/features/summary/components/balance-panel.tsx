@@ -1,10 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
-import { formatMoney } from '@/lib/format-money';
+import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import { summaryQueries } from '../api/summary-queries';
 import styles from './balance-panel.module.css';
+
+function readMonthName(month: string): string {
+  const monthName = new Intl.DateTimeFormat(LOCALE, { month: 'long', timeZone: 'UTC' }).format(
+    new Date(`${month}T00:00:00Z`),
+  );
+  return monthName;
+}
 
 type BalancePanelProps = Readonly<{ baseCurrency: string }>;
 
@@ -18,7 +25,7 @@ export function BalancePanel({ baseCurrency }: BalancePanelProps) {
   const tiles = [
     { label: 'Earned', amount: earned, isAccent: earned > 0 },
     { label: 'Spent', amount: -Number(summary?.spent), isAccent: false },
-    { label: 'Left over', amount: Number(summary?.left_over), isAccent: false },
+    { label: 'Left', amount: Number(summary?.left_over), isAccent: false },
   ];
   return (
     <section className={styles['balancePanel']} aria-label="Balance" aria-busy={isPending}>
@@ -36,7 +43,11 @@ export function BalancePanel({ baseCurrency }: BalancePanelProps) {
         </p>
       )}
       <div className={styles['month']}>
-        <span className={styles['monthLabel']}>This month</span>
+        {summary === undefined ? (
+          <Skeleton className={styles['monthLabelSkeleton']} />
+        ) : (
+          <span className={styles['monthLabel']}>{readMonthName(summary.month)}</span>
+        )}
         {summary === undefined ? (
           <div className={styles['tiles']}>
             {tiles.map((tile) => (

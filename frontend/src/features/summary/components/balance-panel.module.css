@@ -50,30 +50,38 @@
 }
 
 .month {
-  padding-top: var(--space-2-5);
-  border-top: var(--size-border) solid var(--color-border);
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: baseline;
   gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.monthLabelSkeleton {
+  width: var(--size-skeleton-word);
+  height: var(--size-skeleton-text-sm);
 }
 
 .tiles {
   margin: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-2);
+  display: contents;
 }
 
 .tile {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.tile::before {
+  content: '·';
+  order: 0;
 }
 
 .tileSkeleton {
-  composes: tile;
-  justify-content: center;
-  gap: var(--space-2);
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text-sm);
 }
 
 .tileLabelSkeleton {
@@ -87,15 +95,16 @@
 }
 
 .tileLabel {
-  font-size: var(--font-size-xs);
-  color: var(--color-muted);
+  order: 2;
+  text-transform: lowercase;
 }
 
 .tileAmount,
 .tileAccent {
+  order: 1;
   margin: 0;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-ink);
 }
 
 .tileAccent {
@@ -129,23 +138,46 @@
 
   .month {
     flex: 0 1 var(--size-month);
-    padding-top: 0;
-    border-top: 0;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
     gap: var(--space-2);
   }
 
   .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-2-5);
   }
 
   .tile {
     padding: var(--space-3) var(--space-4);
     border-radius: var(--radius-track);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-0-5);
     background: var(--color-ground);
   }
 
+  .tile::before {
+    content: none;
+  }
+
   .tileLabel {
-    font-size: var(--font-size-sm);
+    order: 0;
+    text-transform: none;
+  }
+
+  .tileSkeleton {
+    width: auto;
+    height: auto;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-track);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--color-ground);
   }
 
   .totalSkeleton {
@@ -173,6 +205,8 @@
 
   .tileAmount,
   .tileAccent {
+    order: 0;
     font-size: var(--font-size-summary);
+    font-weight: var(--font-weight-semibold);
   }
 }

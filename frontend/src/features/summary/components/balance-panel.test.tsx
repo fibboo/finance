@@ -32,6 +32,8 @@ test('shows the total balance and the month in the base currency', async () => {
   expect(screen.getByText('+$2,312.00')).toBeInTheDocument();
   expect(screen.getByText('-$1,046.70')).toBeInTheDocument();
   expect(screen.getByText('+$1,265.30')).toBeInTheDocument();
+  expect(screen.getByText('October')).toBeInTheDocument();
+  expect(screen.getByText('Left')).toBeInTheDocument();
 });
 
 test('shows zero amounts without a sign', async () => {
@@ -69,6 +71,5 @@ test('shows a busy balance panel while the summary loads', () => {
 
   // assert
   expect(screen.getByRole('region', { name: 'Balance' })).toHaveAttribute('aria-busy', 'true');
-  expect(screen.getByText('This month')).toBeInTheDocument();
   expect(screen.queryByText('Total balance · USD')).not.toBeInTheDocument();
 });

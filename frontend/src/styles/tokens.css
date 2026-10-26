@@ -102,10 +102,6 @@
   --size-skeleton-word: 2rem;
   --size-day-header: 2rem;
   --size-day-header-lg: 2.25rem;
-  --size-recent-min: calc(
-    var(--space-2) * 2 + var(--size-section-header-sm) + var(--size-day-header) +
-      var(--size-transaction-row) * 3
-  );
   --size-skeleton-code: 2.25rem;
   --size-skeleton-balance: 2rem;
   --size-skeleton-balance-lg: 3.125rem;
@@ -136,7 +132,6 @@
   --size-empty-state: 8.25rem;
   --size-empty-state-lg: 10rem;
   --size-account-tile: 11.875rem;
-  --size-account-strip-tile: 8.5rem;
   --size-sidebar: 14.5rem;
   --size-popover: 18.75rem;
   --size-popover-wide: 21.25rem;
