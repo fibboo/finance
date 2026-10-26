@@ -58,7 +58,8 @@
 }
 
 .detail,
-.amounts > :not(.balance) {
+.detailSkeleton,
+.amounts > :not(.balance, .balanceSkeleton) {
   display: none;
 }
 
@@ -78,14 +79,14 @@
 }
 
 .markSkeleton {
-  width: var(--size-account-mark);
-  height: var(--size-account-mark);
-  border-radius: var(--radius-segment);
+  width: var(--size-account-mark-xs);
+  height: var(--size-account-mark-xs);
+  border-radius: var(--radius-full);
 }
 
 .nameSkeleton {
-  width: 55%;
-  height: var(--size-skeleton-text);
+  width: var(--size-skeleton-word);
+  height: var(--size-skeleton-text-sm);
 }
 
 .account:nth-child(even) .nameSkeleton {
@@ -178,6 +179,16 @@
   .markSkeleton {
     width: var(--size-account-mark-sm);
     height: var(--size-account-mark-sm);
+    border-radius: var(--radius-segment);
+  }
+
+  .nameSkeleton {
+    width: 55%;
+    height: var(--size-skeleton-text);
+  }
+
+  .detailSkeleton {
+    display: block;
   }
 
   .balanceSkeleton {

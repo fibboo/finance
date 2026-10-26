@@ -143,7 +143,9 @@ test('loads the next page of the whole history when the end of the list comes in
   expect(within(transactions).getByText('Groceries')).toBeInTheDocument();
   expect(within(transactions).getAllByRole('heading', { name: 'Today' })).toHaveLength(1);
   expect(within(transactions).getByText('-$47.30')).toBeInTheDocument();
-  expect(screen.getByRole('heading', { level: 1, name: 'Transactions 2' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Transactions, 2 transactions' }),
+  ).toBeInTheDocument();
 });
 
 test('shows a transaction moved to the next page once and the latest total', async () => {
@@ -187,7 +189,9 @@ test('shows a transaction moved to the next page once and the latest total', asy
   expect(await within(transactions).findByText('Cafes')).toBeInTheDocument();
   expect(within(transactions).getAllByText('Groceries')).toHaveLength(1);
   expect(within(transactions).getByText('-$47.30')).toBeInTheDocument();
-  expect(screen.getByRole('heading', { level: 1, name: 'Transactions 3' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Transactions, 3 transactions' }),
+  ).toBeInTheDocument();
 });
 
 test('stops loading after the next page fails until Try again is pressed', async () => {
@@ -259,7 +263,9 @@ test('shows the empty state without transactions', async () => {
 
   // assert
   expect(await screen.findByText('Nothing here yet')).toBeInTheDocument();
-  expect(screen.getByRole('heading', { level: 1, name: 'Transactions 0' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Transactions, 0 transactions' }),
+  ).toBeInTheDocument();
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 

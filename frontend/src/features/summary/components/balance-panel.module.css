@@ -5,6 +5,7 @@
   padding: var(--space-3) var(--space-3-5);
   border-radius: var(--radius-panel);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -48,6 +49,7 @@
 }
 
 .month {
+  margin-left: auto;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -134,16 +136,12 @@
 
   .month {
     flex: 0 1 var(--size-month);
+    margin-left: 0;
     align-items: stretch;
     gap: var(--space-1-5);
   }
 
   .monthLabel {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
     font-size: var(--font-size-sm);
     color: var(--color-muted);
   }

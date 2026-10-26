@@ -49,7 +49,7 @@ export function BalancePanel({ baseCurrency }: BalancePanelProps) {
         {summary === undefined ? (
           <Skeleton className={styles['monthLabelSkeleton']} />
         ) : (
-          <span className={`visually-hidden ${styles['monthLabel'] ?? ''}`}>
+          <span className={`visually-hidden-on-phone ${styles['monthLabel'] ?? ''}`}>
             {readMonthName({ month: summary.month, width: 'long' })}
           </span>
         )}

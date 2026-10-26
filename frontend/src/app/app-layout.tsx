@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, Outlet } from 'react-router';
+import { Link, Outlet, useMatches } from 'react-router';
 
 import styles from './app-layout.module.css';
 import { MainNavigation } from './main-navigation';
@@ -12,13 +12,26 @@ import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-querie
 import { UserInitials } from '@/features/user/components/user-initials';
 import { UserSummary } from '@/features/user/components/user-summary';
 
+function readIsLogoShownOnPhone(handle: unknown): boolean {
+  const isLogoShownOnPhone =
+    typeof handle === 'object' &&
+    handle !== null &&
+    'isLogoShownOnPhone' in handle &&
+    handle.isLogoShownOnPhone === true;
+  return isLogoShownOnPhone;
+}
+
 export function AppLayout() {
+  const isLogoShownOnPhone = useMatches().some((match) => readIsLogoShownOnPhone(match.handle));
   const { data: userDictionaries } = useQuery(dictionaryQueries.user());
 
   return (
     <div className={styles['appLayout']}>
       <header className={styles['header']}>
-        <Link to="/" className={styles['logoLink']}>
+        <Link
+          to="/"
+          className={isLogoShownOnPhone ? styles['logoLinkOnPhone'] : styles['logoLink']}
+        >
           <Logo />
         </Link>
         <div className={styles['account']}>

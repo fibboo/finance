@@ -7,8 +7,6 @@ import { readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 
-const UNVALUED_AMOUNT = '—';
-
 type TransactionRowProps = Readonly<{ transaction: Readonly<Transaction>; baseCurrency: string }>;
 
 export function TransactionRow({ transaction, baseCurrency }: TransactionRowProps) {
@@ -31,7 +29,10 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
       </span>
       <span className={styles['baseAmount']}>
         {view.baseAmount === null ? (
-          UNVALUED_AMOUNT
+          <>
+            <span aria-hidden="true">—</span>
+            <span className="visually-hidden">not valued yet</span>
+          </>
         ) : (
           <>
             <span className="visually-hidden">≈ </span>

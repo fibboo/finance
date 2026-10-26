@@ -16,14 +16,7 @@
   align-items: center;
 }
 
-.phoneLogo {
-  min-height: var(--size-touch);
-  display: flex;
-  align-items: center;
-}
-
-.title,
-.desktopTitle {
+.title {
   margin: 0;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
@@ -31,6 +24,7 @@
 }
 
 .count {
+  margin-left: var(--space-1-5);
   font-weight: normal;
   color: var(--color-muted);
 }
@@ -50,18 +44,5 @@
   .page,
   .content {
     gap: var(--space-4);
-  }
-
-  .phoneLogo {
-    display: none;
-  }
-
-  .desktopTitle {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-    white-space: normal;
   }
 }

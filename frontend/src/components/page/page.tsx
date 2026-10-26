@@ -1,36 +1,32 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router';
 
-import { Logo } from '@/components/logo/logo';
+import { LOCALE } from '@/lib/format-money';
 
 import styles from './page.module.css';
 
 type PageProps = Readonly<{
   title: string;
-  count?: number | undefined;
-  isLogoShownOnPhone?: boolean;
+  count?: Readonly<{ value: number; label: string }> | undefined;
+  isTitleHiddenOnPhone?: boolean;
   children?: ReactNode;
 }>;
 
-export function Page({ title, count, isLogoShownOnPhone = false, children }: PageProps) {
+export function Page({ title, count, isTitleHiddenOnPhone = false, children }: PageProps) {
   return (
     <div className={styles['page']}>
       <div className={styles['header']}>
-        {isLogoShownOnPhone && (
-          <Link to="/" className={styles['phoneLogo']}>
-            <Logo />
-          </Link>
-        )}
         <h1
-          className={
-            isLogoShownOnPhone ? `visually-hidden ${styles['desktopTitle'] ?? ''}` : styles['title']
-          }
+          className={`${styles['title'] ?? ''} ${isTitleHiddenOnPhone ? 'visually-hidden-on-phone' : ''}`}
         >
           {title}
           {count !== undefined && (
             <>
-              {' '}
-              <span className={styles['count']}>{count}</span>
+              <span className={styles['count']} aria-hidden="true">
+                {new Intl.NumberFormat(LOCALE).format(count.value)}
+              </span>
+              <span className="visually-hidden">
+                , {count.value} {count.label}
+              </span>
             </>
           )}
         </h1>

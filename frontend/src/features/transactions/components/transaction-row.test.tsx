@@ -106,7 +106,7 @@ test.each([
         { ...posting, amount: '42.80', currency: 'EUR', base_amount: null, account: category },
       ],
     },
-    cells: ['Groceries', 'Wallet', '-€42.80', '—'],
+    cells: ['Groceries', 'Wallet', '-€42.80', '—not valued yet'],
   },
   {
     kind: 'an income',
@@ -152,7 +152,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: null, account: savings },
       ],
     },
-    cells: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '—'],
+    cells: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '—not valued yet'],
   },
   {
     kind: 'a decreasing adjustment',
