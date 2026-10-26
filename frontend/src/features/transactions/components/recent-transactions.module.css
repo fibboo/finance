@@ -2,7 +2,7 @@
 
 .recentTransactions {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: var(--size-recent-min);
   padding: var(--space-2) var(--space-4-5);
   border-radius: var(--radius-panel);
   display: flex;

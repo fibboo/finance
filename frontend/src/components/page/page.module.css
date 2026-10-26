@@ -8,16 +8,40 @@
   gap: var(--space-3);
 }
 
-.title {
+.header {
   flex: none;
-  margin: 0;
-  min-height: var(--size-header);
-  padding: 0 var(--space-2);
+  min-height: var(--size-touch);
+  padding: 0 calc(var(--size-touch) + var(--space-3)) 0 var(--space-2);
   display: flex;
   align-items: center;
+}
+
+.phoneLogo {
+  min-height: var(--size-touch);
+  display: flex;
+  align-items: center;
+}
+
+.title,
+.desktopTitle {
+  margin: 0;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-title);
+}
+
+.desktopTitle {
+  position: absolute;
+  width: var(--size-border);
+  height: var(--size-border);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.count {
+  font-weight: normal;
+  color: var(--color-muted);
 }
 
 .content {
@@ -27,11 +51,25 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  container-type: size;
 }
 
 @media (--desktop) {
   .page,
   .content {
     gap: var(--space-4);
+  }
+
+  .phoneLogo {
+    display: none;
+  }
+
+  .desktopTitle {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
   }
 }

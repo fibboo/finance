@@ -7,7 +7,7 @@ import { RecentTransactions } from '@/features/transactions/components/recent-tr
 export function Component() {
   const baseCurrency = useBaseCurrency();
   return (
-    <Page title="Home">
+    <Page title="Home" isLogoShownOnPhone>
       {baseCurrency !== undefined && (
         <>
           <BalancePanel baseCurrency={baseCurrency} />

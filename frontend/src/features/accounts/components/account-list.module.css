@@ -25,8 +25,8 @@
 
 .accounts {
   max-height: calc(
-    50dvh - var(--size-balance-panel) - var(--space-3) - var(--size-section-header) -
-      var(--space-1) - var(--space-2)
+    100cqh - var(--size-balance-panel) - var(--space-3) * 2 - var(--size-section-header) -
+      var(--space-1) - var(--space-2) - var(--size-recent-min)
   );
   margin: 0;
   padding: 0;
