@@ -13,6 +13,10 @@
   padding: 0 var(--space-3-5) var(--space-2-5);
 }
 
+.strip {
+  position: relative;
+}
+
 .accounts {
   margin: 0;
   padding: 0 var(--space-3-5);
@@ -49,10 +53,55 @@
   display: none;
 }
 
-.amounts {
+.amounts,
+.debtAmounts {
   grid-column: 2;
   display: flex;
   flex-direction: column;
+}
+
+.accounts .debtAmounts > * {
+  color: var(--color-danger);
+}
+
+.previous,
+.next {
+  display: none;
+}
+
+@media (pointer: fine) {
+  .previous,
+  .next {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    width: var(--size-touch);
+    height: var(--size-touch);
+    padding: 0;
+    border: var(--size-border) solid var(--color-border);
+    border-radius: var(--radius-full);
+    display: grid;
+    place-items: center;
+    font-size: var(--font-size-xl);
+    color: var(--color-ink);
+    background: var(--color-panel);
+    box-shadow: var(--shadow-segment);
+    transform: translateY(-50%);
+    cursor: pointer;
+  }
+
+  .previous {
+    left: 0;
+  }
+
+  .next {
+    right: 0;
+  }
+
+  .previous:hover,
+  .next:hover {
+    background: var(--color-ground);
+  }
 }
 
 .balance {
@@ -97,21 +146,18 @@
 
   .header {
     padding: 0 0 var(--space-3);
-    border-radius: var(--radius-panel);
-    gap: var(--space-0-5);
   }
 
   .accounts {
     padding: 0;
-    display: grid;
-    overflow: visible;
-    grid-template-columns: repeat(auto-fill, minmax(var(--size-account-tile), 1fr));
-    grid-auto-rows: auto;
-    column-gap: var(--space-2-5);
+    gap: var(--space-2-5);
+    scroll-snap-type: x proximity;
   }
 
   .account {
+    flex: 0 0 var(--size-account-tile);
     min-width: 0;
+    scroll-snap-align: start;
     min-height: 0;
     padding: var(--space-2-5) var(--space-3-5);
     border-radius: var(--radius-track);
@@ -144,7 +190,8 @@
     color: var(--color-muted);
   }
 
-  .amounts {
+  .amounts,
+  .debtAmounts {
     grid-column: 1 / -1;
     align-items: flex-start;
   }

@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
-import { expect, test, vi } from 'vitest';
+import { expect, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -50,7 +50,7 @@ const accounts = [
   },
 ] satisfies components['schemas']['Account'][];
 
-test('shows the largest accounts that fit, with the base currency equivalent', async () => {
+test('shows every account, the largest first, with the base currency equivalent', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) =>
@@ -66,12 +66,6 @@ test('shows the largest accounts that fit, with the base currency equivalent', a
         : HttpResponse.json(null, { status: 400 }),
     ),
   );
-  // the desktop grid measures room for two tiles in its one row
-  vi.stubGlobal('getComputedStyle', () => ({
-    display: 'grid',
-    gridTemplateColumns: '200px 200px',
-    getPropertyValue: () => '',
-  }));
 
   // act
   render(<AccountList baseCurrency="USD" />);
@@ -79,43 +73,15 @@ test('shows the largest accounts that fit, with the base currency equivalent', a
   // assert
   expect(await screen.findByText('Main card')).toBeInTheDocument();
   const items = screen.getAllByRole('listitem');
-  expect(items).toHaveLength(2);
+  expect(items).toHaveLength(3);
   expect(items[0]).toHaveTextContent('Main card');
   expect(items[0]).toHaveTextContent('€3,180.00');
   expect(items[0]).toHaveTextContent('≈ $3,471.20');
   expect(items[1]).toHaveTextContent('Freelance');
   expect(items[1]).not.toHaveTextContent('≈');
-  expect(screen.queryByText('Wallet')).not.toBeInTheDocument();
-});
-
-test('shows every account in the phone strip', async () => {
-  // arrange
-  server.use(
-    http.get('http://localhost/api/accounting/accounts', () =>
-      HttpResponse.json({
-        items: accounts,
-        total: 3,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Account_']),
-    ),
-  );
-  // the phone strip is a scrolling flex row
-  vi.stubGlobal('getComputedStyle', () => ({
-    display: 'flex',
-    gridTemplateColumns: 'none',
-    getPropertyValue: () => '',
-  }));
-
-  // act
-  render(<AccountList baseCurrency="USD" />);
-
-  // assert
-  expect(await screen.findByText('Wallet')).toBeInTheDocument();
-  const items = screen.getAllByRole('listitem');
-  expect(items).toHaveLength(3);
-  expect(items[0]).toHaveTextContent('≈ $3,471.20');
+  expect(items[2]).toHaveTextContent('Wallet');
+  // every account fits the wide jsdom strip, so neither arrow shows
+  expect(screen.queryByRole('button', { name: 'Next accounts' })).not.toBeInTheDocument();
 });
 
 test('shows an account without a color in the first palette color', async () => {
