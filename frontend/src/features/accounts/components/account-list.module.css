@@ -1,97 +1,132 @@
 @import '@/styles/media.css';
 
 .accountList {
-  padding: var(--space-1) var(--space-4) var(--space-2);
+  flex: none;
+  padding: var(--space-2-5) 0;
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
   background: var(--color-panel);
 }
 
-.title {
-  margin: 0;
-  min-height: var(--size-section-header);
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+.header {
+  padding: 0 var(--space-3-5) var(--space-2-5);
 }
 
-.total {
-  font-weight: normal;
-  color: var(--color-muted);
+.header:empty {
+  display: none;
+}
+
+.strip {
+  position: relative;
 }
 
 .accounts {
-  max-height: calc(
-    50dvh - var(--size-balance-panel) - var(--space-3) - var(--size-section-header) -
-      var(--space-1) - var(--space-2)
-  );
   margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-auto-rows: var(--size-account-row);
+  padding: 0 var(--space-3-5);
+  display: flex;
+  gap: var(--space-1-5);
+  overflow-x: auto;
   list-style: none;
 }
 
 .account {
-  min-width: 0;
-  display: flex;
+  flex: none;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
+  border-radius: var(--radius-control);
+  display: grid;
+  grid-template-columns: auto auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: 0 var(--space-2);
+  background: var(--color-ground);
+  white-space: nowrap;
 }
 
 .identity {
-  flex-grow: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
 .name {
-  overflow: hidden;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
 }
 
-.amounts {
+.detail,
+.detailSkeleton {
+  display: none;
+}
+
+.amounts,
+.debtAmounts {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+}
+
+.accountBalance {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.accounts .debtAmounts > * {
+  color: var(--color-danger);
+}
+
+.previous,
+.next {
+  display: none;
+}
+
+@media (pointer: fine) {
+  .previous,
+  .next {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    width: var(--size-touch);
+    height: var(--size-touch);
+    padding: 0;
+    border: var(--size-border) solid var(--color-border);
+    border-radius: var(--radius-full);
+    display: grid;
+    place-items: center;
+    font-size: var(--font-size-xl);
+    color: var(--color-ink);
+    background: var(--color-panel);
+    box-shadow: var(--shadow-segment);
+    transform: translateY(-50%);
+    cursor: pointer;
+  }
+
+  .previous {
+    left: 0;
+  }
+
+  .next {
+    right: 0;
+  }
+
+  .previous:hover,
+  .next:hover {
+    background: var(--color-ground);
+  }
 }
 
 .balance {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-}
-
-.totalSkeleton {
-  width: var(--size-skeleton-word);
-  height: var(--size-skeleton-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .markSkeleton {
-  width: var(--size-account-mark);
-  height: var(--size-account-mark);
-  border-radius: var(--radius-segment);
+  width: var(--size-account-mark-xs);
+  height: var(--size-account-mark-xs);
+  border-radius: var(--radius-full);
 }
 
 .nameSkeleton {
-  width: 55%;
-  height: var(--size-skeleton-text);
-}
-
-.account:nth-child(even) .nameSkeleton {
-  width: 70%;
+  width: var(--size-skeleton-word);
+  height: var(--size-skeleton-text-sm);
 }
 
 .detailSkeleton {
@@ -111,35 +146,53 @@
 
 @media (--desktop) {
   .accountList {
-    padding: var(--space-2) var(--space-5) var(--space-5);
-    border-radius: var(--radius-bar);
-    gap: var(--space-1);
+    padding: var(--space-4);
   }
 
-  .title {
-    min-height: var(--size-section-header-lg);
-    padding: 0 var(--space-2);
-    font-size: var(--font-size-lg);
+  .header {
+    padding: 0 0 var(--space-3);
   }
 
   .accounts {
-    max-height: none;
-    grid-template-columns: repeat(auto-fill, minmax(var(--size-account-tile), 1fr));
-    grid-auto-rows: auto;
-    column-gap: var(--space-2-5);
+    padding: 0;
+    gap: var(--space-2-5);
+    scroll-snap-type: x proximity;
   }
 
   .account {
-    padding: var(--space-3-5) var(--space-4);
-    border-radius: var(--radius-tile);
-    display: grid;
+    flex: 0 0 var(--size-account-tile);
+    min-width: 0;
+    scroll-snap-align: start;
+    min-height: 0;
+    padding: var(--space-2-5) var(--space-3-5);
+    border-radius: var(--radius-track);
     grid-template-columns: auto minmax(0, 1fr);
     align-content: start;
-    gap: var(--space-3) var(--space-2-5);
-    background: var(--color-ground);
+    gap: var(--space-2) var(--space-2-5);
+    white-space: normal;
   }
 
-  .amounts {
+  .identity {
+    min-width: 0;
+  }
+
+  .name {
+    overflow: hidden;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .detail {
+    display: inline;
+    font-size: var(--font-size-xs);
+    color: var(--color-muted);
+  }
+
+  .amounts,
+  .debtAmounts {
     grid-column: 1 / -1;
     align-items: flex-start;
   }
@@ -153,6 +206,20 @@
   .markSkeleton {
     width: var(--size-account-mark-sm);
     height: var(--size-account-mark-sm);
+    border-radius: var(--radius-segment);
+  }
+
+  .nameSkeleton {
+    width: 55%;
+    height: var(--size-skeleton-text);
+  }
+
+  .account:nth-child(even) .nameSkeleton {
+    width: 70%;
+  }
+
+  .detailSkeleton {
+    display: block;
   }
 
   .balanceSkeleton {

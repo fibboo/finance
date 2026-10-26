@@ -9,7 +9,7 @@ import type { components } from '@/lib/api-schema';
 
 import { transactionQueries } from '../api/transaction-queries';
 import { usePageSize } from './use-page-size';
-import { useToday } from './use-today';
+import { useToday } from '@/hooks/use-today';
 
 type TransactionPage = components['schemas']['Page_Transaction_'];
 

@@ -1,0 +1,60 @@
+@import '@/styles/media.css';
+
+.totalBalance,
+.totalBalanceSkeleton {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.totalBalanceSkeleton {
+  gap: var(--space-2);
+}
+
+.labelSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text-sm);
+}
+
+.amountSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-balance);
+  border-radius: var(--radius-segment);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.amount {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-display);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+@media (--desktop) {
+  .totalBalance {
+    gap: var(--space-1);
+  }
+
+  .label {
+    font-size: var(--font-size-md);
+  }
+
+  .amount {
+    font-size: var(--font-size-display);
+    letter-spacing: var(--letter-spacing-balance-lg);
+    line-height: 1;
+  }
+
+  .amountSkeleton {
+    width: var(--size-skeleton-total-lg);
+    max-width: 100%;
+    height: var(--size-skeleton-balance-lg);
+    border-radius: var(--radius-track);
+  }
+}
