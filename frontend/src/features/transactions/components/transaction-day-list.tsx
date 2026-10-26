@@ -10,24 +10,19 @@ type Transaction = components['schemas']['Transaction'];
 
 type TransactionDay = Readonly<{
   transactionDate: string;
-  firstIndex: number;
   transactions: readonly Transaction[];
 }>;
 
 const DAY_MILLISECONDS = 86_400_000;
 
 function groupByDay(transactions: readonly Transaction[]): readonly TransactionDay[] {
-  const days: { transactionDate: string; firstIndex: number; transactions: Transaction[] }[] = [];
-  for (const [index, transaction] of transactions.entries()) {
+  const days: { transactionDate: string; transactions: Transaction[] }[] = [];
+  for (const transaction of transactions) {
     const lastDay = days.at(-1);
     if (lastDay?.transactionDate === transaction.transaction_date) {
       lastDay.transactions.push(transaction);
     } else {
-      days.push({
-        transactionDate: transaction.transaction_date,
-        firstIndex: index,
-        transactions: [transaction],
-      });
+      days.push({ transactionDate: transaction.transaction_date, transactions: [transaction] });
     }
   }
 
@@ -71,22 +66,14 @@ function readDayTotal(transactions: readonly Transaction[]): number {
 type TransactionDayListProps = Readonly<{
   transactions: readonly Transaction[];
   baseCurrency: string;
-  visibleCount?: number;
 }>;
 
-export function TransactionDayList({
-  transactions,
-  baseCurrency,
-  visibleCount = Number.POSITIVE_INFINITY,
-}: TransactionDayListProps) {
+export function TransactionDayList({ transactions, baseCurrency }: TransactionDayListProps) {
   const today = useToday();
   return (
     <div className={styles['transactionDayList']}>
       {groupByDay(transactions).map((day) => (
-        <div
-          key={day.transactionDate}
-          className={day.firstIndex < visibleCount ? undefined : styles['clipped']}
-        >
+        <div key={day.transactionDate}>
           <div className={styles['dayHeader']}>
             <h3 className={styles['dayLabel']}>
               {readDayLabel({ transactionDate: day.transactionDate, today })}
@@ -104,12 +91,11 @@ export function TransactionDayList({
             )}
           </div>
           <ul className={styles['transactions']}>
-            {day.transactions.map((transaction, dayIndex) => (
+            {day.transactions.map((transaction) => (
               <TransactionRow
                 key={transaction.id}
                 transaction={transaction}
                 baseCurrency={baseCurrency}
-                isClipped={day.firstIndex + dayIndex >= visibleCount}
               />
             ))}
           </ul>

@@ -7,7 +7,7 @@ import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
 import { server } from '@/test/setup';
 
-import { TransactionFeed } from './transaction-feed';
+import { Component } from './transactions';
 
 const wallet = {
   name: 'Wallet',
@@ -75,6 +75,18 @@ beforeEach(() => {
   // 768 px of jsdom's window over 52 px rows give pages of 15
   document.documentElement.style.fontSize = '16px';
   document.documentElement.style.setProperty('--size-transaction-row', '3.25rem');
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'USD',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+  );
 });
 
 afterEach(() => {
@@ -123,15 +135,17 @@ test('loads the next page of the whole history when the end of the list comes in
   );
 
   // act
-  render(<TransactionFeed baseCurrency="USD" />);
+  render(<Component />);
 
   // assert
-  const transactions = screen.getByRole('region', { name: 'Transactions' });
+  const transactions = await screen.findByRole('region', { name: 'Transactions' });
   expect(await within(transactions).findByText('Cafes')).toBeInTheDocument();
   expect(within(transactions).getByText('Groceries')).toBeInTheDocument();
   expect(within(transactions).getAllByRole('heading', { name: 'Today' })).toHaveLength(1);
   expect(within(transactions).getByText('-$47.30')).toBeInTheDocument();
-  expect(screen.getByText('2 transactions')).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Transactions, 2 transactions' }),
+  ).toBeInTheDocument();
 });
 
 test('shows a transaction moved to the next page once and the latest total', async () => {
@@ -168,14 +182,16 @@ test('shows a transaction moved to the next page once and the latest total', asy
   );
 
   // act
-  render(<TransactionFeed baseCurrency="USD" />);
+  render(<Component />);
 
   // assert
-  const transactions = screen.getByRole('region', { name: 'Transactions' });
+  const transactions = await screen.findByRole('region', { name: 'Transactions' });
   expect(await within(transactions).findByText('Cafes')).toBeInTheDocument();
   expect(within(transactions).getAllByText('Groceries')).toHaveLength(1);
   expect(within(transactions).getByText('-$47.30')).toBeInTheDocument();
-  expect(screen.getByText('3 transactions')).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Transactions, 3 transactions' }),
+  ).toBeInTheDocument();
 });
 
 test('stops loading after the next page fails until Try again is pressed', async () => {
@@ -215,7 +231,7 @@ test('stops loading after the next page fails until Try again is pressed', async
           } satisfies components['schemas']['Page_Transaction_']);
     }),
   );
-  render(<TransactionFeed baseCurrency="USD" />);
+  render(<Component />);
   expect(await screen.findByText("Couldn't load more")).toBeInTheDocument();
   expect(nextPageRequestCount).toBe(1);
 
@@ -243,15 +259,17 @@ test('shows the empty state without transactions', async () => {
   );
 
   // act
-  render(<TransactionFeed baseCurrency="USD" />);
+  render(<Component />);
 
   // assert
   expect(await screen.findByText('Nothing here yet')).toBeInTheDocument();
-  expect(screen.getByText('0 transactions')).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Transactions, 0 transactions' }),
+  ).toBeInTheDocument();
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 
-test('shows a busy list while the first page loads', () => {
+test('shows a busy list while the first page loads', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/transactions', async () => {
@@ -260,9 +278,12 @@ test('shows a busy list while the first page loads', () => {
   );
 
   // act
-  render(<TransactionFeed baseCurrency="USD" />);
+  render(<Component />);
 
   // assert
-  expect(screen.getByRole('region', { name: 'Transactions' })).toHaveAttribute('aria-busy', 'true');
+  expect(await screen.findByRole('region', { name: 'Transactions' })).toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });

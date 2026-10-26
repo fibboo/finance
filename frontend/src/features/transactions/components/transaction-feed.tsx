@@ -1,11 +1,8 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 
 import type { components } from '@/lib/api-schema';
 
-import { transactionQueries } from '../api/transaction-queries';
-import { usePageSize } from '../hooks/use-page-size';
-import { useToday } from '../hooks/use-today';
+import type { TransactionFeedQuery } from '../hooks/use-transaction-feed';
 import { NoTransactions } from './no-transactions';
 import styles from './transaction-feed.module.css';
 import { TransactionDayList } from './transaction-day-list';
@@ -15,11 +12,7 @@ type TransactionPage = components['schemas']['Page_Transaction_'];
 type Transaction = components['schemas']['Transaction'];
 
 const LOADING_MORE_ROW_COUNT = 2;
-
-function readTransactionCount(total: number): string {
-  const transactionCount = `${String(total)} ${total === 1 ? 'transaction' : 'transactions'}`;
-  return transactionCount;
-}
+const NEXT_PAGE_MARGIN = '0% 0% 50% 0%';
 
 function mergePages(pages: readonly TransactionPage[]): readonly Transaction[] {
   const seenIds = new Set<string>();
@@ -34,12 +27,15 @@ function mergePages(pages: readonly TransactionPage[]): readonly Transaction[] {
   return transactions;
 }
 
-type TransactionFeedProps = Readonly<{ baseCurrency: string }>;
+type TransactionFeedProps = Readonly<{
+  feed: TransactionFeedQuery;
+  baseCurrency: string;
+  label: string;
+  header?: ReactNode;
+}>;
 
-export function TransactionFeed({ baseCurrency }: TransactionFeedProps) {
-  const today = useToday();
-  const [dateTo] = useState(today);
-  const pageSize = usePageSize();
+export function TransactionFeed({ feed, baseCurrency, label, header }: TransactionFeedProps) {
+  const { query, pageSize } = feed;
   const {
     data,
     isPending,
@@ -48,21 +44,21 @@ export function TransactionFeed({ baseCurrency }: TransactionFeedProps) {
     isFetchingNextPage,
     isFetchNextPageError,
     fetchNextPage,
-  } = useInfiniteQuery({
-    ...transactionQueries.feed({ size: pageSize, date_to: dateTo }),
-    throwOnError: (_error, query) => query.state.data === undefined,
-  });
+  } = query;
 
   function observeEnd(end: HTMLDivElement | null) {
     if (end === null) {
       return undefined;
     }
 
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting) && !isFetching) {
-        void fetchNextPage();
-      }
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !isFetching) {
+          void fetchNextPage();
+        }
+      },
+      { root: end.parentElement, rootMargin: NEXT_PAGE_MARGIN },
+    );
     observer.observe(end);
     return () => {
       observer.disconnect();
@@ -71,15 +67,13 @@ export function TransactionFeed({ baseCurrency }: TransactionFeedProps) {
 
   const transactions = data === undefined ? [] : mergePages(data.pages);
   return (
-    <div className={styles['transactionFeed']}>
-      <p className={styles['count']}>
-        {data === undefined ? ' ' : readTransactionCount(data.pages.at(-1)?.total ?? 0)}
-      </p>
-      <section
-        aria-label="Transactions"
-        aria-busy={isPending || isFetchingNextPage}
-        className={styles['transactions']}
-      >
+    <section
+      aria-label={label}
+      aria-busy={isPending || isFetchingNextPage}
+      className={styles['transactions']}
+    >
+      {header}
+      <div className={styles['rows']}>
         {data === undefined ? (
           <TransactionSkeletonRows count={pageSize} />
         ) : transactions.length > 0 ? (
@@ -105,7 +99,7 @@ export function TransactionFeed({ baseCurrency }: TransactionFeedProps) {
         ) : (
           <NoTransactions />
         )}
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }

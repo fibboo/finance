@@ -31,10 +31,6 @@
   list-style: none;
 }
 
-.clipped {
-  visibility: hidden;
-}
-
 @media (--desktop) {
   .dayHeader {
     height: var(--size-day-header-lg);
