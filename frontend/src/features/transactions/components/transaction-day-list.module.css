@@ -34,6 +34,10 @@
   text-align: right;
 }
 
+.rateColumn {
+  display: none;
+}
+
 .dayHeader {
   grid-column: 1 / -1;
   min-height: var(--size-day-header);
@@ -68,11 +72,24 @@
   list-style: none;
 }
 
+@media (--landscape), (--desktop) {
+  .transactionDayList {
+    grid-template-columns:
+      var(--size-dot) minmax(0, auto) minmax(0, auto) max-content max-content
+      max-content;
+  }
+
+  .rateColumn {
+    display: block;
+    text-align: right;
+  }
+}
+
 @media (--desktop) {
   .transactionDayList {
     grid-template-columns:
       var(--size-dot) minmax(0, 1fr) var(--size-account-column-lg)
-      var(--size-amount-column-lg) var(--size-amount-column-lg);
+      var(--size-amount-column-lg) var(--size-amount-column-lg) var(--size-rate-column-lg);
     column-gap: var(--space-4);
   }
 
