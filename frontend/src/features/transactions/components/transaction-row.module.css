@@ -71,6 +71,10 @@
   font-size: var(--font-size-2xs);
 }
 
+.rate {
+  display: none;
+}
+
 .amount,
 .incomeAmount {
   font-weight: var(--font-weight-medium);
@@ -81,6 +85,14 @@
 }
 
 @media (--desktop) {
+  .rate {
+    display: block;
+    font-size: var(--font-size-md);
+    color: var(--color-muted);
+    text-align: right;
+    white-space: nowrap;
+  }
+
   .income::before,
   .transfer::before,
   .adjustment::before {

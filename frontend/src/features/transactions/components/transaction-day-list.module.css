@@ -5,7 +5,7 @@
   grid-template-columns:
     var(--size-dot) minmax(0, auto) minmax(0, auto) max-content
     max-content;
-  column-gap: var(--space-2);
+  column-gap: var(--space-1);
 }
 
 .columns,
@@ -32,6 +32,10 @@
 
 .amountColumn {
   text-align: right;
+}
+
+.rateColumn {
+  display: none;
 }
 
 .dayHeader {
@@ -68,8 +72,13 @@
   .transactionDayList {
     grid-template-columns:
       var(--size-dot) minmax(0, 1fr) var(--size-account-column-lg)
-      var(--size-amount-column-lg) var(--size-amount-column-lg);
+      var(--size-amount-column-lg) var(--size-amount-column-lg) var(--size-rate-column-lg);
     column-gap: var(--space-4);
+  }
+
+  .rateColumn {
+    display: block;
+    text-align: right;
   }
 
   .columns {
