@@ -102,8 +102,8 @@
   --size-skeleton-balance: 2rem;
   --size-skeleton-balance-lg: 3.125rem;
   --size-account-mark-sm: 1.75rem;
-  --size-transaction-row: 2.25rem;
-  --size-transaction-row-lg: 2.5rem;
+  --size-transaction-row: 2rem;
+  --size-transaction-row-lg: 2.25rem;
   --size-recent-min: calc(
     var(--size-panel-header) + var(--size-columns-header) + var(--space-1-5) +
       var(--size-day-header) + var(--size-transaction-row) * 2 + var(--space-1-5)
