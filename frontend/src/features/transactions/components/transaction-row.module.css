@@ -10,6 +10,31 @@
   font-size: var(--font-size-sm);
 }
 
+.income,
+.transfer,
+.adjustment {
+  isolation: isolate;
+}
+
+.income::before,
+.transfer::before,
+.adjustment::before {
+  content: '';
+  position: absolute;
+  inset: 0 calc(var(--space-2) * -1);
+  z-index: -1;
+  border-radius: var(--radius-badge);
+  background: var(--color-income-row);
+}
+
+.transfer::before {
+  background: var(--color-transfer-row);
+}
+
+.adjustment::before {
+  background: var(--color-adjustment-row);
+}
+
 .transactionRow + .transactionRow {
   border-top: var(--size-border) solid var(--color-border);
 }
@@ -52,6 +77,13 @@
 }
 
 @media (--desktop) {
+  .income::before,
+  .transfer::before,
+  .adjustment::before {
+    inset: 0 calc(var(--space-3) * -1);
+    border-radius: var(--radius-segment);
+  }
+
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
     font-size: var(--font-size-base);

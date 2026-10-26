@@ -10,6 +10,9 @@
   --color-selected: light-dark(#eaf3ee, #16241d);
   --color-bone: light-dark(#e4e4e0, #24272b);
   --color-band: light-dark(#f4f4f1, #1e2125);
+  --color-income-row: light-dark(#e8f4ed, #14241c);
+  --color-transfer-row: light-dark(#e8eef9, #172131);
+  --color-adjustment-row: light-dark(#f8efdf, #2a2216);
   --color-bone-ground: light-dark(#e0e0db, #1c1f22);
   --color-shimmer: light-dark(rgb(255 255 255 / 65%), rgb(255 255 255 / 7%));
   --color-track: light-dark(#dcdcd7, #24272b);

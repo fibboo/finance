@@ -12,7 +12,9 @@ type TransactionRowProps = Readonly<{ transaction: Readonly<Transaction>; baseCu
 export function TransactionRow({ transaction, baseCurrency }: TransactionRowProps) {
   const view = readTransactionView(transaction);
   return (
-    <li className={styles['transactionRow']}>
+    <li
+      className={`${styles['transactionRow'] ?? ''} ${styles[transaction.transaction_type.toLowerCase()] ?? ''}`}
+    >
       <span
         className={styles['dot']}
         style={{ color: readAccountColor(view.markedAccount) }}
