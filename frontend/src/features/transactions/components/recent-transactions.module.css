@@ -3,7 +3,7 @@
 .recentTransactions {
   flex: 1 1 auto;
   min-height: 0;
-  padding: var(--space-2) var(--space-4-5);
+  padding: 0 var(--space-3-5) var(--space-1-5);
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
@@ -11,7 +11,7 @@
 }
 
 .header {
-  min-height: var(--size-section-header-sm);
+  min-height: var(--size-panel-header);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -21,20 +21,21 @@
 .rows {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
 }
 
 .allLink {
-  min-height: var(--size-touch);
+  min-height: var(--size-panel-header);
   display: flex;
   align-items: center;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   color: var(--color-muted);
   text-decoration: none;
 }
@@ -45,18 +46,13 @@
 
 @media (--desktop) {
   .recentTransactions {
-    padding: var(--space-2) var(--space-7) var(--space-3);
+    padding: var(--space-1) var(--space-3) var(--space-3);
     border-radius: var(--radius-bar);
   }
 
   .header {
-    min-height: var(--size-section-header-lg);
-  }
-
-  .rows {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: hidden;
+    min-height: var(--size-touch);
+    padding: 0 var(--space-3);
   }
 
   .title {

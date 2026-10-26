@@ -3,7 +3,7 @@
 .appLayout {
   height: 100dvh;
   overflow: hidden;
-  padding: var(--space-4) var(--space-4) calc(var(--size-bar) + var(--space-4) + var(--space-5));
+  padding: var(--space-3) var(--space-3) calc(var(--size-bar) + var(--space-3) * 2);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr);
@@ -26,7 +26,7 @@
 
 .navigation {
   position: fixed;
-  inset: auto var(--space-3) var(--space-4);
+  inset: auto var(--space-3) var(--space-3);
   z-index: 1;
 }
 

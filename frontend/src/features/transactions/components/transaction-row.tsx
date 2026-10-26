@@ -1,4 +1,3 @@
-import { BaseAmountEstimate } from '@/components/base-amount-estimate/base-amount-estimate';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
@@ -8,22 +7,14 @@ import { readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 
-type TransactionRowProps = Readonly<{
-  transaction: Readonly<Transaction>;
-  baseCurrency: string;
-  isClipped?: boolean;
-}>;
+const UNVALUED_AMOUNT = '—';
 
-export function TransactionRow({
-  transaction,
-  baseCurrency,
-  isClipped = false,
-}: TransactionRowProps) {
+type TransactionRowProps = Readonly<{ transaction: Readonly<Transaction>; baseCurrency: string }>;
+
+export function TransactionRow({ transaction, baseCurrency }: TransactionRowProps) {
   const view = readTransactionView(transaction);
   return (
-    <li
-      className={`${styles['transactionRow'] ?? ''} ${isClipped ? (styles['clipped'] ?? '') : ''}`}
-    >
+    <li className={styles['transactionRow']}>
       <span
         className={styles['dot']}
         style={{ color: readAccountColor(view.markedAccount) }}
@@ -31,21 +22,21 @@ export function TransactionRow({
       />
       <span className={styles['title']}>{view.title}</span>
       <span className={styles['accounts']}>{view.accountNames}</span>
-      <span className={styles['amounts']}>
-        <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
-          {formatMoney({
-            amount: view.amount,
-            currency: view.currency,
-            signDisplay: view.signDisplay,
-          })}
-        </span>
-        {view.currency !== baseCurrency && view.baseAmount !== null && (
-          <BaseAmountEstimate
-            amount={view.baseAmount}
-            currency={baseCurrency}
-            signDisplay={view.signDisplay}
-          />
-        )}
+      <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
+        {formatMoney({
+          amount: view.amount,
+          currency: view.currency,
+          signDisplay: view.signDisplay,
+        })}
+      </span>
+      <span className={styles['baseAmount']}>
+        {view.baseAmount === null
+          ? UNVALUED_AMOUNT
+          : formatMoney({
+              amount: view.baseAmount,
+              currency: baseCurrency,
+              signDisplay: view.signDisplay,
+            })}
       </span>
     </li>
   );

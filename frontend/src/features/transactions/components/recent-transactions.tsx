@@ -3,7 +3,6 @@ import { useId } from 'react';
 import { Link } from 'react-router';
 
 import { transactionQueries } from '../api/transaction-queries';
-import { useFittingRowCount } from '../hooks/use-fitting-row-count';
 import { usePageSize } from '../hooks/use-page-size';
 import { useToday } from '../hooks/use-today';
 import { NoTransactions } from './no-transactions';
@@ -16,7 +15,6 @@ type RecentTransactionsProps = Readonly<{ baseCurrency: string }>;
 export function RecentTransactions({ baseCurrency }: RecentTransactionsProps) {
   const today = useToday();
   const pageSize = usePageSize();
-  const { ref: fitRows, count: fittingRowCount } = useFittingRowCount();
   const { data: transactionPage, isPending } = useQuery(
     transactionQueries.list({
       size: pageSize,
@@ -47,12 +45,8 @@ export function RecentTransactions({ baseCurrency }: RecentTransactionsProps) {
           <TransactionSkeletonRows count={pageSize} />
         </div>
       ) : transactionPage.items.length > 0 ? (
-        <div ref={fitRows} className={styles['rows']}>
-          <TransactionDayList
-            transactions={transactionPage.items}
-            baseCurrency={baseCurrency}
-            visibleCount={fittingRowCount}
-          />
+        <div className={styles['rows']}>
+          <TransactionDayList transactions={transactionPage.items} baseCurrency={baseCurrency} />
         </div>
       ) : (
         <NoTransactions />

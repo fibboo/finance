@@ -1,7 +1,7 @@
 @import '@/styles/media.css';
 
 .transactions {
-  padding: var(--space-1) var(--space-4);
+  padding: 0 var(--space-3-5) var(--space-1-5);
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
@@ -36,7 +36,7 @@
 
 @media (--desktop) {
   .transactions {
-    padding: var(--space-1) var(--space-5);
+    padding: var(--space-1) var(--space-3) var(--space-3);
     border-radius: var(--radius-bar);
   }
 }

@@ -2,15 +2,17 @@
 
 .balancePanel {
   flex: none;
-  padding: var(--space-3-5) var(--space-4);
+  padding: var(--space-3) var(--space-3-5);
   border-radius: var(--radius-panel);
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2-5);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   background: var(--color-panel);
 }
 
-.total {
+.total,
+.totalSkeleton {
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -18,93 +20,88 @@
 }
 
 .totalSkeleton {
-  margin: 0;
-  padding-top: var(--space-0-5);
-  display: flex;
-  flex-direction: column;
   gap: var(--space-2);
 }
 
 .totalLabelSkeleton {
   width: var(--size-skeleton-label);
-  height: var(--size-skeleton-text);
+  height: var(--size-skeleton-text-sm);
 }
 
 .totalAmountSkeleton {
-  width: var(--size-skeleton-total);
+  width: var(--size-skeleton-label-lg);
   height: var(--size-skeleton-balance);
   border-radius: var(--radius-segment);
 }
 
-.totalLabel,
-.monthLabel {
-  font-size: var(--font-size-sm);
+.totalLabel {
+  font-size: var(--font-size-xs);
   color: var(--color-muted);
 }
 
 .totalAmount {
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-display);
   line-height: var(--line-height-tight);
+  white-space: nowrap;
 }
 
 .month {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1);
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.monthLabel {
+  position: absolute;
+  width: var(--size-border);
+  height: var(--size-border);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .monthLabelSkeleton {
-  width: var(--size-skeleton-word);
-  height: var(--size-skeleton-text-sm);
+  display: none;
 }
 
 .tiles {
   margin: 0;
-  display: contents;
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: var(--space-2);
+  row-gap: var(--space-0-5);
+  font-size: var(--font-size-xs);
+  text-align: right;
 }
 
 .tile {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-1);
-}
-
-.tile::before {
-  content: '·';
-  order: 0;
+  display: contents;
 }
 
 .tileSkeleton {
-  width: var(--size-skeleton-amount);
+  grid-column: 1 / -1;
+  width: var(--size-skeleton-total);
+  max-width: 40vw;
   height: var(--size-skeleton-text-sm);
 }
 
-.tileLabelSkeleton {
-  width: 55%;
-  height: var(--size-skeleton-text-sm);
-}
-
+.tileLabelSkeleton,
 .tileAmountSkeleton {
-  width: 70%;
-  height: var(--size-skeleton-text);
+  display: none;
 }
 
 .tileLabel {
-  order: 2;
-  text-transform: lowercase;
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .tileAmount,
 .tileAccent {
-  order: 1;
   margin: 0;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-ink);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
 }
 
 .tileAccent {
@@ -113,13 +110,11 @@
 
 @media (--desktop) {
   .balancePanel {
-    height: auto;
-    padding: var(--space-6) var(--space-7);
-    border-radius: var(--radius-bar);
-    flex-flow: row wrap;
+    padding: var(--space-4) var(--space-6);
+    border-radius: var(--radius-panel);
+    flex-wrap: wrap;
     align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--space-6);
+    gap: var(--space-5);
   }
 
   .total {
@@ -131,61 +126,9 @@
   }
 
   .totalAmount {
-    font-size: var(--font-size-balance-lg);
+    font-size: var(--font-size-display);
     letter-spacing: var(--letter-spacing-balance-lg);
     line-height: 1;
-  }
-
-  .month {
-    flex: 0 1 var(--size-month);
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    gap: var(--space-2);
-  }
-
-  .tiles {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-2-5);
-  }
-
-  .tile {
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-track);
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-0-5);
-    background: var(--color-ground);
-  }
-
-  .tile::before {
-    content: none;
-  }
-
-  .tileLabel {
-    order: 0;
-    text-transform: none;
-  }
-
-  .tileSkeleton {
-    width: auto;
-    height: auto;
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-track);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background: var(--color-ground);
-  }
-
-  .totalSkeleton {
-    gap: var(--space-2-5);
-  }
-
-  .totalLabelSkeleton {
-    width: var(--size-skeleton-label-lg);
   }
 
   .totalAmountSkeleton {
@@ -195,18 +138,71 @@
     border-radius: var(--radius-track);
   }
 
-  .tileSkeleton {
+  .month {
+    flex: 0 1 var(--size-month);
+    align-items: stretch;
+    gap: var(--space-1-5);
+  }
+
+  .monthLabel {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    font-size: var(--font-size-sm);
+    color: var(--color-muted);
+  }
+
+  .monthLabelSkeleton {
+    display: block;
+    width: var(--size-skeleton-word);
+    height: var(--size-skeleton-text-sm);
+  }
+
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-2-5);
+    text-align: left;
+  }
+
+  .tile,
+  .tileSkeleton {
+    padding: var(--space-2) var(--space-3-5);
+    border-radius: var(--radius-control);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-0-5);
+    background: var(--color-ground);
+  }
+
+  .tileSkeleton {
+    grid-column: auto;
+    width: auto;
+    max-width: none;
+    height: auto;
+    justify-content: center;
+    gap: var(--space-2);
+  }
+
+  .tileLabelSkeleton {
+    display: block;
+    width: 55%;
+    height: var(--size-skeleton-text-sm);
   }
 
   .tileAmountSkeleton {
-    height: var(--size-skeleton-text-lg);
+    display: block;
+    width: 70%;
+    height: var(--size-skeleton-text);
+  }
+
+  .tileMonth {
+    display: none;
   }
 
   .tileAmount,
   .tileAccent {
-    order: 0;
-    font-size: var(--font-size-summary);
-    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-xl);
   }
 }

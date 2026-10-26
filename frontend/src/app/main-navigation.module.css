@@ -80,8 +80,8 @@
 
 .icon {
   flex-shrink: 0;
-  width: var(--size-icon-lg);
-  height: var(--size-icon-lg);
+  width: var(--size-icon);
+  height: var(--size-icon);
   fill: none;
   stroke: currentcolor;
   stroke-width: 1.9;

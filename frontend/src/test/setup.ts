@@ -79,34 +79,8 @@ beforeAll(() => {
   });
 });
 
-class ResizeObserverStub implements ResizeObserver {
-  readonly #callback: ResizeObserverCallback;
-  #isConnected = true;
-
-  constructor(callback: ResizeObserverCallback) {
-    this.#callback = callback;
-  }
-
-  observe(): void {
-    queueMicrotask(() => {
-      if (this.#isConnected) {
-        this.#callback([], this);
-      }
-    });
-  }
-
-  unobserve(): void {
-    this.#isConnected = false;
-  }
-
-  disconnect(): void {
-    this.#isConnected = false;
-  }
-}
-
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', IntersectionObserverStub);
-  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
 });
 
 afterEach(async () => {

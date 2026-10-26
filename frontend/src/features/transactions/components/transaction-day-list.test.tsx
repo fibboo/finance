@@ -208,9 +208,9 @@ test('groups the transactions by day with each day total in the base currency', 
   ).toEqual([3, 2, 1, 1, 1]);
   expect(screen.queryByText('$0.00')).not.toBeInTheDocument();
   expect(screen.getByText('-$47.30')).toBeInTheDocument();
-  expect(screen.getAllByText('+$2,291.30')).toHaveLength(1);
-  expect(screen.getAllByText('+$25.00')).toHaveLength(2);
-  expect(screen.getAllByText('-$12.00')).toHaveLength(2);
+  expect(screen.getAllByText('+$2,291.30')).toHaveLength(2);
+  expect(screen.getAllByText('+$25.00')).toHaveLength(3);
+  expect(screen.getAllByText('-$12.00')).toHaveLength(3);
 });
 
 test('names the day again after midnight', () => {

@@ -3,17 +3,13 @@
 .transactionRow {
   min-height: var(--size-transaction-row);
   display: grid;
-  grid-template-columns: var(--size-dot) minmax(0, 1fr) auto;
-  grid-template-areas:
-    'dot title amounts'
-    'dot accounts amounts';
-  align-content: center;
+  grid-template-columns: var(--transaction-columns);
   align-items: center;
-  column-gap: var(--space-3);
+  column-gap: var(--space-2);
+  font-size: var(--font-size-sm);
 }
 
 .dot {
-  grid-area: dot;
   width: var(--size-dot);
   height: var(--size-dot);
   border-radius: var(--radius-full);
@@ -28,27 +24,21 @@
   white-space: nowrap;
 }
 
-.title {
-  grid-area: title;
-  font-size: var(--font-size-base);
-}
-
-.accounts {
-  grid-area: accounts;
+.accounts,
+.baseAmount {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
 }
 
-.amounts {
-  grid-area: amounts;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+.amount,
+.incomeAmount,
+.baseAmount {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .amount,
 .incomeAmount {
-  font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
 }
 
@@ -56,19 +46,20 @@
   color: var(--color-accent);
 }
 
-.clipped {
-  visibility: hidden;
-}
-
 @media (--desktop) {
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
-    grid-template-columns: var(--size-dot) 2fr 2fr var(--size-amount-column);
-    grid-template-areas: 'dot title accounts amounts';
-    column-gap: var(--space-3-5);
+    margin-inline: var(--space-3);
+    column-gap: var(--space-4);
+    font-size: var(--font-size-base);
   }
 
-  .accounts {
+  .transactionRow + .transactionRow {
+    border-top: var(--size-border) solid var(--color-border);
+  }
+
+  .accounts,
+  .baseAmount {
     font-size: var(--font-size-md);
   }
 }
