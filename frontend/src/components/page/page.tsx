@@ -21,7 +21,11 @@ export function Page({ title, count, isLogoShownOnPhone = false, children }: Pag
             <Logo />
           </Link>
         )}
-        <h1 className={isLogoShownOnPhone ? styles['desktopTitle'] : styles['title']}>
+        <h1
+          className={
+            isLogoShownOnPhone ? `visually-hidden ${styles['desktopTitle'] ?? ''}` : styles['title']
+          }
+        >
           {title}
           {count !== undefined && (
             <>

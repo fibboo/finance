@@ -53,15 +53,6 @@
   align-items: flex-end;
 }
 
-.monthLabel {
-  position: absolute;
-  width: var(--size-border);
-  height: var(--size-border);
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .monthLabelSkeleton {
   display: none;
 }
@@ -82,12 +73,15 @@
 
 .tileSkeleton {
   grid-column: 1 / -1;
-  width: var(--size-skeleton-total);
-  max-width: 40vw;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tileLabelSkeleton {
+  width: var(--size-skeleton-label);
   height: var(--size-skeleton-text-sm);
 }
 
-.tileLabelSkeleton,
 .tileAmountSkeleton {
   display: none;
 }
@@ -178,15 +172,11 @@
 
   .tileSkeleton {
     grid-column: auto;
-    width: auto;
-    max-width: none;
-    height: auto;
     justify-content: center;
     gap: var(--space-2);
   }
 
   .tileLabelSkeleton {
-    display: block;
     width: 55%;
     height: var(--size-skeleton-text-sm);
   }

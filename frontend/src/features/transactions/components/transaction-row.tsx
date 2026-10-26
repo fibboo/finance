@@ -30,13 +30,18 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
         })}
       </span>
       <span className={styles['baseAmount']}>
-        {view.baseAmount === null
-          ? UNVALUED_AMOUNT
-          : formatMoney({
+        {view.baseAmount === null ? (
+          UNVALUED_AMOUNT
+        ) : (
+          <>
+            <span className="visually-hidden">≈ </span>
+            {formatMoney({
               amount: view.baseAmount,
               currency: baseCurrency,
               signDisplay: view.signDisplay,
             })}
+          </>
+        )}
       </span>
     </li>
   );

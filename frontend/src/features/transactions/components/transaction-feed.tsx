@@ -61,31 +61,33 @@ export function TransactionFeed({ feed, baseCurrency }: TransactionFeedProps) {
       aria-busy={isPending || isFetchingNextPage}
       className={styles['transactions']}
     >
-      {data === undefined ? (
-        <TransactionSkeletonRows count={pageSize} />
-      ) : transactions.length > 0 ? (
-        <>
-          <TransactionDayList transactions={transactions} baseCurrency={baseCurrency} />
-          {isFetchingNextPage && <TransactionSkeletonRows count={LOADING_MORE_ROW_COUNT} />}
-          {hasNextPage && !isFetchingNextPage && isFetchNextPageError && (
-            <p className={styles['loadMoreError']}>
-              Couldn&apos;t load more
-              <button
-                type="button"
-                className={styles['retry']}
-                onClick={() => {
-                  void fetchNextPage();
-                }}
-              >
-                Try again
-              </button>
-            </p>
-          )}
-          {hasNextPage && !isFetchNextPageError && <div ref={observeEnd} />}
-        </>
-      ) : (
-        <NoTransactions />
-      )}
+      <div className={styles['rows']}>
+        {data === undefined ? (
+          <TransactionSkeletonRows count={pageSize} />
+        ) : transactions.length > 0 ? (
+          <>
+            <TransactionDayList transactions={transactions} baseCurrency={baseCurrency} />
+            {isFetchingNextPage && <TransactionSkeletonRows count={LOADING_MORE_ROW_COUNT} />}
+            {hasNextPage && !isFetchingNextPage && isFetchNextPageError && (
+              <p className={styles['loadMoreError']}>
+                Couldn&apos;t load more
+                <button
+                  type="button"
+                  className={styles['retry']}
+                  onClick={() => {
+                    void fetchNextPage();
+                  }}
+                >
+                  Try again
+                </button>
+              </p>
+            )}
+            {hasNextPage && !isFetchNextPageError && <div ref={observeEnd} />}
+          </>
+        ) : (
+          <NoTransactions />
+        )}
+      </div>
     </section>
   );
 }

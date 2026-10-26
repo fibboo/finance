@@ -1,11 +1,11 @@
 @import '@/styles/media.css';
 
 .transactionRow {
+  grid-column: 1 / -1;
   min-height: var(--size-transaction-row);
   display: grid;
-  grid-template-columns: var(--transaction-columns);
+  grid-template-columns: subgrid;
   align-items: center;
-  column-gap: var(--space-2);
   font-size: var(--font-size-sm);
 }
 
@@ -49,8 +49,6 @@
 @media (--desktop) {
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
-    margin-inline: var(--space-3);
-    column-gap: var(--space-4);
     font-size: var(--font-size-base);
   }
 

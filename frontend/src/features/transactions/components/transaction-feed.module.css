@@ -1,11 +1,22 @@
 @import '@/styles/media.css';
 
 .transactions {
-  padding: 0 var(--space-3-5) var(--space-1-5);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-2) var(--space-1-5) var(--space-1-5);
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
   background: var(--color-panel);
+}
+
+.rows {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-inline: var(--space-2);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
 .loadMoreError {
@@ -35,6 +46,10 @@
 }
 
 @media (--desktop) {
+  .rows {
+    padding-inline: 0;
+  }
+
   .transactions {
     padding: var(--space-1) var(--space-3) var(--space-3);
     border-radius: var(--radius-bar);

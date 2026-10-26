@@ -94,7 +94,7 @@ test.each([
         { ...posting, amount: '42.80', base_amount: '42.80', account: category },
       ],
     },
-    cells: ['Groceries', 'Wallet', '-$42.80', '-$42.80'],
+    cells: ['Groceries', 'Wallet', '-$42.80', '≈ -$42.80'],
   },
   {
     kind: 'an expense not valued yet',
@@ -126,7 +126,7 @@ test.each([
         { ...posting, amount: '2100.00', currency: 'EUR', base_amount: '2291.30', account: wallet },
       ],
     },
-    cells: ['Salary', 'Wallet', '+€2,100.00', '+$2,291.30'],
+    cells: ['Salary', 'Wallet', '+€2,100.00', '≈ +$2,291.30'],
   },
   {
     kind: 'a transfer',
@@ -139,7 +139,20 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
-    cells: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '$327.40'],
+    cells: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '≈ $327.40'],
+  },
+  {
+    kind: 'a transfer not valued yet',
+    row: {
+      ...transaction,
+      transaction_type: 'TRANSFER',
+      base_currency_amount: null,
+      postings: [
+        { ...posting, amount: '-300.00', currency: 'EUR', base_amount: null, account: wallet },
+        { ...posting, amount: '300.00', currency: 'EUR', base_amount: null, account: savings },
+      ],
+    },
+    cells: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '—'],
   },
   {
     kind: 'a decreasing adjustment',
@@ -152,7 +165,7 @@ test.each([
         { ...posting, amount: '12.00', base_amount: '12.00', account: equity },
       ],
     },
-    cells: ['Balance adjustment', 'Savings', '-$12.00', '-$12.00'],
+    cells: ['Balance adjustment', 'Savings', '-$12.00', '≈ -$12.00'],
   },
   {
     kind: 'an increasing adjustment',
@@ -164,7 +177,7 @@ test.each([
         { ...posting, amount: '25.00', base_amount: '25.00', account: savings },
       ],
     },
-    cells: ['Balance adjustment', 'Savings', '+$25.00', '+$25.00'],
+    cells: ['Balance adjustment', 'Savings', '+$25.00', '≈ +$25.00'],
   },
 ] satisfies {
   kind: string;

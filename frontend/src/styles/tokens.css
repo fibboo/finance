@@ -31,13 +31,10 @@
   --font-size-intro: 1.0625rem;
   --font-size-xl: 1.125rem;
   --font-size-tile-amount: 1.0625rem;
-  --font-size-summary: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.75rem;
-  --font-size-balance: 2.25rem;
   --font-size-display: 2.5rem;
   --font-size-display-lg: 3.5rem;
-  --font-size-balance-lg: 3.5rem;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
@@ -76,7 +73,6 @@
   --radius-control: 0.75rem;
   --radius-track: 0.875rem;
   --radius-action: 0.875rem;
-  --radius-tile: 1rem;
   --radius-fab: 1.125rem;
   --radius-sheet: 1.125rem;
   --radius-panel: 1.25rem;
@@ -93,18 +89,15 @@
   --size-icon-sm: 1rem;
   --size-icon-md: 1.125rem;
   --size-icon: 1.25rem;
-  --size-icon-lg: 1.375rem;
   --size-border: 0.0625rem;
   --size-focus: 0.125rem;
   --size-touch: 2.75rem;
   --size-section-header-sm: 2.5rem;
-  --size-section-header: 2.625rem;
-  --size-section-header-lg: 3rem;
   --size-skeleton-word: 2rem;
   --size-day-header: 1.75rem;
   --size-day-header-lg: 2.125rem;
   --size-panel-header: 2.125rem;
-  --size-columns-header: 1.5rem;
+  --size-columns-header: 2rem;
   --size-columns-header-lg: 2.25rem;
   --size-account-pill: 2.25rem;
   --size-account-mark-xs: 1.5rem;
@@ -113,9 +106,16 @@
   --size-skeleton-balance-lg: 3.125rem;
   --size-account-mark-sm: 1.75rem;
   --size-account-mark: 2.125rem;
-  --size-account-row: 3rem;
   --size-transaction-row: 2.5rem;
   --size-transaction-row-lg: 2.75rem;
+  --size-recent-min: calc(
+    var(--size-panel-header) + var(--size-columns-header) + var(--space-1-5) +
+      var(--size-day-header) + var(--size-transaction-row) * 2 + var(--space-1-5)
+  );
+  --size-recent-min-lg: calc(
+    var(--size-touch) + var(--size-columns-header-lg) + var(--space-1-5) +
+      var(--size-day-header-lg) + var(--size-transaction-row-lg) * 2 + var(--space-4)
+  );
   --size-segment: 2.5rem;
   --size-button: 2.875rem;
   --size-avatar: 3rem;
@@ -126,7 +126,6 @@
   --size-option-lg: 3.25rem;
   --size-bar-item: 3.125rem;
   --size-bar: 3.75rem;
-  --size-header: 4.75rem;
   --size-skeleton-amount: 4.5rem;
   --size-progress: 7.5rem;
   --size-skeleton-label: 8rem;
@@ -134,8 +133,6 @@
   --size-skeleton-total: 12.25rem;
   --size-button-wide: 13.75rem;
   --size-skeleton-total-lg: 20rem;
-  --size-amount-column: 4.75rem;
-  --size-base-column: 4.25rem;
   --size-amount-column-lg: 8.75rem;
   --size-account-column-lg: 13.75rem;
   --size-empty-state: 8.25rem;

@@ -80,7 +80,7 @@ export function TransactionDayList({ transactions, baseCurrency }: TransactionDa
         <span className={styles['amountColumn']}>≈ {baseCurrency}</span>
       </div>
       {groupByDay(transactions).map((day) => (
-        <div key={day.transactionDate}>
+        <div key={day.transactionDate} className={styles['day']}>
           <div className={styles['dayHeader']}>
             <h3 className={styles['dayLabel']}>
               {readDayLabel({ transactionDate: day.transactionDate, today })}

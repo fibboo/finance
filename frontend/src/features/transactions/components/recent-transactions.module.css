@@ -2,8 +2,8 @@
 
 .recentTransactions {
   flex: 1 1 auto;
-  min-height: 0;
-  padding: 0 var(--space-3-5) var(--space-1-5);
+  min-height: var(--size-recent-min);
+  padding: 0 var(--space-1-5) var(--space-1-5);
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
@@ -12,6 +12,7 @@
 
 .header {
   min-height: var(--size-panel-header);
+  padding: 0 var(--space-2);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -21,6 +22,8 @@
 .rows {
   flex: 1 1 auto;
   min-height: 0;
+  padding-inline: var(--space-2);
+  overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -46,6 +49,7 @@
 
 @media (--desktop) {
   .recentTransactions {
+    min-height: var(--size-recent-min-lg);
     padding: var(--space-1) var(--space-3) var(--space-3);
     border-radius: var(--radius-bar);
   }
@@ -53,6 +57,10 @@
   .header {
     min-height: var(--size-touch);
     padding: 0 var(--space-3);
+  }
+
+  .rows {
+    padding-inline: 0;
   }
 
   .title {

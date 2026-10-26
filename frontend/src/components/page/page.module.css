@@ -30,15 +30,6 @@
   letter-spacing: var(--letter-spacing-title);
 }
 
-.desktopTitle {
-  position: absolute;
-  width: var(--size-border);
-  height: var(--size-border);
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .count {
   font-weight: normal;
   color: var(--color-muted);
