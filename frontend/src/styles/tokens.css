@@ -9,6 +9,10 @@
   --color-accent: light-dark(#1f7a55, #4cc38a);
   --color-selected: light-dark(#eaf3ee, #16241d);
   --color-bone: light-dark(#e4e4e0, #24272b);
+  --color-band: light-dark(#f4f4f1, #1e2125);
+  --color-income-row: light-dark(#e8f4ed, #14241c);
+  --color-transfer-row: light-dark(#e8eef9, #172131);
+  --color-adjustment-row: light-dark(#f8efdf, #2a2216);
   --color-bone-ground: light-dark(#e0e0db, #1c1f22);
   --color-shimmer: light-dark(rgb(255 255 255 / 65%), rgb(255 255 255 / 7%));
   --color-track: light-dark(#dcdcd7, #24272b);
@@ -97,25 +101,27 @@
   --size-section-header: 2.625rem;
   --size-section-header-lg: 3rem;
   --size-skeleton-word: 2rem;
-  --size-day-header: 2rem;
-  --size-day-header-lg: 2.25rem;
+  --size-day-header: 1.5rem;
+  --size-day-header-lg: 1.875rem;
   --size-panel-header: 1.875rem;
   --size-panel-header-lg: 2.5rem;
+  --size-columns-header: 2rem;
+  --size-columns-header-lg: 2.25rem;
   --size-skeleton-code: 2.25rem;
   --size-skeleton-balance: 2rem;
   --size-skeleton-balance-lg: 3.125rem;
   --size-account-mark-sm: 2rem;
   --size-account-mark: 2.125rem;
   --size-account-row: 3rem;
-  --size-transaction-row: 3.25rem;
-  --size-transaction-row-lg: 3.375rem;
+  --size-transaction-row: 2rem;
+  --size-transaction-row-lg: 2.25rem;
   --size-recent-min: calc(
-    var(--size-panel-header) + var(--space-1-5) + var(--size-day-header) +
-      var(--size-transaction-row) * 2 + var(--space-1-5)
+    var(--size-panel-header) + var(--size-columns-header) + var(--space-1-5) +
+      var(--size-day-header) + var(--size-transaction-row) * 2 + var(--space-1-5)
   );
   --size-recent-min-lg: calc(
-    var(--size-panel-header-lg) + var(--space-1-5) + var(--size-day-header-lg) +
-      var(--size-transaction-row-lg) * 2 + var(--space-4)
+    var(--size-panel-header-lg) + var(--size-columns-header-lg) + var(--space-1-5) +
+      var(--size-day-header-lg) + var(--size-transaction-row-lg) * 2 + var(--space-4)
   );
   --size-segment: 2.5rem;
   --size-button: 2.875rem;
@@ -134,7 +140,8 @@
   --size-skeleton-total: 12.25rem;
   --size-button-wide: 13.75rem;
   --size-skeleton-total-lg: 20rem;
-  --size-amount-column: 7.5rem;
+  --size-amount-column-lg: 8.75rem;
+  --size-account-column-lg: 13.75rem;
   --size-empty-state: 8.25rem;
   --size-empty-state-lg: 10rem;
   --size-balance-panel: 11.75rem;

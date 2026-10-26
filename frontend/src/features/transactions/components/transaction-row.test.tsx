@@ -94,8 +94,7 @@ test.each([
         { ...posting, amount: '42.80', base_amount: '42.80', account: category },
       ],
     },
-    texts: ['Groceries', 'Wallet', '-$42.80'],
-    absentTexts: ['≈'],
+    cells: ['Groceries', 'Wallet', '', '-$42.80'],
   },
   {
     kind: 'an expense not valued yet',
@@ -107,8 +106,7 @@ test.each([
         { ...posting, amount: '42.80', currency: 'EUR', base_amount: null, account: category },
       ],
     },
-    texts: ['Groceries', 'Wallet', '-€42.80'],
-    absentTexts: ['≈'],
+    cells: ['Groceries', 'Wallet', '-€42.80', '—not valued yet'],
   },
   {
     kind: 'an income',
@@ -128,8 +126,7 @@ test.each([
         { ...posting, amount: '2100.00', currency: 'EUR', base_amount: '2291.30', account: wallet },
       ],
     },
-    texts: ['Salary', 'Wallet', '+€2,100.00', '≈ +$2,291.30'],
-    absentTexts: [],
+    cells: ['Salary', 'Wallet', '+€2,100.00', '+$2,291.30'],
   },
   {
     kind: 'a transfer',
@@ -142,8 +139,20 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
-    texts: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '≈ $327.40'],
-    absentTexts: [],
+    cells: ['Transfer Wallet → Savings', '€300.00', '$327.40'],
+  },
+  {
+    kind: 'a transfer not valued yet',
+    row: {
+      ...transaction,
+      transaction_type: 'TRANSFER',
+      base_currency_amount: null,
+      postings: [
+        { ...posting, amount: '-300.00', currency: 'EUR', base_amount: null, account: wallet },
+        { ...posting, amount: '300.00', currency: 'EUR', base_amount: null, account: savings },
+      ],
+    },
+    cells: ['Transfer Wallet → Savings', '€300.00', '—not valued yet'],
   },
   {
     kind: 'a decreasing adjustment',
@@ -152,12 +161,11 @@ test.each([
       transaction_type: 'ADJUSTMENT',
       transaction_date: '2025-12-31',
       postings: [
-        { ...posting, amount: '-12.00', account: savings },
-        { ...posting, amount: '12.00', account: equity },
+        { ...posting, amount: '-12.00', base_amount: '-12.00', account: savings },
+        { ...posting, amount: '12.00', base_amount: '12.00', account: equity },
       ],
     },
-    texts: ['Balance adjustment', 'Savings', '-$12.00'],
-    absentTexts: ['≈'],
+    cells: ['Balance adjustment · Savings', '', '-$12.00'],
   },
   {
     kind: 'an increasing adjustment',
@@ -165,27 +173,21 @@ test.each([
       ...transaction,
       transaction_type: 'ADJUSTMENT',
       postings: [
-        { ...posting, amount: '-25.00', account: equity },
-        { ...posting, amount: '25.00', account: savings },
+        { ...posting, amount: '-25.00', base_amount: '-25.00', account: equity },
+        { ...posting, amount: '25.00', base_amount: '25.00', account: savings },
       ],
     },
-    texts: ['Balance adjustment', 'Savings', '+$25.00'],
-    absentTexts: ['≈'],
+    cells: ['Balance adjustment · Savings', '', '+$25.00'],
   },
 ] satisfies {
   kind: string;
   row: components['schemas']['Transaction'];
-  texts: string[];
-  absentTexts: string[];
-}[])('describes $kind', async ({ row, texts, absentTexts }) => {
+  cells: string[];
+}[])('describes $kind', async ({ row, cells }) => {
   // act
   render(<TransactionRow transaction={row} baseCurrency="USD" />);
 
   // assert
-  for (const text of texts) {
-    expect(await screen.findByText(text)).toBeInTheDocument();
-  }
-  for (const text of absentTexts) {
-    expect(screen.queryByText(text, { exact: false })).not.toBeInTheDocument();
-  }
+  // the title, the accounts, the amount and its base-currency value, column by column
+  expect(await screen.findByRole('listitem')).toHaveTextContent(cells.join(''));
 });
