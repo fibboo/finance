@@ -145,7 +145,7 @@ test('loads the next page when the end of Recent comes into view', async () => {
   render(<RecentTransactions baseCurrency="USD" />);
 
   // assert
-  const recent = screen.getByRole('region', { name: 'Recent' });
+  const recent = screen.getByRole('region', { name: 'Recent transactions' });
   expect(await within(recent).findByText('Consulting')).toBeInTheDocument();
   expect(within(recent).getByText('Design project')).toBeInTheDocument();
 });
@@ -186,7 +186,7 @@ test('hides Recent when its transactions fail to load', async () => {
 
   // assert
   await vi.waitFor(() => {
-    expect(screen.queryByRole('region', { name: 'Recent' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Recent transactions' })).not.toBeInTheDocument();
   });
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });
@@ -203,6 +203,9 @@ test('shows a busy recent panel while the transactions load', () => {
   render(<RecentTransactions baseCurrency="USD" />);
 
   // assert
-  expect(screen.getByRole('region', { name: 'Recent' })).toHaveAttribute('aria-busy', 'true');
+  expect(screen.getByRole('region', { name: 'Recent transactions' })).toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });

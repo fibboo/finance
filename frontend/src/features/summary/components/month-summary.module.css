@@ -6,8 +6,17 @@
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
-  gap: var(--space-1-5);
+  gap: var(--space-2);
   background: var(--color-panel);
+}
+
+.header,
+.legend {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .title {
@@ -16,41 +25,20 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.figures {
+.left {
   margin: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.figure {
-  min-width: 0;
-  padding-inline: var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
-}
-
-.figure:first-child {
-  padding-left: 0;
-}
-
-.figure + .figure {
-  border-left: var(--size-border) solid var(--color-border);
-}
-
-.label {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .amount,
 .accent,
 .danger {
   margin: 0;
-  overflow: hidden;
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
-  text-overflow: ellipsis;
+  color: var(--color-ink);
   white-space: nowrap;
 }
 
@@ -62,35 +50,72 @@
   color: var(--color-danger);
 }
 
-.labelSkeleton {
-  width: 55%;
-  height: var(--size-skeleton-text-sm);
+.track {
+  position: relative;
+  height: var(--size-pace-bar);
+  border-radius: var(--radius-full);
+  background: var(--color-track);
 }
 
-.amountSkeleton {
-  width: 75%;
-  height: var(--size-skeleton-text);
+.onPace,
+.ahead,
+.over {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
 }
 
-.figure:has(.labelSkeleton) {
+.ahead {
+  background: var(--color-warning);
+}
+
+.over {
+  background: var(--color-danger);
+}
+
+.today {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  bottom: calc(var(--space-1) * -1);
+  width: var(--size-border);
+  margin-left: calc(var(--size-border) / -2);
+  background: var(--color-ink);
+}
+
+.legend {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.figure {
+  display: flex;
+  align-items: baseline;
   gap: var(--space-1-5);
+}
+
+.figure .amount,
+.figure .accent {
+  font-size: var(--font-size-sm);
+}
+
+.leftSkeleton,
+.legendSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text-sm);
 }
 
 @media (--desktop) {
   .monthSummary {
     padding: var(--space-3) var(--space-4) var(--space-4);
-    gap: var(--space-2);
+    gap: var(--space-2-5);
   }
 
   .title {
     font-size: var(--font-size-lg);
   }
 
-  .figure {
-    padding-inline: var(--space-5);
-  }
-
-  .label {
+  .left,
+  .legend {
     font-size: var(--font-size-sm);
   }
 
@@ -98,5 +123,10 @@
   .accent,
   .danger {
     font-size: var(--font-size-xl);
+  }
+
+  .figure .amount,
+  .figure .accent {
+    font-size: var(--font-size-md);
   }
 }

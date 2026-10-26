@@ -14,6 +14,7 @@
   --color-shimmer: light-dark(rgb(255 255 255 / 65%), rgb(255 255 255 / 7%));
   --color-track: light-dark(#dcdcd7, #24272b);
   --color-danger: light-dark(#b42318, #ff7a6b);
+  --color-warning: light-dark(#b25e09, #f2a541);
   --color-backdrop: rgb(0 0 0 / 35%);
   --shadow-bar: 0 0.625rem 1.875rem rgb(0 0 0 / 28%);
   --shadow-popover: 0 1.125rem 3.125rem light-dark(rgb(0 0 0 / 25%), rgb(0 0 0 / 30%));
@@ -139,6 +140,7 @@
   --size-actions: 22.5rem;
   --size-column: 30rem;
   --size-month: 32.5rem;
+  --size-pace-bar: 0.5rem;
   --opacity-disabled: 0.5;
   --opacity-hover: 0.8;
   --opacity-still: 0.5;

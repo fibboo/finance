@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
-import { expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -8,7 +8,16 @@ import { server } from '@/test/setup';
 
 import { MonthSummary } from './month-summary';
 
-test('shows what the month earned, spent and left in the base currency', async () => {
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 9, 26, 12, 0));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+test('shows what the month earned, spent and left against the days gone', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/summary', () =>
@@ -31,7 +40,9 @@ test('shows what the month earned, spent and left in the base currency', async (
   expect(await within(month).findByText('+$2,312.00')).toBeInTheDocument();
   expect(within(month).getByText('-$1,046.70')).toBeInTheDocument();
   expect(within(month).getByText('$1,265.30')).toBeInTheDocument();
-  expect(within(month).getByText('Left')).toBeInTheDocument();
+  expect(
+    within(month).getByText('45% of the earnings spent, 84% of the month gone'),
+  ).toBeInTheDocument();
 });
 
 test('shows a negative left over with its minus', async () => {
@@ -55,6 +66,7 @@ test('shows a negative left over with its minus', async () => {
   // assert
   expect(await screen.findAllByText('-$200.00')).toHaveLength(2);
   expect(screen.getByText('$0.00')).toBeInTheDocument();
+  expect(screen.getByText('100% of the earnings spent, 84% of the month gone')).toBeInTheDocument();
 });
 
 test('shows a busy month while the summary loads', () => {
@@ -71,4 +83,5 @@ test('shows a busy month while the summary loads', () => {
   // assert
   expect(screen.getByRole('region', { name: 'This month' })).toHaveAttribute('aria-busy', 'true');
   expect(screen.queryByText('Earned')).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'This month' })).toBeInTheDocument();
 });

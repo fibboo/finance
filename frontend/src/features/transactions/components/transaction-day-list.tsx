@@ -2,7 +2,7 @@ import type { components } from '@/lib/api-schema';
 import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import styles from './transaction-day-list.module.css';
-import { useToday } from '../hooks/use-today';
+import { useToday } from '@/hooks/use-today';
 import { TransactionRow } from './transaction-row';
 import { readTransactionView } from './transaction-view';
 

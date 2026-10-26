@@ -17,10 +17,10 @@ export function RecentTransactions({ baseCurrency }: RecentTransactionsProps) {
       <TransactionFeed
         feed={feed}
         baseCurrency={baseCurrency}
-        label="Recent"
+        label="Recent transactions"
         header={
           <div className={styles['header']}>
-            <h2 className={styles['title']}>Recent</h2>
+            <h2 className={styles['title']}>Recent transactions</h2>
             <Link to="/transactions" className={styles['allLink']}>
               All
             </Link>
