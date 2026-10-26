@@ -92,7 +92,6 @@
   --size-icon-sm: 1rem;
   --size-icon-md: 1.125rem;
   --size-icon: 1.25rem;
-  --size-icon-lg: 1.375rem;
   --size-border: 0.0625rem;
   --size-focus: 0.125rem;
   --size-touch: 2.75rem;
@@ -115,12 +114,11 @@
   --size-avatar: 3rem;
   --size-option: 3rem;
   --size-field-lg: 3rem;
-  --size-fab: 3.25rem;
+  --size-fab: 2.875rem;
   --size-button-lg: 3.25rem;
   --size-option-lg: 3.25rem;
-  --size-bar-item: 3.5rem;
-  --size-bar: 4.25rem;
-  --size-header: 4.75rem;
+  --size-bar-item: 3.125rem;
+  --size-bar: 3.75rem;
   --size-skeleton-amount: 4.5rem;
   --size-progress: 7.5rem;
   --size-skeleton-label: 8rem;

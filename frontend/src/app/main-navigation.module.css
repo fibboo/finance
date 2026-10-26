@@ -80,8 +80,8 @@
 
 .icon {
   flex-shrink: 0;
-  width: var(--size-icon-lg);
-  height: var(--size-icon-lg);
+  width: var(--size-icon);
+  height: var(--size-icon);
   fill: none;
   stroke: currentcolor;
   stroke-width: 1.9;
@@ -92,7 +92,7 @@
 @media (--desktop) {
   .mainNavigation {
     height: 100%;
-    padding: calc(var(--size-header) - var(--space-2)) var(--space-3) var(--space-4);
+    padding: calc(var(--space-4) * 2 + var(--size-touch)) var(--space-3) var(--space-4);
     border: 0;
     display: flex;
     flex-direction: column;

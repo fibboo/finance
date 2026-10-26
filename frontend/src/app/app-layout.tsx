@@ -6,6 +6,7 @@ import { MainNavigation } from './main-navigation';
 
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';
+import { useIsLogoShownOnPhone } from '@/components/page/use-is-logo-shown-on-phone';
 import { ThemeSwitch } from '@/components/theme-switch/theme-switch';
 import { SignOutButton } from '@/features/auth/components/sign-out-button';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
@@ -13,12 +14,16 @@ import { UserInitials } from '@/features/user/components/user-initials';
 import { UserSummary } from '@/features/user/components/user-summary';
 
 export function AppLayout() {
+  const isLogoShownOnPhone = useIsLogoShownOnPhone();
   const { data: userDictionaries } = useQuery(dictionaryQueries.user());
 
   return (
     <div className={styles['appLayout']}>
       <header className={styles['header']}>
-        <Link to="/" className={styles['logoLink']}>
+        <Link
+          to="/"
+          className={isLogoShownOnPhone ? styles['logoLinkOnPhone'] : styles['logoLink']}
+        >
           <Logo />
         </Link>
         <div className={styles['account']}>

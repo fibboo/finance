@@ -3,6 +3,7 @@
 @import '@fontsource/geist/600.css';
 @import '@fontsource/geist/700.css';
 @import '@fontsource/geist-mono/400.css';
+@import './media.css';
 @import '@fontsource/geist-mono/500.css';
 @import './tokens.css';
 
@@ -54,5 +55,16 @@ a {
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+
+  @media not (--desktop) {
+    .visually-hidden-on-phone {
+      position: absolute;
+      width: var(--size-border);
+      height: var(--size-border);
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 }
