@@ -49,7 +49,7 @@
   }
 
   .header {
-    min-height: var(--size-touch);
+    min-height: var(--size-panel-header-lg);
     padding: 0 var(--space-3);
   }
 

@@ -98,9 +98,10 @@
   --size-skeleton-word: 2rem;
   --size-day-header: 1.5rem;
   --size-day-header-lg: 1.875rem;
-  --size-panel-header: 2.125rem;
-  --size-columns-header: 1.625rem;
-  --size-columns-header-lg: 1.875rem;
+  --size-panel-header: 1.75rem;
+  --size-panel-header-lg: 2.25rem;
+  --size-columns-header: 2rem;
+  --size-columns-header-lg: 2.25rem;
   --size-account-mark-xs: 1.5rem;
   --size-skeleton-code: 2.25rem;
   --size-skeleton-balance: 2rem;
@@ -113,7 +114,7 @@
       var(--size-day-header) + var(--size-transaction-row) * 2 + var(--space-1-5)
   );
   --size-recent-min-lg: calc(
-    var(--size-touch) + var(--size-columns-header-lg) + var(--space-1-5) +
+    var(--size-panel-header-lg) + var(--size-columns-header-lg) + var(--space-1-5) +
       var(--size-day-header-lg) + var(--size-transaction-row-lg) * 2 + var(--space-4)
   );
   --size-segment: 2.5rem;

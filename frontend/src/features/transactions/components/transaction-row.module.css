@@ -21,7 +21,7 @@
 .adjustment::before {
   content: '';
   position: absolute;
-  inset: var(--space-0-5) calc(var(--space-1) * -1);
+  inset: var(--space-0-5) calc(var(--space-2) * -1);
   z-index: -1;
   border-radius: var(--radius-badge);
   background: var(--color-income-row);
@@ -77,6 +77,13 @@
 }
 
 @media (--desktop) {
+  .income::before,
+  .transfer::before,
+  .adjustment::before {
+    inset: var(--space-0-5) calc(var(--space-3) * -1);
+    border-radius: var(--radius-segment);
+  }
+
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
     font-size: var(--font-size-base);

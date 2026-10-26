@@ -3,7 +3,7 @@
 .transactions {
   flex: 1 1 auto;
   min-height: 0;
-  padding: var(--space-2) var(--space-1-5) var(--space-1-5);
+  padding: 0 var(--space-1-5) var(--space-1-5);
   border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
@@ -19,6 +19,8 @@
   flex: 1 1 auto;
   min-height: 0;
   padding-inline: var(--space-2);
+  border-radius: calc(var(--radius-panel) - var(--space-1-5))
+    calc(var(--radius-panel) - var(--space-1-5)) 0 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -53,10 +55,12 @@
 @media (--desktop) {
   .rows {
     padding-inline: 0;
+    border-radius: calc(var(--radius-bar) - var(--space-3)) calc(var(--radius-bar) - var(--space-3))
+      0 0;
   }
 
   .transactions {
-    padding: var(--space-1) var(--space-3) var(--space-3);
+    padding: 0 var(--space-3) var(--space-3);
     border-radius: var(--radius-bar);
   }
 }
