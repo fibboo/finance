@@ -72,7 +72,14 @@ function Wait-StableDevice([string]$Serial) {
 }
 
 if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
-    throw 'adb is not installed. Run: winget install Google.PlatformTools, then open a new terminal.'
+    $env:Path = @(
+        $env:Path
+        [Environment]::GetEnvironmentVariable('Path', 'Machine')
+        [Environment]::GetEnvironmentVariable('Path', 'User')
+    ) -join ';'
+    if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
+        throw 'adb is not installed. Run: winget install Google.PlatformTools'
+    }
 }
 
 $previousAutoConnect = $env:ADB_MDNS_AUTO_CONNECT

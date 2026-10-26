@@ -219,7 +219,7 @@ You can verify the functionality of the project by running the tests. There are 
 The app needs a secure context, which a phone has only on `localhost`, so an Android phone reaches the local app through
 `adb reverse` over wireless debugging (Android 11 or later). The phone and the computer must be on the same Wi-Fi.
 
-1. Install adb once and open a new terminal:
+1. Install adb once:
    ```powershell
    winget install Google.PlatformTools
    ```
