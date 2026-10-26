@@ -5,16 +5,19 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
+}
+
+.header {
+  flex: none;
+  min-height: var(--size-touch);
+  padding: 0 calc(var(--size-touch) + var(--space-3)) 0 var(--space-2);
+  display: flex;
+  align-items: center;
 }
 
 .title {
-  flex: none;
   margin: 0;
-  min-height: var(--size-header);
-  padding: 0 var(--space-2);
-  display: flex;
-  align-items: center;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-title);
@@ -24,9 +27,10 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 @media (--desktop) {

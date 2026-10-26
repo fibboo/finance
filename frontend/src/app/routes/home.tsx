@@ -4,6 +4,8 @@ import { AccountList } from '@/features/accounts/components/account-list';
 import { BalancePanel } from '@/features/summary/components/balance-panel';
 import { RecentTransactions } from '@/features/transactions/components/recent-transactions';
 
+export const handle = { isLogoShownOnPhone: true };
+
 export function Component() {
   const baseCurrency = useBaseCurrency();
   return (
