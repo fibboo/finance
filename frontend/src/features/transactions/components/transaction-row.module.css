@@ -84,13 +84,19 @@
   color: var(--color-accent);
 }
 
-@media (--desktop) {
+@media (--landscape), (--desktop) {
   .rate {
     display: block;
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-2xs);
     color: var(--color-muted);
     text-align: right;
     white-space: nowrap;
+  }
+}
+
+@media (--desktop) {
+  .rate {
+    font-size: var(--font-size-md);
   }
 
   .income::before,

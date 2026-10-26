@@ -44,22 +44,26 @@
   margin: var(--space-1) calc(var(--space-2) * -1) 0;
   padding: 0 var(--space-2);
   border-radius: var(--radius-badge);
-  display: flex;
+  display: grid;
+  grid-template-columns: subgrid;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
   font-size: var(--font-size-xs);
   background: var(--color-band);
 }
 
 .dayLabel {
+  grid-column: 1 / 5;
   margin: 0;
+  white-space: nowrap;
   font-size: inherit;
   font-weight: var(--font-weight-semibold);
 }
 
 .dayTotal {
+  grid-column: 5;
+  justify-self: end;
   color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .transactions {
@@ -68,17 +72,25 @@
   list-style: none;
 }
 
+@media (--landscape), (--desktop) {
+  .transactionDayList {
+    grid-template-columns:
+      var(--size-dot) minmax(0, auto) minmax(0, auto) max-content max-content
+      max-content;
+  }
+
+  .rateColumn {
+    display: block;
+    text-align: right;
+  }
+}
+
 @media (--desktop) {
   .transactionDayList {
     grid-template-columns:
       var(--size-dot) minmax(0, 1fr) var(--size-account-column-lg)
       var(--size-amount-column-lg) var(--size-amount-column-lg) var(--size-rate-column-lg);
     column-gap: var(--space-4);
-  }
-
-  .rateColumn {
-    display: block;
-    text-align: right;
   }
 
   .columns {

@@ -27,6 +27,14 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
       />
       <span className={styles['title']}>{view.title}</span>
       <span className={styles['accounts']}>{view.accountNames}</span>
+      <span className={styles['originalAmount']}>
+        {view.currency !== baseCurrency &&
+          formatMoney({
+            amount: view.amount,
+            currency: view.currency,
+            signDisplay: view.signDisplay,
+          })}
+      </span>
       <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
         {view.baseAmount === null ? (
           <>
@@ -40,14 +48,6 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
             signDisplay: view.signDisplay,
           })
         )}
-      </span>
-      <span className={styles['originalAmount']}>
-        {view.currency !== baseCurrency &&
-          formatMoney({
-            amount: view.amount,
-            currency: view.currency,
-            signDisplay: view.signDisplay,
-          })}
       </span>
       <span className={styles['rate']}>
         {view.currency !== baseCurrency &&

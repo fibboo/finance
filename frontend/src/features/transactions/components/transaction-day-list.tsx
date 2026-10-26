@@ -76,8 +76,8 @@ export function TransactionDayList({ transactions, baseCurrency }: TransactionDa
         <span />
         <span>Transaction</span>
         <span>Account</span>
-        <span className={styles['amountColumn']}>Amount</span>
         <span className={styles['amountColumn']}>Original</span>
+        <span className={styles['amountColumn']}>Amount</span>
         <span className={styles['rateColumn']}>Rate</span>
       </div>
       {groupByDay(transactions).map((day) => (

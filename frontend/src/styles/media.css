@@ -1,1 +1,2 @@
 @custom-media --desktop (width >= 64rem);
+@custom-media --landscape (orientation: landscape);
