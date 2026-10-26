@@ -2,41 +2,42 @@
 
 .recentTransactions {
   flex: 1 1 auto;
-  min-height: 0;
-  padding: var(--space-2) var(--space-4-5);
-  border-radius: var(--radius-panel);
+  min-height: var(--size-recent-min);
   display: flex;
   flex-direction: column;
-  background: var(--color-panel);
 }
 
 .header {
-  min-height: var(--size-section-header-sm);
+  flex: none;
+  min-height: var(--size-panel-header);
+  padding: var(--space-2-5) var(--space-2) 0;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
 }
 
-.rows {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-}
-
 .title {
   margin: 0;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
 }
 
 .allLink {
-  min-height: var(--size-touch);
-  display: flex;
-  align-items: center;
-  font-size: var(--font-size-md);
+  position: relative;
+  font-size: var(--font-size-sm);
   color: var(--color-muted);
   text-decoration: none;
+}
+
+.allLink::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: calc(var(--space-2) * -1);
+  left: calc(var(--space-2) * -1);
+  height: var(--size-touch);
+  transform: translateY(-50%);
 }
 
 .allLink:hover {
@@ -45,18 +46,12 @@
 
 @media (--desktop) {
   .recentTransactions {
-    padding: var(--space-2) var(--space-7) var(--space-3);
-    border-radius: var(--radius-bar);
+    min-height: var(--size-recent-min-lg);
   }
 
   .header {
-    min-height: var(--size-section-header-lg);
-  }
-
-  .rows {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: hidden;
+    min-height: var(--size-panel-header-lg);
+    padding: var(--space-4) var(--space-2) 0;
   }
 
   .title {
