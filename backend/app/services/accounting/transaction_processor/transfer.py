@@ -3,6 +3,7 @@ from uuid import UUID
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
+from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
 from app.exceptions.unprocessable_422 import (
     DestinationAmountNotAllowed,
     TransferAmountMismatch,
@@ -62,9 +63,12 @@ class Transfer(TransactionProcessor[MovementRequest]):
         to_account_db: AccountModel | None = accounts_db.get(data.to_account_id)
         await self.__validate_transaction(data=data, to_account_db=to_account_db, from_account_db=from_account_db)
 
-        base_amount: Decimal = await self._get_debit_base_amount(
+        base_amount: Decimal | None = await self._get_debit_base_amount(
             account_db=from_account_db, amount=data.source_amount, transaction_date=data.transaction_date
         )
+        if base_amount is None:
+            raise NoAccountBaseCurrencyRate(account_id=from_account_db.id, logger=logger)
+
         if data.source_currency == data.destination_currency:
             destination_amount: Decimal = data.source_amount
         elif data.destination_currency == self.base_currency:

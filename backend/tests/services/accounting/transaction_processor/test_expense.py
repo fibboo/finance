@@ -17,7 +17,6 @@ from app.crud.user.user import user_crud
 from app.exceptions.forbidden_403 import (
     CurrencyMismatchException,
     DeletedAccountTransactionForbidden,
-    NoAccountBaseCurrencyRate,
 )
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import (
@@ -257,7 +256,7 @@ async def test_create_expense_account_not_found(db: AsyncSession, db_transaction
     assert len(transactions) == 0
 
 
-async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_expense_no_base_rate_stores_unvalued(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
         username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
@@ -269,8 +268,6 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
         kind=AccountKind.ASSET, user_id=user_id, name="Income EUR", currency="EUR"
     )
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
-    account_balance_before: Decimal = copy(account_db.balance)
-    base_balance_before: Decimal = copy(account_db.base_balance)
 
     category_create_data: AccountCreate = AccountCreate(
         user_id=user_id,
@@ -293,28 +290,22 @@ async def test_create_expense_no_base_rate(db: AsyncSession, db_transaction: Asy
         to_account_id=category_db.id,
         location_id=location_db.id,
     )
+    await db.close()
+
     # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
-    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
-        await transaction_processor.create(data=expense_create_data)
-        await db_transaction.commit()
+    transaction: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db_transaction.commit()
 
     # Assert
-    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
-    assert exc.value.message == "Accounts has no base currency rate"
-    assert exc.value.log_message == f"Account {account_db.id} has no base currency rate. Try to make first deposit"
-    assert exc.value.logger is not None
-    assert exc.value.log_level == LogLevelType.ERROR
-    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE
+    assert transaction.base_currency_amount is None
+    assert [posting.base_amount for posting in transaction.postings] == [None, None]
 
-    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
-    assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
-    await db.refresh(account_db_after)
-    assert account_db_after.balance == account_balance_before
-    assert account_db_after.base_balance == base_balance_before
+    assert account_db_after.balance == Decimal("-1")
+    assert account_db_after.base_balance == Decimal("0")
 
 
 async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction: AsyncSession):
@@ -838,8 +829,8 @@ async def test_create_expense_emptying_account_takes_base_balance(db: AsyncSessi
     assert account_db_after.base_balance == Decimal("0")
 
 
-# the emptied account keeps no rate, so a further debit has nothing to be valued at
-async def test_create_expense_from_emptied_account_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
+# the emptied account keeps no rate, so a further debit is stored unvalued
+async def test_create_expense_from_emptied_account_stores_unvalued(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
         username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
@@ -889,22 +880,19 @@ async def test_create_expense_from_emptied_account_no_base_rate(db: AsyncSession
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
-    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
-        await transaction_processor.create(data=expense_create_data)
-        await db_transaction.commit()
+    transaction: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db_transaction.commit()
 
     # Assert
-    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE
+    assert transaction.base_currency_amount is None
 
-    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
-    assert len(transactions) == 1
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     await db.refresh(account_db_after)
-    assert account_db_after.balance == Decimal("0")
+    assert account_db_after.balance == Decimal("-30")
     assert account_db_after.base_balance == Decimal("0")
 
 
-async def test_create_expense_opposite_signs_no_base_rate(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_expense_opposite_signs_stores_unvalued(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     # a balance and a base value of opposite signs, which a deleted earlier income can leave, give no rate
     user_create_data: UserCreate = UserCreate(
@@ -950,18 +938,15 @@ async def test_create_expense_opposite_signs_no_base_rate(db: AsyncSession, db_t
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
     )
-    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
-        await transaction_processor.create(data=expense_create_data)
-        await db_transaction.commit()
+    transaction: Transaction = await transaction_processor.create(data=expense_create_data)
+    await db_transaction.commit()
 
     # Assert
-    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE
+    assert transaction.base_currency_amount is None
 
-    transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
-    assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     await db.refresh(account_db_after)
-    assert account_db_after.balance == Decimal("90")
+    assert account_db_after.balance == Decimal("60")
     assert account_db_after.base_balance == Decimal("-50")
 
 

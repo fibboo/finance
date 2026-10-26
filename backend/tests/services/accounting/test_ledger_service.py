@@ -286,7 +286,8 @@ async def test_recalculate_accounts_deleted_income_revalues_later_expense(
     assert tuple(eur_account) == (Decimal("50"), Decimal("50"))
 
 
-async def test_recalculate_accounts_debit_without_rate_keeps_base_amount(
+# the expense was valued at the deleted income's rate, so with no credit left it waits for one again
+async def test_recalculate_accounts_expense_without_rate_returns_to_unvalued(
     db: AsyncSession, db_transaction: AsyncSession
 ):
     # Arrange
@@ -373,16 +374,18 @@ async def test_recalculate_accounts_debit_without_rate_keeps_base_amount(
         )
     ).all()
     assert [tuple(posting) for posting in expense_postings] == [
-        (eur_account_db.id, Decimal("-50"), Decimal("-60")),
-        (category_db.id, Decimal("50"), Decimal("60")),
+        (eur_account_db.id, Decimal("-50"), None),
+        (category_db.id, Decimal("50"), None),
     ]
+    await db.refresh(expense_db)
+    assert expense_db.base_currency_amount is None
 
     eur_account = (
         await db.execute(
             select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == eur_account_db.id)
         )
     ).one()
-    assert tuple(eur_account) == (Decimal("-50"), Decimal("-60"))
+    assert tuple(eur_account) == (Decimal("-50"), Decimal("0"))
 
 
 async def test_recalculate_accounts_revalued_transfers_recalculate_receiving_accounts(
@@ -854,3 +857,585 @@ async def test_recalculate_accounts_deleted_account_balance_change_forbidden(
     assert exc.value.log_message == (
         f"Account `{deleted_usd_account_db.id}` is deleted. Restore it to create or delete its transactions"
     )
+
+
+async def test_recalculate_accounts_income_values_unvalued_expenses(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # The cache holds -100 - 200 + 300 EUR, of which only the income is valued: 330 USD
+    card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.LIABILITY,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("0"),
+            "base_balance": Decimal("330"),
+        },
+        commit=True,
+    )
+    income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    expense_ids: list[UUID] = []
+    for transaction_date, amount in ((date(2025, 1, 1), Decimal("100")), (date(2025, 1, 5), Decimal("200"))):
+        expense_db: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=None,
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(account_id=card_db.id, amount=-amount, currency="EUR", base_amount=None),
+                PostingCreate(account_id=category_db.id, amount=amount, currency="EUR", base_amount=None),
+            ],
+        )
+        expense_ids.append(expense_db.id)
+
+    income_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2025, 1, 10),
+            base_currency_amount=Decimal("330"),
+            income_period=date(2025, 1, 1),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=income_source_db.id, amount=Decimal("-300"), currency="EUR", base_amount=Decimal("-330")
+            ),
+            PostingCreate(account_id=card_db.id, amount=Decimal("300"), currency="EUR", base_amount=Decimal("330")),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    await recalculate_accounts(db=db_transaction, transaction_db=income_db, base_currency="USD")
+    await db_transaction.commit()
+
+    # Assert
+    # Both expenses, dated before the income, take its rate of 1.1 USD for 1 EUR
+    expense_amounts = (
+        (
+            await db.execute(
+                select(TransactionModel.base_currency_amount)
+                .where(TransactionModel.id.in_(expense_ids))
+                .order_by(TransactionModel.transaction_date)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert expense_amounts == [Decimal("110"), Decimal("220")]
+
+    valued_dates = (
+        (await db.execute(select(TransactionModel.valued_on).where(TransactionModel.id.in_(expense_ids))))
+        .scalars()
+        .all()
+    )
+    assert valued_dates == [date(2025, 1, 10), date(2025, 1, 10)]
+
+    expense_postings = (
+        await db.execute(
+            select(PostingModel.account_id, PostingModel.amount, PostingModel.base_amount)
+            .where(PostingModel.transaction_id == expense_ids[0])
+            .order_by(PostingModel.amount)
+        )
+    ).all()
+    assert [tuple(posting) for posting in expense_postings] == [
+        (card_db.id, Decimal("-100"), Decimal("-110")),
+        (category_db.id, Decimal("100"), Decimal("110")),
+    ]
+
+    card = (
+        await db.execute(select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == card_db.id))
+    ).one()
+    assert tuple(card) == (Decimal("0"), Decimal("0"))
+
+
+async def test_recalculate_accounts_transfer_repaying_debt_posts_exchange_difference(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # The cache holds the debt of -600 EUR worth -660 USD repaid by 600 EUR bought for 650 USD
+    card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.LIABILITY,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("0"),
+            "base_balance": Decimal("-10"),
+        },
+        commit=True,
+    )
+    usd_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.ASSET,
+            "name": "Checking USD",
+            "currency": "USD",
+            "balance": Decimal("350"),
+            "base_balance": Decimal("350"),
+        },
+        commit=True,
+    )
+    equity_account_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2025, 1, 1),
+            base_currency_amount=Decimal("660"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(account_id=card_db.id, amount=Decimal("-600"), currency="EUR", base_amount=Decimal("-660")),
+            PostingCreate(account_id=category_db.id, amount=Decimal("600"), currency="EUR", base_amount=Decimal("660")),
+        ],
+    )
+    transfer_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.TRANSFER,
+            transaction_date=date(2025, 1, 10),
+            base_currency_amount=Decimal("650"),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=usd_account_db.id, amount=Decimal("-650"), currency="USD", base_amount=Decimal("-650")
+            ),
+            PostingCreate(account_id=card_db.id, amount=Decimal("600"), currency="EUR", base_amount=Decimal("650")),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    await recalculate_accounts(db=db_transaction, transaction_db=transfer_db, base_currency="USD")
+    await db_transaction.commit()
+
+    # Assert
+    # The 10 USD the debt cost more than its repayment moves from the card to the EQUITY account
+    exchange_postings = (
+        await db.execute(
+            select(PostingModel.account_id, PostingModel.amount, PostingModel.base_amount)
+            .where(PostingModel.transaction_id == transfer_db.id, PostingModel.amount == 0)
+            .order_by(PostingModel.base_amount)
+        )
+    ).all()
+    assert [tuple(posting) for posting in exchange_postings] == [
+        (equity_account_db.id, Decimal("0"), Decimal("-10")),
+        (card_db.id, Decimal("0"), Decimal("10")),
+    ]
+
+    card = (
+        await db.execute(select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == card_db.id))
+    ).one()
+    assert tuple(card) == (Decimal("0"), Decimal("0"))
+
+
+async def test_recalculate_accounts_deleted_debt_removes_exchange_difference(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # The cache holds the transfer of 600 EUR for 650 USD and its exchange difference of 10 USD,
+    # since the debt of -600 EUR worth -660 USD it repaid is deleted
+    card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.LIABILITY,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("600"),
+            "base_balance": Decimal("660"),
+        },
+        commit=True,
+    )
+    usd_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.ASSET,
+            "name": "Checking USD",
+            "currency": "USD",
+            "balance": Decimal("350"),
+            "base_balance": Decimal("350"),
+        },
+        commit=True,
+    )
+    equity_account_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    expense_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2025, 1, 1),
+            base_currency_amount=Decimal("660"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(account_id=card_db.id, amount=Decimal("-600"), currency="EUR", base_amount=Decimal("-660")),
+            PostingCreate(account_id=category_db.id, amount=Decimal("600"), currency="EUR", base_amount=Decimal("660")),
+        ],
+    )
+    expense_db.status = EntityStatusType.DELETED
+    transfer_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.TRANSFER,
+            transaction_date=date(2025, 1, 10),
+            base_currency_amount=Decimal("650"),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=usd_account_db.id, amount=Decimal("-650"), currency="USD", base_amount=Decimal("-650")
+            ),
+            PostingCreate(account_id=card_db.id, amount=Decimal("600"), currency="EUR", base_amount=Decimal("650")),
+            PostingCreate(account_id=card_db.id, amount=Decimal("0"), currency="EUR", base_amount=Decimal("10")),
+            PostingCreate(
+                account_id=equity_account_db.id, amount=Decimal("0"), currency="EUR", base_amount=Decimal("-10")
+            ),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    await recalculate_accounts(db=db_transaction, transaction_db=expense_db, base_currency="USD")
+    await db_transaction.commit()
+
+    # Assert
+    # Without the debt the transfer credits an empty card, which keeps the transfer's own 650 USD
+    transfer_postings = (
+        await db.execute(
+            select(PostingModel.account_id, PostingModel.amount, PostingModel.base_amount)
+            .where(PostingModel.transaction_id == transfer_db.id)
+            .order_by(PostingModel.amount)
+        )
+    ).all()
+    assert [tuple(posting) for posting in transfer_postings] == [
+        (usd_account_db.id, Decimal("-650"), Decimal("-650")),
+        (card_db.id, Decimal("600"), Decimal("650")),
+    ]
+
+    card = (
+        await db.execute(select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == card_db.id))
+    ).one()
+    assert tuple(card) == (Decimal("600"), Decimal("650"))
+
+
+async def test_recalculate_accounts_deleted_income_returns_valued_expenses_to_unvalued(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # The cache holds the two expenses valued at the deleted income's rate: -300 EUR worth -330 USD
+    card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.LIABILITY,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("-300"),
+            "base_balance": Decimal("-330"),
+        },
+        commit=True,
+    )
+    income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    expense_ids: list[UUID] = []
+    for transaction_date, amount, base_amount in (
+        (date(2025, 1, 1), Decimal("100"), Decimal("110")),
+        (date(2025, 1, 5), Decimal("200"), Decimal("220")),
+    ):
+        expense_db: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=base_amount,
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(account_id=card_db.id, amount=-amount, currency="EUR", base_amount=-base_amount),
+                PostingCreate(account_id=category_db.id, amount=amount, currency="EUR", base_amount=base_amount),
+            ],
+        )
+        expense_ids.append(expense_db.id)
+
+    income_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2025, 1, 10),
+            base_currency_amount=Decimal("330"),
+            income_period=date(2025, 1, 1),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=income_source_db.id, amount=Decimal("-300"), currency="EUR", base_amount=Decimal("-330")
+            ),
+            PostingCreate(account_id=card_db.id, amount=Decimal("300"), currency="EUR", base_amount=Decimal("330")),
+        ],
+    )
+    await db.commit()
+    await transaction_crud.update_orm(
+        db=db,
+        obj_in={"valued_on": date(2025, 1, 10)},
+        id=expense_ids[0],
+        commit=True,
+    )
+    await transaction_crud.update_orm(
+        db=db,
+        obj_in={"valued_on": date(2025, 1, 10)},
+        id=expense_ids[1],
+        commit=True,
+    )
+    await transaction_crud.update_orm(db=db, obj_in={"status": EntityStatusType.DELETED}, id=income_db.id, commit=True)
+
+    # Act
+    await recalculate_accounts(db=db_transaction, transaction_db=income_db, base_currency="USD")
+    await db_transaction.commit()
+
+    # Assert
+    expenses = (
+        await db.execute(
+            select(TransactionModel.base_currency_amount, TransactionModel.valued_on)
+            .where(TransactionModel.id.in_(expense_ids))
+            .order_by(TransactionModel.transaction_date)
+        )
+    ).all()
+    assert [tuple(expense) for expense in expenses] == [(None, None), (None, None)]
+
+    card_base_amounts = (
+        (await db.execute(select(PostingModel.base_amount).where(PostingModel.transaction_id.in_(expense_ids))))
+        .scalars()
+        .all()
+    )
+    assert card_base_amounts == [None, None, None, None]
+
+    card = (
+        await db.execute(select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == card_db.id))
+    ).one()
+    assert tuple(card) == (Decimal("-300"), Decimal("0"))
+
+
+# the rate leaves out the -100 EUR still waiting for a value: -20 EUR worth -22 USD values -10 EUR at 11 USD
+async def test_recalculate_accounts_rate_leaves_out_unvalued_expenses(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # The cache holds -100 - 20 - 10 EUR, of which the -10 EUR expense was valued at the whole balance: 1.83 USD
+    card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.LIABILITY,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("-130"),
+            "base_balance": Decimal("-23.83"),
+        },
+        commit=True,
+    )
+    equity_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    unvalued_expense_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2025, 1, 1),
+            base_currency_amount=None,
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(account_id=card_db.id, amount=Decimal("-100"), currency="EUR", base_amount=None),
+            PostingCreate(account_id=category_db.id, amount=Decimal("100"), currency="EUR", base_amount=None),
+        ],
+    )
+    adjustment_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.ADJUSTMENT,
+            transaction_date=date(2025, 1, 2),
+            base_currency_amount=Decimal("22"),
+        ),
+        postings=[
+            PostingCreate(account_id=card_db.id, amount=Decimal("-20"), currency="EUR", base_amount=Decimal("-22")),
+            PostingCreate(account_id=equity_db.id, amount=Decimal("20"), currency="EUR", base_amount=Decimal("22")),
+        ],
+    )
+    expense_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2025, 1, 3),
+            base_currency_amount=Decimal("1.83"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(account_id=card_db.id, amount=Decimal("-10"), currency="EUR", base_amount=Decimal("-1.83")),
+            PostingCreate(account_id=category_db.id, amount=Decimal("10"), currency="EUR", base_amount=Decimal("1.83")),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    await recalculate_accounts(db=db_transaction, transaction_db=adjustment_db, base_currency="USD")
+    await db_transaction.commit()
+
+    # Assert
+    expenses = (
+        (
+            await db.execute(
+                select(TransactionModel.base_currency_amount)
+                .where(TransactionModel.id.in_([unvalued_expense_db.id, expense_db.id]))
+                .order_by(TransactionModel.transaction_date)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert expenses == [None, Decimal("11.00")]
+
+    card = (
+        await db.execute(select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == card_db.id))
+    ).one()
+    assert tuple(card) == (Decimal("-130"), Decimal("-33.00"))
+
+
+# an adjustment keeps the rate it brings, so crossing zero posts no exchange difference
+async def test_recalculate_accounts_adjustment_posts_no_exchange_difference(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # Before the adjustment the account was at 0 EUR with -10 USD left over, and the adjustment adds 50 EUR worth 55 USD
+    card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.LIABILITY,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("50"),
+            "base_balance": Decimal("45"),
+        },
+        commit=True,
+    )
+    equity_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
+    adjustment_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.ADJUSTMENT,
+            transaction_date=date(2025, 1, 2),
+            base_currency_amount=Decimal("55"),
+        ),
+        postings=[
+            PostingCreate(account_id=equity_db.id, amount=Decimal("-50"), currency="EUR", base_amount=Decimal("-55")),
+            PostingCreate(account_id=card_db.id, amount=Decimal("50"), currency="EUR", base_amount=Decimal("55")),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    await recalculate_accounts(db=db_transaction, transaction_db=adjustment_db, base_currency="USD")
+    await db_transaction.commit()
+
+    # Assert
+    posting_count: int = len(
+        (await db.scalars(select(PostingModel).where(PostingModel.transaction_id == adjustment_db.id))).all()
+    )
+    assert posting_count == 2
+
+    card = (
+        await db.execute(select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == card_db.id))
+    ).one()
+    assert tuple(card) == (Decimal("50"), Decimal("45"))

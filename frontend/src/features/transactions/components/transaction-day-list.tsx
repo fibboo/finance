@@ -57,7 +57,7 @@ function readDayTotal(transactions: readonly Transaction[]): number {
     (total, transaction) =>
       transaction.transaction_type === 'TRANSFER'
         ? total
-        : total + readTransactionView(transaction).baseAmount,
+        : total + (readTransactionView(transaction).baseAmount ?? 0),
     0,
   );
   return dayTotal;

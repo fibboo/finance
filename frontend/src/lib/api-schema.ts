@@ -589,6 +589,13 @@ export interface components {
          * @enum {string}
          */
         CategoryType: "VARIABLE" | "FIXED" | "PERIODIC";
+        /** CurrencyAmount */
+        CurrencyAmount: {
+            /** Currency */
+            currency: string;
+            /** Amount */
+            amount: string;
+        };
         /** DictionaryItem */
         DictionaryItem: {
             /** Key */
@@ -797,7 +804,7 @@ export interface components {
             /** Currency */
             currency: string;
             /** Base Amount */
-            base_amount: string;
+            base_amount: string | null;
         };
         /**
          * ProviderType
@@ -819,6 +826,8 @@ export interface components {
             spent: string;
             /** Left Over */
             left_over: string;
+            /** Unvalued Spent */
+            unvalued_spent: components["schemas"]["CurrencyAmount"][];
         };
         /** TokenRequest */
         TokenRequest: {
@@ -867,7 +876,7 @@ export interface components {
             /** Comment */
             comment: string | null;
             /** Base Currency Amount */
-            base_currency_amount: string;
+            base_currency_amount: string | null;
             location: components["schemas"]["Location"] | null;
             /** Income Period */
             income_period: string | null;

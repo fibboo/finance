@@ -98,6 +98,19 @@ test.each([
     absentTexts: ['≈'],
   },
   {
+    kind: 'an expense not valued yet',
+    row: {
+      ...transaction,
+      base_currency_amount: null,
+      postings: [
+        { ...posting, amount: '-42.80', currency: 'EUR', base_amount: null, account: wallet },
+        { ...posting, amount: '42.80', currency: 'EUR', base_amount: null, account: category },
+      ],
+    },
+    texts: ['Groceries', 'Wallet', '-€42.80'],
+    absentTexts: ['≈'],
+  },
+  {
     kind: 'an income',
     row: {
       ...transaction,

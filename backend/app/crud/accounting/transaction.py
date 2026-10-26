@@ -68,9 +68,16 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         transactions_db: list[Transaction] = (await db.scalars(query)).all()
         return transactions_db
 
-    async def update_base_currency_amounts(self, *, db: AsyncSession, amounts: dict[UUID, Decimal]) -> None:
+    async def update_base_currency_amounts(self, *, db: AsyncSession, amounts: dict[UUID, Decimal | None]) -> None:
         values: list[dict] = [
             {"id": transaction_id, "base_currency_amount": amount} for transaction_id, amount in amounts.items()
+        ]
+        await db.execute(update(self.model), values)
+        await db.flush()
+
+    async def update_valued_dates(self, *, db: AsyncSession, valued_dates: dict[UUID, date | None]) -> None:
+        values: list[dict] = [
+            {"id": transaction_id, "valued_on": valued_on} for transaction_id, valued_on in valued_dates.items()
         ]
         await db.execute(update(self.model), values)
         await db.flush()
@@ -134,7 +141,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         }
         for order in request.orders:
             func_ordering = desc if order.ordering == OrderDirectionType.DESC else asc
-            query = query.order_by(func_ordering(order_fields_map[order.field]))
+            query = query.order_by(func_ordering(order_fields_map[order.field]).nulls_last())
 
         is_descending: bool = len(request.orders) > 0 and request.orders[0].ordering == OrderDirectionType.DESC
         query = query.order_by(desc(Transaction.id) if is_descending else asc(Transaction.id))
@@ -156,6 +163,26 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             Transaction.transaction_date.between(date_from, date_to),
         )
         sums: Row = (await db.execute(query)).one()
+        return sums
+
+    async def get_unvalued_expense_sums(
+        self, *, db: AsyncSession, user_id: UUID, date_from: date, date_to: date
+    ) -> list[Row]:
+        query: Select = (
+            select(Posting.currency, func.sum(-Posting.amount).label("amount"))
+            .join(Transaction, Transaction.id == Posting.transaction_id)
+            .where(
+                Transaction.user_id == user_id,
+                Transaction.status == EntityStatusType.ACTIVE,
+                Transaction.transaction_type == TransactionType.EXPENSE,
+                Transaction.base_currency_amount.is_(None),
+                Transaction.transaction_date.between(date_from, date_to),
+                Posting.amount < 0,
+            )
+            .group_by(Posting.currency)
+            .order_by(Posting.currency)
+        )
+        sums: list[Row] = (await db.execute(query)).all()
         return sums
 
 

@@ -1,3 +1,5 @@
+from datetime import datetime, UTC
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
@@ -6,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.conflict_409 import ConflictException, IntegrityException, NameAlreadyExists
 from app.exceptions.forbidden_403 import AccountDeletionForbidden, LastAccountDeletionForbidden
 from app.exceptions.not_fount_404 import EntityNotFound
@@ -21,6 +24,8 @@ from app.schemas.accounting.account import (
     CategoryType,
     MONEY_ACCOUNT_KINDS,
 )
+from app.schemas.accounting.posting import PostingCreate
+from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import currency_service
 
@@ -75,6 +80,41 @@ async def create_default_accounts(*, db: AsyncSession, user_id: UUID, base_curre
 
     create_data.append(AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"))
     await account_crud.create_batch(db=db, objs_in=create_data)
+
+
+async def _write_off_base_balance(*, db: AsyncSession, account_db: AccountModel, user_id: UUID) -> None:
+    equity_account_db: AccountModel | None = await account_crud.get_or_none(
+        db=db, user_id=user_id, kind=AccountKind.EQUITY, status=EntityStatusType.ACTIVE
+    )
+    if equity_account_db is None:
+        raise EntityNotFound(
+            entity=AccountModel, search_params={"user_id": user_id, "kind": AccountKind.EQUITY}, logger=logger
+        )
+
+    transaction_data: TransactionCreate = TransactionCreate(
+        user_id=user_id,
+        transaction_type=TransactionType.ADJUSTMENT,
+        transaction_date=datetime.now(UTC).date(),
+        base_currency_amount=abs(account_db.base_balance),
+    )
+    postings: list[PostingCreate] = [
+        PostingCreate(
+            account_id=account_db.id,
+            amount=Decimal("0"),
+            currency=account_db.currency,
+            base_amount=-account_db.base_balance,
+        ),
+        PostingCreate(
+            account_id=equity_account_db.id,
+            amount=Decimal("0"),
+            currency=account_db.currency,
+            base_amount=account_db.base_balance,
+        ),
+    ]
+    await transaction_crud.create_with_postings(db=db, obj_in=transaction_data, postings=postings)
+    await account_crud.add_to_balance(
+        db=db, account_id=account_db.id, amount=Decimal("0"), base_amount=-account_db.base_balance
+    )
 
 
 async def get_accounts(*, db: AsyncSession, request: AccountRequest, user_id: UUID) -> Page[Account]:
@@ -141,6 +181,9 @@ async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -
 
     if is_money_account and len(locked_accounts_db) == 1:
         raise LastAccountDeletionForbidden(account_id=account_id, logger=logger)
+
+    if is_money_account and account_db.base_balance != 0:
+        await _write_off_base_balance(db=db, account_db=account_db, user_id=user_id)
 
     obj_in: dict = {"status": EntityStatusType.DELETED.value}
     account_db: AccountModel = await account_crud.update_orm(

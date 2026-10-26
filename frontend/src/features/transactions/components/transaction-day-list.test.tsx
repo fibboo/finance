@@ -108,6 +108,16 @@ test('groups the transactions by day with each day total in the base currency', 
         { ...posting, amount: '4.50', base_amount: '4.50', account: category },
       ],
     },
+    // an expense not valued yet adds nothing to its day total
+    {
+      ...transaction,
+      id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c47',
+      base_currency_amount: null,
+      postings: [
+        { ...posting, amount: '-20.00', currency: 'EUR', base_amount: null, account: mainCard },
+        { ...posting, amount: '20.00', currency: 'EUR', base_amount: null, account: category },
+      ],
+    },
     // the transfer of yesterday does not count toward its day total
     {
       ...transaction,
@@ -195,7 +205,7 @@ test('groups the transactions by day with each day total in the base currency', 
   ]);
   expect(
     screen.getAllByRole('list').map((list) => within(list).getAllByRole('listitem').length),
-  ).toEqual([2, 2, 1, 1, 1]);
+  ).toEqual([3, 2, 1, 1, 1]);
   expect(screen.queryByText('$0.00')).not.toBeInTheDocument();
   expect(screen.getByText('-$47.30')).toBeInTheDocument();
   expect(screen.getAllByText('+$2,291.30')).toHaveLength(1);

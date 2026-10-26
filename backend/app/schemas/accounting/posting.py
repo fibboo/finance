@@ -11,7 +11,7 @@ class PostingCreate(BaseModel):
     account_id: UUID
     amount: Decimal
     currency: CurrencyCode
-    base_amount: Decimal
+    base_amount: Decimal | None
 
 
 class Posting(BaseModel):
@@ -19,6 +19,6 @@ class Posting(BaseModel):
     account: Account
     amount: Decimal
     currency: CurrencyCode
-    base_amount: Decimal
+    base_amount: Decimal | None
 
     model_config = ConfigDict(from_attributes=True)
