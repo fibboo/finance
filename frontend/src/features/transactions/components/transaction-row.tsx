@@ -25,8 +25,14 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
         style={{ color: readAccountColor(view.markedAccount) }}
         aria-hidden="true"
       />
-      <span className={styles['title']}>{view.title}</span>
-      <span className={styles['accounts']}>{view.accountNames}</span>
+      {view.accountNames === null ? (
+        <span className={styles['wideTitle']}>{view.title}</span>
+      ) : (
+        <>
+          <span className={styles['title']}>{view.title}</span>
+          <span className={styles['accounts']}>{view.accountNames}</span>
+        </>
+      )}
       <span className={styles['originalAmount']}>
         {view.currency !== baseCurrency &&
           formatMoney({

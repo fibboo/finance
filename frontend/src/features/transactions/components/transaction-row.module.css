@@ -46,7 +46,12 @@
   background: currentColor;
 }
 
+.wideTitle {
+  grid-column: span 2;
+}
+
 .title,
+.wideTitle,
 .accounts {
   min-width: 0;
   overflow: hidden;

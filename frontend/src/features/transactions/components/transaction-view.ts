@@ -5,7 +5,7 @@ type Account = components['schemas']['Account'];
 
 type TransactionView = Readonly<{
   title: string;
-  accountNames: string;
+  accountNames: string | null;
   markedAccount: Account;
   amount: number;
   baseAmount: number | null;
@@ -57,8 +57,8 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
     }
     case 'TRANSFER': {
       const view = {
-        title: `Transfer to ${credit.account.name}`,
-        accountNames: `${debit.account.name} → ${credit.account.name}`,
+        title: `Transfer ${debit.account.name} → ${credit.account.name}`,
+        accountNames: null,
         markedAccount: credit.account,
         amount: -Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : -Number(debit.base_amount),
@@ -71,8 +71,8 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
     case 'ADJUSTMENT': {
       const posting = credit.account.kind === 'EQUITY' ? debit : credit;
       const view = {
-        title: 'Balance adjustment',
-        accountNames: posting.account.name,
+        title: `Balance adjustment · ${posting.account.name}`,
+        accountNames: null,
         markedAccount: posting.account,
         amount: Number(posting.amount),
         baseAmount: posting.base_amount === null ? null : Number(posting.base_amount),

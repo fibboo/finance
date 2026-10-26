@@ -139,7 +139,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
-    cells: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '$327.40', '0.9163'],
+    cells: ['Transfer Wallet → Savings', '€300.00', '$327.40', '0.9163'],
   },
   {
     kind: 'a transfer not valued yet',
@@ -152,7 +152,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: null, account: savings },
       ],
     },
-    cells: ['Transfer to Savings', 'Wallet → Savings', '€300.00', '—not valued yet'],
+    cells: ['Transfer Wallet → Savings', '€300.00', '—not valued yet'],
   },
   {
     kind: 'a decreasing adjustment',
@@ -165,7 +165,7 @@ test.each([
         { ...posting, amount: '12.00', base_amount: '12.00', account: equity },
       ],
     },
-    cells: ['Balance adjustment', 'Savings', '', '-$12.00'],
+    cells: ['Balance adjustment · Savings', '', '-$12.00'],
   },
   {
     kind: 'an increasing adjustment',
@@ -177,7 +177,7 @@ test.each([
         { ...posting, amount: '25.00', base_amount: '25.00', account: savings },
       ],
     },
-    cells: ['Balance adjustment', 'Savings', '', '+$25.00'],
+    cells: ['Balance adjustment · Savings', '', '+$25.00'],
   },
 ] satisfies {
   kind: string;
