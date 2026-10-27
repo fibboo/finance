@@ -1,8 +1,11 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 
 import type { components } from '@/lib/api-schema';
 
+import { useAnchorScroll } from '../hooks/use-anchor-scroll';
 import type { TransactionFeedQuery } from '../hooks/use-transaction-feed';
+import { BackToTop } from './back-to-top';
+import { LoadError } from './load-error';
 import { NoTransactions } from './no-transactions';
 import styles from './transaction-feed.module.css';
 import { TransactionDayList } from './transaction-day-list';
@@ -13,18 +16,49 @@ type Transaction = components['schemas']['Transaction'];
 
 const LOADING_MORE_ROW_COUNT = 2;
 const NEXT_PAGE_MARGIN = '0% 0% 50% 0%';
+const NEWER_PAGE_MARGIN = '50% 0% 0% 0%';
 
-function mergePages(pages: readonly TransactionPage[]): readonly Transaction[] {
+function mergeTransactions(transactions: readonly Transaction[]): readonly Transaction[] {
   const seenIds = new Set<string>();
-  const transactions: Transaction[] = [];
-  for (const transaction of pages.flatMap((page) => page.items)) {
+  const mergedTransactions: Transaction[] = [];
+  for (const transaction of transactions) {
     if (!seenIds.has(transaction.id)) {
       seenIds.add(transaction.id);
-      transactions.push(transaction);
+      mergedTransactions.push(transaction);
     }
   }
 
-  return transactions;
+  return mergedTransactions;
+}
+
+function readNewerTransactions(
+  pages: readonly TransactionPage[] | undefined,
+): readonly Transaction[] {
+  const newerTransactions = (pages ?? []).flatMap((page) => page.items).reverse();
+  return newerTransactions;
+}
+
+function observeEdge({
+  edge,
+  rootMargin,
+  onReached,
+}: Readonly<{ edge: HTMLDivElement | null; rootMargin: string; onReached: () => void }>) {
+  if (edge === null) {
+    return undefined;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        onReached();
+      }
+    },
+    { root: edge.parentElement, rootMargin },
+  );
+  observer.observe(edge);
+  return () => {
+    observer.disconnect();
+  };
 }
 
 type TransactionFeedProps = Readonly<{
@@ -32,10 +66,23 @@ type TransactionFeedProps = Readonly<{
   baseCurrency: string;
   label: string;
   header?: ReactNode;
+  isGroupedByDay?: boolean;
+  emptyState?: ReactNode;
+  onReturnToToday?: () => void;
 }>;
 
-export function TransactionFeed({ feed, baseCurrency, label, header }: TransactionFeedProps) {
-  const { query, pageSize } = feed;
+export function TransactionFeed({
+  feed,
+  baseCurrency,
+  label,
+  header,
+  isGroupedByDay = true,
+  emptyState = <NoTransactions />,
+  onReturnToToday,
+}: TransactionFeedProps) {
+  const { query, newerQuery, anchorDate, pageSize } = feed;
+  const rowsRef = useRef<HTMLDivElement>(null);
+  const [isScrolledDown, setIsScrolledDown] = useState(false);
   const {
     data,
     isPending,
@@ -43,63 +90,112 @@ export function TransactionFeed({ feed, baseCurrency, label, header }: Transacti
     hasNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
+    isPlaceholderData,
     fetchNextPage,
   } = query;
-
-  function observeEnd(end: HTMLDivElement | null) {
-    if (end === null) {
-      return undefined;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting) && !isFetching) {
-          void fetchNextPage();
-        }
-      },
-      { root: end.parentElement, rootMargin: NEXT_PAGE_MARGIN },
-    );
-    observer.observe(end);
-    return () => {
-      observer.disconnect();
-    };
-  }
-
-  const transactions = data === undefined ? [] : mergePages(data.pages);
+  const newerTransactions = isPlaceholderData ? [] : readNewerTransactions(newerQuery?.data?.pages);
+  const olderTransactions = data === undefined ? [] : data.pages.flatMap((page) => page.items);
+  const transactions = mergeTransactions([...newerTransactions, ...olderTransactions]);
+  useAnchorScroll({
+    rowsRef,
+    isAnchorReady: anchorDate !== undefined && data !== undefined && !isPlaceholderData,
+    anchorDayDate: olderTransactions[0]?.transaction_date,
+    newerTransactionCount: newerTransactions.length,
+    transactionCount: transactions.length,
+  });
+  const isNewerFailed = newerQuery !== undefined && !isPlaceholderData && newerQuery.isError;
+  const canLoadNewer =
+    newerQuery !== undefined &&
+    !isPlaceholderData &&
+    newerQuery.hasNextPage &&
+    !newerQuery.isFetching &&
+    !newerQuery.isError;
   return (
     <section
       aria-label={label}
-      aria-busy={isPending || isFetchingNextPage}
+      aria-busy={isPending || isFetchingNextPage || isPlaceholderData}
       className={styles['transactions']}
     >
       {header}
-      <div className={styles['rows']}>
+      <div
+        ref={rowsRef}
+        className={isPlaceholderData ? styles['staleRows'] : styles['rows']}
+        onScroll={(event) => {
+          setIsScrolledDown(event.currentTarget.scrollTop > 0);
+        }}
+      >
         {data === undefined ? (
           <TransactionSkeletonRows count={pageSize} />
         ) : transactions.length > 0 ? (
           <>
-            <TransactionDayList transactions={transactions} baseCurrency={baseCurrency} />
+            {isNewerFailed && (
+              <LoadError
+                message="Couldn't load newer"
+                onRetry={() => {
+                  void (newerQuery.data === undefined
+                    ? newerQuery.refetch()
+                    : newerQuery.fetchNextPage());
+                }}
+              />
+            )}
+            {canLoadNewer && (
+              <div
+                ref={(edge) =>
+                  observeEdge({
+                    edge,
+                    rootMargin: NEWER_PAGE_MARGIN,
+                    onReached: () => {
+                      void newerQuery.fetchNextPage();
+                    },
+                  })
+                }
+              />
+            )}
+            <TransactionDayList
+              transactions={transactions}
+              baseCurrency={baseCurrency}
+              isGroupedByDay={isGroupedByDay}
+            />
             {isFetchingNextPage && <TransactionSkeletonRows count={LOADING_MORE_ROW_COUNT} />}
             {hasNextPage && !isFetchingNextPage && isFetchNextPageError && (
-              <p className={styles['loadMoreError']}>
-                Couldn&apos;t load more
-                <button
-                  type="button"
-                  className={styles['retry']}
-                  onClick={() => {
-                    void fetchNextPage();
-                  }}
-                >
-                  Try again
-                </button>
-              </p>
+              <LoadError
+                message="Couldn't load more"
+                onRetry={() => {
+                  void fetchNextPage();
+                }}
+              />
             )}
-            {hasNextPage && !isFetchNextPageError && <div ref={observeEnd} />}
+            {hasNextPage && !isFetchNextPageError && !isPlaceholderData && (
+              <div
+                ref={(edge) =>
+                  observeEdge({
+                    edge,
+                    rootMargin: NEXT_PAGE_MARGIN,
+                    onReached: () => {
+                      if (!isFetching) {
+                        void fetchNextPage();
+                      }
+                    },
+                  })
+                }
+              />
+            )}
           </>
         ) : (
-          <NoTransactions />
+          emptyState
         )}
       </div>
+      {isScrolledDown && (
+        <BackToTop
+          onClick={() => {
+            if (anchorDate !== undefined && onReturnToToday !== undefined) {
+              onReturnToToday();
+            } else {
+              rowsRef.current?.scrollTo({ top: 0 });
+            }
+          }}
+        />
+      )}
     </section>
   );
 }

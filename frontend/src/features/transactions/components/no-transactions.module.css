@@ -1,16 +1,14 @@
 @import '@/styles/media.css';
 
 .noTransactions {
-  height: var(--size-empty-state);
-  margin: 0 0 var(--space-2-5);
-  border-radius: var(--radius-track);
+  min-height: max(100%, var(--size-empty-state));
+  margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
   text-align: center;
-  background: var(--color-ground);
 }
 
 .title {
@@ -25,8 +23,7 @@
 
 @media (--desktop) {
   .noTransactions {
-    height: var(--size-empty-state-lg);
-    margin-bottom: var(--space-4);
+    min-height: max(100%, var(--size-empty-state-lg));
   }
 
   .title {

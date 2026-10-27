@@ -1,0 +1,37 @@
+.filterActions {
+  padding-top: var(--space-2);
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-2);
+}
+
+.reset,
+.apply {
+  min-height: var(--size-button);
+  border: 0;
+  border-radius: var(--radius-action);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.reset:focus-visible,
+.apply:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.reset {
+  background: var(--color-ground);
+  color: var(--color-ink);
+}
+
+.apply {
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+.reset:hover,
+.apply:hover {
+  opacity: var(--opacity-hover);
+}

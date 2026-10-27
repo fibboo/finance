@@ -59,6 +59,18 @@
   white-space: nowrap;
 }
 
+.transactionRow:has(.date) {
+  padding-block: var(--space-2-5);
+}
+
+.date {
+  display: block;
+  margin-top: var(--space-0-5);
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-tight);
+  color: var(--color-muted);
+}
+
 .accounts,
 .originalAmount {
   font-size: var(--font-size-xs);
@@ -118,5 +130,9 @@
   .accounts,
   .originalAmount {
     font-size: var(--font-size-md);
+  }
+
+  .date {
+    font-size: var(--font-size-xs);
   }
 }

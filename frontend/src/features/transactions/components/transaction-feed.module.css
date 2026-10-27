@@ -1,6 +1,7 @@
 @import '@/styles/media.css';
 
 .transactions {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   padding: 0 var(--space-1-5) var(--space-2-5);
@@ -10,7 +11,8 @@
   background: var(--color-panel);
 }
 
-.rows {
+.rows,
+.staleRows {
   flex: 1 1 auto;
   min-height: 0;
   padding-inline: var(--space-2);
@@ -21,34 +23,26 @@
   overscroll-behavior: contain;
 }
 
-.loadMoreError {
-  min-height: var(--size-transaction-row);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
+.staleRows {
+  opacity: var(--opacity-stale);
 }
 
-.retry {
-  min-height: var(--size-touch);
-  padding: 0 var(--space-4);
-  border: var(--size-border) solid var(--color-border);
-  border-radius: var(--radius-control);
-  font-weight: var(--font-weight-semibold);
-  background: transparent;
-  color: var(--color-ink);
-  cursor: pointer;
+.rows,
+.staleRows {
+  overflow-anchor: none;
 }
 
-.retry:hover {
-  background: var(--color-ground);
+@media (prefers-reduced-motion: no-preference) {
+  .rows,
+  .staleRows {
+    scroll-behavior: smooth;
+    transition: opacity var(--duration-fade) ease;
+  }
 }
 
 @media (--desktop) {
-  .rows {
+  .rows,
+  .staleRows {
     border-radius: calc(var(--radius-bar) - var(--space-2)) calc(var(--radius-bar) - var(--space-2))
       0 0;
   }

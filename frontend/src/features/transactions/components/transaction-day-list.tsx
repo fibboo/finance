@@ -14,6 +14,19 @@ type TransactionDay = Readonly<{
 }>;
 
 const DAY_MILLISECONDS = 86_400_000;
+const DAY_FORMAT = new Intl.DateTimeFormat(LOCALE, {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+const DAY_OF_OTHER_YEAR_FORMAT = new Intl.DateTimeFormat(LOCALE, {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 
 function groupByDay(transactions: readonly Transaction[]): readonly TransactionDay[] {
   const days: { transactionDate: string; transactions: Transaction[] }[] = [];
@@ -42,13 +55,7 @@ function readDayLabel({
       ? 'Today'
       : daysAgo === 1
         ? 'Yesterday'
-        : new Intl.DateTimeFormat(LOCALE, {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            ...(isThisYear ? {} : { year: 'numeric' }),
-            timeZone: 'UTC',
-          }).format(date);
+        : (isThisYear ? DAY_FORMAT : DAY_OF_OTHER_YEAR_FORMAT).format(date);
   return dayLabel;
 }
 
@@ -66,9 +73,14 @@ function readDayTotal(transactions: readonly Transaction[]): number {
 type TransactionDayListProps = Readonly<{
   transactions: readonly Transaction[];
   baseCurrency: string;
+  isGroupedByDay: boolean;
 }>;
 
-export function TransactionDayList({ transactions, baseCurrency }: TransactionDayListProps) {
+export function TransactionDayList({
+  transactions,
+  baseCurrency,
+  isGroupedByDay,
+}: TransactionDayListProps) {
   const today = useToday();
   return (
     <div className={styles['transactionDayList']}>
@@ -80,35 +92,52 @@ export function TransactionDayList({ transactions, baseCurrency }: TransactionDa
         <span className={styles['amountColumn']}>Amount</span>
         <span className={styles['rateColumn']}>Rate</span>
       </div>
-      {groupByDay(transactions).map((day) => (
-        <div key={day.transactionDate} className={styles['day']}>
-          <div className={styles['dayHeader']}>
-            <h3 className={styles['dayLabel']}>
-              {readDayLabel({ transactionDate: day.transactionDate, today })}
-            </h3>
-            {day.transactions.some(
-              (transaction) => transaction.transaction_type !== 'TRANSFER',
-            ) && (
-              <span className={styles['dayTotal']}>
-                {formatMoney({
-                  amount: readDayTotal(day.transactions),
-                  currency: baseCurrency,
-                  signDisplay: 'exceptZero',
-                })}
-              </span>
-            )}
+      {isGroupedByDay ? (
+        groupByDay(transactions).map((day) => (
+          <div
+            key={day.transactionDate}
+            data-transaction-date={day.transactionDate}
+            className={styles['day']}
+          >
+            <div className={styles['dayHeader']}>
+              <h3 className={styles['dayLabel']}>
+                {readDayLabel({ transactionDate: day.transactionDate, today })}
+              </h3>
+              {day.transactions.some(
+                (transaction) => transaction.transaction_type !== 'TRANSFER',
+              ) && (
+                <span className={styles['dayTotal']}>
+                  {formatMoney({
+                    amount: readDayTotal(day.transactions),
+                    currency: baseCurrency,
+                    signDisplay: 'exceptZero',
+                  })}
+                </span>
+              )}
+            </div>
+            <ul className={styles['transactions']}>
+              {day.transactions.map((transaction) => (
+                <TransactionRow
+                  key={transaction.id}
+                  transaction={transaction}
+                  baseCurrency={baseCurrency}
+                />
+              ))}
+            </ul>
           </div>
-          <ul className={styles['transactions']}>
-            {day.transactions.map((transaction) => (
-              <TransactionRow
-                key={transaction.id}
-                transaction={transaction}
-                baseCurrency={baseCurrency}
-              />
-            ))}
-          </ul>
-        </div>
-      ))}
+        ))
+      ) : (
+        <ul className={styles['transactions']}>
+          {transactions.map((transaction) => (
+            <TransactionRow
+              key={transaction.id}
+              transaction={transaction}
+              baseCurrency={baseCurrency}
+              dateLabel={readDayLabel({ transactionDate: transaction.transaction_date, today })}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
