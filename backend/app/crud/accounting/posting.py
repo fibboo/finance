@@ -47,6 +47,20 @@ class CRUDPosting(CRUDBase[Posting, PostingCreate, PostingCreate]):
         first_revaluable_date: date | None = await db.scalar(query)
         return first_revaluable_date
 
+    async def get_unvalued_sums(self, *, db: AsyncSession, account_ids: list[UUID]) -> list[Row]:
+        query: Select = (
+            select(self.model.account_id, func.sum(self.model.amount).label("amount"))
+            .join(Transaction, Transaction.id == self.model.transaction_id)
+            .where(
+                self.model.account_id.in_(account_ids),
+                self.model.base_amount.is_(None),
+                Transaction.status == EntityStatusType.ACTIVE,
+            )
+            .group_by(self.model.account_id)
+        )
+        sums: list[Row] = (await db.execute(query)).all()
+        return sums
+
     async def update_amounts(self, *, db: AsyncSession, amounts: dict[UUID, tuple[Decimal, Decimal | None]]) -> None:
         values: list[dict] = [
             {"id": posting_id, "amount": amount, "base_amount": base_amount}

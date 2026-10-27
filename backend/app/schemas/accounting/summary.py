@@ -14,7 +14,9 @@ class CurrencyAmount(BaseModel):
 class Summary(BaseModel):
     month: date
     total_balance: Decimal
+    estimated_total_balance: Decimal | None
     earned: Decimal
     spent: Decimal
     left_over: Decimal
     unvalued_spent: list[CurrencyAmount]
+    estimated_unvalued_spent: Decimal | None

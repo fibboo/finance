@@ -513,6 +513,8 @@ export interface components {
             /** Color */
             color: string | null;
             category_type: components["schemas"]["CategoryType"] | null;
+            /** Estimated Base Balance */
+            estimated_base_balance?: string | null;
             status: components["schemas"]["EntityStatusType"];
             /** Base Currency Rate */
             readonly base_currency_rate: string;
@@ -805,6 +807,8 @@ export interface components {
             currency: string;
             /** Base Amount */
             base_amount: string | null;
+            /** Estimated Base Amount */
+            estimated_base_amount?: string | null;
         };
         /**
          * ProviderType
@@ -820,6 +824,8 @@ export interface components {
             month: string;
             /** Total Balance */
             total_balance: string;
+            /** Estimated Total Balance */
+            estimated_total_balance: string | null;
             /** Earned */
             earned: string;
             /** Spent */
@@ -828,6 +834,8 @@ export interface components {
             left_over: string;
             /** Unvalued Spent */
             unvalued_spent: components["schemas"]["CurrencyAmount"][];
+            /** Estimated Unvalued Spent */
+            estimated_unvalued_spent: string | null;
         };
         /** TokenRequest */
         TokenRequest: {
@@ -877,6 +885,8 @@ export interface components {
             comment: string | null;
             /** Base Currency Amount */
             base_currency_amount: string | null;
+            /** Estimated Base Currency Amount */
+            estimated_base_currency_amount?: string | null;
             location: components["schemas"]["Location"] | null;
             /** Income Period */
             income_period: string | null;

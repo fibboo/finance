@@ -58,3 +58,13 @@ class GoogleSettings(BaseSettings):
 
 
 google_settings = GoogleSettings()
+
+
+class ExchangeRateSettings(BaseSettings):
+    url: str
+    cache_seconds: int
+
+    model_config = SettingsConfigDict(env_prefix="exchange_rates_", env_file=".env", extra="ignore")
+
+
+exchange_rate_settings = ExchangeRateSettings()

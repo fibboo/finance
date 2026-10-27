@@ -2,20 +2,25 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+from pytest_httpx import HTTPXMock
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.location import location_crud
 from app.crud.accounting.transaction import transaction_crud
+from app.crud.user.user import user_crud
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import Transaction as TransactionModel
+from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryType
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.summary import Summary
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import EntityStatusType
+from app.schemas.user.external_user import ProviderType
+from app.schemas.user.user import UserCreate
 from app.services.accounting import summary_service
 
 
@@ -272,10 +277,12 @@ async def test_get_summary_ok(db: AsyncSession):
     assert summary.model_dump(mode="json") == {
         "month": "2026-10-01",
         "total_balance": "7298.51",
+        "estimated_total_balance": None,
         "earned": "2312.00",
         "spent": "1046.70",
         "left_over": "1265.30",
         "unvalued_spent": [],
+        "estimated_unvalued_spent": None,
     }
 
 
@@ -303,10 +310,12 @@ async def test_get_summary_empty_month(db: AsyncSession):
     assert summary.model_dump(mode="json") == {
         "month": first_day_of_month.isoformat(),
         "total_balance": "150.50",
+        "estimated_total_balance": None,
         "earned": "0.00",
         "spent": "0.00",
         "left_over": "0.00",
         "unvalued_spent": [],
+        "estimated_unvalued_spent": None,
     }
 
 
@@ -364,10 +373,12 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
     assert summary.model_dump(mode="json") == {
         "month": "2026-02-01",
         "total_balance": "0.00",
+        "estimated_total_balance": None,
         "earned": "0.00",
         "spent": "800.25",
         "left_over": "-800.25",
         "unvalued_spent": [],
+        "estimated_unvalued_spent": None,
     }
 
 
@@ -555,8 +566,93 @@ async def test_get_summary_unvalued_spent_by_currency(db: AsyncSession):
     assert summary.model_dump(mode="json") == {
         "month": "2026-10-01",
         "total_balance": "80.00",
+        "estimated_total_balance": None,
         "earned": "0.00",
         "spent": "20.00",
         "left_over": "-20.00",
         "unvalued_spent": [{"currency": "EUR", "amount": "45.50"}, {"currency": "RSD", "amount": "1200"}],
+        "estimated_unvalued_spent": None,
+    }
+
+
+async def test_get_summary_estimates_unvalued_at_market_rate(db: AsyncSession, httpx_mock: HTTPXMock):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db,
+        obj_in=UserCreate(username="estimates", registration_provider=ProviderType.TELEGRAM, base_currency="USD"),
+        commit=True,
+    )
+    eur_card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.LIABILITY,
+            "user_id": user_db.id,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("-50"),
+        },
+        commit=True,
+    )
+    await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_db.id,
+            "name": "Checking",
+            "currency": "USD",
+            "balance": Decimal("80"),
+            "base_balance": Decimal("80"),
+        },
+        commit=True,
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_db.id, name="Shop"), commit=True
+    )
+
+    # 30 EUR spent in October and 20 EUR in September, both waiting for a value
+    for amount, transaction_date in [(Decimal("30"), date(2026, 10, 3)), (Decimal("20"), date(2026, 9, 28))]:
+        await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_db.id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=None,
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(account_id=eur_card_db.id, amount=-amount, currency="EUR", base_amount=None),
+                PostingCreate(account_id=category_db.id, amount=amount, currency="EUR", base_amount=None),
+            ],
+        )
+
+    await db.commit()
+
+    # 1 EUR is 1.25 USD
+    httpx_mock.add_response(
+        method="GET",
+        url="https://open.er-api.test/v6/latest/USD",
+        json={"result": "success", "base_code": "USD", "rates": {"USD": 1, "EUR": 0.8}},
+    )
+
+    # Act
+    summary: Summary = await summary_service.get_summary(db=db, user_id=user_db.id, month=date(2026, 10, 1))
+
+    # Assert
+    assert summary.model_dump(mode="json") == {
+        "month": "2026-10-01",
+        "total_balance": "80.00",
+        "estimated_total_balance": "17.50",
+        "earned": "0.00",
+        "spent": "0.00",
+        "left_over": "0.00",
+        "unvalued_spent": [{"currency": "EUR", "amount": "30"}],
+        "estimated_unvalued_spent": "37.50",
     }

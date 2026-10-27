@@ -15,10 +15,12 @@ test('shows the total balance in the base currency', async () => {
       HttpResponse.json({
         month: '2026-10-01',
         total_balance: '13713.25',
+        estimated_total_balance: null,
         earned: '2312.00',
         spent: '1046.70',
         left_over: '1265.30',
         unvalued_spent: [],
+        estimated_unvalued_spent: null,
       } satisfies components['schemas']['Summary']),
     ),
   );

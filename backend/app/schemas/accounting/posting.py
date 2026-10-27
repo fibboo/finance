@@ -20,5 +20,6 @@ class Posting(BaseModel):
     amount: Decimal
     currency: CurrencyCode
     base_amount: Decimal | None
+    estimated_base_amount: Decimal | None = None
 
     model_config = ConfigDict(from_attributes=True)
