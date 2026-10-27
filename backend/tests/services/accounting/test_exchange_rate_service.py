@@ -177,3 +177,21 @@ def test_get_estimate(amount: Decimal, currency: CurrencyCode, expected_estimate
 
     # assert
     assert estimate == expected_estimate
+
+
+async def test_get_base_currency_rates_waits_after_failure(db: AsyncSession, httpx_mock: HTTPXMock):
+    # arrange
+    user_db: UserModel = await user_crud.create(
+        db=db,
+        obj_in=UserCreate(username="estimates", registration_provider=ProviderType.TELEGRAM, base_currency="USD"),
+        commit=True,
+    )
+    httpx_mock.add_response(method="GET", url=EXCHANGE_RATES_URL, status_code=503)
+    await get_base_currency_rates(db=db, user_id=user_db.id)
+
+    # act
+    base_currency_rates: dict[CurrencyCode, Decimal] = await get_base_currency_rates(db=db, user_id=user_db.id)
+
+    # assert
+    assert base_currency_rates == {}
+    assert len(httpx_mock.get_requests()) == 1

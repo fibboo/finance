@@ -18,12 +18,13 @@ from app.utils import utils
 logger = get_logger(logger_name=__name__)
 
 REQUEST_TIMEOUT_SECONDS: float = 5
+RETRY_SECONDS: int = 300
 
 
 @dataclass
 class ExchangeRatesCache:
     usd_rates: dict[str, Decimal] = field(default_factory=dict)
-    fetched_at: float | None = None
+    next_fetch_at: float | None = None
 
 
 exchange_rates_cache = ExchangeRatesCache()
@@ -50,12 +51,13 @@ async def get_base_currency_rates(*, db: AsyncSession, user_id: UUID) -> dict[Cu
         return {}
 
     now: float = time.monotonic()
-    fetched_at: float | None = exchange_rates_cache.fetched_at
-    if fetched_at is None or now - fetched_at >= exchange_rate_settings.cache_seconds:
+    next_fetch_at: float | None = exchange_rates_cache.next_fetch_at
+    if next_fetch_at is None or now >= next_fetch_at:
+        exchange_rates_cache.next_fetch_at = now + RETRY_SECONDS
         fetched_rates: dict[str, Decimal] | None = await _fetch_usd_rates()
         if fetched_rates is not None:
             exchange_rates_cache.usd_rates = fetched_rates
-            exchange_rates_cache.fetched_at = now
+            exchange_rates_cache.next_fetch_at = now + exchange_rate_settings.cache_seconds
 
     base_usd_rate: Decimal | None = exchange_rates_cache.usd_rates.get(user_db.base_currency)
     if base_usd_rate is None:

@@ -90,12 +90,6 @@ async def create_transaction(*, db: AsyncSession, create_data: MovementRequest, 
         db=db, user_id=user_id, from_kind=from_account_db.kind, to_kind=to_account_db.kind
     )
     transaction: Transaction = await transaction_processor.create(data=create_data)
-    if transaction.base_currency_amount is None:
-        base_currency_rates: dict[CurrencyCode, Decimal] = await exchange_rate_service.get_base_currency_rates(
-            db=db, user_id=user_id
-        )
-        _add_estimates(transactions=[transaction], base_currency_rates=base_currency_rates)
-
     return transaction
 
 

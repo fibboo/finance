@@ -7,6 +7,7 @@ from sqlalchemy import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.posting import posting_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.models.accounting.account import Account as AccountModel
 from app.schemas.accounting.summary import CurrencyAmount, Summary
@@ -30,18 +31,14 @@ def _get_total_balance(*, accounts_db: list[AccountModel]) -> Decimal:
 
 
 def _get_estimated_total_balance(
-    *, accounts_db: list[AccountModel], estimated_base_balances: dict[UUID, Decimal | None]
+    *, total_balance: Decimal, unvalued_estimates: dict[UUID, Decimal | None]
 ) -> Decimal | None:
-    if len(estimated_base_balances) == 0 or None in estimated_base_balances.values():
+    if len(unvalued_estimates) == 0 or None in unvalued_estimates.values():
         return None
 
-    estimated_total_balance: Decimal = Decimal("0.00")
-    for account_db in accounts_db:
-        estimated_base_balance: Decimal | None = estimated_base_balances.get(account_db.id)
-        if estimated_base_balance is None:
-            estimated_total_balance += utils.round_to_cents(amount=account_db.base_balance)
-        else:
-            estimated_total_balance += estimated_base_balance
+    estimated_total_balance: Decimal = total_balance
+    for unvalued_estimate in unvalued_estimates.values():
+        estimated_total_balance += unvalued_estimate
 
     return estimated_total_balance
 
@@ -84,19 +81,21 @@ async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) ->
     unvalued_spent: list[CurrencyAmount] = [
         CurrencyAmount(currency=unvalued_sum.currency, amount=unvalued_sum.amount) for unvalued_sum in unvalued_sums
     ]
-    estimated_base_balances: dict[UUID, Decimal | None] = await account_service.get_estimated_base_balances(
-        db=db, accounts_db=accounts_db, user_id=user_id
-    )
 
-    if len(unvalued_spent) > 0:
+    account_ids: list[UUID] = [account_db.id for account_db in accounts_db]
+    unvalued_account_sums: list[Row] = await posting_crud.get_unvalued_sums(db=db, account_ids=account_ids)
+    if len(unvalued_spent) > 0 or len(unvalued_account_sums) > 0:
         base_currency_rates: dict[CurrencyCode, Decimal] = await exchange_rate_service.get_base_currency_rates(
             db=db, user_id=user_id
         )
     else:
         base_currency_rates: dict[CurrencyCode, Decimal] = {}
 
+    unvalued_estimates: dict[UUID, Decimal | None] = account_service.get_unvalued_estimates(
+        accounts_db=accounts_db, unvalued_sums=unvalued_account_sums, base_currency_rates=base_currency_rates
+    )
     estimated_total_balance: Decimal | None = _get_estimated_total_balance(
-        accounts_db=accounts_db, estimated_base_balances=estimated_base_balances
+        total_balance=total_balance, unvalued_estimates=unvalued_estimates
     )
     estimated_unvalued_spent: Decimal | None = _get_estimated_unvalued_spent(
         unvalued_spent=unvalued_spent, base_currency_rates=base_currency_rates

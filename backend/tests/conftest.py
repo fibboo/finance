@@ -68,4 +68,4 @@ async def other_db_transaction(engine):
 @pytest.fixture(autouse=True)
 def empty_exchange_rates_cache():
     exchange_rates_cache.usd_rates = {}
-    exchange_rates_cache.fetched_at = None
+    exchange_rates_cache.next_fetch_at = None
