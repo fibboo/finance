@@ -1,7 +1,8 @@
 import hashlib
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from urllib.parse import parse_qs, urlsplit
 from uuid import UUID, uuid4
 
@@ -15,16 +16,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.configs.settings import settings
+from app.crud.accounting.account import account_crud
+from app.crud.accounting.transaction import transaction_crud
 from app.crud.user.authorization_request import authorization_request_crud
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.refresh_token import refresh_token_crud
 from app.crud.user.user import user_crud
 from app.exceptions.bad_gateway_502 import ProviderUnavailable
-from app.exceptions.conflict_409 import (
-    IdentityLinkedToAnotherUser,
-    LastIdentityUnlinkForbidden,
-    ProviderAlreadyLinked,
-)
+from app.exceptions.conflict_409 import LastIdentityUnlinkForbidden, ProviderAlreadyLinked
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.temporary_redirect_307 import ClientRedirect
 from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException
@@ -33,8 +32,17 @@ from app.models.user.authorization_request import AuthorizationRequest as Author
 from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
+from app.schemas.accounting.account import AccountKind, CategoryType
+from app.schemas.accounting.transaction import TransactionType
+from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
-from app.schemas.user.authorization_request import AuthorizationUrlResponse, AuthorizeRequest, CallbackRequest
+from app.schemas.user.authorization_request import (
+    AuthorizationUrlResponse,
+    AuthorizeRequest,
+    CallbackRequest,
+    LinkResult,
+    LinkStatusType,
+)
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair, TokenRequest
 from app.schemas.user.user import UserCreate
@@ -1770,9 +1778,10 @@ async def test_callback_link_identity_of_another_user(
 
     # Assert
     params: dict[str, list[str]] = parse_qs(urlsplit(redirect_url).query)
-    assert params == {"error": ["IDENTITY_LINKED_TO_ANOTHER_USER"], "state": ["client_state"]}
+    assert params.keys() == {"code", "state"}
+    assert params["state"] == ["client_state"]
 
-    # the identity stays with its owner, and the request is used up so its state cannot be replayed
+    # the identity stays with its owner and waits on the request, so that completion can offer the merge
     external_user_db: ExternalUserModel = await external_user_crud.get(db=db, provider=ProviderType.GOOGLE)
     assert external_user_db.user_id == other_user_db.id
 
@@ -1780,8 +1789,9 @@ async def test_callback_link_identity_of_another_user(
     assert len(external_users_db) == 1
 
     await db.refresh(request_db)
-    assert request_db.used is True
-    assert request_db.code_hash is None
+    assert request_db.code_hash == hashlib.sha256(params["code"][0].encode("utf-8")).hexdigest()
+    assert request_db.used is False
+    assert request_db.link_identity["external_id"] == "110169484474386276334"
 
 
 async def test_unlink_ok(db: AsyncSession, db_transaction: AsyncSession):
@@ -1915,7 +1925,7 @@ async def test_complete_link_ok(db: AsyncSession, db_transaction: AsyncSession):
     )
 
     # Act
-    await auth_service.complete_link(
+    link_result: LinkResult = await auth_service.complete_link(
         db=db_transaction,
         user_id=user_db.id,
         provider=ProviderType.GOOGLE,
@@ -1926,6 +1936,8 @@ async def test_complete_link_ok(db: AsyncSession, db_transaction: AsyncSession):
     await db_transaction.commit()
 
     # Assert
+    assert link_result == LinkResult(status=LinkStatusType.LINKED, merge_offer=None)
+
     external_user_db: ExternalUserModel = await external_user_crud.get(
         db=db, user_id=user_db.id, provider=ProviderType.GOOGLE
     )
@@ -2069,7 +2081,7 @@ async def test_complete_link_already_linked_to_same_user(db: AsyncSession, db_tr
     )
 
     # Act
-    await auth_service.complete_link(
+    link_result: LinkResult = await auth_service.complete_link(
         db=db_transaction,
         user_id=user_db.id,
         provider=ProviderType.GOOGLE,
@@ -2080,6 +2092,8 @@ async def test_complete_link_already_linked_to_same_user(db: AsyncSession, db_tr
     await db_transaction.commit()
 
     # Assert
+    assert link_result == LinkResult(status=LinkStatusType.LINKED, merge_offer=None)
+
     external_users_db: list[ExternalUserModel] = await external_user_crud.get_batch(db=db)
     assert len(external_users_db) == 2
 
@@ -2159,22 +2173,24 @@ async def test_complete_link_provider_linked_meanwhile(db: AsyncSession, db_tran
     assert len(external_users_db) == 2
 
 
-async def test_complete_link_identity_linked_meanwhile(db: AsyncSession, db_transaction: AsyncSession):
+async def test_complete_link_provider_linked_meanwhile_identity_of_another_user(
+    db: AsyncSession, db_transaction: AsyncSession
+):
     # Arrange
     user_db: UserModel = await user_crud.create(
         db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
     )
+    # another Google identity was linked after the link callback
     await external_user_crud.create(
         db=db,
         obj_in={
             "user_id": user_db.id,
-            "provider": ProviderType.TELEGRAM,
-            "external_id": "1234123412341234123",
-            "username": "johndoe",
+            "provider": ProviderType.GOOGLE,
+            "external_id": "999999999999999999999",
+            "username": "google_999999999999999999999",
         },
         commit=True,
     )
-    # the identity signed up on its own after the link callback
     other_user_db: UserModel = await user_crud.create(
         db=db, obj_in=UserCreate(username="janedoe", registration_provider=ProviderType.GOOGLE), commit=True
     )
@@ -2216,7 +2232,7 @@ async def test_complete_link_identity_linked_meanwhile(db: AsyncSession, db_tran
     )
 
     # Act / Assert
-    with pytest.raises(IdentityLinkedToAnotherUser) as exc:
+    with pytest.raises(ProviderAlreadyLinked) as exc:
         await auth_service.complete_link(
             db=db_transaction,
             user_id=user_db.id,
@@ -2227,10 +2243,170 @@ async def test_complete_link_identity_linked_meanwhile(db: AsyncSession, db_tran
         )
     await db_transaction.commit()
 
-    assert exc.value.error_code == ErrorCodeType.IDENTITY_LINKED_TO_ANOTHER_USER
+    assert exc.value.error_code == ErrorCodeType.PROVIDER_ALREADY_LINKED
 
-    external_users_db: list[ExternalUserModel] = await external_user_crud.get_batch(db=db, user_id=user_db.id)
-    assert len(external_users_db) == 1
+    # no merge is offered
+    await db.refresh(request_db)
+    assert request_db.merge_user_id is None
+    assert request_db.merge_code_hash is None
+
+
+@pytest.mark.parametrize(
+    "base_currency, other_base_currency, is_base_currency_mismatch",
+    [
+        ("USD", "USD", False),
+        ("USD", "EUR", True),
+        (None, "EUR", False),
+        ("USD", None, False),
+    ],
+    ids=["same_base_currency", "other_base_currency", "without_base_currency", "other_without_base_currency"],
+)
+async def test_complete_link_identity_of_another_user(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    base_currency: str | None,
+    other_base_currency: str | None,
+    is_base_currency_mismatch: bool,
+):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db,
+        obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM, base_currency=base_currency),
+        commit=True,
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+    other_user_db: UserModel = await user_crud.create(
+        db=db,
+        obj_in=UserCreate(
+            username="janedoe", registration_provider=ProviderType.GOOGLE, base_currency=other_base_currency
+        ),
+        commit=True,
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": other_user_db.id,
+            "provider": ProviderType.GOOGLE,
+            "external_id": "110169484474386276334",
+            "username": "janedoe",
+        },
+        commit=True,
+    )
+    # only the other user's active ASSET and LIABILITY accounts count
+    await account_crud.create_batch(
+        db=db,
+        objs_in=[
+            {"user_id": other_user_db.id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "EUR"},
+            {"user_id": other_user_db.id, "kind": AccountKind.LIABILITY, "name": "Credit card", "currency": "EUR"},
+            {
+                "user_id": other_user_db.id,
+                "kind": AccountKind.ASSET,
+                "name": "Old wallet",
+                "currency": "EUR",
+                "status": EntityStatusType.DELETED,
+            },
+            {
+                "user_id": other_user_db.id,
+                "kind": AccountKind.EXPENSE,
+                "name": "Groceries",
+                "category_type": CategoryType.VARIABLE,
+            },
+            {"user_id": user_db.id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
+        ],
+        commit=True,
+    )
+    # only the other user's active transactions count
+    await transaction_crud.create_batch(
+        db=db,
+        objs_in=[
+            {
+                "user_id": other_user_db.id,
+                "transaction_type": TransactionType.TRANSFER,
+                "transaction_date": date(2026, 10, 1),
+                "base_currency_amount": None,
+            },
+            {
+                "user_id": other_user_db.id,
+                "transaction_type": TransactionType.TRANSFER,
+                "transaction_date": date(2026, 10, 2),
+                "base_currency_amount": None,
+                "status": EntityStatusType.DELETED,
+            },
+            {
+                "user_id": user_db.id,
+                "transaction_type": TransactionType.TRANSFER,
+                "transaction_date": date(2026, 10, 3),
+                "base_currency_amount": None,
+            },
+        ],
+        commit=True,
+    )
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.GOOGLE,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": create_s256_code_challenge("client_code_verifier_of_at_least_43_characters"),
+            "expires_at": datetime.now() + timedelta(minutes=1),
+            "link_user_id": user_db.id,
+            "link_identity": {
+                "provider": "GOOGLE",
+                "external_id": "110169484474386276334",
+                "username": None,
+                "first_name": "John",
+                "last_name": None,
+                "avatar": None,
+                "email": "john.doe@gmail.com",
+            },
+            "code_hash": hashlib.sha256(b"link_code").hexdigest(),
+            "used": False,
+        },
+        commit=True,
+    )
+
+    # Act
+    link_result: LinkResult = await auth_service.complete_link(
+        db=db_transaction,
+        user_id=user_db.id,
+        provider=ProviderType.GOOGLE,
+        code="link_code",
+        redirect_uri="https://finance.test/auth/callback",
+        code_verifier="client_code_verifier_of_at_least_43_characters",
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert link_result.status == LinkStatusType.MERGE_REQUIRED
+    assert link_result.merge_offer.username == "janedoe"
+    assert link_result.merge_offer.base_currency == other_base_currency
+    assert link_result.merge_offer.accounts_count == 2
+    assert link_result.merge_offer.transactions_count == 1
+    assert link_result.merge_offer.is_base_currency_mismatch is is_base_currency_mismatch
+
+    # the identity stays with its owner until the user confirms the merge
+    external_user_db: ExternalUserModel = await external_user_crud.get(db=db, provider=ProviderType.GOOGLE)
+    assert external_user_db.user_id == other_user_db.id
+
+    await db.refresh(request_db)
+    assert request_db.used is True
+    assert request_db.link_identity is None
+    assert request_db.merge_user_id == other_user_db.id
+    merge_code_hash: str = hashlib.sha256(link_result.merge_offer.merge_code.encode("utf-8")).hexdigest()
+    assert request_db.merge_code_hash == merge_code_hash
+    assert datetime.now() + timedelta(minutes=9) < request_db.merge_expires_at <= datetime.now() + timedelta(minutes=10)
 
 
 async def test_grant_token_link_code(db: AsyncSession, db_transaction: AsyncSession):

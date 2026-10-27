@@ -336,6 +336,9 @@ export interface paths {
         /**
          * Complete Link
          * @description Finish linking a provider: present the one-time code from the link callback with its PKCE verifier.
+         *
+         *     Answers `linked`, or `merge_required` when the identity belongs to another user. The merge offer then carries a
+         *     merge code valid for 10 minutes and a summary of the other user's account.
          */
         post: operations["complete_link_user_auth_link__provider__complete_post"];
         delete?: never;
@@ -663,6 +666,16 @@ export interface components {
             /** Code Verifier */
             code_verifier: string;
         };
+        /** LinkResult */
+        LinkResult: {
+            status: components["schemas"]["LinkStatusType"];
+            merge_offer: components["schemas"]["MergeOffer"] | null;
+        };
+        /**
+         * LinkStatusType
+         * @enum {string}
+         */
+        LinkStatusType: "linked" | "merge_required";
         /** Location */
         Location: {
             /** Name */
@@ -704,6 +717,21 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
+        };
+        /** MergeOffer */
+        MergeOffer: {
+            /** Merge Code */
+            merge_code: string;
+            /** Username */
+            username: string;
+            /** Base Currency */
+            base_currency: string | null;
+            /** Accounts Count */
+            accounts_count: number;
+            /** Transactions Count */
+            transactions_count: number;
+            /** Is Base Currency Mismatch */
+            is_base_currency_mismatch: boolean;
         };
         /** MovementRequest */
         MovementRequest: {
@@ -1928,7 +1956,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["LinkResult"];
                 };
             };
             /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */

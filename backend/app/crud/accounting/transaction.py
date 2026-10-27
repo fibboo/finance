@@ -149,6 +149,13 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         paginated_expenses = await apaginate(db, query, request)
         return paginated_expenses
 
+    async def count_active_transactions(self, *, db: AsyncSession, user_id: UUID) -> int:
+        query: Select = select(func.count(self.model.id)).where(
+            self.model.user_id == user_id, self.model.status == EntityStatusType.ACTIVE
+        )
+        transactions_count: int = await db.scalar(query)
+        return transactions_count
+
     async def get_income_and_expense_sums(
         self, *, db: AsyncSession, user_id: UUID, date_from: date, date_to: date
     ) -> Row:

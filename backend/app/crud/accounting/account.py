@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import or_, select, Select, update, Update
+from sqlalchemy import func, or_, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -44,6 +44,15 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
         )
         accounts: list[Account] = (await db.scalars(query)).all()
         return accounts
+
+    async def count_active_money_accounts(self, *, db: AsyncSession, user_id: UUID) -> int:
+        query: Select = select(func.count(self.model.id)).where(
+            self.model.user_id == user_id,
+            self.model.status == EntityStatusType.ACTIVE,
+            self.model.kind.in_(MONEY_ACCOUNT_KINDS),
+        )
+        accounts_count: int = await db.scalar(query)
+        return accounts_count
 
     async def get_locked_active_money_accounts(self, *, db: AsyncSession, user_id: UUID) -> dict[UUID, Account]:
         query: Select = (

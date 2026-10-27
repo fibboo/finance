@@ -12,6 +12,7 @@ from app.schemas.user.authorization_request import (
     AuthorizeRequest,
     CallbackRequest,
     LinkCompleteRequest,
+    LinkResult,
 )
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair, TokenRequest, TokenResponse
@@ -63,9 +64,12 @@ async def complete_link(
     data: LinkCompleteRequest,
     user_id: UUID = Depends(get_user_id),
     db: DbTransaction,
-) -> None:
-    """Finish linking a provider: present the one-time code from the link callback with its PKCE verifier."""
-    await auth_service.complete_link(
+) -> LinkResult:
+    """Finish linking a provider: present the one-time code from the link callback with its PKCE verifier.
+
+    Answers `linked`, or `merge_required` when the identity belongs to another user. The merge offer then carries a
+    merge code valid for 10 minutes and a summary of the other user's account."""
+    link_result: LinkResult = await auth_service.complete_link(
         db=db,
         user_id=user_id,
         provider=provider,
@@ -73,6 +77,7 @@ async def complete_link(
         redirect_uri=data.redirect_uri,
         code_verifier=data.code_verifier,
     )
+    return link_result
 
 
 @router.delete("/link/{provider}")
