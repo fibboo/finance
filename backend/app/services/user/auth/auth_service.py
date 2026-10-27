@@ -9,15 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.configs.settings import settings
+from app.crud.accounting.account import account_crud
+from app.crud.accounting.transaction import transaction_crud
 from app.crud.user.authorization_request import authorization_request_crud
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
-from app.exceptions.conflict_409 import (
-    ConflictException,
-    IdentityLinkedToAnotherUser,
-    LastIdentityUnlinkForbidden,
-    ProviderAlreadyLinked,
-)
+from app.exceptions.conflict_409 import ConflictException, LastIdentityUnlinkForbidden, ProviderAlreadyLinked
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.temporary_redirect_307 import ClientRedirect
 from app.exceptions.unauthorized_401 import InvalidAuthData, InvalidTokenException
@@ -25,13 +22,15 @@ from app.exceptions.unprocessable_422 import RedirectUriNotAllowed
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
 from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.user import User as UserModel
-from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.authorization_request import (
     AuthorizationRequestCreate,
     AuthorizationRequestUpdate,
     AuthorizationUrlResponse,
     AuthorizeRequest,
     CallbackRequest,
+    LinkResult,
+    LinkStatusType,
+    MergeOffer,
 )
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.identity import ProviderIdentity
@@ -45,6 +44,7 @@ logger = get_logger(logger_name=__name__)
 
 AUTHORIZATION_REQUEST_LIFETIME = timedelta(minutes=10)
 AUTHORIZATION_CODE_LIFETIME = timedelta(minutes=1)
+MERGE_CODE_LIFETIME = timedelta(minutes=10)
 CLIENT_ERROR_PATTERN: re.Pattern[str] = re.compile(r"[\x20-\x21\x23-\x5B\x5D-\x7E]{1,128}")
 
 
@@ -88,6 +88,33 @@ async def _reject_callback(*, db: AsyncSession, request_db: AuthorizationRequest
     await authorization_request_crud.update_orm(db=db, obj_in={"used": True}, id=request_db.id)
     error_url: str = _build_client_url(request_db=request_db, params={"error": error_code})
     return error_url
+
+
+async def _create_merge_offer(
+    *, db: AsyncSession, request_db: AuthorizationRequestModel, user_id: UUID, merge_user_db: UserModel
+) -> MergeOffer:
+    merge_code: str = secrets.token_urlsafe(32)
+    merge_request_update: dict = {
+        "merge_user_id": merge_user_db.id,
+        "merge_code_hash": utils.hash_secret(secret=merge_code),
+        "merge_expires_at": datetime.now() + MERGE_CODE_LIFETIME,
+    }
+    await authorization_request_crud.update_orm(db=db, obj_in=merge_request_update, id=request_db.id)
+
+    user_db: UserModel = await user_crud.get(db=db, id=user_id)
+    accounts_count: int = await account_crud.count_active_money_accounts(db=db, user_id=merge_user_db.id)
+    transactions_count: int = await transaction_crud.count_active_transactions(db=db, user_id=merge_user_db.id)
+    is_base_currency_set: bool = user_db.base_currency is not None and merge_user_db.base_currency is not None
+    is_base_currency_mismatch: bool = is_base_currency_set and user_db.base_currency != merge_user_db.base_currency
+    merge_offer = MergeOffer(
+        merge_code=merge_code,
+        username=merge_user_db.username,
+        base_currency=merge_user_db.base_currency,
+        accounts_count=accounts_count,
+        transactions_count=transactions_count,
+        is_base_currency_mismatch=is_base_currency_mismatch,
+    )
+    return merge_offer
 
 
 async def _create_authorization_url(
@@ -172,12 +199,6 @@ async def callback(*, db: AsyncSession, provider: ProviderType, callback_request
         db=db, external_id=identity.external_id, provider=provider
     )
     is_link: bool = request_db.link_user_id is not None
-    if is_link and user_db is not None and user_db.id != request_db.link_user_id:
-        error_url: str = await _reject_callback(
-            db=db, request_db=request_db, error_code=ErrorCodeType.IDENTITY_LINKED_TO_ANOTHER_USER.value
-        )
-        return error_url
-
     if not is_link and user_db is None:
         try:
             user_db: UserModel | None = await user_service.create_user(db=db, identity=identity)
@@ -233,7 +254,7 @@ async def grant_token(*, db: AsyncSession, token_request: TokenRequest, refresh_
 
 async def complete_link(
     *, db: AsyncSession, user_id: UUID, provider: ProviderType, code: str, redirect_uri: str, code_verifier: str
-) -> None:
+) -> LinkResult:
     request_db: AuthorizationRequestModel = await _get_verified_code_request(
         db=db, code=code, redirect_uri=redirect_uri, code_verifier=code_verifier
     )
@@ -247,10 +268,15 @@ async def complete_link(
         db=db, external_id=identity.external_id, provider=provider
     )
     if user_db is not None and user_db.id != user_id:
-        raise IdentityLinkedToAnotherUser(user_id=user_id, provider=provider, logger=logger)
+        merge_offer: MergeOffer = await _create_merge_offer(
+            db=db, request_db=request_db, user_id=user_id, merge_user_db=user_db
+        )
+        merge_result = LinkResult(status=LinkStatusType.MERGE_REQUIRED, merge_offer=merge_offer)
+        return merge_result
 
+    linked_result = LinkResult(status=LinkStatusType.LINKED, merge_offer=None)
     if user_db is not None:
-        return
+        return linked_result
 
     linked_db: ExternalUserModel | None = await external_user_crud.get_or_none(
         db=db, user_id=user_id, provider=provider
@@ -260,6 +286,7 @@ async def complete_link(
 
     username: str = user_service.build_username(identity=identity)
     await user_service.add_external_user(db=db, user_id=user_id, identity=identity, username=username)
+    return linked_result
 
 
 async def unlink(*, db: AsyncSession, user_id: UUID, provider: ProviderType) -> None:

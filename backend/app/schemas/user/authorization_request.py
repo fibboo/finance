@@ -1,9 +1,11 @@
 from datetime import datetime
+from enum import Enum
 from typing import Annotated, Literal, TypeAlias
 from uuid import UUID
 
 from pydantic import BaseModel, StringConstraints
 
+from app.schemas.base import CurrencyCode
 from app.schemas.user.external_user import ProviderType
 
 OAuthState: TypeAlias = Annotated[str, StringConstraints(min_length=1, max_length=512)]
@@ -49,3 +51,22 @@ class LinkCompleteRequest(BaseModel):
     code: str
     redirect_uri: str
     code_verifier: str
+
+
+class LinkStatusType(str, Enum):
+    LINKED = "linked"
+    MERGE_REQUIRED = "merge_required"
+
+
+class MergeOffer(BaseModel):
+    merge_code: str
+    username: str
+    base_currency: CurrencyCode | None
+    accounts_count: int
+    transactions_count: int
+    is_base_currency_mismatch: bool
+
+
+class LinkResult(BaseModel):
+    status: LinkStatusType
+    merge_offer: MergeOffer | None
