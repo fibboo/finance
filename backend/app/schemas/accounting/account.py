@@ -106,6 +106,7 @@ class Account(AccountBase):
     color: str | None
     category_type: CategoryType | None
     base_balance: Decimal = Field(exclude=True)
+    estimated_base_balance: Decimal | None = None
     status: EntityStatusType
 
     @computed_field

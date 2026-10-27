@@ -1,9 +1,11 @@
+import pytest
 import pytest_asyncio
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.models.accounting.currency import Currency
 from app.models.base import Base
+from app.services.accounting.exchange_rate_service import exchange_rates_cache
 
 CURRENCIES: list[dict[str, str | int]] = [
     {"code": "USD", "name": "US Dollar", "position": 1},
@@ -61,3 +63,9 @@ async def other_db_transaction(engine):
     finally:
         await session.commit()
         await session.close()
+
+
+@pytest.fixture(autouse=True)
+def empty_exchange_rates_cache():
+    exchange_rates_cache.usd_rates = {}
+    exchange_rates_cache.fetched_at = None

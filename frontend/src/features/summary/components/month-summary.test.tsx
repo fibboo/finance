@@ -24,10 +24,12 @@ test('shows what the month earned, spent and left against the days gone', async 
       HttpResponse.json({
         month: '2026-10-01',
         total_balance: '13713.25',
+        estimated_total_balance: null,
         earned: '2312.00',
         spent: '1046.70',
         left_over: '1265.30',
         unvalued_spent: [],
+        estimated_unvalued_spent: null,
       } satisfies components['schemas']['Summary']),
     ),
   );
@@ -52,10 +54,12 @@ test('shows a negative left over with its minus', async () => {
       HttpResponse.json({
         month: '2026-10-01',
         total_balance: '13713.25',
+        estimated_total_balance: null,
         earned: '0.00',
         spent: '200.00',
         left_over: '-200.00',
         unvalued_spent: [],
+        estimated_unvalued_spent: null,
       } satisfies components['schemas']['Summary']),
     ),
   );
@@ -76,10 +80,12 @@ test('counts no days gone for a month the backend has started before the local t
       HttpResponse.json({
         month: '2026-11-01',
         total_balance: '13713.25',
+        estimated_total_balance: null,
         earned: '0.00',
         spent: '0.00',
         left_over: '0.00',
         unvalued_spent: [],
+        estimated_unvalued_spent: null,
       } satisfies components['schemas']['Summary']),
     ),
   );

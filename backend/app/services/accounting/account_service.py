@@ -3,11 +3,13 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
+from sqlalchemy import Row
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.posting import posting_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.conflict_409 import ConflictException, IntegrityException, NameAlreadyExists
 from app.exceptions.forbidden_403 import AccountDeletionForbidden, LastAccountDeletionForbidden
@@ -27,7 +29,8 @@ from app.schemas.accounting.account import (
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
-from app.services.accounting import currency_service
+from app.services.accounting import currency_service, exchange_rate_service
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -117,9 +120,48 @@ async def _write_off_base_balance(*, db: AsyncSession, account_db: AccountModel,
     )
 
 
+def _add_estimates(*, accounts: list[Account], estimated_base_balances: dict[UUID, Decimal | None]) -> None:
+    for account in accounts:
+        account.estimated_base_balance = estimated_base_balances.get(account.id)
+
+
+async def get_estimated_base_balances(
+    *, db: AsyncSession, accounts_db: list[AccountModel], user_id: UUID
+) -> dict[UUID, Decimal | None]:
+    accounts_by_id: dict[UUID, AccountModel] = {}
+    for account_db in accounts_db:
+        if account_db.kind in MONEY_ACCOUNT_KINDS:
+            accounts_by_id[account_db.id] = account_db
+
+    unvalued_sums: list[Row] = await posting_crud.get_unvalued_sums(db=db, account_ids=list(accounts_by_id))
+    if len(unvalued_sums) == 0:
+        return {}
+
+    base_currency_rates: dict[CurrencyCode, Decimal] = await exchange_rate_service.get_base_currency_rates(
+        db=db, user_id=user_id
+    )
+    estimated_base_balances: dict[UUID, Decimal | None] = {}
+    for unvalued_sum in unvalued_sums:
+        account_db: AccountModel = accounts_by_id[unvalued_sum.account_id]
+        unvalued_estimate: Decimal | None = exchange_rate_service.get_estimate(
+            amount=unvalued_sum.amount, currency=account_db.currency, base_currency_rates=base_currency_rates
+        )
+        if unvalued_estimate is None:
+            estimated_base_balances[account_db.id] = None
+        else:
+            base_currency_balance: Decimal = utils.round_to_cents(amount=account_db.base_balance)
+            estimated_base_balances[account_db.id] = base_currency_balance + unvalued_estimate
+
+    return estimated_base_balances
+
+
 async def get_accounts(*, db: AsyncSession, request: AccountRequest, user_id: UUID) -> Page[Account]:
     accounts_db: Page[AccountModel] = await account_crud.get_accounts(db=db, request=request, user_id=user_id)
     accounts: Page[Account] = Page[Account].model_validate(accounts_db)
+    estimated_base_balances: dict[UUID, Decimal | None] = await get_estimated_base_balances(
+        db=db, accounts_db=list(accounts_db.items), user_id=user_id
+    )
+    _add_estimates(accounts=accounts.items, estimated_base_balances=estimated_base_balances)
     return accounts
 
 
@@ -131,6 +173,10 @@ async def get_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> A
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
     account: Account = Account.model_validate(account_db)
+    estimated_base_balances: dict[UUID, Decimal | None] = await get_estimated_base_balances(
+        db=db, accounts_db=[account_db], user_id=user_id
+    )
+    _add_estimates(accounts=[account], estimated_base_balances=estimated_base_balances)
     return account
 
 

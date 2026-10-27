@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi_pagination import Page
+from pytest_httpx import HTTPXMock
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -11,6 +12,7 @@ from starlette import status
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.location import location_crud
+from app.crud.accounting.transaction import transaction_crud
 from app.crud.user.user import user_crud
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import MovementNotAllowed
@@ -27,7 +29,14 @@ from app.schemas.accounting.account import (
     CategoryType,
 )
 from app.schemas.accounting.location import LocationCreate
-from app.schemas.accounting.transaction import MovementRequest, Transaction, TransactionRequest, TransactionType
+from app.schemas.accounting.posting import PostingCreate
+from app.schemas.accounting.transaction import (
+    MovementRequest,
+    Transaction,
+    TransactionCreate,
+    TransactionRequest,
+    TransactionType,
+)
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
@@ -1182,3 +1191,104 @@ async def test_adjust_balance_account_not_found(db: AsyncSession, db_transaction
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
     assert len(transactions) == 0
+
+
+async def test_get_transactions_estimates_unvalued(db: AsyncSession, httpx_mock: HTTPXMock):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db,
+        obj_in=UserCreate(username="estimates", registration_provider=ProviderType.TELEGRAM, base_currency="USD"),
+        commit=True,
+    )
+    eur_card_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.LIABILITY,
+            "user_id": user_db.id,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("-30"),
+        },
+        commit=True,
+    )
+    usd_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_db.id,
+            "name": "Checking",
+            "currency": "USD",
+            "balance": Decimal("80"),
+            "base_balance": Decimal("80"),
+        },
+        commit=True,
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_db.id, name="Shop"), commit=True
+    )
+
+    # 30 EUR from the card waits for a value, 20 USD from checking is valued
+    unvalued_expense_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_db.id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2026, 10, 3),
+            base_currency_amount=None,
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(account_id=eur_card_db.id, amount=Decimal("-30"), currency="EUR", base_amount=None),
+            PostingCreate(account_id=category_db.id, amount=Decimal("30"), currency="EUR", base_amount=None),
+        ],
+    )
+    valued_expense_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_db.id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2026, 10, 2),
+            base_currency_amount=Decimal("20"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(
+                account_id=usd_account_db.id, amount=Decimal("-20"), currency="USD", base_amount=Decimal("-20")
+            ),
+            PostingCreate(account_id=category_db.id, amount=Decimal("20"), currency="USD", base_amount=Decimal("20")),
+        ],
+    )
+    await db.commit()
+
+    # 1 EUR is 1.25 USD
+    httpx_mock.add_response(
+        method="GET",
+        url="https://open.er-api.test/v6/latest/USD",
+        json={"result": "success", "base_code": "USD", "rates": {"USD": 1, "EUR": 0.8}},
+    )
+    request = TransactionRequest(date_to=date(2026, 10, 31))
+
+    # Act
+    transactions: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request, user_id=user_db.id
+    )
+
+    # Assert
+    estimates: dict[UUID, tuple[Decimal | None, list[Decimal | None]]] = {
+        transaction.id: (
+            transaction.estimated_base_currency_amount,
+            [posting.estimated_base_amount for posting in transaction.postings],
+        )
+        for transaction in transactions.items
+    }
+    assert estimates == {
+        unvalued_expense_db.id: (Decimal("37.50"), [Decimal("-37.50"), Decimal("37.50")]),
+        valued_expense_db.id: (None, [None, None]),
+    }

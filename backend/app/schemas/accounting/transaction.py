@@ -82,6 +82,7 @@ class Transaction(BaseModel):
     transaction_date: date
     comment: str | None
     base_currency_amount: PositiveAmount | None
+    estimated_base_currency_amount: Decimal | None = None
     location: Location | None
     income_period: date | None
     status: EntityStatusType

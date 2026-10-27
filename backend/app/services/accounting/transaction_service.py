@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
@@ -10,11 +11,31 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.account import AdjustmentCreate, AdjustmentRequest
+from app.schemas.accounting.posting import Posting
 from app.schemas.accounting.transaction import MovementRequest, Transaction, TransactionRequest, TransactionType
+from app.schemas.base import CurrencyCode
+from app.services.accounting import exchange_rate_service
 from app.services.accounting.transaction_processor import factory
 from app.services.accounting.transaction_processor.base import TransactionProcessor
 
 logger = get_logger(logger_name=__name__)
+
+
+def _add_estimates(*, transactions: list[Transaction], base_currency_rates: dict[CurrencyCode, Decimal]) -> None:
+    for transaction in transactions:
+        if transaction.base_currency_amount is not None:
+            continue
+
+        debit: Posting = transaction.postings[0]
+        debit_estimate: Decimal | None = exchange_rate_service.get_estimate(
+            amount=debit.amount, currency=debit.currency, base_currency_rates=base_currency_rates
+        )
+        if debit_estimate is None:
+            continue
+
+        transaction.estimated_base_currency_amount = -debit_estimate
+        for posting in transaction.postings:
+            posting.estimated_base_amount = debit_estimate if posting.amount < 0 else -debit_estimate
 
 
 async def get_transactions(*, db: AsyncSession, request: TransactionRequest, user_id: UUID) -> Page[Transaction]:
@@ -22,6 +43,13 @@ async def get_transactions(*, db: AsyncSession, request: TransactionRequest, use
         db=db, request=request, user_id=user_id
     )
     transactions = Page[Transaction].model_validate(transactions_db)
+    has_unvalued: bool = any(transaction.base_currency_amount is None for transaction in transactions.items)
+    if has_unvalued:
+        base_currency_rates: dict[CurrencyCode, Decimal] = await exchange_rate_service.get_base_currency_rates(
+            db=db, user_id=user_id
+        )
+        _add_estimates(transactions=transactions.items, base_currency_rates=base_currency_rates)
+
     return transactions
 
 
@@ -36,6 +64,12 @@ async def get_transaction(*, db: AsyncSession, transaction_id: UUID, user_id: UU
         )
 
     transaction: Transaction = Transaction.model_validate(transaction_db)
+    if transaction.base_currency_amount is None:
+        base_currency_rates: dict[CurrencyCode, Decimal] = await exchange_rate_service.get_base_currency_rates(
+            db=db, user_id=user_id
+        )
+        _add_estimates(transactions=[transaction], base_currency_rates=base_currency_rates)
+
     return transaction
 
 
@@ -56,6 +90,12 @@ async def create_transaction(*, db: AsyncSession, create_data: MovementRequest, 
         db=db, user_id=user_id, from_kind=from_account_db.kind, to_kind=to_account_db.kind
     )
     transaction: Transaction = await transaction_processor.create(data=create_data)
+    if transaction.base_currency_amount is None:
+        base_currency_rates: dict[CurrencyCode, Decimal] = await exchange_rate_service.get_base_currency_rates(
+            db=db, user_id=user_id
+        )
+        _add_estimates(transactions=[transaction], base_currency_rates=base_currency_rates)
+
     return transaction
 
 
