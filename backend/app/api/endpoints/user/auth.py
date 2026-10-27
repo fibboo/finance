@@ -13,10 +13,12 @@ from app.schemas.user.authorization_request import (
     CallbackRequest,
     LinkCompleteRequest,
     LinkResult,
+    MergeRequest,
 )
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.token import TokenPair, TokenRequest, TokenResponse
-from app.services.user import token_service
+from app.schemas.user.user import User
+from app.services.user import merge_service, token_service
 from app.services.user.auth import auth_service
 
 router = APIRouter()
@@ -78,6 +80,18 @@ async def complete_link(
         code_verifier=data.code_verifier,
     )
     return link_result
+
+
+@router.post("/merge")
+async def merge(*, data: MergeRequest, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> User:
+    """Merge the other account of a `merge_required` link into the signed-in user, with the offer's merge code.
+
+    Moves the other user's accounts, locations, transactions and sign-in providers and deletes that user. Same-named
+    categories, income sources and locations are folded together, and a same-named money account gets a numeric
+    suffix. Answers 409 `BASE_CURRENCY_MISMATCH` when both users have different base currencies and
+    `PROVIDER_ALREADY_LINKED` when both have an identity of the same provider."""
+    user: User = await merge_service.merge(db=db, user_id=user_id, merge_code=data.merge_code)
+    return user
 
 
 @router.delete("/link/{provider}")

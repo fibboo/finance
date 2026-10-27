@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import asc, ColumnElement, desc, false, func, Row, select, Select, update
+from sqlalchemy import asc, case, ColumnElement, desc, false, func, literal, Row, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
@@ -191,6 +191,27 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         )
         sums: list[Row] = (await db.execute(query)).all()
         return sums
+
+    async def update_location_ids(self, *, db: AsyncSession, location_ids: dict[UUID, UUID]) -> None:
+        if len(location_ids) == 0:
+            return
+
+        new_location_ids: dict[UUID, ColumnElement] = {
+            location_id: literal(new_location_id, self.model.location_id.type)
+            for location_id, new_location_id in location_ids.items()
+        }
+        query: Update = (
+            update(self.model)
+            .where(self.model.location_id.in_(location_ids.keys()))
+            .values(location_id=case(new_location_ids, value=self.model.location_id))
+        )
+        await db.execute(query)
+        await db.flush()
+
+    async def move_to_user(self, *, db: AsyncSession, user_id: UUID, new_user_id: UUID) -> None:
+        query: Update = update(self.model).where(self.model.user_id == user_id).values(user_id=new_user_id)
+        await db.execute(query)
+        await db.flush()
 
 
 transaction_crud = CRUDTransaction(model=Transaction)

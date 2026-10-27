@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import and_, ColumnElement, delete, func, or_, Row, select, Select, update
+from sqlalchemy import and_, case, ColumnElement, delete, func, literal, or_, Row, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -71,6 +71,22 @@ class CRUDPosting(CRUDBase[Posting, PostingCreate, PostingCreate]):
 
     async def delete_by_ids(self, *, db: AsyncSession, ids: list[UUID]) -> None:
         await db.execute(delete(self.model).where(self.model.id.in_(ids)))
+        await db.flush()
+
+    async def update_account_ids(self, *, db: AsyncSession, account_ids: dict[UUID, UUID]) -> None:
+        if len(account_ids) == 0:
+            return
+
+        new_account_ids: dict[UUID, ColumnElement] = {
+            account_id: literal(new_account_id, self.model.account_id.type)
+            for account_id, new_account_id in account_ids.items()
+        }
+        query: Update = (
+            update(self.model)
+            .where(self.model.account_id.in_(account_ids.keys()))
+            .values(account_id=case(new_account_ids, value=self.model.account_id))
+        )
+        await db.execute(query)
         await db.flush()
 
 

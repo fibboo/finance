@@ -35,7 +35,7 @@ from app.schemas.user.authorization_request import (
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.identity import ProviderIdentity
 from app.schemas.user.token import TokenPair, TokenRequest
-from app.services.user import token_service, user_service
+from app.services.user import merge_service, token_service, user_service
 from app.services.user.auth.oidc_provider import OIDCProvider
 from app.services.user.auth.providers import providers
 from app.utils import utils
@@ -104,15 +104,18 @@ async def _create_merge_offer(
     user_db: UserModel = await user_crud.get(db=db, id=user_id)
     accounts_count: int = await account_crud.count_active_money_accounts(db=db, user_id=merge_user_db.id)
     transactions_count: int = await transaction_crud.count_active_transactions(db=db, user_id=merge_user_db.id)
-    is_base_currency_set: bool = user_db.base_currency is not None and merge_user_db.base_currency is not None
-    is_base_currency_mismatch: bool = is_base_currency_set and user_db.base_currency != merge_user_db.base_currency
+    is_mismatch: bool = merge_service.is_base_currency_mismatch(user_db=user_db, merge_user_db=merge_user_db)
+    shared_providers: list[ProviderType] = merge_service.get_shared_providers(
+        user_db=user_db, merge_user_db=merge_user_db
+    )
     merge_offer = MergeOffer(
         merge_code=merge_code,
         username=merge_user_db.username,
         base_currency=merge_user_db.base_currency,
         accounts_count=accounts_count,
         transactions_count=transactions_count,
-        is_base_currency_mismatch=is_base_currency_mismatch,
+        is_base_currency_mismatch=is_mismatch,
+        is_provider_conflict=len(shared_providers) > 0,
     )
     return merge_offer
 

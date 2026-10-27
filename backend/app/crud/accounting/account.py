@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import func, or_, select, Select, update, Update
+from sqlalchemy import delete, func, or_, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -93,6 +93,28 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
             .where(self.model.id == account_id)
             .values(balance=self.model.balance + amount, base_balance=self.model.base_balance + base_amount)
         )
+        await db.execute(query)
+        await db.flush()
+
+    async def get_user_accounts(self, *, db: AsyncSession, user_id: UUID) -> list[Account]:
+        query: Select = select(self.model).where(self.model.user_id == user_id).order_by(self.model.id)
+        accounts: list[Account] = (await db.scalars(query)).all()
+        return accounts
+
+    async def update_names(self, *, db: AsyncSession, names: dict[UUID, str]) -> None:
+        if len(names) == 0:
+            return
+
+        values: list[dict] = [{"id": account_id, "name": name} for account_id, name in names.items()]
+        await db.execute(update(self.model), values)
+        await db.flush()
+
+    async def delete_by_ids(self, *, db: AsyncSession, ids: list[UUID]) -> None:
+        await db.execute(delete(self.model).where(self.model.id.in_(ids)))
+        await db.flush()
+
+    async def move_to_user(self, *, db: AsyncSession, user_id: UUID, new_user_id: UUID) -> None:
+        query: Update = update(self.model).where(self.model.user_id == user_id).values(user_id=new_user_id)
         await db.execute(query)
         await db.flush()
 
