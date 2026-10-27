@@ -199,9 +199,9 @@ test('groups the transactions by day with each day total in the base currency', 
   expect(headings.map((heading) => heading.textContent)).toEqual([
     'Today',
     'Yesterday',
-    'Sun, Oct 18',
-    'Thu, Oct 15',
-    'Wed, Dec 31, 2025',
+    'Sun, 18.10.2026',
+    'Thu, 15.10.2026',
+    'Wed, 31.12.2025',
   ]);
   expect(
     screen.getAllByRole('list').map((list) => within(list).getAllByRole('listitem').length),

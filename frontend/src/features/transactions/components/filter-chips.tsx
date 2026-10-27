@@ -1,5 +1,6 @@
 import type { components } from '@/lib/api-schema';
-import { formatMoney, LOCALE } from '@/lib/format-money';
+import { toDateText } from '@/lib/format-date';
+import { formatMoney } from '@/lib/format-money';
 
 import { DEFAULT_ORDER, type TransactionFilters } from '../api/transaction-filters';
 import { AmountFilter } from './amount-filter';
@@ -11,20 +12,9 @@ import { TypeFilter } from './type-filter';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
-const DATE_FORMAT = new Intl.DateTimeFormat(LOCALE, {
-  month: 'short',
-  day: 'numeric',
-  timeZone: 'UTC',
-});
-
-function formatDate(date: string): string {
-  const formattedDate = DATE_FORMAT.format(new Date(`${date}T00:00:00Z`));
-  return formattedDate;
-}
-
 function readPeriodLabel(filters: TransactionFilters): string | undefined {
   const periodLabel =
-    filters.date_from === undefined ? undefined : `From ${formatDate(filters.date_from)}`;
+    filters.date_from === undefined ? undefined : `From ${toDateText(filters.date_from)}`;
   return periodLabel;
 }
 
