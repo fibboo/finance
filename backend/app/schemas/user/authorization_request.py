@@ -65,8 +65,13 @@ class MergeOffer(BaseModel):
     accounts_count: int
     transactions_count: int
     is_base_currency_mismatch: bool
+    is_provider_conflict: bool
 
 
 class LinkResult(BaseModel):
     status: LinkStatusType
     merge_offer: MergeOffer | None
+
+
+class MergeRequest(BaseModel):
+    merge_code: str

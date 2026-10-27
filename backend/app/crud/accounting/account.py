@@ -96,5 +96,18 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
         await db.execute(query)
         await db.flush()
 
+    async def get_user_accounts(self, *, db: AsyncSession, user_id: UUID) -> list[Account]:
+        query: Select = select(self.model).where(self.model.user_id == user_id).order_by(self.model.id)
+        accounts: list[Account] = (await db.scalars(query)).all()
+        return accounts
+
+    async def update_names(self, *, db: AsyncSession, names: dict[UUID, str]) -> None:
+        if len(names) == 0:
+            return
+
+        values: list[dict] = [{"id": account_id, "name": name} for account_id, name in names.items()]
+        await db.execute(update(self.model), values)
+        await db.flush()
+
 
 account_crud = CRUDAccount(model=Account)

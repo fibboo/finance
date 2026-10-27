@@ -83,6 +83,17 @@ class BaseCurrencyAlreadySet(ConflictException):
         )
 
 
+class BaseCurrencyMismatch(ConflictException):
+    def __init__(self, *, user_id: UUID, merge_user_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Base currencies differ",
+            log_message=f"User `{user_id}` cannot merge user `{merge_user_id}` with another base currency",
+            error_code=ErrorCodeType.BASE_CURRENCY_MISMATCH,
+            logger=logger,
+            log_level=LogLevelType.INFO,
+        )
+
+
 class UsernameAlreadyTaken(ConflictException):
     def __init__(self, *, user_id: UUID, logger: logging.Logger):
         super().__init__(

@@ -2395,6 +2395,7 @@ async def test_complete_link_identity_of_another_user(
     assert link_result.merge_offer.accounts_count == 2
     assert link_result.merge_offer.transactions_count == 1
     assert link_result.merge_offer.is_base_currency_mismatch is is_base_currency_mismatch
+    assert link_result.merge_offer.is_provider_conflict is False
 
     # the identity stays with its owner until the user confirms the merge
     external_user_db: ExternalUserModel = await external_user_crud.get(db=db, provider=ProviderType.GOOGLE)
@@ -2407,6 +2408,86 @@ async def test_complete_link_identity_of_another_user(
     merge_code_hash: str = hashlib.sha256(link_result.merge_offer.merge_code.encode("utf-8")).hexdigest()
     assert request_db.merge_code_hash == merge_code_hash
     assert datetime.now() + timedelta(minutes=9) < request_db.merge_expires_at <= datetime.now() + timedelta(minutes=10)
+
+
+async def test_complete_link_identity_of_another_user_provider_conflict(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.TELEGRAM,
+            "external_id": "1234123412341234123",
+            "username": "johndoe",
+        },
+        commit=True,
+    )
+    # the other user signs in with Telegram as well
+    other_user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="janedoe", registration_provider=ProviderType.GOOGLE), commit=True
+    )
+    await external_user_crud.create_batch(
+        db=db,
+        objs_in=[
+            {
+                "user_id": other_user_db.id,
+                "provider": ProviderType.GOOGLE,
+                "external_id": "110169484474386276334",
+                "username": "janedoe",
+            },
+            {
+                "user_id": other_user_db.id,
+                "provider": ProviderType.TELEGRAM,
+                "external_id": "9876987698769876987",
+                "username": "janedoe",
+            },
+        ],
+        commit=True,
+    )
+    await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.GOOGLE,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": create_s256_code_challenge("client_code_verifier_of_at_least_43_characters"),
+            "expires_at": datetime.now() + timedelta(minutes=1),
+            "link_user_id": user_db.id,
+            "link_identity": {
+                "provider": "GOOGLE",
+                "external_id": "110169484474386276334",
+                "username": None,
+                "first_name": "John",
+                "last_name": None,
+                "avatar": None,
+                "email": "john.doe@gmail.com",
+            },
+            "code_hash": hashlib.sha256(b"link_code").hexdigest(),
+            "used": False,
+        },
+        commit=True,
+    )
+
+    # Act
+    link_result: LinkResult = await auth_service.complete_link(
+        db=db_transaction,
+        user_id=user_db.id,
+        provider=ProviderType.GOOGLE,
+        code="link_code",
+        redirect_uri="https://finance.test/auth/callback",
+        code_verifier="client_code_verifier_of_at_least_43_characters",
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert link_result.status == LinkStatusType.MERGE_REQUIRED
+    assert link_result.merge_offer.is_provider_conflict is True
 
 
 async def test_grant_token_link_code(db: AsyncSession, db_transaction: AsyncSession):

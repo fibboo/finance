@@ -1,4 +1,6 @@
-from sqlalchemy import func, select, Select
+from uuid import UUID
+
+from sqlalchemy import delete, Delete, func, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -27,6 +29,28 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
         user: User | None = await db.scalar(query)
         return user
+
+    async def get_locked_by_ids(self, *, db: AsyncSession, ids: list[UUID]) -> dict[UUID, User]:
+        query: Select = (
+            select(self.model)
+            .where(self.model.id.in_(ids))
+            .order_by(self.model.id)
+            .with_for_update(of=self.model)
+            .execution_options(populate_existing=True)
+        )
+        users: list[User] = (await db.execute(query)).unique().scalars().all()
+        users_by_id: dict[UUID, User] = {user.id: user for user in users}
+        return users_by_id
+
+    async def get_refreshed(self, *, db: AsyncSession, user_id: UUID) -> User:
+        query: Select = select(self.model).where(self.model.id == user_id).execution_options(populate_existing=True)
+        user: User = (await db.execute(query)).unique().scalar_one()
+        return user
+
+    async def delete_by_id(self, *, db: AsyncSession, user_id: UUID) -> None:
+        query: Delete = delete(self.model).where(self.model.id == user_id)
+        await db.execute(query)
+        await db.flush()
 
 
 user_crud = CRUDUser(model=User)
