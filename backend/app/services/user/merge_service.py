@@ -27,7 +27,6 @@ from app.utils import utils
 logger = get_logger(logger_name=__name__)
 
 FOLDED_ACCOUNT_KINDS: list[AccountKind] = [AccountKind.EXPENSE, AccountKind.INCOME, AccountKind.EQUITY]
-ACCOUNT_NAME_MAX_LENGTH: int = 64
 
 
 def is_base_currency_mismatch(*, user_db: UserModel, merge_user_db: UserModel) -> bool:
@@ -49,14 +48,16 @@ def _build_free_name(*, name: str, taken_names: set[str]) -> str:
     while free_name in taken_names:
         number += 1
         suffix: str = f" {number}"
-        free_name = f"{name[: ACCOUNT_NAME_MAX_LENGTH - len(suffix)]}{suffix}"
+        free_name = f"{name[: AccountModel.name.type.length - len(suffix)].rstrip()}{suffix}"
 
     return free_name
 
 
-async def _get_merge_request(*, db: AsyncSession, user_id: UUID, merge_code: str) -> AuthorizationRequestModel:
+async def _get_merge_request(
+    *, db: AsyncSession, user_id: UUID, merge_code: str, with_for_update: bool
+) -> AuthorizationRequestModel:
     request_db: AuthorizationRequestModel | None = await authorization_request_crud.get_by_merge_code_hash(
-        db=db, merge_code_hash=utils.hash_secret(secret=merge_code)
+        db=db, merge_code_hash=utils.hash_secret(secret=merge_code), with_for_update=with_for_update
     )
     if request_db is None or request_db.merge_expires_at <= datetime.now():
         raise InvalidTokenException(log_message="Unknown, used or expired merge code", logger=logger)
@@ -122,10 +123,13 @@ async def _move_locations(*, db: AsyncSession, user_id: UUID, merge_user_id: UUI
 
 
 async def merge(*, db: AsyncSession, user_id: UUID, merge_code: str) -> User:
-    request_db: AuthorizationRequestModel = await _get_merge_request(db=db, user_id=user_id, merge_code=merge_code)
+    request_db: AuthorizationRequestModel = await _get_merge_request(
+        db=db, user_id=user_id, merge_code=merge_code, with_for_update=False
+    )
     merge_user_id: UUID = request_db.merge_user_id
 
     users_db: dict[UUID, UserModel] = await user_crud.get_locked_by_ids(db=db, ids=[user_id, merge_user_id])
+    await _get_merge_request(db=db, user_id=user_id, merge_code=merge_code, with_for_update=True)
     user_db: UserModel = users_db[user_id]
     merge_user_db: UserModel = users_db[merge_user_id]
     is_mismatch: bool = is_base_currency_mismatch(user_db=user_db, merge_user_db=merge_user_db)

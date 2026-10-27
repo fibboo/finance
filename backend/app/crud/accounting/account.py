@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import delete, func, or_, select, Select, update, Update
+from sqlalchemy import func, or_, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -107,15 +107,6 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
 
         values: list[dict] = [{"id": account_id, "name": name} for account_id, name in names.items()]
         await db.execute(update(self.model), values)
-        await db.flush()
-
-    async def delete_by_ids(self, *, db: AsyncSession, ids: list[UUID]) -> None:
-        await db.execute(delete(self.model).where(self.model.id.in_(ids)))
-        await db.flush()
-
-    async def move_to_user(self, *, db: AsyncSession, user_id: UUID, new_user_id: UUID) -> None:
-        query: Update = update(self.model).where(self.model.user_id == user_id).values(user_id=new_user_id)
-        await db.execute(query)
         await db.flush()
 
 

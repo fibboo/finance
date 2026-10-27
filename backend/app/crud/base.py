@@ -1,8 +1,9 @@
 from typing import Any
+from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import select, Select, update, Update
+from sqlalchemy import delete, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import Base
@@ -142,3 +143,12 @@ class CRUDBase[Model: Base, CreateSchema: BaseModel, UpdateSchema: BaseModel]:
             await db.commit()
         await db.refresh(db_obj)
         return db_obj
+
+    async def delete_by_ids(self, *, db: AsyncSession, ids: list[UUID]) -> None:
+        await db.execute(delete(self.model).where(self.model.id.in_(ids)))
+        await db.flush()
+
+    async def move_to_user(self, *, db: AsyncSession, user_id: UUID, new_user_id: UUID) -> None:
+        query: Update = update(self.model).where(self.model.user_id == user_id).values(user_id=new_user_id)
+        await db.execute(query)
+        await db.flush()

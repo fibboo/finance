@@ -208,10 +208,5 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         await db.execute(query)
         await db.flush()
 
-    async def move_to_user(self, *, db: AsyncSession, user_id: UUID, new_user_id: UUID) -> None:
-        query: Update = update(self.model).where(self.model.user_id == user_id).values(user_id=new_user_id)
-        await db.execute(query)
-        await db.flush()
-
 
 transaction_crud = CRUDTransaction(model=Transaction)

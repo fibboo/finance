@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import delete, Delete, select, Select, update, Update
+from sqlalchemy import delete, Delete, select, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -16,11 +16,6 @@ class CRUDExternalUser(CRUDBase[ExternalUser, ExternalUserCreate, ExternalUserUp
 
     async def delete_by_user_and_provider(self, *, db: AsyncSession, user_id: UUID, provider: ProviderType) -> None:
         query: Delete = delete(self.model).where(self.model.user_id == user_id, self.model.provider == provider)
-        await db.execute(query)
-        await db.flush()
-
-    async def move_to_user(self, *, db: AsyncSession, user_id: UUID, new_user_id: UUID) -> None:
-        query: Update = update(self.model).where(self.model.user_id == user_id).values(user_id=new_user_id)
         await db.execute(query)
         await db.flush()
 

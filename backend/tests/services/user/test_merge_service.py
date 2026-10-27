@@ -333,7 +333,7 @@ async def test_merge_without_base_currency(db: AsyncSession, db_transaction: Asy
 
 async def test_merge_long_name(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
-    long_name: str = "W" * 64
+    long_name: str = f"{'W' * 61} {'W' * 2}"
     user_db: UserModel = await user_crud.create(
         db=db,
         obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM, base_currency="USD"),
@@ -380,7 +380,8 @@ async def test_merge_long_name(db: AsyncSession, db_transaction: AsyncSession):
     other_account_db: AccountModel = accounts_db[1]
     await db.refresh(other_account_db)
     assert other_account_db.user_id == user_db.id
-    assert other_account_db.name == f"{'W' * 62} 2"
+    # the cut name loses its trailing space before the suffix
+    assert other_account_db.name == f"{'W' * 61} 2"
 
 
 @pytest.mark.parametrize(

@@ -21,9 +21,11 @@ class CRUDAuthorizationRequest(CRUDBase[AuthorizationRequest, AuthorizationReque
         )
         return authorization_request
 
-    async def get_by_merge_code_hash(self, *, db: AsyncSession, merge_code_hash: str) -> AuthorizationRequest | None:
+    async def get_by_merge_code_hash(
+        self, *, db: AsyncSession, merge_code_hash: str, with_for_update: bool
+    ) -> AuthorizationRequest | None:
         authorization_request: AuthorizationRequest | None = await self.get_or_none(
-            db=db, with_for_update=True, merge_code_hash=merge_code_hash
+            db=db, with_for_update=with_for_update, merge_code_hash=merge_code_hash
         )
         return authorization_request
 
