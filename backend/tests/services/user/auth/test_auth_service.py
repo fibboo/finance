@@ -1778,6 +1778,7 @@ async def test_callback_link_identity_of_another_user(
 
     # Assert
     params: dict[str, list[str]] = parse_qs(urlsplit(redirect_url).query)
+    assert params.keys() == {"code", "state"}
     assert params["state"] == ["client_state"]
 
     # the identity stays with its owner and waits on the request, so that completion can offer the merge
@@ -2170,6 +2171,84 @@ async def test_complete_link_provider_linked_meanwhile(db: AsyncSession, db_tran
 
     external_users_db: list[ExternalUserModel] = await external_user_crud.get_batch(db=db)
     assert len(external_users_db) == 2
+
+
+async def test_complete_link_provider_linked_meanwhile_identity_of_another_user(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="johndoe", registration_provider=ProviderType.TELEGRAM), commit=True
+    )
+    # another Google identity was linked after the link callback
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_db.id,
+            "provider": ProviderType.GOOGLE,
+            "external_id": "999999999999999999999",
+            "username": "google_999999999999999999999",
+        },
+        commit=True,
+    )
+    other_user_db: UserModel = await user_crud.create(
+        db=db, obj_in=UserCreate(username="janedoe", registration_provider=ProviderType.GOOGLE), commit=True
+    )
+    await external_user_crud.create(
+        db=db,
+        obj_in={
+            "user_id": other_user_db.id,
+            "provider": ProviderType.GOOGLE,
+            "external_id": "110169484474386276334",
+            "username": "janedoe",
+        },
+        commit=True,
+    )
+    request_db: AuthorizationRequestModel = await authorization_request_crud.create(
+        db=db,
+        obj_in={
+            "provider": ProviderType.GOOGLE,
+            "state": "state",
+            "nonce": "nonce",
+            "provider_code_verifier": "provider_code_verifier",
+            "client_redirect_uri": "https://finance.test/auth/callback",
+            "client_state": "client_state",
+            "client_code_challenge": create_s256_code_challenge("client_code_verifier_of_at_least_43_characters"),
+            "expires_at": datetime.now() + timedelta(minutes=1),
+            "link_user_id": user_db.id,
+            "link_identity": {
+                "provider": "GOOGLE",
+                "external_id": "110169484474386276334",
+                "username": None,
+                "first_name": "John",
+                "last_name": None,
+                "avatar": None,
+                "email": "john.doe@gmail.com",
+            },
+            "code_hash": hashlib.sha256(b"link_code").hexdigest(),
+            "used": False,
+        },
+        commit=True,
+    )
+
+    # Act / Assert
+    with pytest.raises(ProviderAlreadyLinked) as exc:
+        await auth_service.complete_link(
+            db=db_transaction,
+            user_id=user_db.id,
+            provider=ProviderType.GOOGLE,
+            code="link_code",
+            redirect_uri="https://finance.test/auth/callback",
+            code_verifier="client_code_verifier_of_at_least_43_characters",
+        )
+    await db_transaction.commit()
+
+    assert exc.value.error_code == ErrorCodeType.PROVIDER_ALREADY_LINKED
+
+    # no merge is offered
+    await db.refresh(request_db)
+    assert request_db.merge_user_id is None
+    assert request_db.merge_code_hash is None
 
 
 @pytest.mark.parametrize(

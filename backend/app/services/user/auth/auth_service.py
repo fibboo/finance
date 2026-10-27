@@ -267,15 +267,8 @@ async def complete_link(
     user_db: UserModel | None = await user_crud.get_user_by_external_id(
         db=db, external_id=identity.external_id, provider=provider
     )
-    if user_db is not None and user_db.id != user_id:
-        merge_offer: MergeOffer = await _create_merge_offer(
-            db=db, request_db=request_db, user_id=user_id, merge_user_db=user_db
-        )
-        merge_result = LinkResult(status=LinkStatusType.MERGE_REQUIRED, merge_offer=merge_offer)
-        return merge_result
-
     linked_result = LinkResult(status=LinkStatusType.LINKED, merge_offer=None)
-    if user_db is not None:
+    if user_db is not None and user_db.id == user_id:
         return linked_result
 
     linked_db: ExternalUserModel | None = await external_user_crud.get_or_none(
@@ -283,6 +276,13 @@ async def complete_link(
     )
     if linked_db is not None:
         raise ProviderAlreadyLinked(user_id=user_id, provider=provider, logger=logger)
+
+    if user_db is not None:
+        merge_offer: MergeOffer = await _create_merge_offer(
+            db=db, request_db=request_db, user_id=user_id, merge_user_db=user_db
+        )
+        merge_result = LinkResult(status=LinkStatusType.MERGE_REQUIRED, merge_offer=merge_offer)
+        return merge_result
 
     username: str = user_service.build_username(identity=identity)
     await user_service.add_external_user(db=db, user_id=user_id, identity=identity, username=username)
