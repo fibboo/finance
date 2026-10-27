@@ -4,7 +4,7 @@ import { apiClient, readData } from '@/lib/api-client';
 import type { components, operations } from '@/lib/api-schema';
 
 type TransactionPage = components['schemas']['Page_Transaction_'];
-type TransactionListQuery = NonNullable<
+export type TransactionListQuery = NonNullable<
   operations['get_transactions_accounting_transactions_get']['parameters']['query']
 >;
 

@@ -38,6 +38,10 @@
   display: none;
 }
 
+.day {
+  scroll-margin-top: var(--size-columns-header);
+}
+
 .dayHeader {
   grid-column: 1 / -1;
   min-height: var(--size-day-header);
@@ -98,6 +102,10 @@
     border-bottom: 0;
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
+  }
+
+  .day {
+    scroll-margin-top: var(--size-columns-header-lg);
   }
 
   .dayHeader {

@@ -1,0 +1,52 @@
+.sortFilter {
+  display: flex;
+  flex-direction: column;
+}
+
+.order {
+  min-height: var(--size-option);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-base);
+  text-align: left;
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.order:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.mark {
+  flex: none;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-panel);
+}
+
+.order:hover .mark {
+  border-color: var(--color-ink);
+}
+
+.order[aria-pressed='true'] .mark {
+  border: var(--size-focus) solid var(--color-accent);
+  background: var(--color-accent);
+  box-shadow: inset 0 0 0 var(--size-focus) var(--color-panel);
+}
+
+.label {
+  flex: 1 1 auto;
+}
+
+.hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}

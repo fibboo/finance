@@ -12,9 +12,13 @@ const RATE_FORMAT = new Intl.NumberFormat(LOCALE, {
   maximumFractionDigits: 4,
 });
 
-type TransactionRowProps = Readonly<{ transaction: Readonly<Transaction>; baseCurrency: string }>;
+type TransactionRowProps = Readonly<{
+  transaction: Readonly<Transaction>;
+  baseCurrency: string;
+  dateLabel?: string | undefined;
+}>;
 
-export function TransactionRow({ transaction, baseCurrency }: TransactionRowProps) {
+export function TransactionRow({ transaction, baseCurrency, dateLabel }: TransactionRowProps) {
   const view = readTransactionView(transaction);
   return (
     <li
@@ -26,10 +30,16 @@ export function TransactionRow({ transaction, baseCurrency }: TransactionRowProp
         aria-hidden="true"
       />
       {view.accountNames === null ? (
-        <span className={styles['wideTitle']}>{view.title}</span>
+        <span className={styles['wideTitle']}>
+          {view.title}
+          {dateLabel !== undefined && <span className={styles['date']}>{dateLabel}</span>}
+        </span>
       ) : (
         <>
-          <span className={styles['title']}>{view.title}</span>
+          <span className={styles['title']}>
+            {view.title}
+            {dateLabel !== undefined && <span className={styles['date']}>{dateLabel}</span>}
+          </span>
           <span className={styles['accounts']}>{view.accountNames}</span>
         </>
       )}

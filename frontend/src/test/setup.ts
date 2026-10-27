@@ -81,6 +81,21 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', IntersectionObserverStub);
+  Object.defineProperty(Element.prototype, 'scrollIntoView', {
+    configurable: true,
+    writable: true,
+    value: () => undefined,
+  });
+  Object.defineProperty(Element.prototype, 'scrollBy', {
+    configurable: true,
+    writable: true,
+    value: () => undefined,
+  });
+  Object.defineProperty(Element.prototype, 'scrollTo', {
+    configurable: true,
+    writable: true,
+    value: () => undefined,
+  });
 });
 
 afterEach(async () => {

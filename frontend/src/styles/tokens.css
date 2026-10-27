@@ -89,6 +89,7 @@
   --size-mark: 0.625rem;
   --size-mark-lg: 0.875rem;
   --size-dot: 0.5rem;
+  --size-sheet-handle-thickness: 0.25rem;
   --size-icon-sm: 1rem;
   --size-icon-md: 1.125rem;
   --size-icon: 1.25rem;
@@ -96,11 +97,13 @@
   --size-focus: 0.125rem;
   --size-touch: 2.75rem;
   --size-skeleton-word: 2rem;
+  --size-sheet-handle: 2.25rem;
   --size-day-header: 1.5rem;
   --size-day-header-lg: 1.875rem;
   --size-panel-header: 1.875rem;
   --size-panel-header-lg: 2.5rem;
   --size-columns-header: 2rem;
+  --size-chip: 2rem;
   --size-columns-header-lg: 2.25rem;
   --size-account-mark-xs: 1.5rem;
   --size-skeleton-code: 2.25rem;
@@ -120,6 +123,7 @@
   --size-segment: 2.5rem;
   --size-button: 2.875rem;
   --size-avatar: 3rem;
+  --size-empty-icon: 3.5rem;
   --size-option: 3rem;
   --size-field-lg: 3rem;
   --size-fab: 2.875rem;
@@ -148,6 +152,8 @@
   --opacity-disabled: 0.5;
   --opacity-hover: 0.8;
   --opacity-still: 0.5;
+  --opacity-stale: 0.6;
+  --duration-fade: 0.2s;
   --duration-shimmer: 1.4s;
   --duration-progress: 1.3s;
   --account-mark-tint-light: 13%;

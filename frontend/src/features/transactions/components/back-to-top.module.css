@@ -1,0 +1,46 @@
+@import '@/styles/media.css';
+
+.backToTop {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 1;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-ink);
+  color: var(--color-ground);
+  box-shadow: var(--shadow-popover);
+  cursor: pointer;
+}
+
+.backToTop:hover {
+  opacity: var(--opacity-hover);
+}
+
+.backToTop:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (--desktop) {
+  .backToTop {
+    right: var(--space-6);
+    bottom: var(--space-6);
+  }
+}

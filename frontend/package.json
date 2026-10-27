@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc",
     "test": "vitest run",
-    "generate:api": "openapi-typescript http://localhost:8000/openapi.json --output src/lib/api-schema.ts"
+    "generate:api": "openapi-typescript http://localhost:8000/openapi.json --enum-values --output src/lib/api-schema.ts"
   },
   "dependencies": {
     "@fontsource/geist": "5.3.0",

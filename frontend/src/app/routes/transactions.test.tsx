@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -85,6 +85,25 @@ beforeEach(() => {
         base_currency: 'USD',
         external_users: [],
       } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [],
+        category_types: [],
+        transaction_types: [
+          { key: 'EXPENSE', label: 'Expense' },
+          { key: 'INCOME', label: 'Income' },
+          { key: 'TRANSFER', label: 'Transfer' },
+          { key: 'ADJUSTMENT', label: 'Balance adjustment' },
+        ],
+        transaction_orders: [
+          { key: 'transaction_date:desc', label: 'Newest first' },
+          { key: 'transaction_date:asc', label: 'Oldest first' },
+          { key: 'base_currency_amount:desc', label: 'Largest first' },
+          { key: 'base_currency_amount:asc', label: 'Smallest first' },
+        ],
+      } satisfies components['schemas']['AccountingDictionaries']),
     ),
   );
 });
@@ -286,4 +305,450 @@ test('shows a busy list while the first page loads', async () => {
     'true',
   );
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+});
+
+test('requests the checked types and names them on the chip', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const requestedTypes: string[][] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedTypes.push(new URL(request.url).searchParams.getAll('transaction_types'));
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Type' }));
+  const typeFilter = screen.getByRole('dialog', { name: 'Type' });
+  await user.click(within(typeFilter).getByRole('checkbox', { name: 'Expense' }));
+  await user.click(within(typeFilter).getByRole('checkbox', { name: 'Transfer' }));
+
+  // act
+  await user.click(within(typeFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: 'Type: Expense +1' })).toHaveFocus();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  await waitFor(() => {
+    expect(requestedTypes).toEqual([[], ['EXPENSE', 'TRANSFER']]);
+  });
+});
+
+test('requests the period typed in its dates', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const requestedPeriods: (string | null)[][] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const searchParams = new URL(request.url).searchParams;
+      requestedPeriods.push([searchParams.get('date_from'), searchParams.get('date_to')]);
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Period' }));
+  const periodFilter = screen.getByRole('dialog', { name: 'Period' });
+  await user.type(within(periodFilter).getByLabelText('From'), '10012026');
+
+  // act
+  await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: 'Period: From Oct 1' })).toBeInTheDocument();
+  await waitFor(() => {
+    expect(requestedPeriods).toEqual([
+      [null, '2026-10-20'],
+      ['2026-10-01', '2026-10-20'],
+    ]);
+  });
+});
+
+test('keeps the amount filter open on an invalid amount', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Amount' }));
+  const amountFilter = screen.getByRole('dialog', { name: 'Amount' });
+  await user.type(within(amountFilter).getByLabelText('From, USD'), '500');
+  await user.type(within(amountFilter).getByLabelText('To, USD'), '1.234');
+
+  // act
+  await user.click(within(amountFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(
+    await within(amountFilter).findByText('Enter an amount such as 100 or 99.50.'),
+  ).toBeInTheDocument();
+  expect(within(amountFilter).getByLabelText('To, USD')).toHaveAttribute('aria-invalid', 'true');
+  expect(screen.getByRole('button', { name: 'Amount' })).toBeInTheDocument();
+});
+
+test('shows the rows without days and with their dates when sorted by amount', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const isAmountOrder =
+        new URL(request.url).searchParams.get('orders') === 'base_currency_amount:desc';
+      return HttpResponse.json({
+        items: isAmountOrder ? [expense] : [],
+        total: isAmountOrder ? 1 : 0,
+        page: 1,
+        size: 15,
+        pages: isAmountOrder ? 1 : 0,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Sort: Newest first' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^Largest first/ }));
+
+  // assert
+  const transactions = await screen.findByRole('region', { name: 'Transactions' });
+  expect(await within(transactions).findByText('Groceries')).toBeInTheDocument();
+  expect(within(transactions).getByText('Today')).toBeInTheDocument();
+  expect(within(transactions).queryByRole('heading')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Sort: Largest first' })).toBeInTheDocument();
+});
+
+test('resets the filters that match nothing', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const isFiltered = new URL(request.url).searchParams.has('base_currency_amount_from');
+      return HttpResponse.json({
+        items: isFiltered ? [] : [expense],
+        total: isFiltered ? 0 : 1,
+        page: 1,
+        size: 15,
+        pages: isFiltered ? 0 : 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />, {
+    initialEntries: ['/transactions?base_currency_amount_from=5000&transaction_types=TRANSFER'],
+  });
+  expect(await screen.findByText('Nothing matches these filters')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Amount: Over $5,000' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Type: Transfer' })).toBeInTheDocument();
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+  // assert
+  expect(await screen.findByText('Groceries')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Amount' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Type' })).toBeInTheDocument();
+});
+
+test('drops the filters of the URL that are not valid', async () => {
+  // arrange
+  let requestedSearch = '';
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedSearch = new URL(request.url).search;
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+
+  // act
+  render(<Component />, {
+    initialEntries: [
+      '/transactions?date_from=2026-11-01&date_to=2026-10-10&transaction_types=LOAN&transaction_types=INCOME&base_currency_amount_to=0&order=name:desc',
+    ],
+  });
+
+  // assert
+  expect(await screen.findByText('Groceries')).toBeInTheDocument();
+  expect(requestedSearch).toBe('?transaction_types=INCOME&size=15&date_to=2026-10-20&page=1');
+});
+
+test('closes a filter without applying it on a press outside', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Type' }));
+  await user.click(
+    within(screen.getByRole('dialog', { name: 'Type' })).getByRole('checkbox', { name: 'Income' }),
+  );
+
+  // act
+  await user.click(screen.getByRole('heading', { level: 1 }));
+
+  // assert
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Type' })).toBeInTheDocument();
+});
+
+test('clears the typed amounts on Reset', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />, { initialEntries: ['/transactions?base_currency_amount_from=100'] });
+  await user.click(await screen.findByRole('button', { name: 'Amount: Over $100' }));
+  const amountFilter = screen.getByRole('dialog', { name: 'Amount' });
+  await user.type(within(amountFilter).getByLabelText('To, USD'), '500');
+
+  // act
+  await user.click(within(amountFilter).getByRole('button', { name: 'Reset' }));
+
+  // assert
+  expect(within(amountFilter).getByLabelText('From, USD')).toHaveValue('');
+  expect(within(amountFilter).getByLabelText('To, USD')).toHaveValue('');
+});
+
+test('opens a recent month with one request and keeps the newer days above it', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const requestedSearches: string[] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const searchParams = new URL(request.url).searchParams;
+      requestedSearches.push(searchParams.toString());
+      const isMonthQuery = searchParams.get('date_to') === '2026-09-30';
+      const isNewerQuery = searchParams.get('orders') === 'transaction_date:asc';
+      return HttpResponse.json({
+        items: isMonthQuery
+          ? [
+              {
+                ...expense,
+                id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+                transaction_date: '2026-09-14',
+                postings: [walletPosting, { ...categoryPosting, account: cafes }],
+              },
+            ]
+          : [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: isNewerQuery || isMonthQuery ? 1 : 3,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Period' }));
+
+  // act
+  await user.click(
+    within(screen.getByRole('dialog', { name: 'Period' })).getByRole('button', {
+      name: 'September',
+    }),
+  );
+
+  // assert
+  const septemberDay = await screen.findByRole('heading', { name: 'Mon, Sep 14' });
+  expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
+  expect(
+    scrollIntoView.mock.contexts.some(
+      (scrolledElement) =>
+        scrolledElement instanceof Element && scrolledElement.contains(septemberDay),
+    ),
+  ).toBe(true);
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Transactions, 2 transactions' }),
+  ).toBeInTheDocument();
+  expect(requestedSearches).toContain('size=15&date_to=2026-09-30&page=1');
+  expect(requestedSearches).toContain(
+    'size=15&date_from=2026-10-01&date_to=2026-10-20&orders=transaction_date%3Aasc&page=1',
+  );
+});
+
+test('opens the To date with one request', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const requestedDateTos: (string | null)[] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const searchParams = new URL(request.url).searchParams;
+      if (searchParams.get('orders') === null) {
+        requestedDateTos.push(searchParams.get('date_to'));
+      }
+
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Period' }));
+  const periodFilter = screen.getByRole('dialog', { name: 'Period' });
+  await user.clear(within(periodFilter).getByLabelText('To'));
+  await user.type(within(periodFilter).getByLabelText('To'), '03012024');
+
+  // act
+  await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  await waitFor(() => {
+    expect(requestedDateTos).toEqual(['2026-10-20', '2024-03-01']);
+  });
+  expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
+});
+
+test('keeps the period open on a date that does not exist', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Period' }));
+  const periodFilter = screen.getByRole('dialog', { name: 'Period' });
+  await user.type(within(periodFilter).getByLabelText('From'), '02302026');
+
+  // act
+  await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(within(periodFilter).getByLabelText('From')).toHaveValue('02/30/2026');
+  expect(await within(periodFilter).findByText('Enter a date as mm/dd/yyyy.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
+});
+
+test('shows a retry above the month when its newer days fail to load', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let newerRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const searchParams = new URL(request.url).searchParams;
+      if (searchParams.get('orders') === 'transaction_date:asc') {
+        newerRequestCount += 1;
+        if (newerRequestCount === 1) {
+          return HttpResponse.json(null, { status: 500 });
+        }
+      }
+
+      return HttpResponse.json({
+        items:
+          searchParams.get('date_to') === '2026-09-30'
+            ? [
+                {
+                  ...expense,
+                  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+                  transaction_date: '2026-09-14',
+                  postings: [walletPosting, { ...categoryPosting, account: cafes }],
+                },
+              ]
+            : [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Period' }));
+  await user.click(
+    within(screen.getByRole('dialog', { name: 'Period' })).getByRole('button', {
+      name: 'September',
+    }),
+  );
+  expect(await screen.findByText("Couldn't load newer")).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Today' })).not.toBeInTheDocument();
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+  // assert
+  expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Mon, Sep 14' })).toBeInTheDocument();
+  expect(screen.queryByText("Couldn't load newer")).not.toBeInTheDocument();
+  expect(newerRequestCount).toBe(2);
+});
+
+test('keeps the period open on a date after today', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Period' }));
+  const periodFilter = screen.getByRole('dialog', { name: 'Period' });
+  await user.type(within(periodFilter).getByLabelText('From'), '12012026');
+
+  // act
+  await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(
+    await within(periodFilter).findByText('Pick a date no later than today.'),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
 });
