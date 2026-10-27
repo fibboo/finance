@@ -2,8 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
+import { toDateText } from '@/lib/format-date';
+
 import type { TransactionFilters } from '../api/transaction-filters';
-import { createPeriodFilterFormSchema, toDateText } from '../schemas/transaction-filter-forms';
+import { createPeriodFilterFormSchema } from '../schemas/transaction-filter-forms';
 import { DateField } from './date-field';
 import { FilterActions } from './filter-actions';
 import styles from './period-filter.module.css';

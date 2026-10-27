@@ -360,13 +360,15 @@ test('requests the period typed in its dates', async () => {
   render(<Component />);
   await user.click(await screen.findByRole('button', { name: 'Period' }));
   const periodFilter = screen.getByRole('dialog', { name: 'Period' });
-  await user.type(within(periodFilter).getByLabelText('From'), '10012026');
+  await user.type(within(periodFilter).getByLabelText('From'), '01102026');
 
   // act
   await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
-  expect(await screen.findByRole('button', { name: 'Period: From Oct 1' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('button', { name: 'Period: From 01.10.2026' }),
+  ).toBeInTheDocument();
   await waitFor(() => {
     expect(requestedPeriods).toEqual([
       [null, '2026-10-20'],
@@ -590,7 +592,7 @@ test('opens a recent month with one request and keeps the newer days above it', 
   );
 
   // assert
-  const septemberDay = await screen.findByRole('heading', { name: 'Mon, Sep 14' });
+  const septemberDay = await screen.findByRole('heading', { name: 'Mon, 14.09.2026' });
   expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
   expect(
     scrollIntoView.mock.contexts.some(
@@ -631,7 +633,7 @@ test('opens the To date with one request', async () => {
   await user.click(await screen.findByRole('button', { name: 'Period' }));
   const periodFilter = screen.getByRole('dialog', { name: 'Period' });
   await user.clear(within(periodFilter).getByLabelText('To'));
-  await user.type(within(periodFilter).getByLabelText('To'), '03012024');
+  await user.type(within(periodFilter).getByLabelText('To'), '01032024');
 
   // act
   await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
@@ -660,14 +662,14 @@ test('keeps the period open on a date that does not exist', async () => {
   render(<Component />);
   await user.click(await screen.findByRole('button', { name: 'Period' }));
   const periodFilter = screen.getByRole('dialog', { name: 'Period' });
-  await user.type(within(periodFilter).getByLabelText('From'), '02302026');
+  await user.type(within(periodFilter).getByLabelText('From'), '30022026');
 
   // act
   await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
-  expect(within(periodFilter).getByLabelText('From')).toHaveValue('02/30/2026');
-  expect(await within(periodFilter).findByText('Enter a date as mm/dd/yyyy.')).toBeInTheDocument();
+  expect(within(periodFilter).getByLabelText('From')).toHaveValue('30.02.2026');
+  expect(await within(periodFilter).findByText('Enter a date as dd.mm.yyyy.')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
 });
 
@@ -719,7 +721,7 @@ test('shows a retry above the month when its newer days fail to load', async () 
 
   // assert
   expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'Mon, Sep 14' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Mon, 14.09.2026' })).toBeInTheDocument();
   expect(screen.queryByText("Couldn't load newer")).not.toBeInTheDocument();
   expect(newerRequestCount).toBe(2);
 });
@@ -741,7 +743,7 @@ test('keeps the period open on a date after today', async () => {
   render(<Component />);
   await user.click(await screen.findByRole('button', { name: 'Period' }));
   const periodFilter = screen.getByRole('dialog', { name: 'Period' });
-  await user.type(within(periodFilter).getByLabelText('From'), '12012026');
+  await user.type(within(periodFilter).getByLabelText('From'), '01122026');
 
   // act
   await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));

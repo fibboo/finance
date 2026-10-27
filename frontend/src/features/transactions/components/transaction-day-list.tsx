@@ -1,4 +1,5 @@
 import type { components } from '@/lib/api-schema';
+import { toDateText } from '@/lib/format-date';
 import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import styles from './transaction-day-list.module.css';
@@ -14,19 +15,7 @@ type TransactionDay = Readonly<{
 }>;
 
 const DAY_MILLISECONDS = 86_400_000;
-const DAY_FORMAT = new Intl.DateTimeFormat(LOCALE, {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-  timeZone: 'UTC',
-});
-const DAY_OF_OTHER_YEAR_FORMAT = new Intl.DateTimeFormat(LOCALE, {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
+const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZone: 'UTC' });
 
 function groupByDay(transactions: readonly Transaction[]): readonly TransactionDay[] {
   const days: { transactionDate: string; transactions: Transaction[] }[] = [];
@@ -49,13 +38,12 @@ function readDayLabel({
   const date = new Date(`${transactionDate}T00:00:00Z`);
   const todayDate = new Date(`${today}T00:00:00Z`);
   const daysAgo = (todayDate.getTime() - date.getTime()) / DAY_MILLISECONDS;
-  const isThisYear = date.getUTCFullYear() === todayDate.getUTCFullYear();
   const dayLabel =
     daysAgo === 0
       ? 'Today'
       : daysAgo === 1
         ? 'Yesterday'
-        : (isThisYear ? DAY_FORMAT : DAY_OF_OTHER_YEAR_FORMAT).format(date);
+        : `${WEEKDAY_FORMAT.format(date)}, ${toDateText(transactionDate)}`;
   return dayLabel;
 }
 

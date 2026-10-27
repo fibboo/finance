@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { transactionTypeValues } from '@/lib/api-schema';
+import { DATE_TEXT_PLACEHOLDER, readIsoDate } from '@/lib/format-date';
 
 import { AMOUNT_PATTERN } from '../api/transaction-filters';
 
@@ -13,37 +14,8 @@ const optionalAmount = z
   .transform((amount) => (amount === '' ? undefined : amount))
   .refine((amount) => amount === undefined || Number(amount) > 0, 'Enter an amount over zero.');
 
-const DATE_TEXT_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-const DATE_TEXT_DIGIT_COUNT = 8;
-const DATE_ERROR = 'Enter a date as mm/dd/yyyy.';
+const DATE_ERROR = `Enter a date as ${DATE_TEXT_PLACEHOLDER}.`;
 const FUTURE_DATE_ERROR = 'Pick a date no later than today.';
-
-export function readIsoDate(dateText: string): string | undefined {
-  const match = DATE_TEXT_PATTERN.exec(dateText.trim());
-  if (match === null) {
-    return undefined;
-  }
-
-  const [, month, day, year] = match;
-  const isoDate = `${year ?? ''}-${month ?? ''}-${day ?? ''}`;
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  const isRealDate = !Number.isNaN(date.getTime()) && date.toISOString().startsWith(isoDate);
-  return isRealDate ? isoDate : undefined;
-}
-
-export function toDateText(isoDate: string): string {
-  const [year, month, day] = isoDate.split('-');
-  const dateText = `${month ?? ''}/${day ?? ''}/${year ?? ''}`;
-  return dateText;
-}
-
-export function maskDateText(typedText: string): string {
-  const digits = typedText.replace(/\D/g, '').slice(0, DATE_TEXT_DIGIT_COUNT);
-  const dateText = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4)]
-    .filter((part) => part !== '')
-    .join('/');
-  return dateText;
-}
 
 export function createPeriodFilterFormSchema(today: string) {
   const optionalDate = z

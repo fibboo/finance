@@ -1,13 +1,13 @@
 import { useRef } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
-import { maskDateText, readIsoDate, toDateText } from '../schemas/transaction-filter-forms';
+import { DATE_TEXT_PLACEHOLDER, maskDateText, readIsoDate, toDateText } from '@/lib/format-date';
+
 import styles from './date-field.module.css';
 import { FilterField } from './filter-field';
 
 const CALENDAR_ICON_PATH =
   'M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z';
-const DATE_TEXT_PLACEHOLDER = 'mm/dd/yyyy';
 
 type DateFieldProps = Readonly<{
   label: string;

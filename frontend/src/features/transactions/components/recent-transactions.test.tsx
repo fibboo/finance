@@ -101,7 +101,7 @@ test('shows the latest transactions of the whole history up to the local today',
   const row = await screen.findByRole('listitem');
   expect(row).toHaveTextContent('Design project');
   expect(row).toHaveTextContent('+$640.00');
-  expect(screen.getByRole('heading', { name: 'Mon, Mar 2' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Mon, 02.03.2026' })).toBeInTheDocument();
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });
 
