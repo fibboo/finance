@@ -189,6 +189,20 @@
       "w": 1280,
       "h": 800,
       "title": "Transactions (desktop)"
+    },
+    "a-empty-filter-phone.dc.html": {
+      "x": 3290,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "Filter sheet without accounts of its kind (phone)"
+    },
+    "desktop-empty-filter.dc.html": {
+      "x": 2720,
+      "y": 3968,
+      "w": 1280,
+      "h": 900,
+      "title": "Filter popover without accounts of its kind (desktop)"
     }
   },
   "order": [
@@ -215,7 +229,9 @@
     "dense-home-phone.dc.html",
     "dense-transactions-phone.dc.html",
     "dense-home-desktop.dc.html",
-    "dense-transactions-desktop.dc.html"
+    "dense-transactions-desktop.dc.html",
+    "a-empty-filter-phone.dc.html",
+    "desktop-empty-filter.dc.html"
   ],
   "notes": {},
   "designSystems": []

@@ -42,10 +42,6 @@ button{cursor:pointer}
             </fieldset>
           </sc-for>
         </div>
-        <label style="min-height: 44px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; background: {{t.bg}}; cursor: pointer">
-          <span style="flex-grow: 1">Deleted accounts only</span>
-          <input type="checkbox" role="switch" checked="{{deletedOnly}}" onChange="{{toggleDeleted}}" style="width: 16px; height: 16px; margin: 0; accent-color: {{t.accent}}">
-        </label>
         <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px">
           <button type="button" onClick="{{reset}}" style="height: 40px; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600; background: {{t.bg}}; color: {{t.text}}">Reset</button>
           <button type="button" style="height: 40px; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">Apply</button>
@@ -60,7 +56,7 @@ button{cursor:pointer}
 class Component extends DCLogic {
 constructor(props) {
 super(props);
-this.state = { picked: { wallet: true, main: true }, deletedOnly: false };
+this.state = { picked: { wallet: true, main: true } };
 }
 renderVals() {
 const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', line: '#E2E2DE' };
@@ -76,9 +72,7 @@ toggle: () => this.setState({ picked: { ...picked, [id]: !picked[id] } }) });
 const groups = [
 { label: 'Money accounts', items: [item('wallet', 'Wallet', 'USD', '#4D8FBF'), item('main', 'Main card', 'EUR', '#5B6CD9'), item('savings', 'Savings', 'GEL', '#2E8C7A'), item('freelance', 'Freelance', 'USD', '#A15CB8'), item('deposit', 'Deposit', 'EUR', '#B8862C'), item('travel', 'Travel card', 'USD', '#C2613F')] }
 ];
-return { t, chips, groups, deletedOnly: this.state.deletedOnly,
-toggleDeleted: () => this.setState({ deletedOnly: !this.state.deletedOnly }),
-reset: () => this.setState({ picked: {}, deletedOnly: false }) };
+return { t, chips, groups, reset: () => this.setState({ picked: {} }) };
 }
 }
 </script>
