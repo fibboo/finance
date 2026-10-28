@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
+import { accountQueries } from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import {
   hasNarrowingFilters,
@@ -18,6 +19,11 @@ import { TransactionFeed } from '@/features/transactions/components/transaction-
 import { useDateJump } from '@/features/transactions/hooks/use-date-jump';
 import { useTransactionFeed } from '@/features/transactions/hooks/use-transaction-feed';
 import { useToday } from '@/hooks/use-today';
+import type { components } from '@/lib/api-schema';
+
+type AccountKind = components['schemas']['AccountKind'];
+
+const ACCOUNT_PAGE_SIZE = 100;
 
 function readTransactionCount(
   total: number | undefined,
@@ -27,6 +33,14 @@ function readTransactionCount(
       ? undefined
       : { value: total, label: total === 1 ? 'transaction' : 'transactions' };
   return transactionCount;
+}
+
+function readActiveAccountsQuery(kinds: AccountKind[]) {
+  const activeAccountsQuery = {
+    ...accountQueries.list({ kinds, statuses: ['ACTIVE'], size: ACCOUNT_PAGE_SIZE }),
+    throwOnError: true,
+  };
+  return activeAccountsQuery;
 }
 
 function readJumpDate({
@@ -48,6 +62,9 @@ export function Component() {
     ...dictionaryQueries.accounting(),
     throwOnError: true,
   });
+  const { data: moneyAccounts } = useQuery(readActiveAccountsQuery(['ASSET', 'LIABILITY']));
+  const { data: categories } = useQuery(readActiveAccountsQuery(['EXPENSE']));
+  const { data: incomeSources } = useQuery(readActiveAccountsQuery(['INCOME']));
   const filters =
     dictionaries === undefined
       ? undefined
@@ -60,32 +77,40 @@ export function Component() {
   });
   return (
     <Page title="Transactions" count={readTransactionCount(feed.total)}>
-      {baseCurrency !== undefined && dictionaries !== undefined && filters !== undefined && (
-        <FilterChips
-          filters={filters}
-          today={today}
-          anchorDate={anchorDate}
-          baseCurrency={baseCurrency}
-          transactionTypes={dictionaries.transaction_types}
-          transactionOrders={dictionaries.transaction_orders}
-          onApply={(change, jumpDate) => {
-            const nextFilters = { ...filters, ...change };
-            const nextSearchParams = writeTransactionFilters(nextFilters);
-            setSearchParams(nextSearchParams);
-            if (jumpDate === undefined) {
-              clearJump();
-            } else {
-              jumpToDate({
-                date: readJumpDate({ date: jumpDate, filters: nextFilters }),
-                listKey: nextSearchParams.toString(),
-              });
-            }
-          }}
-          onJump={(monthEnd) => {
-            jumpToDate({ date: readJumpDate({ date: monthEnd, filters }), listKey });
-          }}
-        />
-      )}
+      {baseCurrency !== undefined &&
+        dictionaries !== undefined &&
+        filters !== undefined &&
+        moneyAccounts !== undefined &&
+        categories !== undefined &&
+        incomeSources !== undefined && (
+          <FilterChips
+            filters={filters}
+            today={today}
+            anchorDate={anchorDate}
+            baseCurrency={baseCurrency}
+            transactionTypes={dictionaries.transaction_types}
+            transactionOrders={dictionaries.transaction_orders}
+            moneyAccounts={moneyAccounts.items}
+            categories={categories.items}
+            incomeSources={incomeSources.items}
+            onApply={(change, jumpDate) => {
+              const nextFilters = { ...filters, ...change };
+              const nextSearchParams = writeTransactionFilters(nextFilters);
+              setSearchParams(nextSearchParams);
+              if (jumpDate === undefined) {
+                clearJump();
+              } else {
+                jumpToDate({
+                  date: readJumpDate({ date: jumpDate, filters: nextFilters }),
+                  listKey: nextSearchParams.toString(),
+                });
+              }
+            }}
+            onJump={(monthEnd) => {
+              jumpToDate({ date: readJumpDate({ date: monthEnd, filters }), listKey });
+            }}
+          />
+        )}
       {baseCurrency !== undefined && (
         <TransactionFeed
           key={`${listKey}#${feed.anchorDate ?? ''}`}

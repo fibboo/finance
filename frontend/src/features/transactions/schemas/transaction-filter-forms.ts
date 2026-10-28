@@ -57,3 +57,7 @@ export const amountFilterFormSchema = z
       path: ['base_currency_amount_from'],
     },
   );
+
+export const accountFilterFormSchema = z.object({
+  account_ids: z.array(z.string()),
+});

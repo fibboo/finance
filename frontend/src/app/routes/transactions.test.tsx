@@ -105,6 +105,21 @@ beforeEach(() => {
         ],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const kinds = new URL(request.url).searchParams.getAll('kinds');
+      const items = kinds.includes('ASSET')
+        ? [wallet]
+        : kinds.includes('EXPENSE')
+          ? [category, cafes]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
   );
 });
 
@@ -340,6 +355,70 @@ test('requests the checked types and names them on the chip', async () => {
   });
 });
 
+test('requests the checked accounts of every kind and counts them on their chips', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const requestedAccountIds: string[][] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedAccountIds.push(new URL(request.url).searchParams.getAll('account_ids'));
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Accounts' }));
+  const accountFilter = screen.getByRole('dialog', { name: 'Accounts' });
+  expect(within(accountFilter).getByText('USD')).toBeInTheDocument();
+  await user.click(within(accountFilter).getByRole('checkbox', { name: /Wallet/ }));
+  await user.click(within(accountFilter).getByRole('button', { name: 'Apply' }));
+  await user.click(await screen.findByRole('button', { name: 'Categories' }));
+  const categoryFilter = screen.getByRole('dialog', { name: 'Categories' });
+  await user.click(within(categoryFilter).getByRole('checkbox', { name: 'Cafes' }));
+
+  // act
+  await user.click(within(categoryFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: 'Categories: Categories · 1' })).toHaveFocus();
+  expect(screen.getByRole('button', { name: 'Accounts: Accounts · 1' })).toBeInTheDocument();
+  await waitFor(() => {
+    expect(requestedAccountIds).toEqual([[], [wallet.id], [wallet.id, cafes.id]]);
+  });
+});
+
+test('shows a note instead of the list for a kind without accounts', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+
+  // act
+  await user.click(await screen.findByRole('button', { name: 'Income sources: Income' }));
+
+  // assert
+  const incomeSourceFilter = screen.getByRole('dialog', { name: 'Income sources' });
+  expect(within(incomeSourceFilter).getByText('No income sources yet.')).toBeInTheDocument();
+  expect(
+    within(incomeSourceFilter).queryByRole('button', { name: 'Apply' }),
+  ).not.toBeInTheDocument();
+});
+
 test('requests the period typed in its dates', async () => {
   // arrange
   const user = userEvent.setup();
@@ -488,13 +567,15 @@ test('drops the filters of the URL that are not valid', async () => {
   // act
   render(<Component />, {
     initialEntries: [
-      '/transactions?date_from=2026-11-01&date_to=2026-10-10&transaction_types=LOAN&transaction_types=INCOME&base_currency_amount_to=0&order=name:desc',
+      '/transactions?date_from=2026-11-01&date_to=2026-10-10&transaction_types=LOAN&transaction_types=INCOME&base_currency_amount_to=0&order=name:desc&account_ids=wallet&category_ids=1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
     ],
   });
 
   // assert
   expect(await screen.findByText('Groceries')).toBeInTheDocument();
-  expect(requestedSearch).toBe('?transaction_types=INCOME&size=15&date_to=2026-10-20&page=1');
+  expect(requestedSearch).toBe(
+    '?transaction_types=INCOME&account_ids=1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f&size=15&date_to=2026-10-20&page=1',
+  );
 });
 
 test('closes a filter without applying it on a press outside', async () => {

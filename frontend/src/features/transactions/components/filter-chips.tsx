@@ -3,6 +3,7 @@ import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
 import { DEFAULT_ORDER, type TransactionFilters } from '../api/transaction-filters';
+import { AccountFilter } from './account-filter';
 import { AmountFilter } from './amount-filter';
 import styles from './filter-chips.module.css';
 import { FilterPanel } from './filter-panel';
@@ -11,6 +12,7 @@ import { SortFilter } from './sort-filter';
 import { TypeFilter } from './type-filter';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
+type Account = components['schemas']['Account'];
 
 function readPeriodLabel(filters: TransactionFilters): string | undefined {
   const periodLabel =
@@ -68,6 +70,9 @@ type FilterChipsProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   transactionOrders: readonly DictionaryItem[];
+  moneyAccounts: readonly Account[];
+  categories: readonly Account[];
+  incomeSources: readonly Account[];
   onApply: (change: Partial<TransactionFilters>, jumpDate?: string) => void;
   onJump: (monthEnd: string) => void;
 }>;
@@ -79,9 +84,35 @@ export function FilterChips({
   baseCurrency,
   transactionTypes,
   transactionOrders,
+  moneyAccounts,
+  categories,
+  incomeSources,
   onApply,
   onJump,
 }: FilterChipsProps) {
+  const accountFilters = [
+    {
+      name: 'account_ids',
+      title: 'Accounts',
+      chipTitle: 'Accounts',
+      emptyNote: 'No accounts yet.',
+      accounts: moneyAccounts,
+    },
+    {
+      name: 'category_ids',
+      title: 'Categories',
+      chipTitle: 'Categories',
+      emptyNote: 'No categories yet.',
+      accounts: categories,
+    },
+    {
+      name: 'income_source_ids',
+      title: 'Income sources',
+      chipTitle: 'Income',
+      emptyNote: 'No income sources yet.',
+      accounts: incomeSources,
+    },
+  ] as const;
   const periodLabel = readPeriodLabel(filters);
   const typeLabel = readTypeLabel({ filters, transactionTypes });
   const amountLabel = readAmountLabel({ filters, baseCurrency });
@@ -124,6 +155,32 @@ export function FilterChips({
           />
         )}
       </FilterPanel>
+      {accountFilters.map((accountFilter) => {
+        const count = filters[accountFilter.name].length;
+        return (
+          <FilterPanel
+            key={accountFilter.name}
+            title={accountFilter.title}
+            chipLabel={
+              count > 0 ? `${accountFilter.chipTitle} · ${String(count)}` : accountFilter.chipTitle
+            }
+            isActive={count > 0}
+          >
+            {(close) => (
+              <AccountFilter
+                title={accountFilter.title}
+                emptyNote={accountFilter.emptyNote}
+                accounts={accountFilter.accounts}
+                accountIds={filters[accountFilter.name]}
+                onApply={(accountIds) => {
+                  onApply({ [accountFilter.name]: accountIds });
+                  close();
+                }}
+              />
+            )}
+          </FilterPanel>
+        );
+      })}
       <FilterPanel
         title="Amount"
         chipLabel={amountLabel ?? 'Amount'}

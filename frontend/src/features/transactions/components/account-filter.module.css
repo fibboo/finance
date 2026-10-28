@@ -1,0 +1,58 @@
+.accountFilter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.accounts {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.account {
+  min-height: var(--size-option);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.dot {
+  flex: none;
+  width: var(--size-dot);
+  height: var(--size-dot);
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.currency {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.emptyNote {
+  margin: 0;
+  padding-block: var(--space-3);
+  font-size: var(--font-size-base);
+  color: var(--color-muted);
+}

@@ -17,6 +17,17 @@ const SINGLE_PARAMS = [
   'base_currency_amount_to',
   'order',
 ] as const;
+const LIST_PARAMS = [
+  'transaction_types',
+  'account_ids',
+  'category_ids',
+  'income_source_ids',
+] as const;
+export const ACCOUNT_ID_PARAMS = ['account_ids', 'category_ids', 'income_source_ids'] as const;
+
+const accountIdsSchema = z
+  .array(z.string())
+  .transform((ids) => [...new Set(ids.filter((id) => z.uuid().safeParse(id).success))]);
 
 const transactionFiltersSchema = z.object({
   date_from: z.iso.date().optional().catch(undefined),
@@ -36,6 +47,9 @@ const transactionFiltersSchema = z.object({
     .optional()
     .catch(undefined),
   order: z.string().optional(),
+  account_ids: accountIdsSchema,
+  category_ids: accountIdsSchema,
+  income_source_ids: accountIdsSchema,
 });
 
 export type TransactionFilters = Readonly<z.output<typeof transactionFiltersSchema>>;
@@ -53,7 +67,7 @@ export function readTransactionFilters({
 }>): TransactionFilters {
   const parsedFilters = transactionFiltersSchema.parse({
     ...Object.fromEntries(SINGLE_PARAMS.map((name) => [name, searchParams.get(name) ?? undefined])),
-    transaction_types: searchParams.getAll('transaction_types'),
+    ...Object.fromEntries(LIST_PARAMS.map((name) => [name, searchParams.getAll(name)])),
   });
   const dateFrom = parsedFilters.date_from;
   const { base_currency_amount_from: amountFrom, base_currency_amount_to: amountTo } =
@@ -83,14 +97,17 @@ export function writeTransactionFilters(filters: TransactionFilters): URLSearchP
     }
   }
 
-  for (const type of filters.transaction_types) {
-    searchParams.append('transaction_types', type);
+  for (const name of LIST_PARAMS) {
+    for (const value of filters[name]) {
+      searchParams.append(name, value);
+    }
   }
 
   return searchParams;
 }
 
 export function readTransactionFilterQuery(filters: TransactionFilters): TransactionFilterQuery {
+  const accountIds = ACCOUNT_ID_PARAMS.flatMap((name) => filters[name]);
   const filterQuery = {
     ...(filters.date_from !== undefined && { date_from: filters.date_from }),
     ...(filters.transaction_types.length > 0 && {
@@ -103,6 +120,7 @@ export function readTransactionFilterQuery(filters: TransactionFilters): Transac
       base_currency_amount_to: filters.base_currency_amount_to,
     }),
     ...(filters.order !== undefined && { orders: [filters.order] }),
+    ...(accountIds.length > 0 && { account_ids: accountIds }),
   };
   return filterQuery;
 }
@@ -117,6 +135,7 @@ export function hasNarrowingFilters(filters: TransactionFilters): boolean {
     filters.date_from !== undefined ||
     filters.transaction_types.length > 0 ||
     filters.base_currency_amount_from !== undefined ||
-    filters.base_currency_amount_to !== undefined;
+    filters.base_currency_amount_to !== undefined ||
+    ACCOUNT_ID_PARAMS.some((name) => filters[name].length > 0);
   return isNarrowed;
 }
