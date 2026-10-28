@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Merge not possible</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px">
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700">Merge accounts</h1>
+    <button type="button" aria-label="Open account menu" aria-expanded="false" style="width: 44px; height: 44px; padding: 0; border: 2px solid {{t.text}}; border-radius: 999px; font-size: 14px; font-weight: 600; background: transparent; color: {{t.text}}">NI</button>
+  </div>
+  <section style="padding: 20px; border-radius: 18px; display: flex; flex-direction: column; gap: 18px; background: {{t.panel}}">
+    <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {{t.bg}}; color: {{t.danger}}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>
+    </span>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25">anna can’t be merged into your account</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.45; color: {{t.muted}}">This Google sign-in belongs to anna, so it isn’t linked.</p>
+    </div>
+    <sc-if value="{{isCurrency}}" hint-placeholder-val="{{true}}">
+      <div style="padding: 14px; border-radius: 14px; display: flex; flex-direction: column; gap: 12px; background: {{t.bg}}">
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <div style="padding: 10px 12px; border-radius: 12px; background: {{t.panel}}">
+            <span style="display: block; font-size: 13px; color: {{t.muted}}">You</span>
+            <span style="display: block; margin-top: 2px; font-size: 22px; font-weight: 700">EUR</span>
+          </div>
+          <div style="padding: 10px 12px; border-radius: 12px; background: {{t.panel}}">
+            <span style="display: block; font-size: 13px; color: {{t.muted}}">anna</span>
+            <span style="display: block; margin-top: 2px; font-size: 22px; font-weight: 700">USD</span>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.45">Accounts with different main currencies can’t be merged.</p>
+      </div>
+    </sc-if>
+    <sc-if value="{{isProvider}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 14px; border-radius: 14px; background: {{t.bg}}">
+        <p style="margin: 0; font-size: 14px; line-height: 1.45">anna also signs in with Telegram, and one account can have only one Telegram sign-in. Unlink Telegram from one of the two accounts, then link Google again.</p>
+      </div>
+    </sc-if>
+    <a href="#" style="height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; text-decoration: none; background: {{t.text}}; color: {{t.bg}}">Back to Home</a>
+  </section>
+  <nav aria-label="Main" style="position: absolute; left: 16px; right: 16px; bottom: 16px; height: 64px; border-radius: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: {{t.panel}}">
+    <a href="#" style="display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; text-decoration: none; color: {{t.muted}}">Home</a>
+    <a href="#" style="display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; text-decoration: none; color: {{t.muted}}">Transactions</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"reason":{"editor":"enum","options":["currency","provider"],"default":"currency"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', border: '#E2E2DE', danger: '#B42318' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', border: '#2A2D32', danger: '#FF7A6B' };
+const reason = this.props.reason ?? 'currency';
+return { t: (this.props.dark ?? true) ? D : L, isCurrency: reason === 'currency', isProvider: reason === 'provider' };
+}
+}
+</script>
+</body>
+</html>

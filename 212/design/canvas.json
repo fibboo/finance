@@ -1,0 +1,18 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-29T10:00:00Z"},
+  "title": "Linked providers and account merge",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "Account menu, sign-in methods (phone)", "is_interactive": true},
+    "merge-a-phone.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "Merge offer (phone)"},
+    "mismatch-phone.dc.html": {"x": 940, "y": 0, "w": 390, "h": 844, "title": "Merge not possible (phone)"},
+    "menu-a-desktop.dc.html": {"x": 0, "y": 964, "w": 1280, "h": 800, "title": "Account menu, sign-in methods (desktop)", "is_interactive": true},
+    "merge-a-desktop.dc.html": {"x": 1360, "y": 964, "w": 1280, "h": 800, "title": "Merge offer (desktop)"},
+    "mismatch-desktop.dc.html": {"x": 2720, "y": 964, "w": 1280, "h": 800, "title": "Merge not possible (desktop)"}
+  },
+  "order": ["Main.dc.html", "merge-a-phone.dc.html", "mismatch-phone.dc.html", "menu-a-desktop.dc.html", "merge-a-desktop.dc.html", "mismatch-desktop.dc.html"],
+  "notes": {},
+  "designSystems": []
+}

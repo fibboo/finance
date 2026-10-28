@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Merge offer as a page on desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="position: relative; width: 1280px; height: 800px; box-sizing: border-box; padding: 24px; display: flex; gap: 24px; overflow: hidden; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <nav aria-label="Main" style="width: 232px; flex: none; padding: 16px 12px; border-radius: 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; background: {{t.panel}}">
+    <div style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px">
+      <span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>
+      finance
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <a href="#" style="height: 44px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none; color: {{t.muted}}">Home</a>
+      <a href="#" style="height: 44px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none; color: {{t.muted}}">Transactions</a>
+    </div>
+  </nav>
+  <main style="flex-grow: 1; min-width: 0; padding-top: 16px; display: flex; flex-direction: column; gap: 16px">
+    <div style="height: 44px; display: flex; align-items: center; justify-content: space-between">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700">Merge accounts</h1>
+      <button type="button" aria-label="Open account menu" aria-expanded="false" style="width: 44px; height: 44px; padding: 0; border: 2px solid {{t.text}}; border-radius: 999px; font-size: 14px; font-weight: 600; background: transparent; color: {{t.text}}">NI</button>
+    </div>
+    <section style="width: 560px; padding: 28px; border-radius: 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; background: {{t.panel}}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 700; line-height: 1.25">This Google sign-in belongs to another account</h2>
+        <p style="margin: 0; font-size: 15px; line-height: 1.45; color: {{t.muted}}">Merge it into yours to keep everything in one place and sign in with Telegram or Google.</p>
+      </div>
+      <div style="padding: 16px; border-radius: 16px; display: flex; align-items: center; gap: 16px; background: {{t.bg}}">
+        <span aria-hidden="true" style="width: 44px; height: 44px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; background: {{t.panel}}">AN</span>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px">
+          <span style="font-size: 16px; font-weight: 600">anna</span>
+          <span style="font-size: 13px; color: {{t.muted}}">Main currency USD</span>
+        </div>
+        <dl style="margin: 0; display: flex; gap: 8px">
+          <div style="width: 104px; padding: 10px 12px; border-radius: 12px; box-sizing: border-box; background: {{t.panel}}">
+            <dt style="font-size: 13px; color: {{t.muted}}">Accounts</dt>
+            <dd style="margin: 2px 0 0; font-size: 22px; font-weight: 700">6</dd>
+          </div>
+          <div style="width: 104px; padding: 10px 12px; border-radius: 12px; box-sizing: border-box; background: {{t.panel}}">
+            <dt style="font-size: 13px; color: {{t.muted}}">Transactions</dt>
+            <dd style="margin: 2px 0 0; font-size: 22px; font-weight: 700">214</dd>
+          </div>
+        </dl>
+      </div>
+      <ul style="margin: 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.45; color: {{t.muted}}">
+        <li>Its accounts, locations and transactions move to you.</li>
+        <li>Categories, income sources and locations with the same name become one.</li>
+        <li>A money account whose name you already use gets a number.</li>
+        <li>The account anna is deleted. This can’t be undone.</li>
+      </ul>
+      <div style="display: flex; justify-content: flex-end; gap: 8px">
+        <a href="#" style="height: 46px; padding: 0 22px; border: 1px solid {{t.border}}; border-radius: 12px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; text-decoration: none; color: {{t.text}}">Not now</a>
+        <button type="button" style="height: 46px; padding: 0 26px; border: 0; border-radius: 12px; font-size: 15px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">Merge</button>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', border: '#E2E2DE', danger: '#B42318' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', border: '#2A2D32', danger: '#FF7A6B' };
+return { t: (this.props.dark ?? false) ? D : L };
+}
+}
+</script>
+</body>
+</html>

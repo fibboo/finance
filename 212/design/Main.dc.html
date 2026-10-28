@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Account menu, sign-in methods as rows</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px">
+    <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px">
+      <span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>
+      finance
+    </div>
+    <button type="button" aria-label="Close account menu" aria-expanded="true" style="position: relative; z-index: 2; width: 44px; height: 44px; padding: 0; border: 2px solid {{t.text}}; border-radius: 999px; font-size: 14px; font-weight: 600; background: {{t.panel}}; color: {{t.text}}">NI</button>
+  </div>
+  <div style="height: 164px; border-radius: 18px; background: {{t.panel}}"></div>
+  <div style="height: 246px; border-radius: 18px; background: {{t.panel}}"></div>
+  <div style="height: 200px; border-radius: 18px; background: {{t.panel}}"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,.35)"></div>
+  <div role="dialog" aria-label="Account" style="position: absolute; top: 68px; right: 16px; z-index: 2; width: 300px; padding: 16px; border-radius: 20px; display: flex; flex-direction: column; gap: 16px; background: {{t.panel}}; box-shadow: 0 18px 50px rgba(0,0,0,.3)">
+    <div style="display: flex; align-items: center; gap: 14px">
+      <span aria-hidden="true" style="width: 48px; height: 48px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; background: {{t.bg}}">NI</span>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 16px; font-weight: 600">nikita</span>
+        <span style="font-size: 13px; color: {{t.muted}}">Signed in with Telegram</span>
+      </div>
+      <button type="button" aria-label="Change username" style="width: 44px; height: 44px; flex: none; padding: 0; border: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: transparent; color: {{t.muted}}">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+      </button>
+    </div>
+    <section aria-labelledby="methods-a" style="display: flex; flex-direction: column; gap: 10px">
+      <h2 id="methods-a" style="margin: 0; font-size: 13px; font-weight: 400; color: {{t.muted}}">Sign-in methods</h2>
+      <ul style="margin: 0; padding: 0; list-style: none; border-radius: 14px; background: {{t.bg}}">
+        <sc-for list="{{providers}}" as="p" hint-placeholder-count="2">
+          <li style="{{p.rowStyle}}">
+            <span aria-hidden="true" style="width: 32px; height: 32px; flex: none; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; background: {{t.panel}}">{{p.mark}}</span>
+            <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+              <span style="font-size: 15px; font-weight: 600">{{p.label}}</span>
+              <span style="{{p.statusStyle}}">{{p.status}}</span>
+            </div>
+            <button type="button" disabled="{{p.isLocked}}" aria-label="{{p.actionLabel}}" onClick="{{p.toggle}}" style="{{p.buttonStyle}}">{{p.action}}</button>
+          </li>
+        </sc-for>
+      </ul>
+      <sc-if value="{{isLastLinked}}" hint-placeholder-val="{{true}}">
+        <span style="font-size: 13px; line-height: 1.4; color: {{t.muted}}">Link another method before you unlink the only one.</span>
+      </sc-if>
+    </section>
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px">
+      <legend style="padding: 0; margin-bottom: 10px; font-size: 13px; color: {{t.muted}}">Theme</legend>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: {{t.bg}}">
+        <button type="button" aria-pressed="true" style="height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; background: {{t.panel}}; color: {{t.text}}; box-shadow: 0 1px 3px rgba(0,0,0,.18)">System</button>
+        <button type="button" aria-pressed="false" style="height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; background: transparent; color: {{t.muted}}">Light</button>
+        <button type="button" aria-pressed="false" style="height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; background: transparent; color: {{t.muted}}">Dark</button>
+      </div>
+      <span style="font-size: 13px; color: {{t.muted}}">Follows your device setting.</span>
+    </fieldset>
+    <button type="button" style="height: 46px; border: 1px solid {{t.border}}; border-radius: 12px; font-size: 15px; font-weight: 600; background: transparent; color: {{t.text}}">Sign out</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"linked":{"editor":"enum","options":["telegram","both"],"default":"telegram"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p) { super(p); this.state = { linked: null }; }
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', border: '#E2E2DE', danger: '#B42318' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', border: '#2A2D32', danger: '#FF7A6B' };
+const t = (this.props.dark ?? true) ? D : L;
+const initial = (this.props.linked ?? 'telegram') === 'both' ? ['telegram', 'google'] : ['telegram'];
+const linked = this.state.linked ?? initial;
+const all = [{ key: 'telegram', label: 'Telegram', mark: 'T' }, { key: 'google', label: 'Google', mark: 'G' }];
+const isLastLinked = linked.length === 1;
+const providers = all.map((p, i) => {
+const isLinked = linked.includes(p.key);
+const isLocked = isLinked && isLastLinked;
+return { ...p, isLocked,
+status: isLinked ? 'Linked' : 'Not linked',
+action: isLinked ? 'Unlink' : 'Link',
+actionLabel: (isLinked ? 'Unlink ' : 'Link ') + p.label,
+rowStyle: 'display:flex;align-items:center;gap:12px;padding:10px 10px 10px 12px' + (i > 0 ? ';border-top:1px solid ' + t.border : ''),
+statusStyle: 'font-size:13px;color:' + (isLinked ? t.accent : t.muted),
+buttonStyle: 'height:36px;padding:0 14px;flex:none;border-radius:10px;font-size:14px;font-weight:600;' + (isLinked
+  ? 'border:1px solid ' + t.border + ';background:transparent;color:' + (isLocked ? t.muted : t.text) + (isLocked ? ';opacity:.55' : '')
+  : 'border:0;background:' + t.text + ';color:' + t.bg),
+toggle: () => this.setState({ linked: isLinked ? linked.filter((k) => k !== p.key) : [...linked, p.key] }) };
+});
+return { t, providers, isLastLinked };
+}
+}
+</script>
+</body>
+</html>

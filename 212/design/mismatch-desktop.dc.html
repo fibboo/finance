@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Merge not possible on desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="position: relative; width: 1280px; height: 800px; box-sizing: border-box; padding: 24px; display: flex; gap: 24px; overflow: hidden; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <nav aria-label="Main" style="width: 232px; flex: none; padding: 16px 12px; border-radius: 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; background: {{t.panel}}">
+    <div style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px">
+      <span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>
+      finance
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <a href="#" style="height: 44px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none; color: {{t.muted}}">Home</a>
+      <a href="#" style="height: 44px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none; color: {{t.muted}}">Transactions</a>
+    </div>
+  </nav>
+  <main style="flex-grow: 1; min-width: 0; padding-top: 16px; display: flex; flex-direction: column; gap: 16px">
+    <div style="height: 44px; display: flex; align-items: center; justify-content: space-between">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700">Merge accounts</h1>
+      <button type="button" aria-label="Open account menu" aria-expanded="false" style="width: 44px; height: 44px; padding: 0; border: 2px solid {{t.text}}; border-radius: 999px; font-size: 14px; font-weight: 600; background: transparent; color: {{t.text}}">NI</button>
+    </div>
+    <section style="width: 560px; padding: 28px; border-radius: 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; background: {{t.panel}}">
+      <div style="display: flex; align-items: flex-start; gap: 16px">
+        <span aria-hidden="true" style="width: 44px; height: 44px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {{t.bg}}; color: {{t.danger}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>
+        </span>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 700; line-height: 1.25">anna can’t be merged into your account</h2>
+          <p style="margin: 0; font-size: 15px; line-height: 1.45; color: {{t.muted}}">This Google sign-in belongs to anna, so it isn’t linked.</p>
+        </div>
+      </div>
+      <sc-if value="{{isCurrency}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 16px; border-radius: 16px; display: flex; align-items: center; gap: 16px; background: {{t.bg}}">
+          <div style="width: 104px; padding: 10px 12px; border-radius: 12px; box-sizing: border-box; background: {{t.panel}}">
+            <span style="display: block; font-size: 13px; color: {{t.muted}}">You</span>
+            <span style="display: block; margin-top: 2px; font-size: 22px; font-weight: 700">EUR</span>
+          </div>
+          <div style="width: 104px; padding: 10px 12px; border-radius: 12px; box-sizing: border-box; background: {{t.panel}}">
+            <span style="display: block; font-size: 13px; color: {{t.muted}}">anna</span>
+            <span style="display: block; margin-top: 2px; font-size: 22px; font-weight: 700">USD</span>
+          </div>
+          <p style="margin: 0; flex: 1; font-size: 14px; line-height: 1.45">Accounts with different main currencies can’t be merged.</p>
+        </div>
+      </sc-if>
+      <sc-if value="{{isProvider}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 16px; border-radius: 16px; background: {{t.bg}}">
+          <p style="margin: 0; font-size: 14px; line-height: 1.45">anna also signs in with Telegram, and one account can have only one Telegram sign-in. Unlink Telegram from one of the two accounts, then link Google again.</p>
+        </div>
+      </sc-if>
+      <div style="display: flex; justify-content: flex-end">
+        <a href="#" style="height: 46px; padding: 0 22px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; text-decoration: none; background: {{t.text}}; color: {{t.bg}}">Back to Home</a>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"reason":{"editor":"enum","options":["currency","provider"],"default":"currency"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', border: '#E2E2DE', danger: '#B42318' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', border: '#2A2D32', danger: '#FF7A6B' };
+const reason = this.props.reason ?? 'currency';
+return { t: (this.props.dark ?? false) ? D : L, isCurrency: reason === 'currency', isProvider: reason === 'provider' };
+}
+}
+</script>
+</body>
+</html>
