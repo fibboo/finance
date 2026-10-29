@@ -5,30 +5,27 @@ from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
-from app.crud.accounting.location import location_crud
-from app.crud.accounting.posting import posting_crud
-from app.crud.accounting.transaction import transaction_crud
 from app.crud.user.authorization_request import authorization_request_crud
-from app.crud.user.external_user import external_user_crud
 from app.crud.user.refresh_token import refresh_token_crud
 from app.crud.user.user import user_crud
 from app.db.postgres import session_maker
-from app.models.accounting.account import Account
-from app.models.accounting.location import Location
+from app.models.accounting.account import Account as AccountModel
+from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
 from app.models.user.external_user import ExternalUser
-from app.models.user.user import User
-from app.schemas.accounting.account import AccountCreateRequest, AccountKind, AdjustmentRequest, CategoryType
-from app.schemas.accounting.location import LocationCreateRequest
+from app.models.user.user import User as UserModel
+from app.schemas.accounting.account import Account, AccountCreateRequest, AccountKind, AdjustmentRequest, CategoryType
+from app.schemas.accounting.location import Location, LocationCreateRequest
 from app.schemas.accounting.transaction import MovementRequest
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.identity import ProviderIdentity
+from app.schemas.user.user import USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH
 from app.services.accounting import account_service, location_service, transaction_service
 from app.services.user import user_service
 
@@ -128,7 +125,7 @@ def _location_names() -> list[str]:
     names: set[str] = set(EXTRA_LOCATIONS)
     for _category, places, *_rest in SPENDING:
         for location, comment in places:
-            names.add(location or comment.split(".")[0])
+            names.add(location if location is not None else comment.split(".")[0])
 
     for _category, location, *_rest in CREDIT_PURCHASES:
         names.add(location)
@@ -139,33 +136,25 @@ def _location_names() -> list[str]:
 
 async def _count_user_entities(*, db: AsyncSession, user_id: UUID) -> dict[str, int]:
     counts: dict[str, int] = {}
-    for name, model in [("accounts", Account), ("locations", Location), ("transactions", Transaction)]:
+    for name, model in [("accounts", AccountModel), ("locations", LocationModel), ("transactions", Transaction)]:
         counts[name] = await db.scalar(select(func.count()).select_from(model).where(model.user_id == user_id))
 
     return counts
 
 
 async def _delete_user(*, db: AsyncSession, user_id: UUID) -> None:
-    transaction_ids: list[UUID] = list(await db.scalars(select(Transaction.id).where(Transaction.user_id == user_id)))
-    posting_ids: list[UUID] = list(
-        await db.scalars(select(Posting.id).where(Posting.transaction_id.in_(transaction_ids)))
-    )
-    account_ids: list[UUID] = list(await db.scalars(select(Account.id).where(Account.user_id == user_id)))
-    location_ids: list[UUID] = list(await db.scalars(select(Location.id).where(Location.user_id == user_id)))
-    external_user_ids: list[UUID] = list(
-        await db.scalars(select(ExternalUser.id).where(ExternalUser.user_id == user_id))
-    )
-    await posting_crud.delete_by_ids(db=db, ids=posting_ids)
-    await transaction_crud.delete_by_ids(db=db, ids=transaction_ids)
-    await account_crud.delete_by_ids(db=db, ids=account_ids)
-    await location_crud.delete_by_ids(db=db, ids=location_ids)
+    transaction_ids: Select = select(Transaction.id).where(Transaction.user_id == user_id)
+    await db.execute(delete(Posting).where(Posting.transaction_id.in_(transaction_ids)))
+    await db.execute(delete(Transaction).where(Transaction.user_id == user_id))
+    await db.execute(delete(AccountModel).where(AccountModel.user_id == user_id))
+    await db.execute(delete(LocationModel).where(LocationModel.user_id == user_id))
+    await db.execute(delete(ExternalUser).where(ExternalUser.user_id == user_id))
     await refresh_token_crud.delete_by_user(db=db, user_id=user_id)
     await authorization_request_crud.delete_by_user(db=db, user_id=user_id)
-    await external_user_crud.delete_by_ids(db=db, ids=external_user_ids)
     await user_crud.delete_by_id(db=db, user_id=user_id)
 
 
-async def _create_user(*, db: AsyncSession, username: str) -> UUID:
+async def _create_user(*, db: AsyncSession, username: str) -> UserModel:
     identity = ProviderIdentity(
         provider=ProviderType.TELEGRAM,
         external_id=username,
@@ -175,10 +164,12 @@ async def _create_user(*, db: AsyncSession, username: str) -> UUID:
         avatar=None,
         email=None,
     )
-    user_db: User = await user_service.create_user(db=db, identity=identity)
+    user_db: UserModel | None = await user_service.create_user(db=db, identity=identity)
+    if user_db is None:
+        raise SystemExit(f"No free username for {username}")
+
     await user_service.set_base_currency(db=db, user_id=user_db.id, base_currency=BASE_CURRENCY)
-    user_id: UUID = user_db.id
-    return user_id
+    return user_db
 
 
 def _plan_history(
@@ -198,8 +189,8 @@ def _plan_history(
         location: str | None = None,
         **fields: object,
     ) -> None:
-        destination_currency = destination_currency or currency
-        is_unvalued: bool = destination_currency != currency and destination_currency == BASE_CURRENCY
+        destination_currency = destination_currency if destination_currency is not None else currency
+        is_destination_amount_derived: bool = destination_currency != currency and destination_currency == BASE_CURRENCY
         destination_amount = amount if destination_amount is None else destination_amount
         request = MovementRequest(
             transaction_date=day,
@@ -207,7 +198,7 @@ def _plan_history(
             to_account_id=accounts[target],
             source_amount=_money(value=amount),
             source_currency=currency,
-            destination_amount=None if is_unvalued else _money(value=destination_amount),
+            destination_amount=None if is_destination_amount_derived else _money(value=destination_amount),
             destination_currency=destination_currency,
             location_id=None if location is None else locations[location],
             **fields,
@@ -228,7 +219,7 @@ def _plan_history(
                     SPENDING, weights=[item[4] for item in SPENDING]
                 )[0]
                 location, comment = generator.choice(places)
-                location = location or comment.split(".")[0]
+                location = location if location is not None else comment.split(".")[0]
                 rsd: float = _log_uniform(generator=generator, low=low, high=high)
                 payment: float = generator.random()
                 if payment < 0.78:
@@ -326,19 +317,20 @@ def _plan_history(
                 income_period=month,
                 comment="Salary",
             )
-            parts: list[float] = generator.choice([[1.0], [0.6, 0.4], [0.5, 0.3, 0.2]])
-            transfer_days: list[date] = sorted(payday + timedelta(days=generator.randint(0, 6)) for _ in parts)
-            for share, transfer_day in zip(parts, transfer_days):
-                eur: float = dinar_spent * 1.04 * share / RSD_PER_EUR
-                move(
-                    day=min(transfer_day, today),
-                    source="Main card",
-                    target="Dinar card",
-                    amount=eur,
-                    currency="EUR",
-                    destination_amount=eur * RSD_PER_EUR * generator.uniform(0.997, 1.0),
-                    destination_currency="RSD",
-                )
+            if dinar_spent > 0:
+                parts: list[float] = generator.choice([[1.0], [0.6, 0.4], [0.5, 0.3, 0.2]])
+                transfer_days: list[date] = sorted(payday + timedelta(days=generator.randint(0, 6)) for _ in parts)
+                for share, transfer_day in zip(parts, transfer_days):
+                    eur: float = dinar_spent * 1.04 * share / RSD_PER_EUR
+                    move(
+                        day=min(transfer_day, today),
+                        source="Main card",
+                        target="Dinar card",
+                        amount=eur,
+                        currency="EUR",
+                        destination_amount=eur * RSD_PER_EUR * generator.uniform(0.997, 1.0),
+                        destination_currency="RSD",
+                    )
 
             if card_spent_usd > 0:
                 move(
@@ -413,34 +405,42 @@ def _plan_history(
 
 async def seed(*, db: AsyncSession) -> None:
     username: str = DEFAULT_USERNAME
-    user_db: User | None = await user_crud.get_user_by_username(db=db, username=username)
+    user_db: UserModel | None = await user_crud.get_user_by_external_id(
+        db=db, external_id=username, provider=ProviderType.TELEGRAM
+    )
     while user_db is not None:
         counts: dict[str, int] = await _count_user_entities(db=db, user_id=user_db.id)
         logger.info(
-            f"{username} already exists with {counts['accounts']} accounts, {counts['locations']} locations "
-            f"and {counts['transactions']} transactions"
+            f"{username} is already seeded as {user_db.username} with {counts['accounts']} accounts, "
+            f"{counts['locations']} locations and {counts['transactions']} transactions"
         )
         answer: str = input(f"Type {RECREATE_ANSWER} to recreate {username}, or another username to seed: ").strip()
-        if answer == RECREATE_ANSWER:
+        if answer.lower() == RECREATE_ANSWER:
             await _delete_user(db=db, user_id=user_db.id)
             break
 
-        username = answer
-        user_db = await user_crud.get_user_by_username(db=db, username=username)
+        is_username_valid: bool = USERNAME_MIN_LENGTH <= len(answer) <= USERNAME_MAX_LENGTH
+        if not is_username_valid:
+            logger.info(f"A username has {USERNAME_MIN_LENGTH} to {USERNAME_MAX_LENGTH} characters")
+            continue
 
-    user_id: UUID = await _create_user(db=db, username=username)
+        username = answer
+        user_db = await user_crud.get_user_by_external_id(db=db, external_id=username, provider=ProviderType.TELEGRAM)
+
+    created_user_db: UserModel = await _create_user(db=db, username=username)
+    user_id: UUID = created_user_db.id
 
     accounts: dict[str, UUID] = {}
-    for account_db in await db.scalars(select(Account).where(Account.user_id == user_id)):
+    for account_db in await account_crud.get_user_accounts(db=db, user_id=user_id):
         accounts[account_db.name] = account_db.id
 
     for create_data in EXTRA_ACCOUNTS:
-        account = await account_service.create_account(db=db, create_data=create_data, user_id=user_id)
+        account: Account = await account_service.create_account(db=db, create_data=create_data, user_id=user_id)
         accounts[account.name] = account.id
 
     locations: dict[str, UUID] = {}
     for name in _location_names():
-        location = await location_service.create_location(
+        location: Location = await location_service.create_location(
             db=db, create_data=LocationCreateRequest(name=name), user_id=user_id
         )
         locations[name] = location.id
@@ -464,13 +464,14 @@ async def seed(*, db: AsyncSession) -> None:
         if index % PROGRESS_STEP == 0:
             logger.info(f"{index}/{len(moves)} transactions")
 
-    logger.info(f"{username} now has {len(moves) + len(OPENING_BALANCES)} transactions")
-    for name, balance, currency in await db.execute(
-        select(Account.name, Account.balance, Account.currency).where(
-            Account.user_id == user_id, Account.currency.is_not(None)
-        )
-    ):
-        logger.info(f"{name}: {balance} {currency}")
+    logger.info(
+        f"{created_user_db.username} now has {len(moves) + len(OPENING_BALANCES)} transactions, "
+        f"sign in through mock-oidc as {username}"
+    )
+    db.expire_all()
+    for account_db in await account_crud.get_user_accounts(db=db, user_id=user_id):
+        if account_db.currency is not None:
+            logger.info(f"{account_db.name}: {account_db.balance} {account_db.currency}")
 
 
 async def main() -> None:
