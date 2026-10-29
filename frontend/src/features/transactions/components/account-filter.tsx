@@ -29,11 +29,7 @@ export function AccountFilter({
 }: AccountFilterProps) {
   const { register, handleSubmit, setValue } = useForm<AccountFilterFormInput>({
     resolver: zodResolver(accountFilterFormSchema),
-    defaultValues: {
-      account_ids: accounts
-        .filter((account) => accountIds.includes(account.id))
-        .map((account) => account.id),
-    },
+    defaultValues: { account_ids: [...accountIds] },
   });
 
   if (accounts.length === 0) {

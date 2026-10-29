@@ -2,7 +2,11 @@ import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
-import { DEFAULT_ORDER, type TransactionFilters } from '../api/transaction-filters';
+import {
+  type AccountIdParam,
+  DEFAULT_ORDER,
+  type TransactionFilters,
+} from '../api/transaction-filters';
 import { AccountFilter } from './account-filter';
 import { AmountFilter } from './amount-filter';
 import styles from './filter-chips.module.css';
@@ -70,9 +74,7 @@ type FilterChipsProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   transactionOrders: readonly DictionaryItem[];
-  moneyAccounts: readonly Account[];
-  categories: readonly Account[];
-  incomeSources: readonly Account[];
+  accounts: Readonly<Record<AccountIdParam, readonly Account[]>>;
   onApply: (change: Partial<TransactionFilters>, jumpDate?: string) => void;
   onJump: (monthEnd: string) => void;
 }>;
@@ -84,9 +86,7 @@ export function FilterChips({
   baseCurrency,
   transactionTypes,
   transactionOrders,
-  moneyAccounts,
-  categories,
-  incomeSources,
+  accounts,
   onApply,
   onJump,
 }: FilterChipsProps) {
@@ -96,21 +96,18 @@ export function FilterChips({
       title: 'Accounts',
       chipTitle: 'Accounts',
       emptyNote: 'No accounts yet.',
-      accounts: moneyAccounts,
     },
     {
       name: 'category_ids',
       title: 'Categories',
       chipTitle: 'Categories',
       emptyNote: 'No categories yet.',
-      accounts: categories,
     },
     {
       name: 'income_source_ids',
       title: 'Income sources',
       chipTitle: 'Income',
       emptyNote: 'No income sources yet.',
-      accounts: incomeSources,
     },
   ] as const;
   const periodLabel = readPeriodLabel(filters);
@@ -170,7 +167,7 @@ export function FilterChips({
               <AccountFilter
                 title={accountFilter.title}
                 emptyNote={accountFilter.emptyNote}
-                accounts={accountFilter.accounts}
+                accounts={accounts[accountFilter.name]}
                 accountIds={filters[accountFilter.name]}
                 onApply={(accountIds) => {
                   onApply({ [accountFilter.name]: accountIds });

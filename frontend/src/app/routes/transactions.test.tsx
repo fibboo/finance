@@ -567,7 +567,7 @@ test('drops the filters of the URL that are not valid', async () => {
   // act
   render(<Component />, {
     initialEntries: [
-      '/transactions?date_from=2026-11-01&date_to=2026-10-10&transaction_types=LOAN&transaction_types=INCOME&base_currency_amount_to=0&order=name:desc&account_ids=wallet&category_ids=1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
+      '/transactions?date_from=2026-11-01&date_to=2026-10-10&transaction_types=LOAN&transaction_types=INCOME&base_currency_amount_to=0&order=name:desc&account_ids=wallet&account_ids=0f0e0d0c-0b0a-4908-8706-050403020100&category_ids=1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
     ],
   });
 

@@ -3,7 +3,11 @@ import { useSearchParams } from 'react-router';
 
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
-import { accountQueries } from '@/features/accounts/api/account-queries';
+import {
+  ACCOUNT_PAGE_SIZE,
+  accountQueries,
+  MONEY_ACCOUNT_KINDS,
+} from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import {
   hasNarrowingFilters,
@@ -23,8 +27,6 @@ import type { components } from '@/lib/api-schema';
 
 type AccountKind = components['schemas']['AccountKind'];
 
-const ACCOUNT_PAGE_SIZE = 100;
-
 function readTransactionCount(
   total: number | undefined,
 ): Readonly<{ value: number; label: string }> | undefined {
@@ -35,12 +37,12 @@ function readTransactionCount(
   return transactionCount;
 }
 
-function readActiveAccountsQuery(kinds: AccountKind[]) {
-  const activeAccountsQuery = {
-    ...accountQueries.list({ kinds, statuses: ['ACTIVE'], size: ACCOUNT_PAGE_SIZE }),
+function readAccountsQuery(kinds: readonly AccountKind[]) {
+  const accountsQuery = {
+    ...accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...kinds] }),
     throwOnError: true,
   };
-  return activeAccountsQuery;
+  return accountsQuery;
 }
 
 function readJumpDate({
@@ -62,13 +64,26 @@ export function Component() {
     ...dictionaryQueries.accounting(),
     throwOnError: true,
   });
-  const { data: moneyAccounts } = useQuery(readActiveAccountsQuery(['ASSET', 'LIABILITY']));
-  const { data: categories } = useQuery(readActiveAccountsQuery(['EXPENSE']));
-  const { data: incomeSources } = useQuery(readActiveAccountsQuery(['INCOME']));
-  const filters =
-    dictionaries === undefined
+  const { data: moneyAccounts } = useQuery(readAccountsQuery(MONEY_ACCOUNT_KINDS));
+  const { data: categories } = useQuery(readAccountsQuery(['EXPENSE']));
+  const { data: incomeSources } = useQuery(readAccountsQuery(['INCOME']));
+  const accounts =
+    moneyAccounts === undefined || categories === undefined || incomeSources === undefined
       ? undefined
-      : readTransactionFilters({ searchParams, orders: dictionaries.transaction_orders, today });
+      : {
+          account_ids: moneyAccounts.items,
+          category_ids: categories.items,
+          income_source_ids: incomeSources.items,
+        };
+  const filters =
+    dictionaries === undefined || accounts === undefined
+      ? undefined
+      : readTransactionFilters({
+          searchParams,
+          orders: dictionaries.transaction_orders,
+          accounts,
+          today,
+        });
   const feed = useTransactionFeed({
     isOpeningDayKept: true,
     isFirstPageErrorThrown: true,
@@ -79,10 +94,8 @@ export function Component() {
     <Page title="Transactions" count={readTransactionCount(feed.total)}>
       {baseCurrency !== undefined &&
         dictionaries !== undefined &&
-        filters !== undefined &&
-        moneyAccounts !== undefined &&
-        categories !== undefined &&
-        incomeSources !== undefined && (
+        accounts !== undefined &&
+        filters !== undefined && (
           <FilterChips
             filters={filters}
             today={today}
@@ -90,9 +103,7 @@ export function Component() {
             baseCurrency={baseCurrency}
             transactionTypes={dictionaries.transaction_types}
             transactionOrders={dictionaries.transaction_orders}
-            moneyAccounts={moneyAccounts.items}
-            categories={categories.items}
-            incomeSources={incomeSources.items}
+            accounts={accounts}
             onApply={(change, jumpDate) => {
               const nextFilters = { ...filters, ...change };
               const nextSearchParams = writeTransactionFilters(nextFilters);

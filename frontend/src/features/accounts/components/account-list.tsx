@@ -5,12 +5,11 @@ import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { formatMoney } from '@/lib/format-money';
 
-import { accountQueries } from '../api/account-queries';
+import { ACCOUNT_PAGE_SIZE, accountQueries, MONEY_ACCOUNT_KINDS } from '../api/account-queries';
 import { useStripEdges } from '../hooks/use-strip-edges';
 import { AccountMark } from './account-mark';
 import styles from './account-list.module.css';
 
-const ACCOUNT_PAGE_SIZE = 100;
 const ACCOUNT_SKELETON_COUNT = 3;
 const STRIP_PAGE_SHARE = 0.8;
 
@@ -18,7 +17,7 @@ type AccountListProps = Readonly<{ baseCurrency: string; header?: ReactNode }>;
 
 export function AccountList({ baseCurrency, header }: AccountListProps) {
   const { data: accountPage, isPending } = useQuery(
-    accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: ['ASSET', 'LIABILITY'] }),
+    accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...MONEY_ACCOUNT_KINDS] }),
   );
   const accountsRef = useRef<HTMLUListElement>(null);
   const { observeFirst, observeLast, isFirstInView, isLastInView } = useStripEdges();

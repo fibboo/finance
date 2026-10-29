@@ -17,17 +17,10 @@ const SINGLE_PARAMS = [
   'base_currency_amount_to',
   'order',
 ] as const;
-const LIST_PARAMS = [
-  'transaction_types',
-  'account_ids',
-  'category_ids',
-  'income_source_ids',
-] as const;
-export const ACCOUNT_ID_PARAMS = ['account_ids', 'category_ids', 'income_source_ids'] as const;
+const ACCOUNT_ID_PARAMS = ['account_ids', 'category_ids', 'income_source_ids'] as const;
+const LIST_PARAMS = ['transaction_types', ...ACCOUNT_ID_PARAMS] as const;
 
-const accountIdsSchema = z
-  .array(z.string())
-  .transform((ids) => [...new Set(ids.filter((id) => z.uuid().safeParse(id).success))]);
+export type AccountIdParam = (typeof ACCOUNT_ID_PARAMS)[number];
 
 const transactionFiltersSchema = z.object({
   date_from: z.iso.date().optional().catch(undefined),
@@ -47,9 +40,9 @@ const transactionFiltersSchema = z.object({
     .optional()
     .catch(undefined),
   order: z.string().optional(),
-  account_ids: accountIdsSchema,
-  category_ids: accountIdsSchema,
-  income_source_ids: accountIdsSchema,
+  account_ids: z.array(z.string()),
+  category_ids: z.array(z.string()),
+  income_source_ids: z.array(z.string()),
 });
 
 export type TransactionFilters = Readonly<z.output<typeof transactionFiltersSchema>>;
@@ -59,10 +52,12 @@ export type TransactionFilterQuery = Omit<TransactionListQuery, 'page' | 'size'>
 export function readTransactionFilters({
   searchParams,
   orders,
+  accounts,
   today,
 }: Readonly<{
   searchParams: URLSearchParams;
   orders: readonly DictionaryItem[];
+  accounts: Readonly<Record<AccountIdParam, readonly Readonly<{ id: string }>[]>>;
   today: string;
 }>): TransactionFilters {
   const parsedFilters = transactionFiltersSchema.parse({
@@ -84,6 +79,14 @@ export function readTransactionFilters({
       orders.some((order) => order.key === parsedFilters.order)
         ? parsedFilters.order
         : undefined,
+    ...Object.fromEntries(
+      ACCOUNT_ID_PARAMS.map((name) => [
+        name,
+        accounts[name]
+          .filter((account) => parsedFilters[name].includes(account.id))
+          .map((account) => account.id),
+      ]),
+    ),
   };
   return filters;
 }
