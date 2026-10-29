@@ -10,6 +10,7 @@ import {
 } from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import {
+  hasAccountIdParams,
   hasNarrowingFilters,
   isSortedByDate,
   readTransactionFilterQuery,
@@ -76,7 +77,7 @@ export function Component() {
           income_source_ids: incomeSources.items,
         };
   const filters =
-    dictionaries === undefined || accounts === undefined
+    dictionaries === undefined || (accounts === undefined && hasAccountIdParams(searchParams))
       ? undefined
       : readTransactionFilters({
           searchParams,

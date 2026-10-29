@@ -57,7 +57,7 @@ export function readTransactionFilters({
 }: Readonly<{
   searchParams: URLSearchParams;
   orders: readonly DictionaryItem[];
-  accounts: Readonly<Record<AccountIdParam, readonly Readonly<{ id: string }>[]>>;
+  accounts: Readonly<Record<AccountIdParam, readonly Readonly<{ id: string }>[]>> | undefined;
   today: string;
 }>): TransactionFilters {
   const parsedFilters = transactionFiltersSchema.parse({
@@ -69,6 +69,11 @@ export function readTransactionFilters({
     parsedFilters;
   const isAmountRangeValid =
     amountFrom === undefined || amountTo === undefined || Number(amountFrom) <= Number(amountTo);
+  const [accountIds, categoryIds, incomeSourceIds] = ACCOUNT_ID_PARAMS.map((name) =>
+    (accounts?.[name] ?? [])
+      .filter((account) => parsedFilters[name].includes(account.id))
+      .map((account) => account.id),
+  );
   const filters = {
     ...parsedFilters,
     date_from: dateFrom !== undefined && dateFrom <= today ? dateFrom : undefined,
@@ -79,16 +84,17 @@ export function readTransactionFilters({
       orders.some((order) => order.key === parsedFilters.order)
         ? parsedFilters.order
         : undefined,
-    ...Object.fromEntries(
-      ACCOUNT_ID_PARAMS.map((name) => [
-        name,
-        accounts[name]
-          .filter((account) => parsedFilters[name].includes(account.id))
-          .map((account) => account.id),
-      ]),
-    ),
+    account_ids: accountIds ?? [],
+    category_ids: categoryIds ?? [],
+    income_source_ids:
+      categoryIds !== undefined && categoryIds.length > 0 ? [] : (incomeSourceIds ?? []),
   };
   return filters;
+}
+
+export function hasAccountIdParams(searchParams: URLSearchParams): boolean {
+  const hasAccountIds = ACCOUNT_ID_PARAMS.some((name) => searchParams.has(name));
+  return hasAccountIds;
 }
 
 export function writeTransactionFilters(filters: TransactionFilters): URLSearchParams {

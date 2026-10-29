@@ -434,7 +434,7 @@ test('clears the income sources when categories are applied', async () => {
   await user.click(await screen.findByRole('button', { name: 'Categories' }));
   const categoryFilter = screen.getByRole('dialog', { name: 'Categories' });
   expect(
-    within(categoryFilter).getByText('Applying clears the income sources filter.'),
+    within(categoryFilter).getByText('Choosing categories clears the income sources filter.'),
   ).toBeInTheDocument();
   await user.click(within(categoryFilter).getByRole('checkbox', { name: 'Cafes' }));
 
@@ -447,6 +447,83 @@ test('clears the income sources when categories are applied', async () => {
   await waitFor(() => {
     expect(requestedAccountIds).toEqual([[salary.id], [cafes.id]]);
   });
+});
+
+test('drops the income sources of a URL that also has categories', async () => {
+  // arrange
+  const salary = {
+    ...category,
+    name: 'Salary',
+    id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60',
+    kind: 'INCOME',
+    category_type: null,
+  } satisfies components['schemas']['Account'];
+  const requestedAccountIds: string[][] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const kinds = new URL(request.url).searchParams.getAll('kinds');
+      const items = kinds.includes('INCOME')
+        ? [salary]
+        : kinds.includes('EXPENSE')
+          ? [category, cafes]
+          : [wallet];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedAccountIds.push(new URL(request.url).searchParams.getAll('account_ids'));
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+
+  // act
+  render(<Component />, {
+    initialEntries: [`/transactions?category_ids=${cafes.id}&income_source_ids=${salary.id}`],
+  });
+
+  // assert
+  expect(
+    await screen.findByRole('button', { name: 'Categories: Categories · 1' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Income sources: Income' })).toBeInTheDocument();
+  expect(requestedAccountIds).toEqual([[cafes.id]]);
+});
+
+test('loads the list without waiting for the accounts when no account is filtered', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', async () => {
+      await delay('infinite');
+      return HttpResponse.json(null);
+    }),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  expect(await screen.findByText('Groceries')).toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Filters' })).not.toBeInTheDocument();
 });
 
 test('shows a note instead of the list for a kind without accounts', async () => {

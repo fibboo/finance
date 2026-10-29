@@ -67,6 +67,43 @@ function readAmountLabel({
   return amountLabel;
 }
 
+type AccountFilterConfig = Readonly<{
+  name: AccountIdParam;
+  title: string;
+  chipTitle: string;
+  emptyNote: string;
+  excluded?: Readonly<{ name: AccountIdParam; note: string }>;
+}>;
+
+const ACCOUNT_FILTERS: readonly AccountFilterConfig[] = [
+  {
+    name: 'account_ids',
+    title: 'Accounts',
+    chipTitle: 'Accounts',
+    emptyNote: 'No accounts yet.',
+  },
+  {
+    name: 'category_ids',
+    title: 'Categories',
+    chipTitle: 'Categories',
+    emptyNote: 'No categories yet.',
+    excluded: {
+      name: 'income_source_ids',
+      note: 'Choosing categories clears the income sources filter.',
+    },
+  },
+  {
+    name: 'income_source_ids',
+    title: 'Income sources',
+    chipTitle: 'Income',
+    emptyNote: 'No income sources yet.',
+    excluded: {
+      name: 'category_ids',
+      note: 'Choosing income sources clears the categories filter.',
+    },
+  },
+];
+
 type FilterChipsProps = Readonly<{
   filters: TransactionFilters;
   today: string;
@@ -90,34 +127,6 @@ export function FilterChips({
   onApply,
   onJump,
 }: FilterChipsProps) {
-  const accountFilters: readonly Readonly<{
-    name: AccountIdParam;
-    title: string;
-    chipTitle: string;
-    emptyNote: string;
-    excluded?: Readonly<{ name: AccountIdParam; note: string }>;
-  }>[] = [
-    {
-      name: 'account_ids',
-      title: 'Accounts',
-      chipTitle: 'Accounts',
-      emptyNote: 'No accounts yet.',
-    },
-    {
-      name: 'category_ids',
-      title: 'Categories',
-      chipTitle: 'Categories',
-      emptyNote: 'No categories yet.',
-      excluded: { name: 'income_source_ids', note: 'Applying clears the income sources filter.' },
-    },
-    {
-      name: 'income_source_ids',
-      title: 'Income sources',
-      chipTitle: 'Income',
-      emptyNote: 'No income sources yet.',
-      excluded: { name: 'category_ids', note: 'Applying clears the categories filter.' },
-    },
-  ];
   const periodLabel = readPeriodLabel(filters);
   const typeLabel = readTypeLabel({ filters, transactionTypes });
   const amountLabel = readAmountLabel({ filters, baseCurrency });
@@ -160,7 +169,7 @@ export function FilterChips({
           />
         )}
       </FilterPanel>
-      {accountFilters.map((accountFilter) => {
+      {ACCOUNT_FILTERS.map((accountFilter) => {
         const count = filters[accountFilter.name].length;
         const { excluded } = accountFilter;
         const isExcludedChosen = excluded !== undefined && filters[excluded.name].length > 0;
