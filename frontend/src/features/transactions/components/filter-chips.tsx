@@ -90,7 +90,13 @@ export function FilterChips({
   onApply,
   onJump,
 }: FilterChipsProps) {
-  const accountFilters = [
+  const accountFilters: readonly Readonly<{
+    name: AccountIdParam;
+    title: string;
+    chipTitle: string;
+    emptyNote: string;
+    excluded?: Readonly<{ name: AccountIdParam; note: string }>;
+  }>[] = [
     {
       name: 'account_ids',
       title: 'Accounts',
@@ -102,14 +108,16 @@ export function FilterChips({
       title: 'Categories',
       chipTitle: 'Categories',
       emptyNote: 'No categories yet.',
+      excluded: { name: 'income_source_ids', note: 'Applying clears the income sources filter.' },
     },
     {
       name: 'income_source_ids',
       title: 'Income sources',
       chipTitle: 'Income',
       emptyNote: 'No income sources yet.',
+      excluded: { name: 'category_ids', note: 'Applying clears the categories filter.' },
     },
-  ] as const;
+  ];
   const periodLabel = readPeriodLabel(filters);
   const typeLabel = readTypeLabel({ filters, transactionTypes });
   const amountLabel = readAmountLabel({ filters, baseCurrency });
@@ -154,6 +162,8 @@ export function FilterChips({
       </FilterPanel>
       {accountFilters.map((accountFilter) => {
         const count = filters[accountFilter.name].length;
+        const { excluded } = accountFilter;
+        const isExcludedChosen = excluded !== undefined && filters[excluded.name].length > 0;
         return (
           <FilterPanel
             key={accountFilter.name}
@@ -169,8 +179,12 @@ export function FilterChips({
                 emptyNote={accountFilter.emptyNote}
                 accounts={accounts[accountFilter.name]}
                 accountIds={filters[accountFilter.name]}
+                note={isExcludedChosen ? excluded.note : undefined}
                 onApply={(accountIds) => {
-                  onApply({ [accountFilter.name]: accountIds });
+                  onApply({
+                    [accountFilter.name]: accountIds,
+                    ...(isExcludedChosen && accountIds.length > 0 && { [excluded.name]: [] }),
+                  });
                   close();
                 }}
               />

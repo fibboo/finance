@@ -50,6 +50,13 @@
   color: var(--color-muted);
 }
 
+.note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-note);
+  color: var(--color-muted);
+}
+
 .emptyNote {
   margin: 0;
   padding-block: var(--space-3);

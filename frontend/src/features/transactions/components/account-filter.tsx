@@ -17,6 +17,7 @@ type AccountFilterProps = Readonly<{
   emptyNote: string;
   accounts: readonly Account[];
   accountIds: readonly string[];
+  note: string | undefined;
   onApply: (accountIds: string[]) => void;
 }>;
 
@@ -25,6 +26,7 @@ export function AccountFilter({
   emptyNote,
   accounts,
   accountIds,
+  note,
   onApply,
 }: AccountFilterProps) {
   const { register, handleSubmit, setValue } = useForm<AccountFilterFormInput>({
@@ -68,6 +70,7 @@ export function AccountFilter({
           </label>
         ))}
       </fieldset>
+      {note !== undefined && <p className={styles['note']}>{note}</p>}
       <FilterActions
         onReset={() => {
           setValue('account_ids', []);

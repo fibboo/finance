@@ -392,6 +392,63 @@ test('requests the checked accounts of every kind and counts them on their chips
   });
 });
 
+test('clears the income sources when categories are applied', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const salary = {
+    ...category,
+    name: 'Salary',
+    id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60',
+    kind: 'INCOME',
+    category_type: null,
+  } satisfies components['schemas']['Account'];
+  const requestedAccountIds: string[][] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const kinds = new URL(request.url).searchParams.getAll('kinds');
+      const items = kinds.includes('INCOME')
+        ? [salary]
+        : kinds.includes('EXPENSE')
+          ? [category, cafes]
+          : [wallet];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedAccountIds.push(new URL(request.url).searchParams.getAll('account_ids'));
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />, { initialEntries: [`/transactions?income_source_ids=${salary.id}`] });
+  await user.click(await screen.findByRole('button', { name: 'Categories' }));
+  const categoryFilter = screen.getByRole('dialog', { name: 'Categories' });
+  expect(
+    within(categoryFilter).getByText('Applying clears the income sources filter.'),
+  ).toBeInTheDocument();
+  await user.click(within(categoryFilter).getByRole('checkbox', { name: 'Cafes' }));
+
+  // act
+  await user.click(within(categoryFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: 'Categories: Categories · 1' })).toHaveFocus();
+  expect(screen.getByRole('button', { name: 'Income sources: Income' })).toBeInTheDocument();
+  await waitFor(() => {
+    expect(requestedAccountIds).toEqual([[salary.id], [cafes.id]]);
+  });
+});
+
 test('shows a note instead of the list for a kind without accounts', async () => {
   // arrange
   const user = userEvent.setup();
