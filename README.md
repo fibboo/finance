@@ -54,6 +54,18 @@ Once all steps are completed, the frontend is available at [http://localhost:517
 [http://localhost:8000](http://localhost:8000). The Vite dev server proxies `/api` to the backend, so the frontend calls
 the API as `/api/...`.
 
+### Seeding test data
+
+To fill the migrated local database with test data, run:
+
+```bash
+docker compose exec backend python -m scripts.seed
+```
+
+It creates the user `test_1` with the base currency USD, its accounts and locations, and transactions from
+2024-01-01 to today. To sign in as that user, type `test_1` as the username in the mock server's form (see below). If
+the user already exists, the script shows what it has and asks whether to recreate it or to seed another username.
+
 ### Signing in locally
 
 Locally, both sign-in providers point at the `mock-oidc` service, a [mock OpenID Connect server](https://github.com/navikt/mock-oauth2-server)

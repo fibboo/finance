@@ -116,6 +116,14 @@ docker compose exec backend alembic upgrade head
 docker compose exec backend alembic revision --autogenerate -m "<description>"
 ```
 
+### Test data
+
+`backend/scripts/seed.py` fills a migrated local database with the user `test_1` (base currency USD) and its transactions from 2024-01-01 to today, through the services; if the user exists, it asks whether to recreate it or to seed another username (README, Seeding test data):
+
+```bash
+docker compose exec backend python -m scripts.seed
+```
+
 ## Git Conventions
 
 - **Start every new issue on a fresh branch:** before any file edits, run `git fetch origin && git checkout -b <issue_number>-<issue_name> --no-track origin/main`. Never commit or edit files while on `main` or on a stale local branch.
