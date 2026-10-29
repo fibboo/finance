@@ -2,7 +2,12 @@ import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
-import { DEFAULT_ORDER, type TransactionFilters } from '../api/transaction-filters';
+import {
+  type AccountIdParam,
+  DEFAULT_ORDER,
+  type TransactionFilters,
+} from '../api/transaction-filters';
+import { AccountFilter } from './account-filter';
 import { AmountFilter } from './amount-filter';
 import styles from './filter-chips.module.css';
 import { FilterPanel } from './filter-panel';
@@ -11,6 +16,7 @@ import { SortFilter } from './sort-filter';
 import { TypeFilter } from './type-filter';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
+type Account = components['schemas']['Account'];
 
 function readPeriodLabel(filters: TransactionFilters): string | undefined {
   const periodLabel =
@@ -61,6 +67,43 @@ function readAmountLabel({
   return amountLabel;
 }
 
+type AccountFilterConfig = Readonly<{
+  name: AccountIdParam;
+  title: string;
+  chipTitle: string;
+  emptyNote: string;
+  excluded?: Readonly<{ name: AccountIdParam; note: string }>;
+}>;
+
+const ACCOUNT_FILTERS: readonly AccountFilterConfig[] = [
+  {
+    name: 'account_ids',
+    title: 'Accounts',
+    chipTitle: 'Accounts',
+    emptyNote: 'No accounts yet.',
+  },
+  {
+    name: 'category_ids',
+    title: 'Categories',
+    chipTitle: 'Categories',
+    emptyNote: 'No categories yet.',
+    excluded: {
+      name: 'income_source_ids',
+      note: 'Choosing categories clears the income sources filter.',
+    },
+  },
+  {
+    name: 'income_source_ids',
+    title: 'Income sources',
+    chipTitle: 'Income',
+    emptyNote: 'No income sources yet.',
+    excluded: {
+      name: 'category_ids',
+      note: 'Choosing income sources clears the categories filter.',
+    },
+  },
+];
+
 type FilterChipsProps = Readonly<{
   filters: TransactionFilters;
   today: string;
@@ -68,6 +111,7 @@ type FilterChipsProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   transactionOrders: readonly DictionaryItem[];
+  accounts: Readonly<Record<AccountIdParam, readonly Account[]>>;
   onApply: (change: Partial<TransactionFilters>, jumpDate?: string) => void;
   onJump: (monthEnd: string) => void;
 }>;
@@ -79,6 +123,7 @@ export function FilterChips({
   baseCurrency,
   transactionTypes,
   transactionOrders,
+  accounts,
   onApply,
   onJump,
 }: FilterChipsProps) {
@@ -124,6 +169,38 @@ export function FilterChips({
           />
         )}
       </FilterPanel>
+      {ACCOUNT_FILTERS.map((accountFilter) => {
+        const count = filters[accountFilter.name].length;
+        const { excluded } = accountFilter;
+        const isExcludedChosen = excluded !== undefined && filters[excluded.name].length > 0;
+        return (
+          <FilterPanel
+            key={accountFilter.name}
+            title={accountFilter.title}
+            chipLabel={
+              count > 0 ? `${accountFilter.chipTitle} · ${String(count)}` : accountFilter.chipTitle
+            }
+            isActive={count > 0}
+          >
+            {(close) => (
+              <AccountFilter
+                title={accountFilter.title}
+                emptyNote={accountFilter.emptyNote}
+                accounts={accounts[accountFilter.name]}
+                accountIds={filters[accountFilter.name]}
+                note={isExcludedChosen ? excluded.note : undefined}
+                onApply={(accountIds) => {
+                  onApply({
+                    [accountFilter.name]: accountIds,
+                    ...(isExcludedChosen && accountIds.length > 0 && { [excluded.name]: [] }),
+                  });
+                  close();
+                }}
+              />
+            )}
+          </FilterPanel>
+        );
+      })}
       <FilterPanel
         title="Amount"
         chipLabel={amountLabel ?? 'Amount'}

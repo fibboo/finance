@@ -17,6 +17,10 @@ const SINGLE_PARAMS = [
   'base_currency_amount_to',
   'order',
 ] as const;
+const ACCOUNT_ID_PARAMS = ['account_ids', 'category_ids', 'income_source_ids'] as const;
+const LIST_PARAMS = ['transaction_types', ...ACCOUNT_ID_PARAMS] as const;
+
+export type AccountIdParam = (typeof ACCOUNT_ID_PARAMS)[number];
 
 const transactionFiltersSchema = z.object({
   date_from: z.iso.date().optional().catch(undefined),
@@ -36,6 +40,9 @@ const transactionFiltersSchema = z.object({
     .optional()
     .catch(undefined),
   order: z.string().optional(),
+  account_ids: z.array(z.string()),
+  category_ids: z.array(z.string()),
+  income_source_ids: z.array(z.string()),
 });
 
 export type TransactionFilters = Readonly<z.output<typeof transactionFiltersSchema>>;
@@ -45,21 +52,28 @@ export type TransactionFilterQuery = Omit<TransactionListQuery, 'page' | 'size'>
 export function readTransactionFilters({
   searchParams,
   orders,
+  accounts,
   today,
 }: Readonly<{
   searchParams: URLSearchParams;
   orders: readonly DictionaryItem[];
+  accounts: Readonly<Record<AccountIdParam, readonly Readonly<{ id: string }>[]>> | undefined;
   today: string;
 }>): TransactionFilters {
   const parsedFilters = transactionFiltersSchema.parse({
     ...Object.fromEntries(SINGLE_PARAMS.map((name) => [name, searchParams.get(name) ?? undefined])),
-    transaction_types: searchParams.getAll('transaction_types'),
+    ...Object.fromEntries(LIST_PARAMS.map((name) => [name, searchParams.getAll(name)])),
   });
   const dateFrom = parsedFilters.date_from;
   const { base_currency_amount_from: amountFrom, base_currency_amount_to: amountTo } =
     parsedFilters;
   const isAmountRangeValid =
     amountFrom === undefined || amountTo === undefined || Number(amountFrom) <= Number(amountTo);
+  const [accountIds, categoryIds, incomeSourceIds] = ACCOUNT_ID_PARAMS.map((name) =>
+    (accounts?.[name] ?? [])
+      .filter((account) => parsedFilters[name].includes(account.id))
+      .map((account) => account.id),
+  );
   const filters = {
     ...parsedFilters,
     date_from: dateFrom !== undefined && dateFrom <= today ? dateFrom : undefined,
@@ -70,8 +84,17 @@ export function readTransactionFilters({
       orders.some((order) => order.key === parsedFilters.order)
         ? parsedFilters.order
         : undefined,
+    account_ids: accountIds ?? [],
+    category_ids: categoryIds ?? [],
+    income_source_ids:
+      categoryIds !== undefined && categoryIds.length > 0 ? [] : (incomeSourceIds ?? []),
   };
   return filters;
+}
+
+export function hasAccountIdParams(searchParams: URLSearchParams): boolean {
+  const hasAccountIds = ACCOUNT_ID_PARAMS.some((name) => searchParams.has(name));
+  return hasAccountIds;
 }
 
 export function writeTransactionFilters(filters: TransactionFilters): URLSearchParams {
@@ -83,14 +106,17 @@ export function writeTransactionFilters(filters: TransactionFilters): URLSearchP
     }
   }
 
-  for (const type of filters.transaction_types) {
-    searchParams.append('transaction_types', type);
+  for (const name of LIST_PARAMS) {
+    for (const value of filters[name]) {
+      searchParams.append(name, value);
+    }
   }
 
   return searchParams;
 }
 
 export function readTransactionFilterQuery(filters: TransactionFilters): TransactionFilterQuery {
+  const accountIds = ACCOUNT_ID_PARAMS.flatMap((name) => filters[name]);
   const filterQuery = {
     ...(filters.date_from !== undefined && { date_from: filters.date_from }),
     ...(filters.transaction_types.length > 0 && {
@@ -103,6 +129,7 @@ export function readTransactionFilterQuery(filters: TransactionFilters): Transac
       base_currency_amount_to: filters.base_currency_amount_to,
     }),
     ...(filters.order !== undefined && { orders: [filters.order] }),
+    ...(accountIds.length > 0 && { account_ids: accountIds }),
   };
   return filterQuery;
 }
@@ -117,6 +144,7 @@ export function hasNarrowingFilters(filters: TransactionFilters): boolean {
     filters.date_from !== undefined ||
     filters.transaction_types.length > 0 ||
     filters.base_currency_amount_from !== undefined ||
-    filters.base_currency_amount_to !== undefined;
+    filters.base_currency_amount_to !== undefined ||
+    ACCOUNT_ID_PARAMS.some((name) => filters[name].length > 0);
   return isNarrowed;
 }
