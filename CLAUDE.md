@@ -127,7 +127,7 @@ docker compose exec backend python -m scripts.seed
 
 ## Git Conventions
 
-- **Start every new issue on a fresh branch:** before any file edits, run `git fetch origin && git checkout -b <issue_number>-<issue_name> --no-track origin/main`. Never commit or edit files while on `main` or on a stale local branch. The first push of every issue branch, however it was created, comes once it carries commits and is `git push -u origin <issue_number>-<issue_name>`, so that the branch tracks its own remote branch.
+- **Start every new issue on a fresh branch:** before any file edits, run `git fetch origin && git checkout -b <issue_number>-<issue_name> --no-track origin/main`. Never commit or edit files while on `main` or on a stale local branch. The first push of every issue branch comes once it carries commits and is `git push -u origin <issue_number>-<issue_name>`, so that the branch tracks its own remote branch.
 - **Branch naming:** `<issue_number>-<issue_name>`, with no `feature/` prefix (for example `22-port-claude-code-rules`).
 - **The `assets` branch:** an orphan branch for files shown in issues, such as the agreed mockups of a screen and their design sources. It shares no history with `main`, holds no code, has no pull requests and is never merged; it holds only one folder per issue number. The `issue-writer` skill describes what goes in it and how an issue shows it.
 - **Move the issue through the project statuses:** the `fibboo-finace` project has `In Refinement`, `Ready for Development`, `In Development`, `In Review` and `Done`. The `issue-writer` skill sets the first two, which describe the issue itself; the work sets the rest:
