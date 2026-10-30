@@ -1,0 +1,33 @@
+.deleteButton {
+  min-height: var(--size-button);
+  border: 0;
+  border-radius: var(--radius-action);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-ground);
+  color: var(--color-danger);
+  cursor: pointer;
+}
+
+.deleteButton:hover {
+  opacity: var(--opacity-hover);
+}
+
+.deleteButton:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.icon {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

@@ -9,6 +9,11 @@ import {
   MONEY_ACCOUNT_KINDS,
 } from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { summaryQueries } from '@/features/summary/api/summary-queries';
+import {
+  readSelectedTransactionId,
+  writeSelectedTransaction,
+} from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,
   hasNarrowingFilters,
@@ -20,11 +25,14 @@ import {
 } from '@/features/transactions/api/transaction-filters';
 import { FilterChips } from '@/features/transactions/components/filter-chips';
 import { NoMatchingTransactions } from '@/features/transactions/components/no-matching-transactions';
+import { TransactionDetails } from '@/features/transactions/components/transaction-details';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
 import { useDateJump } from '@/features/transactions/hooks/use-date-jump';
 import { useTransactionFeed } from '@/features/transactions/hooks/use-transaction-feed';
 import { useToday } from '@/hooks/use-today';
 import type { components } from '@/lib/api-schema';
+
+import styles from './transactions.module.css';
 
 type AccountKind = components['schemas']['AccountKind'];
 
@@ -59,7 +67,8 @@ export function Component() {
   const baseCurrency = useBaseCurrency();
   const today = useToday();
   const [searchParams, setSearchParams] = useSearchParams();
-  const listKey = searchParams.toString();
+  const selectedTransactionId = readSelectedTransactionId(searchParams);
+  const listKey = writeSelectedTransaction({ searchParams, transactionId: undefined }).toString();
   const { anchorDate, jumpToDate, clearJump } = useDateJump(listKey);
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
@@ -123,27 +132,47 @@ export function Component() {
             }}
           />
         )}
-      {baseCurrency !== undefined && (
-        <TransactionFeed
-          key={`${listKey}#${feed.anchorDate ?? ''}`}
-          feed={feed}
-          baseCurrency={baseCurrency}
-          label="Transactions"
-          isGroupedByDay={filters === undefined || isSortedByDate(filters)}
-          onReturnToToday={clearJump}
-          {...(filters !== undefined &&
-            hasNarrowingFilters(filters) && {
-              emptyState: (
-                <NoMatchingTransactions
-                  onReset={() => {
-                    clearJump();
-                    setSearchParams({});
-                  }}
-                />
-              ),
-            })}
-        />
-      )}
+      <div className={styles['transactions']}>
+        {baseCurrency !== undefined && (
+          <TransactionFeed
+            key={`${listKey}#${feed.anchorDate ?? ''}`}
+            feed={feed}
+            baseCurrency={baseCurrency}
+            label="Transactions"
+            isGroupedByDay={filters === undefined || isSortedByDate(filters)}
+            onReturnToToday={clearJump}
+            {...(filters !== undefined &&
+              hasNarrowingFilters(filters) && {
+                emptyState: (
+                  <NoMatchingTransactions
+                    onReset={() => {
+                      clearJump();
+                      setSearchParams({});
+                    }}
+                  />
+                ),
+              })}
+          />
+        )}
+        {baseCurrency !== undefined &&
+          dictionaries !== undefined &&
+          selectedTransactionId !== undefined && (
+            <TransactionDetails
+              key={selectedTransactionId}
+              transactionId={selectedTransactionId}
+              baseCurrency={baseCurrency}
+              transactionTypes={dictionaries.transaction_types}
+              accountKinds={dictionaries.account_kinds}
+              relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
+              onClose={() => {
+                setSearchParams(
+                  writeSelectedTransaction({ searchParams, transactionId: undefined }),
+                  { preventScrollReset: true },
+                );
+              }}
+            />
+          )}
+      </div>
     </Page>
   );
 }

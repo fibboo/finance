@@ -1,0 +1,59 @@
+.transactionPostings {
+  padding: var(--space-1) var(--space-3-5);
+  border-radius: var(--radius-action);
+  background: var(--color-ground);
+}
+
+.title {
+  margin: 0;
+  padding: var(--space-2-5) 0 var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.postings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.posting {
+  min-height: var(--size-posting);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-base);
+}
+
+.dot {
+  flex: none;
+  width: var(--size-dot);
+  height: var(--size-dot);
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.account {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.note {
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+  color: var(--color-muted);
+}

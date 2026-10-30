@@ -1,11 +1,10 @@
 import type { components } from '@/lib/api-schema';
-import { toDateText } from '@/lib/format-date';
-import { formatMoney, LOCALE } from '@/lib/format-money';
+import { formatMoney } from '@/lib/format-money';
 
 import styles from './transaction-day-list.module.css';
 import { useToday } from '@/hooks/use-today';
 import { TransactionRow } from './transaction-row';
-import { readTransactionView } from './transaction-view';
+import { readTransactionView, readWeekdayDateText } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 
@@ -15,7 +14,6 @@ type TransactionDay = Readonly<{
 }>;
 
 const DAY_MILLISECONDS = 86_400_000;
-const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZone: 'UTC' });
 
 function groupByDay(transactions: readonly Transaction[]): readonly TransactionDay[] {
   const days: { transactionDate: string; transactions: Transaction[] }[] = [];
@@ -39,11 +37,7 @@ function readDayLabel({
   const todayDate = new Date(`${today}T00:00:00Z`);
   const daysAgo = (todayDate.getTime() - date.getTime()) / DAY_MILLISECONDS;
   const dayLabel =
-    daysAgo === 0
-      ? 'Today'
-      : daysAgo === 1
-        ? 'Yesterday'
-        : `${WEEKDAY_FORMAT.format(date)}, ${toDateText(transactionDate)}`;
+    daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : readWeekdayDateText(transactionDate);
   return dayLabel;
 }
 

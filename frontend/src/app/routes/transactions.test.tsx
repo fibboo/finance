@@ -89,7 +89,10 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
         category_types: [],
         transaction_types: [
           { key: 'EXPENSE', label: 'Expense' },
@@ -968,4 +971,176 @@ test('keeps the period open on a date after today', async () => {
     await within(periodFilter).findByText('Pick a date no later than today.'),
   ).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
+});
+
+test('shows the selected transaction with its postings, location and comment', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json({
+        ...expense,
+        comment: 'Weekly shop',
+        location: {
+          name: 'Tbilisi',
+          user_id: expense.user_id,
+          id: '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e',
+          status: 'ACTIVE',
+        },
+        base_currency_amount: '46.70',
+        postings: [
+          { ...walletPosting, amount: '-42.80', currency: 'EUR', base_amount: '-46.70' },
+          { ...categoryPosting, amount: '42.80', currency: 'EUR', base_amount: '46.70' },
+        ],
+      } satisfies components['schemas']['Transaction']),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  expect(within(details).getByText('Expense · Tue, 20.10.2026')).toBeInTheDocument();
+  // the amount of the transaction and of its Wallet posting
+  expect(within(details).getAllByText('-€42.80')).toHaveLength(2);
+  expect(within(details).getByText('≈ $46.70')).toBeInTheDocument();
+  // each posting: its account, kind and currency, amount and base-currency value
+  const postings = within(details).getAllByRole('listitem');
+  expect(postings[0]).toHaveTextContent('WalletAsset · USD-€42.80≈ -$46.70');
+  expect(postings[1]).toHaveTextContent('GroceriesExpense+€42.80≈ +$46.70');
+  expect(within(details).getByText('Tbilisi')).toBeInTheDocument();
+  expect(within(details).getByText('Weekly shop')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Groceries' })).toHaveAttribute('aria-current', 'true');
+});
+
+test('opens the details of a row and closes them', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let feedRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () => {
+      feedRequestCount += 1;
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(expense),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('link', { name: 'Groceries' }));
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+
+  // act
+  await user.click(within(details).getByRole('button', { name: 'Close details' }));
+
+  // assert
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Groceries' })).toHaveFocus();
+  expect(feedRequestCount).toBe(1);
+});
+
+test('deletes the transaction after the confirmation and refreshes the list and the accounts', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let isDeleted = false;
+  let deletedType: string | null = null;
+  let accountRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: isDeleted ? [] : [expense],
+        total: isDeleted ? 0 : 1,
+        page: 1,
+        size: 15,
+        pages: isDeleted ? 0 : 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(expense),
+    ),
+    http.delete(`http://localhost/api/accounting/transactions/${expense.id}`, ({ request }) => {
+      isDeleted = true;
+      deletedType = new URL(request.url).searchParams.get('transaction_type');
+      return HttpResponse.json(expense);
+    }),
+    http.get('http://localhost/api/accounting/accounts', () => {
+      accountRequestCount += 1;
+      return HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 0,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await user.click(await within(details).findByRole('button', { name: 'Delete transaction' }));
+  const confirmation = screen.getByRole('alertdialog', { name: 'Delete this transaction?' });
+  expect(confirmation).toHaveAccessibleDescription(
+    "Groceries, -$42.80 on 20.10.2026. The balances of Wallet and Groceries are recalculated. This can't be undone.",
+  );
+  const accountRequestsBeforeDelete = accountRequestCount;
+
+  // act
+  await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
+
+  // assert
+  expect(await screen.findByText('Nothing here yet')).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  expect(deletedType).toBe('EXPENSE');
+  expect(accountRequestCount).toBeGreaterThan(accountRequestsBeforeDelete);
+});
+
+test('keeps the details open when the deletion is cancelled with Escape', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(expense),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await user.click(await within(details).findByRole('button', { name: 'Delete transaction' }));
+
+  // act
+  await user.keyboard('{Escape}');
+
+  // assert
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
+  expect(within(details).getByRole('button', { name: 'Delete transaction' })).toHaveFocus();
 });

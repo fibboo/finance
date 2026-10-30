@@ -12,13 +12,15 @@
 
 .income,
 .transfer,
-.adjustment {
+.adjustment,
+.selected {
   isolation: isolate;
 }
 
 .income::before,
 .transfer::before,
-.adjustment::before {
+.adjustment::before,
+.selected::before {
   content: '';
   position: absolute;
   inset: var(--space-1-5) calc(var(--space-2) * -1);
@@ -33,6 +35,31 @@
 
 .adjustment::before {
   background: var(--color-adjustment-row);
+}
+
+.selected::before {
+  background: var(--color-selected);
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.transactionRow:has(.link:focus-visible) {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+  border-radius: var(--radius-badge);
 }
 
 .transactionRow + .transactionRow {
@@ -118,7 +145,8 @@
 
   .income::before,
   .transfer::before,
-  .adjustment::before {
+  .adjustment::before,
+  .selected::before {
     border-radius: var(--radius-segment);
   }
 

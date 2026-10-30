@@ -17,6 +17,7 @@
   --color-shimmer: light-dark(rgb(255 255 255 / 65%), rgb(255 255 255 / 7%));
   --color-track: light-dark(#dcdcd7, #24272b);
   --color-danger: light-dark(#b42318, #ff7a6b);
+  --color-on-danger: light-dark(#ffffff, #0b0c0e);
   --color-warning: light-dark(#b25e09, #f2a541);
   --color-backdrop: rgb(0 0 0 / 35%);
   --shadow-bar: 0 0.625rem 1.875rem rgb(0 0 0 / 28%);
@@ -34,9 +35,11 @@
   --font-size-avatar: 1.0625rem;
   --font-size-intro: 1.0625rem;
   --font-size-xl: 1.125rem;
+  --font-size-heading: 1.25rem;
   --font-size-tile-amount: 1.0625rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.75rem;
+  --font-size-detail-amount: 2.25rem;
   --font-size-display: 2.5rem;
   --font-size-display-lg: 3.5rem;
   --font-weight-medium: 500;
@@ -51,6 +54,7 @@
   --letter-spacing-title: -0.02em;
   --letter-spacing-amount: -0.01em;
   --letter-spacing-display: -0.03em;
+  --letter-spacing-label: 0.04em;
   --letter-spacing-display-lg: -0.035em;
   --letter-spacing-balance-lg: -0.035em;
 
@@ -129,6 +133,7 @@
   --size-fab: 2.875rem;
   --size-button-lg: 3.25rem;
   --size-option-lg: 3.25rem;
+  --size-posting: 3.25rem;
   --size-bar-item: 3.125rem;
   --size-bar: 3.75rem;
   --size-skeleton-amount: 4.5rem;
@@ -147,6 +152,7 @@
   --size-popover: 18.75rem;
   --size-popover-wide: 21.25rem;
   --size-actions: 22.5rem;
+  --size-details: 22.5rem;
   --size-column: 30rem;
   --size-pace-bar: 0.5rem;
   --opacity-disabled: 0.5;

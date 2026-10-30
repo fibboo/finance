@@ -191,3 +191,39 @@ test.each([
   // the title, the accounts, the amount and its base-currency value, column by column
   expect(await screen.findByRole('listitem')).toHaveTextContent(cells.join(''));
 });
+
+test.each([
+  {
+    kind: 'keeps the filters of the list in the link to its details',
+    url: '/transactions?order=base_currency_amount%3Adesc',
+    current: null,
+  },
+  {
+    kind: 'marks the row whose details are open',
+    url: '/transactions?order=base_currency_amount%3Adesc&transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c4d',
+    current: 'true',
+  },
+])('$kind', async ({ url, current }) => {
+  // act
+  render(
+    <TransactionRow
+      transaction={{
+        ...transaction,
+        postings: [
+          { ...posting, amount: '-42.80', base_amount: '-42.80', account: wallet },
+          { ...posting, amount: '42.80', base_amount: '42.80', account: category },
+        ],
+      }}
+      baseCurrency="USD"
+    />,
+    { initialEntries: [url] },
+  );
+
+  // assert
+  const link = await screen.findByRole('link', { name: 'Groceries' });
+  expect(link).toHaveAttribute(
+    'href',
+    '/transactions?order=base_currency_amount%3Adesc&transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c4d',
+  );
+  expect(link.getAttribute('aria-current')).toBe(current);
+});

@@ -1,7 +1,14 @@
+import { Link, useSearchParams } from 'react-router';
+
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { formatMoney, LOCALE } from '@/lib/format-money';
 
+import {
+  readSelectedTransactionId,
+  readTransactionLinkId,
+  writeSelectedTransaction,
+} from '../api/selected-transaction';
 import styles from './transaction-row.module.css';
 import { readTransactionView } from './transaction-view';
 
@@ -19,10 +26,29 @@ type TransactionRowProps = Readonly<{
 }>;
 
 export function TransactionRow({ transaction, baseCurrency, dateLabel }: TransactionRowProps) {
+  const [searchParams] = useSearchParams();
   const view = readTransactionView(transaction);
+  const isSelected = readSelectedTransactionId(searchParams) === transaction.id;
+  const titleLink = (
+    <Link
+      id={readTransactionLinkId(transaction.id)}
+      to={{
+        pathname: '/transactions',
+        search: writeSelectedTransaction({
+          searchParams,
+          transactionId: transaction.id,
+        }).toString(),
+      }}
+      preventScrollReset
+      aria-current={isSelected ? 'true' : undefined}
+      className={styles['link']}
+    >
+      {view.title}
+    </Link>
+  );
   return (
     <li
-      className={`${styles['transactionRow'] ?? ''} ${styles[transaction.transaction_type.toLowerCase()] ?? ''}`}
+      className={`${styles['transactionRow'] ?? ''} ${styles[transaction.transaction_type.toLowerCase()] ?? ''} ${isSelected ? (styles['selected'] ?? '') : ''}`}
     >
       <span
         className={styles['dot']}
@@ -31,13 +57,13 @@ export function TransactionRow({ transaction, baseCurrency, dateLabel }: Transac
       />
       {view.accountNames === null ? (
         <span className={styles['wideTitle']}>
-          {view.title}
+          {titleLink}
           {dateLabel !== undefined && <span className={styles['date']}>{dateLabel}</span>}
         </span>
       ) : (
         <>
           <span className={styles['title']}>
-            {view.title}
+            {titleLink}
             {dateLabel !== undefined && <span className={styles['date']}>{dateLabel}</span>}
           </span>
           <span className={styles['accounts']}>{view.accountNames}</span>
