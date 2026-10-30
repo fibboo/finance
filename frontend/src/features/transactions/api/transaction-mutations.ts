@@ -25,12 +25,18 @@ export const transactionMutations = {
   delete(relatedQueryKeys: readonly QueryKey[]) {
     return mutationOptions({
       mutationFn: deleteTransaction,
-      onSuccess: (_deletedTransaction, _transaction, _onMutateResult, { client }) =>
-        Promise.all(
-          [transactionQueries.feeds().queryKey, ...relatedQueryKeys].map((queryKey) =>
+      onSuccess: async (_deletedTransaction, transaction, _onMutateResult, { client }) => {
+        await Promise.all([
+          client.invalidateQueries({
+            queryKey: transactionQueries.details().queryKey,
+            refetchType: 'none',
+          }),
+          ...[transactionQueries.feeds().queryKey, ...relatedQueryKeys].map((queryKey) =>
             client.invalidateQueries({ queryKey }),
           ),
-        ),
+        ]);
+        client.removeQueries({ queryKey: transactionQueries.detail(transaction.id).queryKey });
+      },
     });
   },
 };

@@ -10,6 +10,7 @@ export type TransactionListQuery = NonNullable<
 >;
 
 const FEED_KEY = ['transactions', 'feed'] as const;
+const DETAIL_KEY = ['transactions', 'detail'] as const;
 
 async function fetchTransactions(query: Readonly<TransactionListQuery>): Promise<TransactionPage> {
   const transactions = readData(
@@ -40,9 +41,12 @@ export const transactionQueries = {
         lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined,
     });
   },
+  details() {
+    return { queryKey: DETAIL_KEY };
+  },
   detail(transactionId: string) {
     return queryOptions({
-      queryKey: ['transactions', 'detail', transactionId],
+      queryKey: [...DETAIL_KEY, transactionId],
       queryFn: () => fetchTransaction(transactionId),
     });
   },

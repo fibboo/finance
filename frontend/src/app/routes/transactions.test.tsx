@@ -91,6 +91,7 @@ beforeEach(() => {
         currencies: [],
         account_kinds: [
           { key: 'ASSET', label: 'Asset' },
+          { key: 'EQUITY', label: 'Equity' },
           { key: 'EXPENSE', label: 'Expense' },
         ],
         category_types: [],
@@ -994,6 +995,8 @@ test('shows the selected transaction with its postings, location and comment', a
           user_id: expense.user_id,
           id: '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e',
           status: 'ACTIVE',
+          created_at: '2026-10-01T09:00:00Z',
+          updated_at: '2026-10-01T09:00:00Z',
         },
         base_currency_amount: '46.70',
         postings: [
@@ -1066,6 +1069,7 @@ test('deletes the transaction after the confirmation and refreshes the list and 
   let isDeleted = false;
   let deletedType: string | null = null;
   let accountRequestCount = 0;
+  let detailRequestCount = 0;
   server.use(
     http.get('http://localhost/api/accounting/transactions', () =>
       HttpResponse.json({
@@ -1076,9 +1080,10 @@ test('deletes the transaction after the confirmation and refreshes the list and 
         pages: isDeleted ? 0 : 1,
       } satisfies components['schemas']['Page_Transaction_']),
     ),
-    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
-      HttpResponse.json(expense),
-    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () => {
+      detailRequestCount += 1;
+      return HttpResponse.json(expense);
+    }),
     http.delete(`http://localhost/api/accounting/transactions/${expense.id}`, ({ request }) => {
       isDeleted = true;
       deletedType = new URL(request.url).searchParams.get('transaction_type');
@@ -1113,6 +1118,7 @@ test('deletes the transaction after the confirmation and refreshes the list and 
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   expect(deletedType).toBe('EXPENSE');
   expect(accountRequestCount).toBeGreaterThan(accountRequestsBeforeDelete);
+  expect(detailRequestCount).toBe(1);
 });
 
 test('keeps the details open when the deletion is cancelled with Escape', async () => {
@@ -1143,4 +1149,80 @@ test('keeps the details open when the deletion is cancelled with Escape', async 
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   expect(screen.getByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
   expect(within(details).getByRole('button', { name: 'Delete transaction' })).toHaveFocus();
+});
+
+test('keeps the details open when Escape closes a filter', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(expense),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  expect(await screen.findByRole('heading', { level: 2, name: 'Groceries' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Amount' }));
+  expect(screen.getByRole('dialog', { name: 'Amount' })).toBeInTheDocument();
+
+  // act
+  await user.keyboard('{Escape}');
+
+  // assert
+  expect(screen.queryByRole('dialog', { name: 'Amount' })).not.toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
+});
+
+test('leaves the adjustment account out of the balances the deletion recalculates', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const adjustment = {
+    ...expense,
+    transaction_type: 'ADJUSTMENT',
+    postings: [
+      {
+        ...categoryPosting,
+        amount: '-12.00',
+        base_amount: '-12.00',
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+      },
+      { ...walletPosting, amount: '12.00', base_amount: '12.00' },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [adjustment],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(adjustment),
+    ),
+  );
+  render(<Component />, {
+    initialEntries: [`/transactions?transaction=${expense.id}`],
+  });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+
+  // act
+  await user.click(await within(details).findByRole('button', { name: 'Delete transaction' }));
+
+  // assert
+  expect(
+    screen.getByRole('alertdialog', { name: 'Delete this transaction?' }),
+  ).toHaveAccessibleDescription(
+    "Balance adjustment · Wallet, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
+  );
 });

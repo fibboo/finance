@@ -23,8 +23,18 @@ function readConfirmationText(transaction: Readonly<Transaction>): string {
     currency: view.currency,
     signDisplay: view.signDisplay,
   });
-  const accountNames = [...new Set(transaction.postings.map((posting) => posting.account.name))];
-  const confirmationText = `${view.title}, ${amount} on ${toDateText(transaction.transaction_date)}. The balances of ${ACCOUNT_LIST_FORMAT.format(accountNames)} are recalculated. This can't be undone.`;
+  const accountNames = [
+    ...new Set(
+      transaction.postings
+        .filter((posting) => posting.account.kind !== 'EQUITY')
+        .map((posting) => posting.account.name),
+    ),
+  ];
+  const balances =
+    accountNames.length === 1
+      ? `The balance of ${ACCOUNT_LIST_FORMAT.format(accountNames)} is`
+      : `The balances of ${ACCOUNT_LIST_FORMAT.format(accountNames)} are`;
+  const confirmationText = `${view.title}, ${amount} on ${toDateText(transaction.transaction_date)}. ${balances} recalculated. This can't be undone.`;
   return confirmationText;
 }
 

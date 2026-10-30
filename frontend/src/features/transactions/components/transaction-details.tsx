@@ -38,6 +38,7 @@ export function TransactionDetails({
     refetch,
   } = useQuery(transactionQueries.detail(transactionId));
   const backdropId = useId();
+  const panelId = useId();
 
   function close() {
     onClose();
@@ -57,7 +58,12 @@ export function TransactionDetails({
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      const { target } = event;
+      const isInDetails =
+        target === document.body ||
+        (target instanceof Node && document.getElementById(panelId)?.contains(target) === true);
+
+      if (event.key === 'Escape' && isInDetails) {
         closeDetails();
       }
     }
@@ -69,7 +75,7 @@ export function TransactionDetails({
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, transactionId, backdropId]);
+  }, [onClose, transactionId, backdropId, panelId]);
 
   const closeButton = (
     <button type="button" className={styles['close']} aria-label="Close details" onClick={close}>
@@ -82,6 +88,7 @@ export function TransactionDetails({
     <>
       <div id={backdropId} className={styles['backdrop']} aria-hidden="true" />
       <section
+        id={panelId}
         ref={(panel) => {
           panel?.focus();
         }}
