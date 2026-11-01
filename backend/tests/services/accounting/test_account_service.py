@@ -3,6 +3,7 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
+import time_machine
 from fastapi_pagination import Page
 from pytest_httpx import HTTPXMock
 from sqlalchemy import select
@@ -947,10 +948,11 @@ async def test_get_accounts_estimated_base_balance(db: AsyncSession, httpx_mock:
     }
 
 
+@time_machine.travel(datetime(2026, 6, 15, 12, tzinfo=UTC), tick=False)
 async def test_get_accounts_recent_use_order(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    today: date = datetime.now(UTC).date()
+    today: date = date(2026, 6, 15)
     wallet_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={"user_id": user_id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},

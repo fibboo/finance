@@ -1,3 +1,4 @@
+from datetime import date, datetime, UTC
 from uuid import UUID
 
 from fastapi_pagination import Page
@@ -19,6 +20,7 @@ from app.schemas.accounting.location import (
 from app.schemas.base import EntityStatusType
 
 logger = get_logger(logger_name=__name__)
+from app.utils import utils
 
 
 def _get_integrity_exception(*, exception: IntegrityError, user_id: UUID) -> ConflictException:
@@ -42,7 +44,10 @@ async def create_location(*, db: AsyncSession, create_data: LocationCreateReques
 
 
 async def get_locations(*, db: AsyncSession, request: LocationRequest, user_id: UUID) -> Page[Location]:
-    locations_db: Page[LocationModel] = await location_crud.get_locations(db=db, request=request, user_id=user_id)
+    recent_use_dates: tuple[date, date] = utils.get_recent_use_dates(today=datetime.now(UTC).date())
+    locations_db: Page[LocationModel] = await location_crud.get_locations(
+        db=db, request=request, user_id=user_id, recent_use_dates=recent_use_dates
+    )
     locations: Page[Location] = Page[Location].model_validate(locations_db)
     return locations
 

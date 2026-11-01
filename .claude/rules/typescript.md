@@ -88,6 +88,6 @@ These rules apply to new and changed code under `frontend/`. They give the TypeS
 ## Tests
 
 - Tests are colocated with the file they test, named `<file>.test.ts` or `<file>.test.tsx`, one test file per source file.
-- The test shape of `.claude/rules/python.md` **Tests** applies in full, with these forms: the act is one call of the real code; only the network is mocked, through MSW; our own modules, hooks and the API client are never mocked with `vi.mock`; a test file defines no functions other than its tests, and shared setup lives in the Vitest setup file or in `test.each`; a definition (a union, a constant, a schema's fields) is never the subject of a test.
+- The test shape of `.claude/rules/python.md` **Tests** applies in full, with these forms: the act is one call of the real code; only the network is mocked, through MSW; our own modules, hooks and the API client are never mocked with `vi.mock`; a test file defines no functions other than its tests, and shared setup lives in the Vitest setup file or in `test.each`; a definition (a union, a constant, a schema's fields) is never the subject of a test; a rule with edges is tested just inside and just outside every edge at once, with data in which moving any edge changes the asserted result, and a test that reads the clock fixes the system time (`vi.setSystemTime`) for both its arrange and its act.
 - Tests run under Vitest in jsdom.
 - Test section markers are `// arrange`, `// act`, `// assert` and `// act / assert`.

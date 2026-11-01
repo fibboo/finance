@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
@@ -13,11 +13,12 @@ from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
 from app.schemas.accounting.account import AccountCreate, AccountRequest, AccountUpdate, MONEY_ACCOUNT_KINDS
 from app.schemas.base import EntityStatusType, ListOrderType
-from app.utils import utils
 
 
 class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
-    async def get_accounts(self, *, db: AsyncSession, request: AccountRequest, user_id: UUID) -> Page[Account]:
+    async def get_accounts(
+        self, *, db: AsyncSession, request: AccountRequest, user_id: UUID, recent_use_dates: tuple[date, date]
+    ) -> Page[Account]:
         query: Select = select(self.model).where(
             self.model.user_id == user_id,
             self.model.status.in_(request.statuses),
@@ -33,7 +34,7 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
             )
 
         if request.order == ListOrderType.RECENT_USE:
-            recent_use_start, recent_use_end = utils.get_recent_use_dates(today=datetime.now(UTC).date())
+            recent_use_start, recent_use_end = recent_use_dates
             use_counts: Subquery = (
                 select(Posting.account_id, func.count(func.distinct(Posting.transaction_id)).label("use_count"))
                 .join(Transaction, Transaction.id == Posting.transaction_id)

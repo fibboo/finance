@@ -3,6 +3,7 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
+import time_machine
 from fastapi_pagination import Page
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -536,10 +537,11 @@ async def test_update_location_name_of_deleted_location(db: AsyncSession, db_tra
     assert location.status == EntityStatusType.ACTIVE
 
 
+@time_machine.travel(datetime(2026, 6, 15, 12, tzinfo=UTC), tick=False)
 async def test_get_locations_recent_use_order(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
-    today: date = datetime.now(UTC).date()
+    today: date = date(2026, 6, 15)
     wallet_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={"user_id": user_id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
