@@ -1,3 +1,5 @@
+@import '@/styles/media.css';
+
 .entityPicker {
   min-height: 0;
   display: flex;
@@ -91,12 +93,18 @@
   color: var(--color-muted);
 }
 
+.results {
+  flex: none;
+  height: var(--size-picker-results);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
 .list {
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
-  scrollbar-width: none;
 }
 
 .item {
@@ -157,4 +165,10 @@
   padding: var(--space-3) 0;
   font-size: var(--font-size-sm);
   color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .results {
+    height: var(--size-picker-results-lg);
+  }
 }

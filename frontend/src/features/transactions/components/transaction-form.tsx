@@ -36,6 +36,8 @@ type AdjustmentFormInput = z.input<AdjustmentFormSchema>;
 type AdjustmentFormOutput = z.output<AdjustmentFormSchema>;
 
 const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
+const SERVER_ERROR_STATUS = 500;
+const SAVE_ERROR_MESSAGE = "Couldn't save the adjustment. Please try again.";
 const FORM_FIELDS = [
   'account_id',
   'new_balance',
@@ -149,7 +151,14 @@ export function TransactionForm({
             adjust.mutate(values, {
               onSuccess: onClose,
               onError: (error) => {
-                if (error instanceof ApiError) {
+                if (!(error instanceof ApiError) || error.fieldErrors.length === 0) {
+                  setError('root.server', {
+                    message:
+                      error instanceof ApiError && error.status < SERVER_ERROR_STATUS
+                        ? error.message
+                        : SAVE_ERROR_MESSAGE,
+                  });
+                } else {
                   error.fieldErrors.forEach((fieldError) => {
                     const field = FORM_FIELDS.find((formField) => formField === fieldError.field);
                     if (field === 'base_currency_amount') {

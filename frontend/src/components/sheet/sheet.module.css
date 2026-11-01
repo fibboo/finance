@@ -11,10 +11,13 @@
   border: 0;
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   overflow: hidden;
-  display: flex;
   background: var(--color-panel);
   color: var(--color-ink);
   box-shadow: var(--shadow-popover);
+}
+
+.sheet[open] {
+  display: flex;
 }
 
 .sheet::backdrop {

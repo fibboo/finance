@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId } from 'react';
+import { type ReactNode, useLayoutEffect, useRef } from 'react';
 
 import styles from './sheet.module.css';
 
@@ -9,43 +9,44 @@ type SheetProps = Readonly<{
 }>;
 
 export function Sheet({ label, onClose, children }: SheetProps) {
-  const sheetId = useId();
+  const sheetRef = useRef<HTMLDialogElement>(null);
+  const isUnmountingRef = useRef(false);
 
-  useEffect(() => {
-    function handlePointerDown(event: PointerEvent) {
-      if (event.target === document.getElementById(sheetId)) {
-        onClose();
-      }
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    if (sheet === null) {
+      return undefined;
     }
 
-    document.addEventListener('pointerdown', handlePointerDown);
+    isUnmountingRef.current = false;
+    sheet.showModal();
+    sheet.focus({ preventScroll: true });
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
+      isUnmountingRef.current = true;
+      sheet.close();
     };
-  }, [onClose, sheetId]);
+  }, []);
 
   return (
     <dialog
-      id={sheetId}
-      ref={(sheet) => {
-        const opener = document.activeElement;
-        if (sheet !== null && !sheet.open) {
-          sheet.showModal();
-        }
-
-        return () => {
-          sheet?.close();
-          if (opener instanceof HTMLElement) {
-            opener.focus({ preventScroll: true });
-          }
-        };
-      }}
+      ref={sheetRef}
       aria-label={label}
+      tabIndex={-1}
       className={styles['sheet']}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
+      }}
+      onClose={(event) => {
+        if (!isUnmountingRef.current && !event.currentTarget.open) {
+          onClose();
+        }
+      }}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
       }}
     >
       <div className={styles['content']}>

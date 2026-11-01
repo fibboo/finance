@@ -107,3 +107,29 @@ test('leaves the account picker for the form with Escape', async () => {
   // assert
   expect(screen.getByRole('button', { name: 'Adjust balance' })).toBeVisible();
 });
+
+test('lists the money accounts used most recently first', async () => {
+  // arrange
+  let requestedOrder: string | null = null;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      requestedOrder = new URL(request.url).searchParams.get('order');
+      return HttpResponse.json({
+        items: [wallet],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=ADJUSTMENT'] });
+
+  // act
+  await user.click(await screen.findByRole('button', { name: /^Account/ }));
+
+  // assert
+  await screen.findByRole('button', { name: /^Wallet/ });
+  expect(requestedOrder).toBe('recent_use');
+});

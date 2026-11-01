@@ -161,6 +161,8 @@
   --size-actions: 22.5rem;
   --size-details: 22.5rem;
   --size-dialog: 27.5rem;
+  --size-picker-results: calc(100dvh - 11.25rem);
+  --size-picker-results-lg: 28.5rem;
   --size-column: 30rem;
   --size-merge-panel: 35rem;
   --size-pace-bar: 0.5rem;
