@@ -46,18 +46,34 @@
       "h": 800,
       "title": "Edit account (desktop)",
       "is_interactive": true
+    },
+    "delete-phone.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Delete account (phone)"
+    },
+    "delete-desktop.dc.html": {
+      "x": 2720,
+      "y": 964,
+      "w": 1280,
+      "h": 800,
+      "title": "Delete account (desktop)"
     }
   },
   "order": [
     "Main.dc.html",
     "details-phone.dc.html",
     "form-phone.dc.html",
+    "delete-phone.dc.html",
     "list-a-desktop.dc.html",
-    "edit-desktop.dc.html"
+    "edit-desktop.dc.html",
+    "delete-desktop.dc.html"
   ],
   "notes": {
     "newAccount": {
-      "x": 1410,
+      "x": 1880,
       "y": 0,
       "w": 320,
       "text": "New account is the form agreed in Transaction entry (sheet on a phone, dialog on desktop), reused as is; it opens from + New account here. Edit is the same form without kind and currency. Adjust balance opens the Transaction entry form with Balance adjustment chosen and this account filled in.",

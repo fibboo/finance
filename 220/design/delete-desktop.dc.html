@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Delete account, desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; padding: 16px; position: relative; overflow: hidden; display: flex; gap: 20px; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div style="width: 230px; height: 340px; flex-shrink: 0; border-radius: 20px; background: {{t.panel}}"></div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px">
+    <span style="height: 52px; display: flex; align-items: center; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Accounts</span>
+    <div style="width: 460px; height: 40px; border-radius: 20px; background: {{t.panel}}"></div>
+    <div style="flex-grow: 1; display: flex; gap: 16px">
+      <div style="flex-grow: 1; border-radius: 20px; background: {{t.panel}}"></div>
+      <div style="width: 340px; height: 400px; border-radius: 20px; background: {{t.panel}}"></div>
+    </div>
+  </div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.35)"></div>
+  <div role="alertdialog" aria-modal="true" aria-labelledby="delete-title" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 400px; box-sizing: border-box; padding: 20px; border-radius: 20px; display: flex; flex-direction: column; gap: 12px; background: {{t.panel}}; box-shadow: 0 18px 50px rgba(0,0,0,.3)">
+    <h2 id="delete-title" style="margin: 0; font-size: 18px; font-weight: 700">Delete this account?</h2>
+    <p style="margin: 0; font-size: 15px; line-height: 1.45; color: {{t.muted}}">Old cash, ₾0.00. It leaves your accounts and the pickers, and its past transactions keep showing it.</p>
+    <div style="padding-top: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <button type="button" style="height: 46px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 600; background: {{t.bg}}; color: {{t.text}}">Cancel</button>
+      <button type="button" style="height: 46px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 600; background: {{t.danger}}; color: {{t.onDanger}}">Delete</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', danger: '#B42318', onDanger: '#FFFFFF' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', danger: '#FF7A6B', onDanger: '#0B0C0E' };
+return { t: (this.props.dark ?? true) ? D : L };
+}
+}
+</script>
+</body>
+</html>
