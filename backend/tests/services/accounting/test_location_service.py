@@ -561,12 +561,14 @@ async def test_get_locations_recent_use_order(db: AsyncSession):
             db=db, obj_in=LocationCreate(user_id=user_id, name=name), commit=True
         )
 
-    # Bravo is used twice and Alpha once within 90 days; Delta only 91 days ago and in a deleted expense
+    # Bravo is used twice and Alpha once within 90 days; Charlie only in a future-dated expense,
+    # Delta only 92 days ago and in deleted expenses
     expenses: list[tuple[str, date, EntityStatusType]] = [
         ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE),
-        ("Bravo", today - timedelta(days=90), EntityStatusType.ACTIVE),
+        ("Bravo", today - timedelta(days=89), EntityStatusType.ACTIVE),
         ("Alpha", today, EntityStatusType.ACTIVE),
-        ("Delta", today - timedelta(days=91), EntityStatusType.ACTIVE),
+        ("Charlie", today + timedelta(days=5), EntityStatusType.ACTIVE),
+        ("Delta", today - timedelta(days=92), EntityStatusType.ACTIVE),
         ("Delta", today - timedelta(days=2), EntityStatusType.DELETED),
         ("Delta", today - timedelta(days=3), EntityStatusType.DELETED),
     ]

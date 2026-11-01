@@ -972,16 +972,18 @@ async def test_get_accounts_recent_use_order(db: AsyncSession):
             commit=True,
         )
 
-    # Bravo is used twice and Alpha once within 90 days; Delta only 91 days ago and in a deleted expense
-    expenses: list[tuple[str, date, EntityStatusType]] = [
-        ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE),
-        ("Bravo", today - timedelta(days=90), EntityStatusType.ACTIVE),
-        ("Alpha", today, EntityStatusType.ACTIVE),
-        ("Delta", today - timedelta(days=91), EntityStatusType.ACTIVE),
-        ("Delta", today - timedelta(days=2), EntityStatusType.DELETED),
-        ("Delta", today - timedelta(days=3), EntityStatusType.DELETED),
+    # Bravo is used twice and Alpha once within 90 days, Alpha's expense carrying two zero exchange-difference
+    # postings that are no extra uses; Charlie only in a future-dated expense, Delta 92 days ago and in deleted ones
+    expenses: list[tuple[str, date, EntityStatusType, int]] = [
+        ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE, 0),
+        ("Bravo", today - timedelta(days=89), EntityStatusType.ACTIVE, 0),
+        ("Alpha", today, EntityStatusType.ACTIVE, 2),
+        ("Charlie", today + timedelta(days=5), EntityStatusType.ACTIVE, 0),
+        ("Delta", today - timedelta(days=92), EntityStatusType.ACTIVE, 0),
+        ("Delta", today - timedelta(days=2), EntityStatusType.DELETED, 0),
+        ("Delta", today - timedelta(days=3), EntityStatusType.DELETED, 0),
     ]
-    for category_name, transaction_date, transaction_status in expenses:
+    for category_name, transaction_date, transaction_status, exchange_difference_count in expenses:
         expense_db: TransactionModel = await transaction_crud.create_with_postings(
             db=db,
             obj_in=TransactionCreate(
@@ -1001,6 +1003,15 @@ async def test_get_accounts_recent_use_order(db: AsyncSession):
                     currency="USD",
                     base_amount=Decimal("10"),
                 ),
+            ]
+            + [
+                PostingCreate(
+                    account_id=categories_db[category_name].id,
+                    amount=Decimal("0"),
+                    currency="USD",
+                    base_amount=Decimal("0"),
+                )
+                for _ in range(exchange_difference_count)
             ],
         )
         await transaction_crud.update_orm(db=db, obj_in={"status": transaction_status}, id=expense_db.id)

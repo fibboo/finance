@@ -1,10 +1,9 @@
-from datetime import date, datetime, timedelta, UTC
 from decimal import Decimal
 from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import func, or_, select, Select, update, Update
+from sqlalchemy import func, or_, select, Select, Subquery, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -12,12 +11,13 @@ from app.models.accounting.account import Account
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
 from app.schemas.accounting.account import AccountCreate, AccountRequest, AccountUpdate, MONEY_ACCOUNT_KINDS
-from app.schemas.base import EntityStatusType, ListOrderType, RECENT_USE_DAYS
+from app.schemas.base import EntityStatusType, ListOrderType
+from app.utils import utils
 
 
 class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
     async def get_accounts(self, *, db: AsyncSession, request: AccountRequest, user_id: UUID) -> Page[Account]:
-        query = select(self.model).where(
+        query: Select = select(self.model).where(
             self.model.user_id == user_id,
             self.model.status.in_(request.statuses),
             self.model.kind.in_(request.kinds),
@@ -32,14 +32,14 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
             )
 
         if request.order == ListOrderType.RECENT_USE:
-            recent_use_start: date = datetime.now(UTC).date() - timedelta(days=RECENT_USE_DAYS)
-            use_counts = (
-                select(Posting.account_id, func.count(Posting.id).label("use_count"))
+            recent_use_start, recent_use_end = utils.get_recent_use_dates()
+            use_counts: Subquery = (
+                select(Posting.account_id, func.count(func.distinct(Posting.transaction_id)).label("use_count"))
                 .join(Transaction, Transaction.id == Posting.transaction_id)
                 .where(
                     Transaction.user_id == user_id,
                     Transaction.status == EntityStatusType.ACTIVE,
-                    Transaction.transaction_date >= recent_use_start,
+                    Transaction.transaction_date.between(recent_use_start, recent_use_end),
                 )
                 .group_by(Posting.account_id)
                 .subquery()
