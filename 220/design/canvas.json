@@ -1,19 +1,68 @@
 {
   "v": 3,
-  "createdOnFiles": {"v": 1, "at": "2026-11-01T12:00:00Z"},
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-01T12:00:00Z"
+  },
   "title": "Accounts section",
-  "launch": {"view": "canvas"},
+  "launch": {
+    "view": "canvas"
+  },
   "pages": [],
   "boards": {
-    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "Accounts (phone)"},
-    "details-phone.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "Account sheet (phone)"},
-    "form-phone.dc.html": {"x": 940, "y": 0, "w": 390, "h": 844, "title": "Edit account (phone)", "is_interactive": true},
-    "adjust-phone.dc.html": {"x": 1410, "y": 0, "w": 390, "h": 844, "title": "Adjust balance (phone)"},
-    "list-a-desktop.dc.html": {"x": 0, "y": 964, "w": 1280, "h": 800, "title": "Accounts with account panel (desktop)"},
-    "edit-desktop.dc.html": {"x": 1360, "y": 964, "w": 1280, "h": 800, "title": "Edit account (desktop)", "is_interactive": true},
-    "adjust-desktop.dc.html": {"x": 2720, "y": 964, "w": 1280, "h": 800, "title": "Adjust balance (desktop)"}
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Accounts (phone)"
+    },
+    "details-phone.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Account sheet (phone)"
+    },
+    "form-phone.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Edit account (phone)",
+      "is_interactive": true
+    },
+    "list-a-desktop.dc.html": {
+      "x": 0,
+      "y": 964,
+      "w": 1280,
+      "h": 800,
+      "title": "Accounts with account panel (desktop)"
+    },
+    "edit-desktop.dc.html": {
+      "x": 1360,
+      "y": 964,
+      "w": 1280,
+      "h": 800,
+      "title": "Edit account (desktop)",
+      "is_interactive": true
+    }
   },
-  "order": ["Main.dc.html", "details-phone.dc.html", "form-phone.dc.html", "adjust-phone.dc.html", "list-a-desktop.dc.html", "edit-desktop.dc.html", "adjust-desktop.dc.html"],
-  "notes": {"newAccount": {"x": 1880, "y": 0, "w": 320, "text": "New account is the form agreed in Transaction entry (sheet on a phone, dialog on desktop), reused as is; it opens from + New account here. Edit is the same form without kind and currency.", "fill": "yellow"}},
+  "order": [
+    "Main.dc.html",
+    "details-phone.dc.html",
+    "form-phone.dc.html",
+    "list-a-desktop.dc.html",
+    "edit-desktop.dc.html"
+  ],
+  "notes": {
+    "newAccount": {
+      "x": 1410,
+      "y": 0,
+      "w": 320,
+      "text": "New account is the form agreed in Transaction entry (sheet on a phone, dialog on desktop), reused as is; it opens from + New account here. Edit is the same form without kind and currency. Adjust balance opens the Transaction entry form with Balance adjustment chosen and this account filled in.",
+      "fill": "yellow"
+    }
+  },
   "designSystems": []
 }
