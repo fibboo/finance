@@ -394,3 +394,50 @@ test('refuses a date after today', async () => {
   // assert
   expect(await screen.findByText('Choose a date up to today')).toBeInTheDocument();
 });
+
+test('drops the base currency amount typed for another account', async () => {
+  // arrange
+  let requestBody: unknown = null;
+  server.use(
+    http.post(
+      'http://localhost/api/accounting/accounts/:accountId/adjustment',
+      async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(adjustment);
+      },
+    ),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[wallet, euroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onTypeChange={vi.fn()}
+      onClose={onClose}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /^Account/ }));
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  await user.type(screen.getByLabelText('In USD'), '42.80');
+  await user.click(screen.getByRole('button', { name: /^Account/ }));
+  await user.click(screen.getByRole('button', { name: /^Wallet/ }));
+  await user.type(screen.getByLabelText('New balance'), '380');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(requestBody).toEqual({
+    transaction_date: '2026-10-20',
+    comment: null,
+    new_balance: '380',
+    base_currency_amount: null,
+  });
+});

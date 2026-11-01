@@ -278,8 +278,11 @@ export function TransactionForm({
           }))}
           selectedId={account?.id}
           onSelect={(selectedAccountId) => {
+            if (selectedAccountId !== accountId) {
+              setValue('base_currency_amount', '');
+              setIsBaseAmountAsked(false);
+            }
             setValue('account_id', selectedAccountId, { shouldValidate: formState.isSubmitted });
-            setIsBaseAmountAsked(false);
             closePicker();
           }}
           onBack={closePicker}

@@ -27,12 +27,12 @@ export function NewTransaction() {
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
     enabled: isOpen,
-    throwOnError: true,
+    throwOnError: (_error, query) => query.state.data === undefined,
   });
   const { data: moneyAccounts } = useQuery({
     ...accountQueries.list({ kinds: [...MONEY_ACCOUNT_KINDS], size: ACCOUNT_PAGE_SIZE }),
     enabled: isOpen,
-    throwOnError: true,
+    throwOnError: (_error, query) => query.state.data === undefined,
   });
   if (transactionType === undefined) {
     return null;

@@ -107,3 +107,17 @@ test('leaves the account picker for the form with Escape', async () => {
   // assert
   expect(screen.getByRole('button', { name: 'Adjust balance' })).toBeVisible();
 });
+
+test('keeps Tab inside the form', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=ADJUSTMENT'] });
+  const adjustButton = await screen.findByRole('button', { name: 'Adjust balance' });
+  adjustButton.focus();
+
+  // act
+  await user.tab();
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+});

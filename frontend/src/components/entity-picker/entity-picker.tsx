@@ -40,7 +40,7 @@ export function EntityPicker({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.isComposing) {
         event.stopPropagation();
         onBack();
       }
