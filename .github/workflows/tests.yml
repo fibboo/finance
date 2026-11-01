@@ -10,11 +10,42 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      api_schema: ${{ steps.filter.outputs.api_schema }}
+      workflows: ${{ steps.filter.outputs.workflows }}
+    steps:
+      - uses: dorny/paths-filter@v4.0.3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            api_schema:
+              - 'backend/**'
+              - 'frontend/src/lib/api-schema.ts'
+              - 'frontend/package.json'
+              - 'frontend/package-lock.json'
+            workflows:
+              - '.github/workflows/**'
+
   tests:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
       - name: Build test image
         run: docker build -t finance-test -f backend/tests/Dockerfile backend
@@ -23,6 +54,8 @@ jobs:
         run: docker run --rm finance-test pytest -v -n auto
 
   frontend:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -56,6 +89,8 @@ jobs:
         run: npm run build
 
   api-schema:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.api_schema == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
