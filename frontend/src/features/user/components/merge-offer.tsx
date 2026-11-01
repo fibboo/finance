@@ -78,7 +78,7 @@ export function MergeOffer({ provider, providerTypes, mergeOffer }: MergeOfferPr
         <li>The account {mergeOffer.username} is deleted. This can’t be undone.</li>
       </ul>
       <div className={styles['actions']}>
-        <Link to="/" className={styles['notNow']}>
+        <Link to="/" replace className={styles['notNow']}>
           Not now
         </Link>
         <button

@@ -46,6 +46,7 @@ test('completes the link with the verifier of the challenge it started with', as
   expect(linkQuery.get('redirect_uri')).toBe('http://localhost:3000/auth/link-callback');
   expect(linkQuery.get('code_challenge_method')).toBe('S256');
   expect(completedLink).toEqual({
+    status: 'completed',
     provider: 'GOOGLE',
     link_result: { status: 'merge_required', merge_offer: mergeOffer },
   });
@@ -63,7 +64,7 @@ test('completes the link with the verifier of the challenge it started with', as
 });
 
 test.each([
-  { name: 'the provider error', callbackQuery: 'error=access_denied&state=:state' },
+  { name: 'a provider error', callbackQuery: 'error=server_error&state=:state' },
   { name: 'another state', callbackQuery: 'code=code-1&state=foreign-state' },
   { name: 'no state', callbackQuery: 'code=code-1' },
 ])('does not complete a callback with $name', async ({ callbackQuery }) => {
@@ -85,7 +86,7 @@ test.each([
   });
 
   // assert
-  expect(completedLink).toBeNull();
+  expect(completedLink).toEqual({ status: 'failed' });
 });
 
 test('accepts a callback only once', async () => {
@@ -111,7 +112,7 @@ test('accepts a callback only once', async () => {
   const completedLink = await completeLink({ request: new Request(callbackUrl) });
 
   // assert
-  expect(completedLink).toBeNull();
+  expect(completedLink).toEqual({ status: 'failed' });
 });
 
 test('does not complete a link the backend rejects', async () => {
@@ -139,5 +140,27 @@ test('does not complete a link the backend rejects', async () => {
   });
 
   // assert
-  expect(completedLink).toBeNull();
+  expect(completedLink).toEqual({ status: 'failed' });
+});
+
+test('tells a cancel at the provider apart from a failure', async () => {
+  // arrange
+  let linkQuery = new URLSearchParams();
+  server.use(
+    http.post('http://localhost/api/user/auth/link/GOOGLE', ({ request }) => {
+      linkQuery = new URL(request.url).searchParams;
+      return HttpResponse.json({ authorization_url: 'https://accounts.google.test/authorize' });
+    }),
+  );
+  await startLink('GOOGLE');
+
+  // act
+  const linkOutcome = await completeLink({
+    request: new Request(
+      `http://localhost/auth/link-callback?error=access_denied&state=${linkQuery.get('state') ?? ''}`,
+    ),
+  });
+
+  // assert
+  expect(linkOutcome).toEqual({ status: 'cancelled' });
 });

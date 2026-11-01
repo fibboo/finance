@@ -32,8 +32,8 @@ export async function createCodeChallenge(codeVerifier: string): Promise<string>
   return codeChallenge;
 }
 
-export function readRedirectUri(): string {
-  const redirectUri = new URL('/auth/callback', window.location.origin).href;
+export function readRedirectUri(callbackPath = '/auth/callback'): string {
+  const redirectUri = new URL(callbackPath, window.location.origin).href;
   return redirectUri;
 }
 
