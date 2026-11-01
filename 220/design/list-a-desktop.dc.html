@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Accounts with account panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+input::placeholder{color:inherit;opacity:.7}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; padding: 16px; display: flex; gap: 20px; overflow: hidden; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <nav aria-label="Main" style="width: 230px; flex: none; padding: 20px 12px; border-radius: 20px; display: flex; flex-direction: column; gap: 6px; background: {{t.panel}}; align-self: flex-start">
+    <span style="padding: 0 8px 14px; display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 700"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>finance</span>
+    <button type="button" style="height: 44px; margin-bottom: 8px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 600; background: {{t.bone}}; color: {{t.text}}">+ Add transaction</button>
+    <a href="#" style="height: 44px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; font-size: 15px; font-weight: 500; text-decoration: none; color: {{t.muted}}">Home</a>
+    <a href="#" style="height: 44px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; font-size: 15px; font-weight: 500; text-decoration: none; color: {{t.muted}}">Transactions</a>
+    <a href="#" aria-current="page" style="height: 44px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; font-size: 15px; font-weight: 600; text-decoration: none; background: {{t.bg}}; color: {{t.text}}">Accounts</a>
+    <span style="height: 44px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; color: {{t.muted}}; opacity: .7">Categories <span style="font-size: 11px; padding: 3px 8px; border-radius: 8px; background: {{t.bg}}">Soon</span></span>
+  </nav>
+  <main style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Accounts <span style="font-weight: 500; color: {{t.muted}}">7</span></h1>
+      <button type="button" aria-label="Open account menu" style="width: 44px; height: 44px; border: 0; border-radius: 999px; font-size: 14px; font-weight: 600; background: {{t.panel}}; color: {{t.text}}">FI</button>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <label style="width: 320px; height: 40px; padding: 0 14px; border-radius: 999px; display: flex; align-items: center; gap: 8px; background: {{t.panel}}; color: {{t.muted}}">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input type="search" placeholder="Search accounts" style="flex: 1; min-width: 0; border: 0; padding: 0; background: transparent; font-size: 14px; color: {{t.text}}; outline: none">
+      </label>
+      <button type="button" style="height: 40px; padding: 0 16px; border: 0; border-radius: 999px; font-size: 14px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">+ New account</button>
+    </div>
+    <div style="flex: 1; min-height: 0; display: flex; gap: 16px; align-items: flex-start">
+      <section style="flex: 1; min-width: 0; padding: 8px 20px 12px; border-radius: 20px; background: {{t.panel}}">
+        <div style="height: 34px; display: grid; grid-template-columns: 1fr 120px 150px; align-items: center; font-size: 13px; color: {{t.muted}}; border-bottom: 1px solid {{t.border}}">
+          <span style="padding-left: 44px">Account</span><span style="text-align: right">Balance</span><span style="text-align: right">In USD</span>
+        </div>
+        <div style="height: 40px; margin: 6px -8px 0; padding: 0 8px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; background: {{t.band}}"><span>Assets</span><span>$94,344.46</span></div>
+        <sc-for list="{{assets}}" as="a" hint-placeholder-count="5">
+          <a href="#" style="height: 52px; margin: 0 -8px; padding: 0 8px; border-radius: 10px; display: grid; grid-template-columns: 1fr 120px 150px; align-items: center; text-decoration: none; background: {{a.rowBg}}">
+            <span style="display: flex; align-items: center; gap: 12px">
+              <span aria-hidden="true" style="width: 30px; height: 30px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: {{a.color}}; background: {{a.tint}}">{{a.initial}}</span>
+              <span style="font-size: 15px; font-weight: 500">{{a.name}} <span style="font-size: 13px; color: {{t.muted}}">· {{a.currency}}</span></span>
+            </span>
+            <span style="text-align: right; font-size: 14px; color: {{t.muted}}">{{a.own}}</span>
+            <span style="text-align: right; font-size: 15px; font-weight: 700">{{a.base}}</span>
+          </a>
+        </sc-for>
+        <div style="height: 40px; margin: 6px -8px 0; padding: 0 8px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; background: {{t.band}}"><span>Liabilities</span><span style="color: {{t.danger}}">−$1,769.60</span></div>
+        <sc-for list="{{liabilities}}" as="a" hint-placeholder-count="2">
+          <a href="#" style="height: 52px; margin: 0 -8px; padding: 0 8px; border-radius: 10px; display: grid; grid-template-columns: 1fr 120px 150px; align-items: center; text-decoration: none">
+            <span style="display: flex; align-items: center; gap: 12px">
+              <span aria-hidden="true" style="width: 30px; height: 30px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: {{a.color}}; background: {{a.tint}}">{{a.initial}}</span>
+              <span style="font-size: 15px; font-weight: 500">{{a.name}} <span style="font-size: 13px; color: {{t.muted}}">· {{a.currency}}</span></span>
+            </span>
+            <span style="text-align: right; font-size: 14px; color: {{t.muted}}">{{a.own}}</span>
+            <span style="text-align: right; font-size: 15px; font-weight: 700; color: {{t.danger}}">{{a.base}}</span>
+          </a>
+        </sc-for>
+      </section>
+      <aside aria-label="Main card" style="width: 340px; flex: none; padding: 20px; border-radius: 20px; display: flex; flex-direction: column; gap: 16px; background: {{t.panel}}">
+        <div style="display: flex; align-items: flex-start; gap: 12px">
+          <span aria-hidden="true" style="width: 40px; height: 40px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; color: #5B6CD9; background: #5B6CD92E">M</span>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 13px; color: {{t.muted}}">Asset · EUR</span>
+            <h2 style="margin: 0; font-size: 20px; font-weight: 700">Main card</h2>
+          </div>
+          <button type="button" aria-label="Close" style="width: 36px; height: 36px; border: 0; background: transparent; color: {{t.muted}}">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+          </button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08">€49,095.74</span>
+          <span style="font-size: 14px; color: {{t.muted}}">$57,442.02 · rate 0.8547</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; color: {{t.muted}}">Salary card, Intesa</p>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <a href="adjust-desktop.dc.html" style="height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; text-decoration: none; background: {{t.bg}}">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4"></path></svg>Adjust balance
+          </a>
+          <a href="edit-desktop.dc.html" style="height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; text-decoration: none; background: {{t.bg}}">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Edit
+          </a>
+          <a href="#" style="height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; text-decoration: none; background: {{t.bg}}">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Transactions
+          </a>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', border: '#E2E2DE', danger: '#B42318', bone: '#E4E4E0', band: '#F4F4F1', selected: '#EAF3EE' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', border: '#2A2D32', danger: '#FF7A6B', bone: '#24272B', band: '#1E2125', selected: '#16241D' };
+const t = (this.props.dark ?? true) ? D : L;
+const mark = (name, color) => ({ initial: name[0], color, tint: color + '2E' });
+const assets = [
+  { name: 'Main card', currency: 'EUR', base: '$57,442.02', own: '€49,095.74', rowBg: t.selected, ...mark('Main card', '#5B6CD9') },
+  { name: 'Savings', currency: 'GEL', base: '$16,507.00', own: '₾41,556.56', rowBg: 'transparent', ...mark('Savings', '#2E8C7A') },
+  { name: 'Freelance', currency: 'USD', base: '$16,282.76', own: '', rowBg: 'transparent', ...mark('Freelance', '#A15CB8') },
+  { name: 'Wallet', currency: 'USD', base: '$2,107.23', own: '', rowBg: 'transparent', ...mark('Wallet', '#4D8FBF') },
+  { name: 'Dinar card', currency: 'RSD', base: '$2,005.45', own: 'RSD 200,186', rowBg: 'transparent', ...mark('Dinar card', '#B8862C') }
+];
+const liabilities = [
+  { name: 'Intesa credit', currency: 'EUR', base: '−$1,451.20', own: '−€1,240.00', ...mark('Intesa credit', '#8A6FD1') },
+  { name: 'Credit card', currency: 'USD', base: '−$318.40', own: '', ...mark('Credit card', '#C2613F') }
+];
+return { t, assets, liabilities };
+}
+}
+</script>
+</body>
+</html>

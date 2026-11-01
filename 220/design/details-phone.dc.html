@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Account sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button,input{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div aria-hidden="true" style="position: absolute; inset: 0; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+    <div style="height: 44px; padding: 0 8px; display: flex; align-items: center; font-size: 24px; font-weight: 700">Accounts</div>
+    <div style="height: 44px; border-radius: 999px; background: {{t.panel}}"></div>
+    <div style="height: 340px; border-radius: 20px; background: {{t.panel}}"></div>
+  </div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.45)"></div>
+  <section role="dialog" aria-label="Main card" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 16px 20px; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; gap: 16px; background: {{t.panel}}">
+    <span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 999px; background: {{t.border}}"></span>
+    <div style="display: flex; align-items: flex-start; gap: 12px">
+      <span aria-hidden="true" style="width: 40px; height: 40px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; color: #5B6CD9; background: #5B6CD92E">M</span>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 13px; color: {{t.muted}}">Asset · EUR</span>
+        <h2 style="margin: 0; font-size: 20px; font-weight: 700">Main card</h2>
+      </div>
+      <button type="button" aria-label="Close" style="width: 44px; height: 44px; margin: -6px -10px 0 0; border: 0; background: transparent; color: {{t.muted}}">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </button>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 36px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08">€49,095.74</span>
+      <span style="font-size: 15px; color: {{t.muted}}">$57,442.02 · rate 0.8547</span>
+    </div>
+    <p style="margin: 0; font-size: 14px; line-height: 1.4; color: {{t.muted}}">Salary card, Intesa</p>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <a href="adjust-phone.dc.html" style="height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; text-decoration: none; background: {{t.bg}}">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4"></path></svg>Adjust balance
+      </a>
+      <a href="form-phone.dc.html" style="height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; text-decoration: none; background: {{t.bg}}">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Edit
+      </a>
+      <a href="#" style="height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; text-decoration: none; background: {{t.bg}}">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Transactions
+      </a>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', border: '#E2E2DE', danger: '#B42318' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', border: '#2A2D32', danger: '#FF7A6B' };
+return { t: (this.props.dark ?? true) ? D : L };
+}
+}
+</script>
+</body>
+</html>
