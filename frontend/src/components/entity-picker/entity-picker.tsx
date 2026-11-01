@@ -86,47 +86,49 @@ export function EntityPicker({
           }}
         />
       </label>
-      {matchingItems === undefined ? (
-        <ul className={styles['list']} aria-busy="true" aria-label={title}>
-          {listSkeletonKeys(SKELETON_ROW_COUNT).map((key) => (
-            <li key={key} className={styles['skeletonRow']}>
-              <Skeleton className={styles['skeletonName']} />
-            </li>
-          ))}
-        </ul>
-      ) : matchingItems.length > 0 ? (
-        <ul className={styles['list']} aria-label={title}>
-          {matchingItems.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className={styles['item']}
-                aria-pressed={item.id === selectedId}
-                onClick={() => {
-                  onSelect(item.id);
-                }}
-              >
-                <span
-                  className={styles['mark']}
-                  style={{ backgroundColor: item.color }}
-                  aria-hidden="true"
-                />
-                <span className={styles['name']}>{item.name}</span>
-                <span className={styles['note']}>{item.note}</span>
-                {item.id === selectedId && (
-                  <svg className={styles['check']} aria-hidden="true" viewBox="0 0 24 24">
-                    <path d={CHECK_ICON_PATH} />
-                  </svg>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className={styles['empty']}>
-          {searchText === '' ? emptyText : `Nothing matches “${search.trim()}”.`}
-        </p>
-      )}
+      <div className={styles['results']}>
+        {matchingItems === undefined ? (
+          <ul className={styles['list']} aria-busy="true" aria-label={title}>
+            {listSkeletonKeys(SKELETON_ROW_COUNT).map((key) => (
+              <li key={key} className={styles['skeletonRow']}>
+                <Skeleton className={styles['skeletonName']} />
+              </li>
+            ))}
+          </ul>
+        ) : matchingItems.length > 0 ? (
+          <ul className={styles['list']} aria-label={title}>
+            {matchingItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className={styles['item']}
+                  aria-pressed={item.id === selectedId}
+                  onClick={() => {
+                    onSelect(item.id);
+                  }}
+                >
+                  <span
+                    className={styles['mark']}
+                    style={{ backgroundColor: item.color }}
+                    aria-hidden="true"
+                  />
+                  <span className={styles['name']}>{item.name}</span>
+                  <span className={styles['note']}>{item.note}</span>
+                  {item.id === selectedId && (
+                    <svg className={styles['check']} aria-hidden="true" viewBox="0 0 24 24">
+                      <path d={CHECK_ICON_PATH} />
+                    </svg>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles['empty']}>
+            {searchText === '' ? emptyText : `Nothing matches “${search.trim()}”.`}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

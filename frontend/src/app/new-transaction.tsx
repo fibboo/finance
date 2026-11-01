@@ -30,7 +30,11 @@ export function NewTransaction() {
     throwOnError: (_error, query) => query.state.data === undefined,
   });
   const { data: moneyAccounts } = useQuery({
-    ...accountQueries.list({ kinds: [...MONEY_ACCOUNT_KINDS], size: ACCOUNT_PAGE_SIZE }),
+    ...accountQueries.list({
+      kinds: [...MONEY_ACCOUNT_KINDS],
+      size: ACCOUNT_PAGE_SIZE,
+      order: 'recent_use',
+    }),
     enabled: isOpen,
     throwOnError: (_error, query) => query.state.data === undefined,
   });

@@ -79,6 +79,8 @@ beforeAll(() => {
   });
 });
 
+const previouslyFocusedElements = new WeakMap<HTMLDialogElement, Element | null>();
+
 function cancelOpenDialog(event: KeyboardEvent) {
   const dialog = document.querySelector('dialog[open]');
   if (event.key === 'Escape' && !event.defaultPrevented && dialog !== null) {
@@ -88,22 +90,24 @@ function cancelOpenDialog(event: KeyboardEvent) {
 
 beforeAll(() => {
   Object.defineProperties(HTMLDialogElement.prototype, {
-    open: {
-      configurable: true,
-      get(this: HTMLDialogElement) {
-        return this.hasAttribute('open');
-      },
-    },
     showModal: {
       configurable: true,
       value(this: HTMLDialogElement) {
+        previouslyFocusedElements.set(this, document.activeElement);
         this.setAttribute('open', '');
       },
     },
     close: {
       configurable: true,
       value(this: HTMLDialogElement) {
-        this.removeAttribute('open');
+        if (this.hasAttribute('open')) {
+          this.removeAttribute('open');
+          const previouslyFocusedElement = previouslyFocusedElements.get(this);
+          if (previouslyFocusedElement instanceof HTMLElement) {
+            previouslyFocusedElement.focus();
+          }
+          this.dispatchEvent(new Event('close'));
+        }
       },
     },
   });
