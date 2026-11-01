@@ -58,6 +58,11 @@ const routes: RouteObject[] = [
                     ErrorBoundary: RootErrorBoundary,
                     lazy: () => import('@/app/routes/transactions'),
                   },
+                  {
+                    path: 'auth/link-callback',
+                    ErrorBoundary: RootErrorBoundary,
+                    lazy: () => import('@/app/routes/link-callback'),
+                  },
                 ],
               },
             ],

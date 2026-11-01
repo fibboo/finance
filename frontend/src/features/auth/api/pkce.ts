@@ -21,12 +21,12 @@ function encodeBase64Url(bytes: Uint8Array): string {
   return base64Url;
 }
 
-function createRandomValue(): string {
+export function createRandomValue(): string {
   const randomValue = encodeBase64Url(crypto.getRandomValues(new Uint8Array(RANDOM_BYTE_COUNT)));
   return randomValue;
 }
 
-async function createCodeChallenge(codeVerifier: string): Promise<string> {
+export async function createCodeChallenge(codeVerifier: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
   const codeChallenge = encodeBase64Url(new Uint8Array(digest));
   return codeChallenge;
