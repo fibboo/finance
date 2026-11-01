@@ -89,6 +89,7 @@ export function TransactionDetails({
         id={panelId}
         ref={(panel) => {
           panel?.focus({ preventScroll: true });
+          panel?.scrollIntoView({ block: 'nearest' });
         }}
         role="dialog"
         aria-label="Transaction details"

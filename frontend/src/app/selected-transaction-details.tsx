@@ -15,11 +15,7 @@ type SelectedTransactionDetailsProps = Readonly<{ baseCurrency: string }>;
 export function SelectedTransactionDetails({ baseCurrency }: SelectedTransactionDetailsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedTransactionId = readSelectedTransactionId(searchParams);
-  const { data: dictionaries } = useQuery({
-    ...dictionaryQueries.accounting(),
-    enabled: selectedTransactionId !== undefined,
-    throwOnError: true,
-  });
+  const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
   if (selectedTransactionId === undefined || dictionaries === undefined) {
     return null;
   }
