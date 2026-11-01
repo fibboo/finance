@@ -8,7 +8,7 @@ from fastapi import Query
 from fastapi_pagination import Params
 from pydantic import BaseModel, computed_field, ConfigDict, Field, model_validator, StringConstraints
 
-from app.schemas.base import CurrencyCode, EntityStatusType, RequestAmount, TransactionComment
+from app.schemas.base import CurrencyCode, EntityStatusType, ListOrderType, RequestAmount, TransactionComment
 from app.utils import utils
 
 
@@ -131,6 +131,7 @@ class AccountRequest(Params):
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
     kinds: list[AccountKind] = VISIBLE_ACCOUNT_KINDS
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
+    order: ListOrderType = ListOrderType.NAME
 
     def __hash__(self):
         data = self.model_dump()

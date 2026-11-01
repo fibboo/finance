@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import date, datetime, UTC
 from decimal import Decimal
 from uuid import UUID
 
@@ -45,6 +45,7 @@ DEFAULT_CATEGORIES: frozendict[str, CategoryType] = frozendict(
         "Clothing": CategoryType.PERIODIC,
     }
 )
+from app.utils import utils
 
 
 def _get_integrity_exception(*, exception: IntegrityError, user_id: UUID) -> ConflictException:
@@ -142,7 +143,10 @@ def _add_estimates(*, accounts: list[Account], unvalued_estimates: dict[UUID, De
 
 
 async def get_accounts(*, db: AsyncSession, request: AccountRequest, user_id: UUID) -> Page[Account]:
-    accounts_db: Page[AccountModel] = await account_crud.get_accounts(db=db, request=request, user_id=user_id)
+    recent_use_dates: tuple[date, date] = utils.get_recent_use_dates(today=datetime.now(UTC).date())
+    accounts_db: Page[AccountModel] = await account_crud.get_accounts(
+        db=db, request=request, user_id=user_id, recent_use_dates=recent_use_dates
+    )
     accounts: Page[Account] = Page[Account].model_validate(accounts_db)
 
     money_account_ids: list[UUID] = []

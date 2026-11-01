@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import date, datetime, timedelta, UTC
 from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
+import time_machine
 from fastapi_pagination import Page
 from pytest_httpx import HTTPXMock
 from sqlalchemy import select
@@ -34,7 +35,7 @@ from app.schemas.accounting.account import (
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
-from app.schemas.base import EntityStatusType
+from app.schemas.base import EntityStatusType, ListOrderType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
@@ -945,3 +946,95 @@ async def test_get_accounts_estimated_base_balance(db: AsyncSession, httpx_mock:
         usd_account_db.id: None,
         category_db.id: None,
     }
+
+
+@time_machine.travel(datetime(2026, 6, 15, 12, tzinfo=UTC), tick=False)
+async def test_get_accounts_recent_use_order(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    today: date = date(2026, 6, 15)
+    wallet_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"user_id": user_id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
+    )
+    categories_db: dict[str, AccountModel] = {}
+    for name in ["Alpha", "Bravo", "Charlie", "Delta"]:
+        categories_db[name] = await account_crud.create(
+            db=db,
+            obj_in={
+                "user_id": user_id,
+                "kind": AccountKind.EXPENSE,
+                "name": name,
+                "category_type": CategoryType.VARIABLE,
+            },
+            commit=True,
+        )
+
+    # Delta is used three times dated tomorrow (still a local today east of UTC), Bravo twice and Alpha once within
+    # the 90 days up to today, Alpha's expense carrying two zero exchange-difference postings that are no extra uses;
+    # Charlie only two days ahead, twice 90 days ago and in deleted expenses
+    expenses: list[tuple[str, date, EntityStatusType, int]] = [
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE, 0),
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE, 0),
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE, 0),
+        ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE, 0),
+        ("Bravo", today - timedelta(days=89), EntityStatusType.ACTIVE, 0),
+        ("Alpha", today, EntityStatusType.ACTIVE, 2),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today - timedelta(days=90), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today - timedelta(days=90), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today - timedelta(days=2), EntityStatusType.DELETED, 0),
+        ("Charlie", today - timedelta(days=3), EntityStatusType.DELETED, 0),
+    ]
+    for category_name, transaction_date, transaction_status, exchange_difference_count in expenses:
+        expense_db: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=Decimal("10"),
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(
+                    account_id=wallet_db.id, amount=Decimal("-10"), currency="USD", base_amount=Decimal("-10")
+                ),
+                PostingCreate(
+                    account_id=categories_db[category_name].id,
+                    amount=Decimal("10"),
+                    currency="USD",
+                    base_amount=Decimal("10"),
+                ),
+            ]
+            + [
+                PostingCreate(
+                    account_id=categories_db[category_name].id,
+                    amount=Decimal("0"),
+                    currency="USD",
+                    base_amount=Decimal("0"),
+                )
+                for _ in range(exchange_difference_count)
+            ],
+        )
+        await transaction_crud.update_orm(db=db, obj_in={"status": transaction_status}, id=expense_db.id)
+    await db.commit()
+
+    recent_use_request: AccountRequest = AccountRequest(kinds=[AccountKind.EXPENSE], order=ListOrderType.RECENT_USE)
+    name_request: AccountRequest = AccountRequest(kinds=[AccountKind.EXPENSE])
+
+    # Act
+    by_recent_use: Page[Account] = await account_service.get_accounts(
+        db=db, request=recent_use_request, user_id=user_id
+    )
+    by_name: Page[Account] = await account_service.get_accounts(db=db, request=name_request, user_id=user_id)
+
+    # Assert
+    assert [account.name for account in by_recent_use.items] == ["Delta", "Bravo", "Alpha", "Charlie"]
+    assert [account.name for account in by_name.items] == ["Alpha", "Bravo", "Charlie", "Delta"]
