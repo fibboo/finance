@@ -1,0 +1,67 @@
+.transactionOverview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.heading {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.amounts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.amount {
+  font-size: var(--font-size-detail-amount);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+.baseAmount {
+  font-size: var(--font-size-md);
+  color: var(--color-muted);
+}
+
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2-5) var(--space-4);
+  font-size: var(--font-size-md);
+}
+
+.term {
+  color: var(--color-muted);
+}
+
+.value {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}

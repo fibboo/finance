@@ -1,0 +1,152 @@
+import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+
+import type { components } from '@/lib/api-schema';
+import { render } from '@/test/render';
+import { server } from '@/test/setup';
+
+import { Component } from './home';
+
+const wallet = {
+  name: 'Wallet',
+  id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  kind: 'ASSET',
+  balance: '412.50',
+  currency: 'USD',
+  color: null,
+  category_type: null,
+  base_currency_rate: '1',
+  status: 'ACTIVE',
+  base_currency_balance: '412.50',
+} satisfies components['schemas']['Account'];
+
+const expense = {
+  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  transaction_date: '2026-10-20',
+  comment: null,
+  base_currency_amount: '42.80',
+  location: null,
+  income_period: null,
+  transaction_type: 'EXPENSE',
+  status: 'ACTIVE',
+  created_at: '2026-10-20T09:00:00Z',
+  updated_at: '2026-10-20T09:00:00Z',
+  postings: [
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+      amount: '-42.80',
+      currency: 'USD',
+      base_amount: '-42.80',
+      account: wallet,
+    },
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+      amount: '42.80',
+      currency: 'USD',
+      base_amount: '42.80',
+      account: {
+        ...wallet,
+        name: 'Groceries',
+        id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
+        kind: 'EXPENSE',
+        currency: null,
+        category_type: 'VARIABLE',
+      },
+    },
+  ],
+} satisfies components['schemas']['Transaction'];
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 9, 20, 12));
+  // 768 px of jsdom's window over 52 px rows give pages of 15
+  document.documentElement.style.fontSize = '16px';
+  document.documentElement.style.setProperty('--size-transaction-row', '3.25rem');
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'USD',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/summary', () =>
+      HttpResponse.json({
+        month: '2026-10-01',
+        total_balance: '412.50',
+        estimated_total_balance: null,
+        earned: '0.00',
+        spent: '42.80',
+        left_over: '-42.80',
+        unvalued_spent: [],
+        estimated_unvalued_spent: null,
+      } satisfies components['schemas']['Summary']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(expense),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  document.documentElement.removeAttribute('style');
+});
+
+test('opens the details of a recent transaction on Home', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(<Component />);
+  const recentTransactions = await screen.findByRole('region', { name: 'Recent transactions' });
+
+  // act
+  await user.click(await within(recentTransactions).findByRole('link', { name: 'Groceries' }));
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument();
+  expect(within(recentTransactions).getByRole('link', { name: 'Groceries' })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+});

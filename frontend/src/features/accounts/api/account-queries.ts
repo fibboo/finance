@@ -17,10 +17,15 @@ async function fetchAccounts(query: Readonly<AccountListQuery>): Promise<Account
   return accounts;
 }
 
+const ACCOUNTS_KEY = ['accounts'] as const;
+
 export const accountQueries = {
+  all() {
+    return { queryKey: ACCOUNTS_KEY };
+  },
   list(query: Readonly<AccountListQuery>) {
     return queryOptions({
-      queryKey: ['accounts', 'list', query],
+      queryKey: [...ACCOUNTS_KEY, 'list', query],
       queryFn: () => fetchAccounts(query),
     });
   },

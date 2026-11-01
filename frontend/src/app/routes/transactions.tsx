@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 
+import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
 import {
@@ -9,6 +10,7 @@ import {
   MONEY_ACCOUNT_KINDS,
 } from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,
   hasNarrowingFilters,
@@ -25,6 +27,8 @@ import { useDateJump } from '@/features/transactions/hooks/use-date-jump';
 import { useTransactionFeed } from '@/features/transactions/hooks/use-transaction-feed';
 import { useToday } from '@/hooks/use-today';
 import type { components } from '@/lib/api-schema';
+
+import styles from './transactions.module.css';
 
 type AccountKind = components['schemas']['AccountKind'];
 
@@ -59,7 +63,7 @@ export function Component() {
   const baseCurrency = useBaseCurrency();
   const today = useToday();
   const [searchParams, setSearchParams] = useSearchParams();
-  const listKey = searchParams.toString();
+  const listKey = writeSelectedTransaction({ searchParams, transactionId: undefined }).toString();
   const { anchorDate, jumpToDate, clearJump } = useDateJump(listKey);
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
@@ -123,27 +127,30 @@ export function Component() {
             }}
           />
         )}
-      {baseCurrency !== undefined && (
-        <TransactionFeed
-          key={`${listKey}#${feed.anchorDate ?? ''}`}
-          feed={feed}
-          baseCurrency={baseCurrency}
-          label="Transactions"
-          isGroupedByDay={filters === undefined || isSortedByDate(filters)}
-          onReturnToToday={clearJump}
-          {...(filters !== undefined &&
-            hasNarrowingFilters(filters) && {
-              emptyState: (
-                <NoMatchingTransactions
-                  onReset={() => {
-                    clearJump();
-                    setSearchParams({});
-                  }}
-                />
-              ),
-            })}
-        />
-      )}
+      <div className={styles['transactions']}>
+        {baseCurrency !== undefined && (
+          <TransactionFeed
+            key={`${listKey}#${feed.anchorDate ?? ''}`}
+            feed={feed}
+            baseCurrency={baseCurrency}
+            label="Transactions"
+            isGroupedByDay={filters === undefined || isSortedByDate(filters)}
+            onReturnToToday={clearJump}
+            {...(filters !== undefined &&
+              hasNarrowingFilters(filters) && {
+                emptyState: (
+                  <NoMatchingTransactions
+                    onReset={() => {
+                      clearJump();
+                      setSearchParams({});
+                    }}
+                  />
+                ),
+              })}
+          />
+        )}
+        {baseCurrency !== undefined && <SelectedTransactionDetails baseCurrency={baseCurrency} />}
+      </div>
     </Page>
   );
 }

@@ -1,4 +1,6 @@
 import type { components } from '@/lib/api-schema';
+import { toDateText } from '@/lib/format-date';
+import { LOCALE } from '@/lib/format-money';
 
 type Transaction = components['schemas']['Transaction'];
 type Account = components['schemas']['Account'];
@@ -13,6 +15,13 @@ type TransactionView = Readonly<{
   signDisplay: Intl.NumberFormatOptions['signDisplay'];
   isIncome: boolean;
 }>;
+
+const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZone: 'UTC' });
+
+export function readWeekdayDateText(isoDate: string): string {
+  const weekdayDateText = `${WEEKDAY_FORMAT.format(new Date(`${isoDate}T00:00:00Z`))}, ${toDateText(isoDate)}`;
+  return weekdayDateText;
+}
 
 function requireField<Field>({
   value,

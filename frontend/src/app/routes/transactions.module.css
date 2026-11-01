@@ -1,0 +1,15 @@
+@import '@/styles/media.css';
+
+.transactions {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (--desktop) {
+  .transactions {
+    flex-direction: row;
+    gap: var(--space-4);
+  }
+}

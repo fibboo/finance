@@ -1,6 +1,8 @@
 @import '@/styles/media.css';
 
 .transactionRow {
+  --row-tint: var(--color-panel);
+
   position: relative;
   grid-column: 1 / -1;
   min-height: var(--size-transaction-row);
@@ -12,27 +14,58 @@
 
 .income,
 .transfer,
-.adjustment {
+.adjustment,
+.selected {
   isolation: isolate;
 }
 
 .income::before,
 .transfer::before,
-.adjustment::before {
+.adjustment::before,
+.selected::before {
   content: '';
   position: absolute;
   inset: var(--space-1-5) calc(var(--space-2) * -1);
   z-index: -1;
   border-radius: var(--radius-badge);
-  background: var(--color-income-row);
+  background: var(--row-tint);
 }
 
-.transfer::before {
-  background: var(--color-transfer-row);
+.income {
+  --row-tint: var(--color-income-row);
 }
 
-.adjustment::before {
-  background: var(--color-adjustment-row);
+.transfer {
+  --row-tint: var(--color-transfer-row);
+}
+
+.adjustment {
+  --row-tint: var(--color-adjustment-row);
+}
+
+.selected::before {
+  background: color-mix(in oklab, var(--row-tint), var(--color-ink) var(--mix-selected-row));
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.transactionRow:has(.link:focus-visible) {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+  border-radius: var(--radius-badge);
 }
 
 .transactionRow + .transactionRow {
@@ -118,7 +151,8 @@
 
   .income::before,
   .transfer::before,
-  .adjustment::before {
+  .adjustment::before,
+  .selected::before {
     border-radius: var(--radius-segment);
   }
 
