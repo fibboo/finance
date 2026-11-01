@@ -33,7 +33,6 @@ export function TransactionRow({ transaction, baseCurrency, dateLabel }: Transac
     <Link
       id={readTransactionLinkId(transaction.id)}
       to={{
-        pathname: '/transactions',
         search: writeSelectedTransaction({
           searchParams,
           transactionId: transaction.id,

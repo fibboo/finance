@@ -162,6 +162,7 @@
   --duration-fade: 0.2s;
   --duration-shimmer: 1.4s;
   --duration-progress: 1.3s;
+  --mix-selected-row: 10%;
   --account-mark-tint-light: 13%;
   --account-mark-tint-dark: 20%;
 }

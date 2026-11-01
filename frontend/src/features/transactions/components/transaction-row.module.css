@@ -26,19 +26,27 @@
   inset: var(--space-1-5) calc(var(--space-2) * -1);
   z-index: -1;
   border-radius: var(--radius-badge);
-  background: var(--color-income-row);
+  background: var(--row-tint);
 }
 
-.transfer::before {
-  background: var(--color-transfer-row);
+.selected {
+  --row-tint: var(--color-panel);
 }
 
-.adjustment::before {
-  background: var(--color-adjustment-row);
+.income {
+  --row-tint: var(--color-income-row);
+}
+
+.transfer {
+  --row-tint: var(--color-transfer-row);
+}
+
+.adjustment {
+  --row-tint: var(--color-adjustment-row);
 }
 
 .selected::before {
-  background: var(--color-selected);
+  background: color-mix(in oklab, var(--row-tint), var(--color-ink) var(--mix-selected-row));
 }
 
 .link {
