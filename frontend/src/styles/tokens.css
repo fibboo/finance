@@ -36,6 +36,7 @@
   --font-size-intro: 1.0625rem;
   --font-size-xl: 1.125rem;
   --font-size-heading: 1.25rem;
+  --font-size-heading-lg: 1.375rem;
   --font-size-tile-amount: 1.0625rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.75rem;
@@ -76,9 +77,11 @@
   --radius-mark: 0.1875rem;
   --radius-mark-lg: 0.25rem;
   --radius-badge: 0.5rem;
+  --radius-provider-mark: 0.5625rem;
   --radius-segment: 0.625rem;
   --radius-control: 0.75rem;
   --radius-track: 0.875rem;
+  --radius-summary: 1rem;
   --radius-action: 0.875rem;
   --radius-fab: 1.125rem;
   --radius-sheet: 1.125rem;
@@ -108,6 +111,8 @@
   --size-panel-header-lg: 2.5rem;
   --size-columns-header: 2rem;
   --size-chip: 2rem;
+  --size-provider-mark: 2rem;
+  --size-provider-action: 2.25rem;
   --size-columns-header-lg: 2.25rem;
   --size-account-mark-xs: 1.5rem;
   --size-skeleton-code: 2.25rem;
@@ -145,6 +150,7 @@
   --size-amount-column-lg: 8.75rem;
   --size-account-column-lg: 13.75rem;
   --size-rate-column-lg: 6.25rem;
+  --size-stat-tile: 6.5rem;
   --size-empty-state: 8.25rem;
   --size-empty-state-lg: 10rem;
   --size-account-tile: 11.875rem;
@@ -154,6 +160,7 @@
   --size-actions: 22.5rem;
   --size-details: 22.5rem;
   --size-column: 30rem;
+  --size-merge-panel: 35rem;
   --size-pace-bar: 0.5rem;
   --opacity-disabled: 0.5;
   --opacity-hover: 0.8;

@@ -1,0 +1,117 @@
+.linkedProviders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--color-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-track);
+  background: var(--color-ground);
+}
+
+.provider {
+  padding: var(--space-2-5) var(--space-2-5) var(--space-2-5) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.provider + .provider {
+  border-top: var(--size-border) solid var(--color-border);
+}
+
+.mark {
+  flex: none;
+  width: var(--size-provider-mark);
+  height: var(--size-provider-mark);
+  border-radius: var(--radius-provider-mark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  background: var(--color-panel);
+}
+
+.identity {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.status {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.linked {
+  composes: status;
+  color: var(--color-accent);
+}
+
+.unlink,
+.link {
+  flex: none;
+  height: var(--size-provider-action);
+  padding: 0 var(--space-3-5);
+  border-radius: var(--radius-segment);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.unlink {
+  border: var(--size-border) solid var(--color-border);
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.link {
+  border: 0;
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+.unlink:hover:enabled,
+.link:hover:enabled {
+  opacity: var(--opacity-hover);
+}
+
+.unlink:disabled,
+.link:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.unlink:disabled {
+  color: var(--color-muted);
+}
+
+.unlink:focus-visible,
+.link:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-note);
+  color: var(--color-muted);
+}

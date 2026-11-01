@@ -83,7 +83,7 @@ A function or constant of one of our modules of plain functions (a service, `uti
 Each of the following is a finding when the diff adds it under `frontend/` (`.claude/rules/react.md`, `.claude/rules/typescript.md`):
 
 - a token written to `localStorage`, `sessionStorage` or a cookie that script can read, a `dangerouslySetInnerHTML`, or a URL from data placed in an `href` or `src` without checking its scheme. Grade it **P1**: it opens the app to token theft or script injection.
-- server data copied into `useState`, Context or a store (an edit form's starting values in React Hook Form are not this finding), a query key written by hand instead of taken from the feature's key factory, or a fetch outside TanStack Query other than the token refresh and session restore of the API client's auth middleware and the code exchange in the loader of the sign-in callback route;
+- server data copied into `useState`, Context or a store (an edit form's starting values in React Hook Form are not this finding), a query key written by hand instead of taken from the feature's key factory, or a fetch outside TanStack Query other than the token refresh and session restore of the API client's auth middleware and the code exchanges in the loaders of the sign-in and link callback routes;
 - an effect that derives data, fetches, handles an event or resets state;
 - a `useMemo`, `useCallback` or `memo` without the profile or the effect dependency that justifies it;
 - an inline `eslint-disable`, a `@ts-ignore` or `@ts-expect-error`, an `any`, a non-null assertion or an `as` cast other than `as const`;

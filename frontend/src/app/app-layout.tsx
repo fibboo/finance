@@ -8,8 +8,10 @@ import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';
 import { useIsLogoShownOnPhone } from '@/components/page/use-is-logo-shown-on-phone';
 import { ThemeSwitch } from '@/components/theme-switch/theme-switch';
+import { startLink } from '@/features/auth/api/link-provider';
 import { SignOutButton } from '@/features/auth/components/sign-out-button';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { LinkedProviders } from '@/features/user/components/linked-providers';
 import { UserInitials } from '@/features/user/components/user-initials';
 import { UserSummary } from '@/features/user/components/user-summary';
 
@@ -29,7 +31,13 @@ export function AppLayout() {
         <div className={styles['account']}>
           <AccountMenu avatar={<UserInitials />}>
             {userDictionaries !== undefined && (
-              <UserSummary providerTypes={userDictionaries.provider_types} />
+              <>
+                <UserSummary providerTypes={userDictionaries.provider_types} />
+                <LinkedProviders
+                  providerTypes={userDictionaries.provider_types}
+                  startLink={startLink}
+                />
+              </>
             )}
             <ThemeSwitch />
             <SignOutButton />

@@ -5,6 +5,7 @@ import { env } from '@/config/env';
 const STATE_KEY = 'finance-sign-in-state';
 const CODE_VERIFIER_KEY = 'finance-sign-in-code-verifier';
 const RANDOM_BYTE_COUNT = 32;
+export const SIGN_IN_CALLBACK_PATH = '/auth/callback';
 
 const signInRequestSchema = z.object({
   state: z.string().min(1),
@@ -21,19 +22,19 @@ function encodeBase64Url(bytes: Uint8Array): string {
   return base64Url;
 }
 
-function createRandomValue(): string {
+export function createRandomValue(): string {
   const randomValue = encodeBase64Url(crypto.getRandomValues(new Uint8Array(RANDOM_BYTE_COUNT)));
   return randomValue;
 }
 
-async function createCodeChallenge(codeVerifier: string): Promise<string> {
+export async function createCodeChallenge(codeVerifier: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
   const codeChallenge = encodeBase64Url(new Uint8Array(digest));
   return codeChallenge;
 }
 
-export function readRedirectUri(): string {
-  const redirectUri = new URL('/auth/callback', window.location.origin).href;
+export function readRedirectUri(callbackPath: string): string {
+  const redirectUri = new URL(callbackPath, window.location.origin).href;
   return redirectUri;
 }
 
@@ -41,7 +42,7 @@ export async function buildAuthorizeUrl(provider: string): Promise<string> {
   const state = createRandomValue();
   const codeVerifier = createRandomValue();
   const query = new URLSearchParams({
-    redirect_uri: readRedirectUri(),
+    redirect_uri: readRedirectUri(SIGN_IN_CALLBACK_PATH),
     code_challenge: await createCodeChallenge(codeVerifier),
     code_challenge_method: 'S256',
     state,
