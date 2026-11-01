@@ -8,6 +8,7 @@
 
 @media (--desktop) {
   .transactions {
+    flex-basis: 0;
     min-height: var(--size-recent-min-lg);
     flex-direction: row;
     gap: var(--space-4);

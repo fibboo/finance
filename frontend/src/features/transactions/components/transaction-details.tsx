@@ -88,7 +88,7 @@ export function TransactionDetails({
       <section
         id={panelId}
         ref={(panel) => {
-          panel?.focus();
+          panel?.focus({ preventScroll: true });
         }}
         role="dialog"
         aria-label="Transaction details"

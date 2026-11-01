@@ -1,6 +1,8 @@
 @import '@/styles/media.css';
 
 .transactionRow {
+  --row-tint: var(--color-panel);
+
   position: relative;
   grid-column: 1 / -1;
   min-height: var(--size-transaction-row);
@@ -27,10 +29,6 @@
   z-index: -1;
   border-radius: var(--radius-badge);
   background: var(--row-tint);
-}
-
-.selected {
-  --row-tint: var(--color-panel);
 }
 
 .income {
