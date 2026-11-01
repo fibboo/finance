@@ -701,6 +701,11 @@ export interface components {
          * @enum {string}
          */
         LinkStatusType: "linked" | "merge_required";
+        /**
+         * ListOrderType
+         * @enum {string}
+         */
+        ListOrderType: "name" | "recent_use";
         /** Location */
         Location: {
             /** Name */
@@ -1028,6 +1033,7 @@ export interface operations {
                 search_term?: string | null;
                 kinds?: components["schemas"]["AccountKind"][];
                 statuses?: components["schemas"]["EntityStatusType"][];
+                order?: components["schemas"]["ListOrderType"];
             };
             header?: never;
             path?: never;
@@ -1323,6 +1329,7 @@ export interface operations {
                 size?: number;
                 search_term?: string | null;
                 statuses?: components["schemas"]["EntityStatusType"][];
+                order?: components["schemas"]["ListOrderType"];
             };
             header?: never;
             path?: never;
@@ -2330,6 +2337,7 @@ export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
 export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_BALANCE_UNCHANGED", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
 export const linkStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["LinkStatusType"]> = ["linked", "merge_required"];
+export const listOrderTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ListOrderType"]> = ["name", "recent_use"];
 export const orderDirectionTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderDirectionType"]> = ["asc", "desc"];
 export const orderFieldTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderFieldType"]> = ["created_at", "transaction_date", "base_currency_amount"];
 export const providerTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ProviderType"]> = ["TELEGRAM", "GOOGLE"];

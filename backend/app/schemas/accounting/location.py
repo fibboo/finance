@@ -6,7 +6,7 @@ from fastapi import Query
 from fastapi_pagination import Params
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
-from app.schemas.base import EntityStatusType
+from app.schemas.base import EntityStatusType, ListOrderType
 from app.utils import utils
 
 
@@ -42,6 +42,7 @@ class LocationRequest(Params):
 
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
+    order: ListOrderType = ListOrderType.NAME
 
     def __hash__(self):
         data = self.model_dump()

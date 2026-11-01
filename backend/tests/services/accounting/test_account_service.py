@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta, UTC
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -34,7 +34,7 @@ from app.schemas.accounting.account import (
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
-from app.schemas.base import EntityStatusType
+from app.schemas.base import EntityStatusType, ListOrderType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
@@ -945,3 +945,76 @@ async def test_get_accounts_estimated_base_balance(db: AsyncSession, httpx_mock:
         usd_account_db.id: None,
         category_db.id: None,
     }
+
+
+async def test_get_accounts_recent_use_order(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    today: date = datetime.now(UTC).date()
+    wallet_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"user_id": user_id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
+    )
+    categories_db: dict[str, AccountModel] = {}
+    for name in ["Alpha", "Bravo", "Charlie", "Delta"]:
+        categories_db[name] = await account_crud.create(
+            db=db,
+            obj_in={
+                "user_id": user_id,
+                "kind": AccountKind.EXPENSE,
+                "name": name,
+                "category_type": CategoryType.VARIABLE,
+            },
+            commit=True,
+        )
+
+    # Bravo is used twice and Alpha once within 90 days; Delta only 91 days ago and in a deleted expense
+    expenses: list[tuple[str, date, EntityStatusType]] = [
+        ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE),
+        ("Bravo", today - timedelta(days=90), EntityStatusType.ACTIVE),
+        ("Alpha", today, EntityStatusType.ACTIVE),
+        ("Delta", today - timedelta(days=91), EntityStatusType.ACTIVE),
+        ("Delta", today - timedelta(days=2), EntityStatusType.DELETED),
+        ("Delta", today - timedelta(days=3), EntityStatusType.DELETED),
+    ]
+    for category_name, transaction_date, transaction_status in expenses:
+        expense_db: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=Decimal("10"),
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(
+                    account_id=wallet_db.id, amount=Decimal("-10"), currency="USD", base_amount=Decimal("-10")
+                ),
+                PostingCreate(
+                    account_id=categories_db[category_name].id,
+                    amount=Decimal("10"),
+                    currency="USD",
+                    base_amount=Decimal("10"),
+                ),
+            ],
+        )
+        await transaction_crud.update_orm(db=db, obj_in={"status": transaction_status}, id=expense_db.id)
+    await db.commit()
+
+    recent_use_request: AccountRequest = AccountRequest(kinds=[AccountKind.EXPENSE], order=ListOrderType.RECENT_USE)
+    name_request: AccountRequest = AccountRequest(kinds=[AccountKind.EXPENSE])
+
+    # Act
+    by_recent_use: Page[Account] = await account_service.get_accounts(
+        db=db, request=recent_use_request, user_id=user_id
+    )
+    by_name: Page[Account] = await account_service.get_accounts(db=db, request=name_request, user_id=user_id)
+
+    # Assert
+    assert [account.name for account in by_recent_use.items] == ["Bravo", "Alpha", "Charlie", "Delta"]
+    assert [account.name for account in by_name.items] == ["Alpha", "Bravo", "Charlie", "Delta"]

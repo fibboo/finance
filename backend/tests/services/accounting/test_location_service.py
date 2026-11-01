@@ -1,3 +1,5 @@
+from datetime import date, datetime, timedelta, UTC
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
@@ -7,10 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.configs.logging_settings import LogLevelType
+from app.crud.accounting.account import account_crud
 from app.crud.accounting.location import location_crud
+from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.conflict_409 import NameAlreadyExists
 from app.exceptions.not_fount_404 import EntityNotFound
+from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
+from app.models.accounting.transaction import Transaction as TransactionModel
+from app.schemas.accounting.account import AccountKind, CategoryType
 from app.schemas.accounting.location import (
     Location,
     LocationCreate,
@@ -18,7 +25,9 @@ from app.schemas.accounting.location import (
     LocationRequest,
     LocationUpdate,
 )
-from app.schemas.base import EntityStatusType
+from app.schemas.accounting.posting import PostingCreate
+from app.schemas.accounting.transaction import TransactionCreate, TransactionType
+from app.schemas.base import EntityStatusType, ListOrderType
 from app.schemas.error_response import ErrorCodeType
 from app.services.accounting import location_service
 
@@ -525,3 +534,73 @@ async def test_update_location_name_of_deleted_location(db: AsyncSession, db_tra
     assert location.id == created_location.id
     assert location.name == "Deleted place"
     assert location.status == EntityStatusType.ACTIVE
+
+
+async def test_get_locations_recent_use_order(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    today: date = datetime.now(UTC).date()
+    wallet_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"user_id": user_id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
+        commit=True,
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.EXPENSE,
+            "name": "Groceries",
+            "category_type": CategoryType.VARIABLE,
+        },
+        commit=True,
+    )
+    locations_db: dict[str, LocationModel] = {}
+    for name in ["Alpha", "Bravo", "Charlie", "Delta"]:
+        locations_db[name] = await location_crud.create(
+            db=db, obj_in=LocationCreate(user_id=user_id, name=name), commit=True
+        )
+
+    # Bravo is used twice and Alpha once within 90 days; Delta only 91 days ago and in a deleted expense
+    expenses: list[tuple[str, date, EntityStatusType]] = [
+        ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE),
+        ("Bravo", today - timedelta(days=90), EntityStatusType.ACTIVE),
+        ("Alpha", today, EntityStatusType.ACTIVE),
+        ("Delta", today - timedelta(days=91), EntityStatusType.ACTIVE),
+        ("Delta", today - timedelta(days=2), EntityStatusType.DELETED),
+        ("Delta", today - timedelta(days=3), EntityStatusType.DELETED),
+    ]
+    for location_name, transaction_date, transaction_status in expenses:
+        expense_db: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=Decimal("10"),
+                location_id=locations_db[location_name].id,
+            ),
+            postings=[
+                PostingCreate(
+                    account_id=wallet_db.id, amount=Decimal("-10"), currency="USD", base_amount=Decimal("-10")
+                ),
+                PostingCreate(
+                    account_id=category_db.id, amount=Decimal("10"), currency="USD", base_amount=Decimal("10")
+                ),
+            ],
+        )
+        await transaction_crud.update_orm(db=db, obj_in={"status": transaction_status}, id=expense_db.id)
+    await db.commit()
+
+    recent_use_request: LocationRequest = LocationRequest(order=ListOrderType.RECENT_USE)
+    name_request: LocationRequest = LocationRequest()
+
+    # Act
+    by_recent_use: Page[Location] = await location_service.get_locations(
+        db=db, request=recent_use_request, user_id=user_id
+    )
+    by_name: Page[Location] = await location_service.get_locations(db=db, request=name_request, user_id=user_id)
+
+    # Assert
+    assert [location.name for location in by_recent_use.items] == ["Bravo", "Alpha", "Charlie", "Delta"]
+    assert [location.name for location in by_name.items] == ["Alpha", "Bravo", "Charlie", "Delta"]
