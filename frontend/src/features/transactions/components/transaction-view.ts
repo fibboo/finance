@@ -80,7 +80,7 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
     case 'ADJUSTMENT': {
       const posting = credit.account.kind === 'EQUITY' ? debit : credit;
       const view = {
-        title: `Balance adjustment · ${posting.account.name}`,
+        title: `Adjustment · ${posting.account.name}`,
         accountNames: null,
         markedAccount: posting.account,
         amount: Number(posting.amount),

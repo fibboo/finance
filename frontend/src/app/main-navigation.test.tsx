@@ -33,11 +33,3 @@ test.each(['Accounts', 'Categories'])(
     expect(screen.getByRole('button', { name: `${section} Soon` })).toBeDisabled();
   },
 );
-
-test('keeps Add transaction disabled until a transaction screen exists', () => {
-  // act
-  render(<MainNavigation />);
-
-  // assert
-  expect(screen.getByRole('button', { name: 'Add transaction' })).toBeDisabled();
-});

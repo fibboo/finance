@@ -79,6 +79,37 @@ beforeAll(() => {
   });
 });
 
+function cancelOpenDialog(event: KeyboardEvent) {
+  const dialog = document.querySelector('dialog[open]');
+  if (event.key === 'Escape' && !event.defaultPrevented && dialog !== null) {
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+  }
+}
+
+beforeAll(() => {
+  Object.defineProperties(HTMLDialogElement.prototype, {
+    open: {
+      configurable: true,
+      get(this: HTMLDialogElement) {
+        return this.hasAttribute('open');
+      },
+    },
+    showModal: {
+      configurable: true,
+      value(this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+      },
+    },
+    close: {
+      configurable: true,
+      value(this: HTMLDialogElement) {
+        this.removeAttribute('open');
+      },
+    },
+  });
+  document.addEventListener('keydown', cancelOpenDialog);
+});
+
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', IntersectionObserverStub);
   Object.defineProperty(Element.prototype, 'scrollIntoView', {

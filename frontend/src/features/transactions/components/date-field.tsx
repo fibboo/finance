@@ -1,13 +1,8 @@
-import { useRef } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
-import { DATE_TEXT_PLACEHOLDER, maskDateText, readIsoDate, toDateText } from '@/lib/format-date';
-
-import styles from './date-field.module.css';
+import { CalendarButton } from './calendar-button';
+import { readDateInputProps } from './date-input';
 import { FilterField } from './filter-field';
-
-const CALENDAR_ICON_PATH =
-  'M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z';
 
 type DateFieldProps = Readonly<{
   label: string;
@@ -28,56 +23,19 @@ export function DateField({
   max,
   onPick,
 }: DateFieldProps) {
-  const pickerRef = useRef<HTMLInputElement>(null);
   return (
     <FilterField
       label={label}
       error={error}
-      input={{
-        ...registration,
-        type: 'text',
-        inputMode: 'numeric',
-        autoComplete: 'off',
-        placeholder: DATE_TEXT_PLACEHOLDER,
-        onChange: (event) => {
-          event.target.value = maskDateText(event.target.value);
-          void registration.onChange(event);
-        },
-      }}
+      input={readDateInputProps(registration)}
       action={
-        <span className={styles['calendar']}>
-          <input
-            ref={pickerRef}
-            type="date"
-            className={styles['picker']}
-            max={max}
-            tabIndex={-1}
-            aria-hidden="true"
-            disabled={isDisabled}
-            onChange={(event) => {
-              if (event.target.value !== '') {
-                onPick(toDateText(event.target.value));
-              }
-            }}
-          />
-          <button
-            type="button"
-            className={styles['calendarButton']}
-            aria-label={`Pick the ${label} date from a calendar`}
-            disabled={isDisabled}
-            onClick={() => {
-              const picker = pickerRef.current;
-              if (picker !== null) {
-                picker.value = readIsoDate(value) ?? '';
-                picker.showPicker();
-              }
-            }}
-          >
-            <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-              <path d={CALENDAR_ICON_PATH} />
-            </svg>
-          </button>
-        </span>
+        <CalendarButton
+          label={label}
+          value={value}
+          isDisabled={isDisabled}
+          max={max}
+          onPick={onPick}
+        />
       }
     />
   );

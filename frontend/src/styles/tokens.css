@@ -150,6 +150,7 @@
   --size-amount-column-lg: 8.75rem;
   --size-account-column-lg: 13.75rem;
   --size-rate-column-lg: 6.25rem;
+  --size-row-label: 5.75rem;
   --size-stat-tile: 6.5rem;
   --size-empty-state: 8.25rem;
   --size-empty-state-lg: 10rem;
@@ -159,6 +160,7 @@
   --size-popover-wide: 21.25rem;
   --size-actions: 22.5rem;
   --size-details: 22.5rem;
+  --size-dialog: 27.5rem;
   --size-column: 30rem;
   --size-merge-panel: 35rem;
   --size-pace-bar: 0.5rem;

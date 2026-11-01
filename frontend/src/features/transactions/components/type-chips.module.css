@@ -1,0 +1,53 @@
+@import '@/styles/media.css';
+
+.typeChips {
+  margin: 0 calc(var(--space-4) * -1);
+  padding: 0 var(--space-4);
+  border: 0;
+  overflow-x: auto;
+  display: flex;
+  gap: var(--space-1-5);
+  scrollbar-width: none;
+}
+
+.chip {
+  position: relative;
+  flex: none;
+  height: var(--size-chip);
+  padding: 0 var(--space-3);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.chip:has(.radio:checked) {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-panel);
+}
+
+.chip:has(.radio:focus-visible) {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.radio {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (--desktop) {
+  .typeChips {
+    margin: 0 calc(var(--space-6) * -1);
+    padding: 0 var(--space-6);
+  }
+}

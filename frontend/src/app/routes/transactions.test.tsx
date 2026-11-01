@@ -99,7 +99,7 @@ beforeEach(() => {
           { key: 'EXPENSE', label: 'Expense' },
           { key: 'INCOME', label: 'Income' },
           { key: 'TRANSFER', label: 'Transfer' },
-          { key: 'ADJUSTMENT', label: 'Balance adjustment' },
+          { key: 'ADJUSTMENT', label: 'Adjustment' },
         ],
         transaction_orders: [
           { key: 'transaction_date:desc', label: 'Newest first' },
@@ -1223,6 +1223,6 @@ test('leaves the adjustment account out of the balances the deletion recalculate
   expect(
     screen.getByRole('alertdialog', { name: 'Delete this transaction?' }),
   ).toHaveAccessibleDescription(
-    "Balance adjustment · Wallet, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
+    "Adjustment · Wallet, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
   );
 });

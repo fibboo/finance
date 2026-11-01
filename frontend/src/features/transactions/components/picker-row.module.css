@@ -1,0 +1,76 @@
+.pickerRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.button {
+  width: 100%;
+  min-height: var(--size-field-lg);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  text-align: left;
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+}
+
+.label {
+  flex: none;
+  width: var(--size-row-label);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.dot {
+  flex: none;
+  width: var(--size-dot);
+  height: var(--size-dot);
+  border-radius: var(--radius-full);
+}
+
+.value,
+.placeholder {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-base);
+}
+
+.placeholder {
+  color: var(--color-muted);
+}
+
+.note {
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+}
+
+.chevron {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.error {
+  padding-bottom: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
+}

@@ -3,6 +3,7 @@ import { Link, Outlet } from 'react-router';
 
 import styles from './app-layout.module.css';
 import { MainNavigation } from './main-navigation';
+import { NewTransaction } from './new-transaction';
 
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';
@@ -50,6 +51,7 @@ export function AppLayout() {
       <main className={styles['main']}>
         <Outlet />
       </main>
+      <NewTransaction />
     </div>
   );
 }
