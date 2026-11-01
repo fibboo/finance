@@ -972,18 +972,22 @@ async def test_get_accounts_recent_use_order(db: AsyncSession):
             commit=True,
         )
 
-    # Bravo is used twice and Alpha once within 90 days, Alpha's expense carrying two zero exchange-difference
-    # postings that are no extra uses; Charlie only in three future-dated expenses, Delta 92 days ago and in deleted ones
+    # Delta is used three times dated tomorrow (still a local today east of UTC), Bravo twice and Alpha once within
+    # the 90 days up to today, Alpha's expense carrying two zero exchange-difference postings that are no extra uses;
+    # Charlie only two days ahead, 90 days ago and in deleted expenses
     expenses: list[tuple[str, date, EntityStatusType, int]] = [
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE, 0),
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE, 0),
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE, 0),
         ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE, 0),
         ("Bravo", today - timedelta(days=89), EntityStatusType.ACTIVE, 0),
         ("Alpha", today, EntityStatusType.ACTIVE, 2),
-        ("Charlie", today + timedelta(days=5), EntityStatusType.ACTIVE, 0),
-        ("Charlie", today + timedelta(days=6), EntityStatusType.ACTIVE, 0),
-        ("Charlie", today + timedelta(days=7), EntityStatusType.ACTIVE, 0),
-        ("Delta", today - timedelta(days=92), EntityStatusType.ACTIVE, 0),
-        ("Delta", today - timedelta(days=2), EntityStatusType.DELETED, 0),
-        ("Delta", today - timedelta(days=3), EntityStatusType.DELETED, 0),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today - timedelta(days=90), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today - timedelta(days=2), EntityStatusType.DELETED, 0),
+        ("Charlie", today - timedelta(days=3), EntityStatusType.DELETED, 0),
     ]
     for category_name, transaction_date, transaction_status, exchange_difference_count in expenses:
         expense_db: TransactionModel = await transaction_crud.create_with_postings(
@@ -1029,5 +1033,5 @@ async def test_get_accounts_recent_use_order(db: AsyncSession):
     by_name: Page[Account] = await account_service.get_accounts(db=db, request=name_request, user_id=user_id)
 
     # Assert
-    assert [account.name for account in by_recent_use.items] == ["Bravo", "Alpha", "Charlie", "Delta"]
+    assert [account.name for account in by_recent_use.items] == ["Delta", "Bravo", "Alpha", "Charlie"]
     assert [account.name for account in by_name.items] == ["Alpha", "Bravo", "Charlie", "Delta"]

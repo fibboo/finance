@@ -51,5 +51,5 @@ def get_base_currency_rate(*, balance: Decimal, base_balance: Decimal) -> Decima
 
 
 def get_recent_use_dates(*, today: date) -> tuple[date, date]:
-    recent_use_dates: tuple[date, date] = (today - timedelta(days=RECENT_USE_DAYS), today + timedelta(days=1))
+    recent_use_dates: tuple[date, date] = (today - timedelta(days=RECENT_USE_DAYS - 1), today + timedelta(days=1))
     return recent_use_dates

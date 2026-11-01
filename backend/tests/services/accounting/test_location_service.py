@@ -561,18 +561,21 @@ async def test_get_locations_recent_use_order(db: AsyncSession):
             db=db, obj_in=LocationCreate(user_id=user_id, name=name), commit=True
         )
 
-    # Bravo is used twice and Alpha once within 90 days; Charlie only in three future-dated expenses,
-    # Delta only 92 days ago and in deleted expenses
+    # Delta is used three times dated tomorrow (still a local today east of UTC), Bravo twice and Alpha once within
+    # the 90 days up to today; Charlie only two days ahead, 90 days ago and in deleted expenses
     expenses: list[tuple[str, date, EntityStatusType]] = [
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE),
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE),
+        ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE),
         ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE),
         ("Bravo", today - timedelta(days=89), EntityStatusType.ACTIVE),
         ("Alpha", today, EntityStatusType.ACTIVE),
-        ("Charlie", today + timedelta(days=5), EntityStatusType.ACTIVE),
-        ("Charlie", today + timedelta(days=6), EntityStatusType.ACTIVE),
-        ("Charlie", today + timedelta(days=7), EntityStatusType.ACTIVE),
-        ("Delta", today - timedelta(days=92), EntityStatusType.ACTIVE),
-        ("Delta", today - timedelta(days=2), EntityStatusType.DELETED),
-        ("Delta", today - timedelta(days=3), EntityStatusType.DELETED),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE),
+        ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE),
+        ("Charlie", today - timedelta(days=90), EntityStatusType.ACTIVE),
+        ("Charlie", today - timedelta(days=2), EntityStatusType.DELETED),
+        ("Charlie", today - timedelta(days=3), EntityStatusType.DELETED),
     ]
     for location_name, transaction_date, transaction_status in expenses:
         expense_db: TransactionModel = await transaction_crud.create_with_postings(
@@ -606,5 +609,5 @@ async def test_get_locations_recent_use_order(db: AsyncSession):
     by_name: Page[Location] = await location_service.get_locations(db=db, request=name_request, user_id=user_id)
 
     # Assert
-    assert [location.name for location in by_recent_use.items] == ["Bravo", "Alpha", "Charlie", "Delta"]
+    assert [location.name for location in by_recent_use.items] == ["Delta", "Bravo", "Alpha", "Charlie"]
     assert [location.name for location in by_name.items] == ["Alpha", "Bravo", "Charlie", "Delta"]
