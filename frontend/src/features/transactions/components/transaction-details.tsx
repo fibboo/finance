@@ -59,11 +59,9 @@ export function TransactionDetails({
 
     function handleKeyDown(event: KeyboardEvent) {
       const { target } = event;
-      const isInDetails =
-        target === document.body ||
-        (target instanceof Node && document.getElementById(panelId)?.contains(target) === true);
-
-      if (event.key === 'Escape' && isInDetails) {
+      const dialog = target instanceof Element ? target.closest('[role="dialog"]') : null;
+      const isInOtherDialog = dialog !== null && dialog.id !== panelId;
+      if (event.key === 'Escape' && !isInOtherDialog) {
         closeDetails();
       }
     }

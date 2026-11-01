@@ -1,4 +1,4 @@
-import { type QueryKey, useMutation } from '@tanstack/react-query';
+import { type QueryKey, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 
 import type { components } from '@/lib/api-schema';
@@ -6,6 +6,7 @@ import { toDateText } from '@/lib/format-date';
 import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import { transactionMutations } from '../api/transaction-mutations';
+import { transactionQueries } from '../api/transaction-queries';
 import { DeleteConfirmation } from './delete-confirmation';
 import styles from './delete-transaction.module.css';
 import { readTransactionView } from './transaction-view';
@@ -24,11 +25,11 @@ function readConfirmationText(transaction: Readonly<Transaction>): string {
     signDisplay: view.signDisplay,
   });
   const accountNames = [
-    ...new Set(
+    ...new Map(
       transaction.postings
         .filter((posting) => posting.account.kind !== 'EQUITY')
-        .map((posting) => posting.account.name),
-    ),
+        .map((posting) => [posting.account.id, posting.account.name]),
+    ).values(),
   ];
   const balances =
     accountNames.length === 1
@@ -50,6 +51,7 @@ export function DeleteTransaction({
   onDeleted,
 }: DeleteTransactionProps) {
   const [isConfirming, setIsConfirming] = useState(false);
+  const queryClient = useQueryClient();
   const { mutate, isPending } = useMutation(transactionMutations.delete(relatedQueryKeys));
   const buttonId = useId();
 
@@ -79,7 +81,14 @@ export function DeleteTransaction({
           isPending={isPending}
           onCancel={cancel}
           onConfirm={() => {
-            mutate(transaction, { onSuccess: onDeleted });
+            mutate(transaction, {
+              onSuccess: () => {
+                onDeleted();
+                queryClient.removeQueries({
+                  queryKey: transactionQueries.detail(transaction.id).queryKey,
+                });
+              },
+            });
           }}
         />
       )}
