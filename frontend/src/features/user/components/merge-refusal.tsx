@@ -71,7 +71,7 @@ export function MergeRefusal({ provider, providerTypes, mergeOffer }: MergeRefus
           </p>
         </div>
       )}
-      <Link to="/" className={styles['backHome']}>
+      <Link to="/" replace className={styles['backHome']}>
         Back to Home
       </Link>
     </section>

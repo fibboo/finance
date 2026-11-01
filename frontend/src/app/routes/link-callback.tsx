@@ -34,7 +34,10 @@ export async function loader({ request }: Readonly<{ request: Request }>) {
 
 export function Component() {
   const { provider, merge_offer } = useLoaderData<typeof loader>();
-  const { data: userDictionaries } = useQuery(dictionaryQueries.user());
+  const { data: userDictionaries } = useQuery({
+    ...dictionaryQueries.user(),
+    throwOnError: true,
+  });
   const isMergeRefused = merge_offer.is_base_currency_mismatch || merge_offer.is_provider_conflict;
 
   return (

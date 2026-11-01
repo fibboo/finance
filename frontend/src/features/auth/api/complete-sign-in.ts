@@ -4,7 +4,12 @@ import { apiClient, readData } from '@/lib/api-client';
 import { ApiError } from '@/lib/api-error';
 
 import { callbackParamsSchema } from '../schemas/callback-params';
-import { clearSignInRequest, readRedirectUri, readSignInRequest } from './pkce';
+import {
+  clearSignInRequest,
+  readRedirectUri,
+  readSignInRequest,
+  SIGN_IN_CALLBACK_PATH,
+} from './pkce';
 import { startSession } from './session';
 
 const STATE_MISMATCH_ERROR = 'state_mismatch';
@@ -26,7 +31,7 @@ async function exchangeCode({
           grant_type: 'authorization_code',
           code,
           code_verifier,
-          redirect_uri: readRedirectUri(),
+          redirect_uri: readRedirectUri(SIGN_IN_CALLBACK_PATH),
         },
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       }),

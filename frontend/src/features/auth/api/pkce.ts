@@ -5,6 +5,7 @@ import { env } from '@/config/env';
 const STATE_KEY = 'finance-sign-in-state';
 const CODE_VERIFIER_KEY = 'finance-sign-in-code-verifier';
 const RANDOM_BYTE_COUNT = 32;
+export const SIGN_IN_CALLBACK_PATH = '/auth/callback';
 
 const signInRequestSchema = z.object({
   state: z.string().min(1),
@@ -32,7 +33,7 @@ export async function createCodeChallenge(codeVerifier: string): Promise<string>
   return codeChallenge;
 }
 
-export function readRedirectUri(callbackPath = '/auth/callback'): string {
+export function readRedirectUri(callbackPath: string): string {
   const redirectUri = new URL(callbackPath, window.location.origin).href;
   return redirectUri;
 }
@@ -41,7 +42,7 @@ export async function buildAuthorizeUrl(provider: string): Promise<string> {
   const state = createRandomValue();
   const codeVerifier = createRandomValue();
   const query = new URLSearchParams({
-    redirect_uri: readRedirectUri(),
+    redirect_uri: readRedirectUri(SIGN_IN_CALLBACK_PATH),
     code_challenge: await createCodeChallenge(codeVerifier),
     code_challenge_method: 'S256',
     state,
