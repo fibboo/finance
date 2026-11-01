@@ -106,7 +106,7 @@ export function TransactionForm({
         today,
       }),
     )(values, context, options);
-  const { control, register, handleSubmit, setError, setValue, formState } = useForm<
+  const { control, register, handleSubmit, setError, setValue, clearErrors, formState } = useForm<
     AdjustmentFormInput,
     unknown,
     AdjustmentFormOutput
@@ -280,6 +280,7 @@ export function TransactionForm({
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {
               setValue('base_currency_amount', '');
+              clearErrors('base_currency_amount');
               setIsBaseAmountAsked(false);
             }
             setValue('account_id', selectedAccountId, { shouldValidate: formState.isSubmitted });
