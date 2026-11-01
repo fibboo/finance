@@ -562,7 +562,7 @@ async def test_get_locations_recent_use_order(db: AsyncSession):
         )
 
     # Delta is used three times dated tomorrow (still a local today east of UTC), Bravo twice and Alpha once within
-    # the 90 days up to today; Charlie only two days ahead, 90 days ago and in deleted expenses
+    # the 90 days up to today; Charlie only two days ahead, twice 90 days ago and in deleted ones
     expenses: list[tuple[str, date, EntityStatusType]] = [
         ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE),
         ("Delta", today + timedelta(days=1), EntityStatusType.ACTIVE),
@@ -573,6 +573,7 @@ async def test_get_locations_recent_use_order(db: AsyncSession):
         ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE),
         ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE),
         ("Charlie", today + timedelta(days=2), EntityStatusType.ACTIVE),
+        ("Charlie", today - timedelta(days=90), EntityStatusType.ACTIVE),
         ("Charlie", today - timedelta(days=90), EntityStatusType.ACTIVE),
         ("Charlie", today - timedelta(days=2), EntityStatusType.DELETED),
         ("Charlie", today - timedelta(days=3), EntityStatusType.DELETED),
