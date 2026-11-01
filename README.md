@@ -62,9 +62,21 @@ To fill the migrated local database with test data, run:
 docker compose exec backend python -m scripts.seed
 ```
 
-It creates the user `test_1` with the base currency USD, its accounts and locations, and transactions from
-2024-01-01 to today. To sign in as that user, type `test_1` as the username in the mock server's form (see below). If
-the user already exists, the script shows what it has and asks whether to recreate it or to seed another username.
+It asks three questions, and an empty answer takes the default:
+
+- the username (`test_1`), which is also the username typed in the mock server's form (see below);
+- the sign-in provider (`telegram` or `google`), whose form in the mock server signs in as that user;
+- the dataset: `full` (the default) creates the accounts, locations and transactions from 2024-01-01 to today, and
+  `small` creates about twenty transactions of the last two months that cover every case of an account merge: accounts
+  and locations folded into ones of the same name, money accounts renamed (one with a name long enough to be cut), and
+  deleted ones moved as they are.
+
+Both datasets use the base currency USD. If the user already exists for that provider, the script shows what it has and
+asks whether to recreate it or to seed another username.
+
+To try a merge, seed `test_1` through `telegram` with the `full` dataset and `test_2` through `google` with the `small`
+one, sign in as `test_1` through Telegram and link Google as `test_2`: the backend offers to merge `test_2` into
+`test_1`. Two `small` users merge the same way.
 
 ### Signing in locally
 
