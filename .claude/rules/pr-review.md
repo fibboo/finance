@@ -87,7 +87,7 @@ Each of the following is a finding when the diff adds it under `frontend/` (`.cl
 - an effect that derives data, fetches, handles an event or resets state;
 - a `useMemo`, `useCallback` or `memo` without the profile or the effect dependency that justifies it;
 - an inline `eslint-disable`, a `@ts-ignore` or `@ts-expect-error`, an `any`, a non-null assertion or an `as` cast other than `as const`;
-- an API type written by hand instead of taken from the generated schema, or a backend value set or label copied into a frontend constant;
+- an API type written by hand instead of taken from the generated schema, or a backend value set or label copied into a frontend constant (UI copy that explains a value, such as a hint, a placeholder or help text, is frontend text and not this finding);
 - an import from another feature, or a barrel file;
 - a screen, navigation section or action available at one width only (a secondary detail that a wider screen adds where it fits is not this finding), a component or component tree written for the phone or the desktop alone instead of one component that reflows with CSS, or navigation whose sections, names, icons or order differ between widths;
 - a raw color, pixel size or font in a CSS module instead of a token, or an interactive element that is not a native `button`, `a` or form control and has no role and keyboard handling.
