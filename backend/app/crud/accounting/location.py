@@ -1,3 +1,4 @@
+from datetime import datetime, UTC
 from uuid import UUID
 
 from fastapi_pagination import Page
@@ -26,7 +27,7 @@ class CRUDLocation(CRUDBase[Location, LocationCreateRequest, LocationUpdate]):
             )
 
         if request.order == ListOrderType.RECENT_USE:
-            recent_use_start, recent_use_end = utils.get_recent_use_dates()
+            recent_use_start, recent_use_end = utils.get_recent_use_dates(today=datetime.now(UTC).date())
             use_counts: Subquery = (
                 select(Transaction.location_id, func.count(Transaction.id).label("use_count"))
                 .where(

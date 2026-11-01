@@ -1,11 +1,11 @@
 import hashlib
-from datetime import date, datetime, timedelta, UTC
+from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_EVEN
 from typing import Any
 
 from pydantic import BaseModel
 
-from app.schemas.base import RECENT_USE_DAYS
+RECENT_USE_DAYS: int = 90
 
 
 def make_hashable(*, value: Any) -> tuple:
@@ -50,7 +50,6 @@ def get_base_currency_rate(*, balance: Decimal, base_balance: Decimal) -> Decima
     return base_currency_rate
 
 
-def get_recent_use_dates() -> tuple[date, date]:
-    today: date = datetime.now(UTC).date()
-    recent_use_dates: tuple[date, date] = (today - timedelta(days=RECENT_USE_DAYS), today)
+def get_recent_use_dates(*, today: date) -> tuple[date, date]:
+    recent_use_dates: tuple[date, date] = (today - timedelta(days=RECENT_USE_DAYS), today + timedelta(days=1))
     return recent_use_dates

@@ -1,3 +1,4 @@
+from datetime import datetime, UTC
 from decimal import Decimal
 from uuid import UUID
 
@@ -32,7 +33,7 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
             )
 
         if request.order == ListOrderType.RECENT_USE:
-            recent_use_start, recent_use_end = utils.get_recent_use_dates()
+            recent_use_start, recent_use_end = utils.get_recent_use_dates(today=datetime.now(UTC).date())
             use_counts: Subquery = (
                 select(Posting.account_id, func.count(func.distinct(Posting.transaction_id)).label("use_count"))
                 .join(Transaction, Transaction.id == Posting.transaction_id)

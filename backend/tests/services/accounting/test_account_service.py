@@ -973,12 +973,14 @@ async def test_get_accounts_recent_use_order(db: AsyncSession):
         )
 
     # Bravo is used twice and Alpha once within 90 days, Alpha's expense carrying two zero exchange-difference
-    # postings that are no extra uses; Charlie only in a future-dated expense, Delta 92 days ago and in deleted ones
+    # postings that are no extra uses; Charlie only in three future-dated expenses, Delta 92 days ago and in deleted ones
     expenses: list[tuple[str, date, EntityStatusType, int]] = [
         ("Bravo", today - timedelta(days=1), EntityStatusType.ACTIVE, 0),
         ("Bravo", today - timedelta(days=89), EntityStatusType.ACTIVE, 0),
         ("Alpha", today, EntityStatusType.ACTIVE, 2),
         ("Charlie", today + timedelta(days=5), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today + timedelta(days=6), EntityStatusType.ACTIVE, 0),
+        ("Charlie", today + timedelta(days=7), EntityStatusType.ACTIVE, 0),
         ("Delta", today - timedelta(days=92), EntityStatusType.ACTIVE, 0),
         ("Delta", today - timedelta(days=2), EntityStatusType.DELETED, 0),
         ("Delta", today - timedelta(days=3), EntityStatusType.DELETED, 0),
