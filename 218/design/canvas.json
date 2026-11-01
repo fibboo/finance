@@ -1,0 +1,123 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-01T12:00:00Z"
+  },
+  "title": "Transaction entry",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "New transaction (phone)",
+      "is_interactive": true
+    },
+    "picker-phone.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Category picker (phone)",
+      "is_interactive": true
+    },
+    "create-category-phone.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "New category (phone)",
+      "is_interactive": true
+    },
+    "create-account-phone.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "New money account (phone)",
+      "is_interactive": true
+    },
+    "create-income-source-phone.dc.html": {
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "New income source (phone)",
+      "is_interactive": true
+    },
+    "create-location-phone.dc.html": {
+      "x": 2350,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "New location (phone)"
+    },
+    "form-desktop.dc.html": {
+      "x": 0,
+      "y": 964,
+      "w": 1280,
+      "h": 800,
+      "title": "New transaction (desktop)",
+      "is_interactive": true
+    },
+    "picker-desktop.dc.html": {
+      "x": 1360,
+      "y": 964,
+      "w": 1280,
+      "h": 800,
+      "title": "Category picker (desktop)"
+    },
+    "create-category-desktop.dc.html": {
+      "x": 0,
+      "y": 1884,
+      "w": 1280,
+      "h": 800,
+      "title": "New category (desktop)",
+      "is_interactive": true
+    },
+    "create-account-desktop.dc.html": {
+      "x": 1360,
+      "y": 1884,
+      "w": 1280,
+      "h": 800,
+      "title": "New money account (desktop)",
+      "is_interactive": true
+    },
+    "create-income-source-desktop.dc.html": {
+      "x": 0,
+      "y": 2804,
+      "w": 1280,
+      "h": 800,
+      "title": "New income source (desktop)",
+      "is_interactive": true
+    },
+    "create-location-desktop.dc.html": {
+      "x": 1360,
+      "y": 2804,
+      "w": 1280,
+      "h": 800,
+      "title": "New location (desktop)"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "picker-phone.dc.html",
+    "create-category-phone.dc.html",
+    "create-account-phone.dc.html",
+    "create-income-source-phone.dc.html",
+    "create-location-phone.dc.html",
+    "form-desktop.dc.html",
+    "picker-desktop.dc.html",
+    "create-category-desktop.dc.html",
+    "create-account-desktop.dc.html",
+    "create-income-source-desktop.dc.html",
+    "create-location-desktop.dc.html"
+  ],
+  "notes": {},
+  "designSystems": []
+}

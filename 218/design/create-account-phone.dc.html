@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New money account, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{opacity:.8}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 16px; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 12px; font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; background: {{t.bg}}; color: {{t.text}}">
+  <div style="padding: 0 8px; display: flex; align-items: center; justify-content: space-between">
+    <span style="font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Home</span>
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: {{t.panel}}"></span>
+  </div>
+  <div style="height: 160px; border-radius: 20px; background: {{t.panel}}"></div>
+  <div style="flex-grow: 1; border-radius: 20px; background: {{t.panel}}"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.35)"></div>
+  <form role="dialog" aria-modal="true" aria-labelledby="create-title" style="position: absolute; left: 0; right: 0; bottom: 0; height: 800px; margin: 0; box-sizing: border-box; padding: 8px 16px 16px; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; gap: 16px; background: {{t.panel}}; box-shadow: 0 18px 50px rgba(0,0,0,.3)">
+    <span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: {{t.line}}"></span>
+    <div style="height: 32px; display: flex; align-items: center; gap: 4px">
+      <button type="button" aria-label="Back" style="width: 44px; height: 44px; margin-left: -12px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: {{t.muted}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
+      <h2 id="create-title" style="margin: 0; font-size: 18px; font-weight: 600">New account</h2>
+    </div>
+    <label style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 13px; font-weight: 500; color: {{t.muted}}">Name</span>
+      <input value="Travel card" style="height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid {{t.line}}; background: {{t.bg}}; font-size: 15px">
+    </label>
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column">
+      <legend style="padding: 0 0 6px; font-size: 13px; font-weight: 500; color: {{t.muted}}">Kind</legend>
+      <div style="padding: 3px; border-radius: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; background: {{t.bg}}">
+        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
+          <button type="button" role="radio" aria-checked="{{k.checked}}" onClick="{{k.pick}}" style="{{k.style}}">{{k.label}}</button>
+        </sc-for>
+      </div>
+      <span style="padding-top: 6px; font-size: 13px; line-height: 1.4; color: {{t.muted}}">{{kindHint}}</span>
+    </fieldset>
+    <label style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 13px; font-weight: 500; color: {{t.muted}}">Currency</span>
+      <select style="height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid {{t.line}}; background: {{t.bg}}; font-size: 15px">
+        <option>USD · US Dollar</option><option>EUR · Euro</option><option>GEL · Georgian Lari</option>
+      </select>
+    </label>
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+      <legend style="padding: 0 0 8px; font-size: 13px; font-weight: 500; color: {{t.muted}}">Color</legend>
+      <div role="radiogroup" aria-label="Color" style="display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); row-gap: 6px; justify-items: center">
+        <sc-for list="{{colors}}" as="c" hint-placeholder-count="18">
+          <button type="button" role="radio" aria-checked="{{c.checked}}" aria-label="{{c.name}}" disabled="{{c.disabled}}" onClick="{{c.pick}}" style="{{c.style}}"><span aria-hidden="true" style="{{c.swatch}}"></span></button>
+        </sc-for>
+      </div>
+      <span style="font-size: 13px; line-height: 1.4; color: {{t.muted}}">Dimmed colors are used by other accounts.</span>
+    </fieldset>
+    <label style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 13px; font-weight: 500; color: {{t.muted}}">Description <span style="font-weight: 400">(optional)</span></span>
+      <textarea rows="3" placeholder="{{placeholder}}" style="box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid {{t.line}}; background: {{t.bg}}; font-size: 15px; resize: none"></textarea>
+    </label>
+    <div style="flex-grow: 1"></div>
+    <button type="submit" style="height: 48px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">Create account</button>
+  </form>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { kind: 'ASSET', color: null };
+}
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', line: '#E2E2DE' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', line: '#2A2D32' };
+const t = (this.props.dark ?? true) ? D : L;
+const kinds = [['ASSET', 'Asset'], ['LIABILITY', 'Liability']].map(([key, label]) => {
+const on = this.state.kind === key;
+return { label, checked: on ? 'true' : 'false', pick: () => this.setState({ kind: key }),
+style: 'height: 38px; border: 0; border-radius: 9px; font-size: 14px; font-weight: 600; background: ' + (on ? t.panel : 'transparent') + '; color: ' + (on ? t.text : t.muted) + (on ? '; box-shadow: 0 1px 3px rgba(0,0,0,.18)' : '') };
+});
+const palette = [['Blue', '#4D8FBF'], ['Teal', '#2E8C7A'], ['Indigo', '#5B6CD9'], ['Purple', '#A15CB8'], ['Amber', '#B8862C'], ['Rust', '#C2613F'], ['Rose', '#C24E6E'], ['Olive', '#6E8A3A'], ['Violet', '#8A6FD1'], ['Cyan', '#2F9BB3'], ['Green', '#3E9A5C'], ['Steel', '#4F6D8F'], ['Pink', '#D07FA8'], ['Brown', '#9C7A5B'], ['Mustard', '#C9A227'], ['Orange', '#D9743A'], ['Magenta', '#B05C9E'], ['Slate', '#7A8A99']];
+const used = [0, 1, 2, 3, 4, 5];
+const firstFree = palette.findIndex((_, i) => !used.includes(i));
+const picked = this.state.color ?? firstFree;
+const colors = palette.map(([name, hex], i) => {
+const isUsed = used.includes(i);
+const on = !isUsed && picked === i;
+return { name: isUsed ? name + ', used by another account' : name, checked: on ? 'true' : 'false', disabled: isUsed, pick: () => this.setState({ color: i }),
+style: 'width: 38px; height: 38px; padding: 0; border-radius: 19px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: ' + (isUsed ? 'not-allowed' : 'pointer') + '; border: 2px solid ' + (on ? t.text : 'transparent'),
+swatch: 'width: 26px; height: 26px; border-radius: 13px; background: ' + hex + (isUsed ? '; opacity: .25' : '') };
+});
+const isAsset = this.state.kind === 'ASSET';
+const placeholder = isAsset ? 'e.g. Debit card for everyday spending' : 'e.g. Credit card, repaid every month';
+const kindHint = isAsset ? 'Money you have: a card, cash or savings.' : 'Money you owe: a credit card or a loan.';
+return { t, kinds, colors, placeholder, kindHint };
+}
+}
+</script>
+</body>
+</html>

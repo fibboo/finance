@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New transaction dialog, desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{opacity:.8}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+input::placeholder{color:#9A9EA6}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; padding: 24px; position: relative; overflow: hidden; display: flex; gap: 24px; font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; background: {{t.bg}}; color: {{t.text}}">
+  <div style="width: 220px; flex-shrink: 0; border-radius: 20px; background: {{t.panel}}"></div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px">
+    <span style="padding: 6px 8px 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Home</span>
+    <div style="height: 200px; border-radius: 20px; background: {{t.panel}}"></div>
+    <div style="flex-grow: 1; display: grid; grid-template-columns: 1fr 2fr; gap: 16px">
+      <div style="border-radius: 20px; background: {{t.panel}}"></div>
+      <div style="border-radius: 20px; background: {{t.panel}}"></div>
+    </div>
+  </div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.35)"></div>
+  <form role="dialog" aria-modal="true" aria-labelledby="dialog-title" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 440px; max-height: 720px; margin: 0; box-sizing: border-box; padding: 20px 24px 24px; border-radius: 20px; display: flex; flex-direction: column; gap: 14px; background: {{t.panel}}; box-shadow: 0 18px 50px rgba(0,0,0,.3)">
+    <div style="height: 32px; display: flex; align-items: center; justify-content: space-between">
+      <h2 id="dialog-title" style="margin: 0; font-size: 18px; font-weight: 600">New transaction</h2>
+      <button type="button" aria-label="Close" style="width: 44px; height: 44px; margin-right: -12px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: {{t.muted}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div role="radiogroup" aria-label="Type" style="margin: 0 -24px; padding: 0 24px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none">
+      <sc-for list="{{types}}" as="ty" hint-placeholder-count="4">
+        <button type="button" role="radio" aria-checked="{{ty.checked}}" onClick="{{ty.pick}}" style="{{ty.style}}">{{ty.label}}</button>
+      </sc-for>
+    </div>
+    <label style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 13px; color: {{t.muted}}">{{amountLabel}}</span>
+      <span style="display: flex; align-items: baseline; gap: 8px">
+        <input inputmode="decimal" value="{{amount}}" aria-label="{{amountLabel}}" style="width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; font-size: 36px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1">
+        <span style="font-size: 17px; font-weight: 600; color: {{t.muted}}">{{amountCurrency}}</span>
+      </span>
+      <sc-if value="{{amountHint}}" hint-placeholder-val="{{ true }}"><span style="font-size: 13px; color: {{t.muted}}">{{amountHint}}</span></sc-if>
+    </label>
+    <div style="padding: 0 14px; border-radius: 14px; display: flex; flex-direction: column; background: {{t.bg}}">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+        <button type="button" style="{{r.style}}">
+          <span style="width: 92px; flex-shrink: 0; text-align: left; font-size: 13px; color: {{t.muted}}">{{r.label}}</span>
+          <sc-if value="{{r.dot}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="{{r.dot}}"></span></sc-if>
+          <span style="flex-grow: 1; text-align: left; font-size: 15px; color: {{r.valueColor}}">{{r.value}}</span>
+          <span style="font-size: 13px; color: {{t.muted}}">{{r.note}}</span>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </sc-for>
+    </div>
+    <sc-if value="{{foreign}}" hint-placeholder-val="{{ true }}">
+      <label style="height: 44px; display: flex; align-items: center; gap: 12px; font-size: 15px; cursor: pointer">
+        <input type="checkbox" checked="{{foreign.checked}}" onChange="{{foreign.toggle}}" style="width: 18px; height: 18px; margin: 0; accent-color: {{t.accent}}">
+        <span>{{foreign.label}}</span>
+      </label>
+    </sc-if>
+    <sc-if value="{{foreignOpen}}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top: -8px; padding: 0 14px; border-radius: 14px; display: flex; flex-direction: column; background: {{t.bg}}">
+        <sc-for list="{{foreignRows}}" as="f" hint-placeholder-count="2">
+          <label style="{{f.style}}">
+            <span style="width: 92px; flex-shrink: 0; font-size: 13px; color: {{t.muted}}">{{f.label}}</span>
+            <input inputmode="decimal" placeholder="0.00" value="{{f.value}}" style="flex-grow: 1; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; font-size: 15px">
+            <span style="font-size: 13px; font-weight: 600; color: {{t.muted}}">{{f.currency}}</span>
+          </label>
+        </sc-for>
+      </div>
+    </sc-if>
+    <label style="height: 48px; padding: 0 14px; border-radius: 14px; display: flex; align-items: center; gap: 12px; background: {{t.bg}}">
+      <span style="width: 92px; flex-shrink: 0; font-size: 13px; color: {{t.muted}}">Comment</span>
+      <input placeholder="Optional" style="flex-grow: 1; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; font-size: 15px">
+    </label>
+    <button type="submit" style="height: 48px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 600; background: {{t.text}}; color: {{t.bg}}">{{submit}}</button>
+  </form>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { type: 'EXPENSE', foreign: false };
+}
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', line: '#E2E2DE' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', line: '#2A2D32' };
+const t = (this.props.dark ?? true) ? D : L;
+const type = this.state.type;
+const chip = (on) => 'height: 32px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; border: 1px solid ' + (on ? t.text : t.line) + '; background: ' + (on ? t.text : 'transparent') + '; color: ' + (on ? t.bg : t.text);
+const types = [['EXPENSE', 'Expense'], ['INCOME', 'Income'], ['TRANSFER', 'Transfer'], ['ADJUSTMENT', 'Adjustment']].map(([key, label]) => ({
+label, checked: type === key ? 'true' : 'false', style: chip(type === key),
+pick: () => this.setState({ type: key, foreign: false }) }));
+const dot = (c) => 'width:8px;height:8px;border-radius:4px;flex-shrink:0;background:' + c;
+const rowStyle = (last) => 'min-height: 48px; padding: 0; border: 0; background: transparent; display: flex; align-items: center; gap: 10px; ' + (last ? '' : 'border-bottom: 1px solid ' + t.line);
+const mk = (list) => list.map((r, i) => ({ ...r, dot: r.color ? dot(r.color) : '', valueColor: r.placeholder ? t.muted : t.text, note: r.note || '', style: rowStyle(i === list.length - 1) }));
+const today = '01.11.2026';
+const fr = (list) => list.map((f, i) => ({ ...f, style: 'height: 48px; display: flex; align-items: center; gap: 12px; ' + (i === list.length - 1 ? '' : 'border-bottom: 1px solid ' + t.line) }));
+let v;
+if (type === 'EXPENSE') {
+v = { amountLabel: 'Amount', amount: '42.80', amountCurrency: 'EUR', amountHint: '≈ $46.70',
+rows: mk([{ label: 'From', value: 'Main card', color: '#5B6CD9', note: '€1,240.00' }, { label: 'Category', value: 'Groceries', color: '#2E8C7A' }, { label: 'Location', value: 'Choose a location', placeholder: true }, { label: 'Date', value: today }]),
+foreign: { label: 'Paid in another currency' }, foreignRows: fr([{ label: 'Seller’s amount', value: '', currency: 'GEL' }]), submit: 'Add expense' };
+} else if (type === 'INCOME') {
+v = { amountLabel: 'Amount received', amount: '3,200.00', amountCurrency: 'EUR', amountHint: '≈ $3,491.20',
+rows: mk([{ label: 'Source', value: 'Salary', color: '#4D8FBF' }, { label: 'To', value: 'Main card', color: '#5B6CD9', note: '€1,240.00' }, { label: 'For month', value: 'October 2026' }, { label: 'Date', value: today }]),
+foreign: { label: 'Paid in another currency' }, foreignRows: fr([{ label: 'Paid amount', value: '', currency: 'GEL' }, { label: 'In USD', value: '', currency: 'USD' }]), submit: 'Add income' };
+} else if (type === 'TRANSFER') {
+v = { amountLabel: 'Amount sent', amount: '500.00', amountCurrency: 'EUR', amountHint: '',
+rows: mk([{ label: 'From', value: 'Main card', color: '#5B6CD9', note: '€1,240.00' }, { label: 'To', value: 'Savings', color: '#2E8C7A', note: '₾8,400.00' }, { label: 'Date', value: today }]),
+foreign: '', foreignRows: fr([{ label: 'Amount received', value: '1,455.00', currency: 'GEL' }]), submit: 'Add transfer' };
+} else {
+v = { amountLabel: 'New balance', amount: '1,180.00', amountCurrency: 'EUR', amountHint: 'Now €1,240.00 · −€60.00',
+rows: mk([{ label: 'Account', value: 'Main card', color: '#5B6CD9', note: '€1,240.00' }, { label: 'Date', value: today }]),
+foreign: '', foreignRows: [], submit: 'Adjust balance' };
+}
+const foreign = v.foreign ? { ...v.foreign, checked: this.state.foreign, toggle: () => this.setState({ foreign: !this.state.foreign }) } : '';
+const foreignOpen = type === 'TRANSFER' ? true : (v.foreign ? this.state.foreign : false);
+return { t, types, ...v, foreign, foreignOpen };
+}
+}
+</script>
+</body>
+</html>
