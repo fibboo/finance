@@ -316,3 +316,81 @@ test('offers only the transaction types the form can enter', () => {
     'Adjustment',
   ]);
 });
+
+test('asks for the base currency amount when the account had no rate on the date', async () => {
+  // arrange
+  const requestBodies: unknown[] = [];
+  server.use(
+    http.post(
+      'http://localhost/api/accounting/accounts/:accountId/adjustment',
+      async ({ request }) => {
+        requestBodies.push(await request.json());
+        return requestBodies.length === 1
+          ? HttpResponse.json(
+              {
+                message: 'Accounts has no base currency rate',
+                error_code: 'NO_ACCOUNT_BASE_CURRENCY_RATE',
+              },
+              { status: 403 },
+            )
+          : HttpResponse.json(adjustment);
+      },
+    ),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[{ ...euroCard, balance: '50', base_currency_rate: '0.92' }]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onTypeChange={vi.fn()}
+      onClose={onClose}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /^Account/ }));
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+  await user.type(await screen.findByLabelText('In USD'), '54.30');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(requestBodies.at(-1)).toEqual({
+    transaction_date: '2026-10-20',
+    comment: null,
+    new_balance: '100',
+    base_currency_amount: '54.30',
+  });
+});
+
+test('refuses a date after today', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[wallet]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.clear(screen.getByLabelText('Date'));
+  await user.type(screen.getByLabelText('Date'), '21102026');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+
+  // assert
+  expect(await screen.findByText('Choose a date up to today')).toBeInTheDocument();
+});

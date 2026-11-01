@@ -24,10 +24,15 @@ export function NewTransaction() {
   const transactionType = readNewTransactionType(searchParams);
   const isOpen = transactionType !== undefined;
   const baseCurrency = useBaseCurrency();
-  const { data: dictionaries } = useQuery({ ...dictionaryQueries.accounting(), enabled: isOpen });
+  const { data: dictionaries } = useQuery({
+    ...dictionaryQueries.accounting(),
+    enabled: isOpen,
+    throwOnError: true,
+  });
   const { data: moneyAccounts } = useQuery({
     ...accountQueries.list({ kinds: [...MONEY_ACCOUNT_KINDS], size: ACCOUNT_PAGE_SIZE }),
     enabled: isOpen,
+    throwOnError: true,
   });
   if (transactionType === undefined) {
     return null;

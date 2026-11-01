@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useId } from 'react';
+import { createPortal } from 'react-dom';
 
 import styles from './sheet.module.css';
 
@@ -10,15 +11,27 @@ type SheetProps = Readonly<{
 
 export function Sheet({ label, onClose, children }: SheetProps) {
   const backdropId = useId();
+  const sheetId = useId();
 
   useEffect(() => {
-    const opener = document.activeElement;
-    return () => {
-      if (opener instanceof HTMLElement) {
-        opener.focus();
+    const sheetLayer = document.getElementById(sheetId)?.parentElement;
+    const background = [...document.body.children].filter(
+      (element) => element !== sheetLayer && element instanceof HTMLElement && !element.inert,
+    );
+    background.forEach((element) => {
+      if (element instanceof HTMLElement) {
+        element.inert = true;
       }
+    });
+
+    return () => {
+      background.forEach((element) => {
+        if (element instanceof HTMLElement) {
+          element.inert = false;
+        }
+      });
     };
-  }, []);
+  }, [sheetId]);
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -42,12 +55,19 @@ export function Sheet({ label, onClose, children }: SheetProps) {
     };
   }, [onClose, backdropId]);
 
-  return (
-    <>
+  const sheet = (
+    <div>
       <div id={backdropId} className={styles['backdrop']} aria-hidden="true" />
       <section
+        id={sheetId}
         ref={(panel) => {
+          const opener = document.activeElement;
           panel?.focus({ preventScroll: true });
+          return () => {
+            if (opener instanceof HTMLElement) {
+              opener.focus({ preventScroll: true });
+            }
+          };
         }}
         role="dialog"
         aria-modal="true"
@@ -58,6 +78,7 @@ export function Sheet({ label, onClose, children }: SheetProps) {
         <span className={styles['handle']} aria-hidden="true" />
         {children}
       </section>
-    </>
+    </div>
   );
+  return createPortal(sheet, document.body);
 }

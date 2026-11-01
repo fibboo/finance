@@ -10,7 +10,7 @@ import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
 import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
-import { DATE_TEXT_PLACEHOLDER, maskDateText, toDateText } from '@/lib/format-date';
+import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
 import { ENTRY_TRANSACTION_TYPES, type EntryTransactionType } from '../api/new-transaction';
@@ -23,6 +23,7 @@ import {
 } from '../schemas/transaction-form';
 import { AmountField } from './amount-field';
 import { CalendarButton } from './calendar-button';
+import { readDateInputProps } from './date-input';
 import { InputRow } from './input-row';
 import { PickerRow } from './picker-row';
 import styles from './transaction-form.module.css';
@@ -91,6 +92,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const today = useToday();
   const [isPickingAccount, setIsPickingAccount] = useState(false);
+  const [isBaseAmountAsked, setIsBaseAmountAsked] = useState(false);
   const accountRowId = useId();
   const resolver: Resolver<AdjustmentFormInput, unknown, AdjustmentFormOutput> = (
     values,
@@ -101,6 +103,7 @@ export function TransactionForm({
       createAdjustmentFormSchema({
         account: moneyAccounts?.find((account) => account.id === values.account_id),
         baseCurrency,
+        today,
       }),
     )(values, context, options);
   const { control, register, handleSubmit, setError, setValue, formState } = useForm<
@@ -127,7 +130,6 @@ export function TransactionForm({
     ENTRY_TRANSACTION_TYPES.some((entryType) => entryType === type.key),
   );
   const requestError = formState.errors.root?.['server']?.message;
-  const dateRegistration = register('transaction_date');
 
   function closePicker() {
     flushSync(() => {
@@ -150,6 +152,9 @@ export function TransactionForm({
                 if (error instanceof ApiError) {
                   error.fieldErrors.forEach((fieldError) => {
                     const field = FORM_FIELDS.find((formField) => formField === fieldError.field);
+                    if (field === 'base_currency_amount') {
+                      setIsBaseAmountAsked(true);
+                    }
                     setError(field ?? 'root.server', { message: fieldError.message });
                   });
                 }
@@ -205,17 +210,7 @@ export function TransactionForm({
           />
           <InputRow
             label="Date"
-            input={{
-              ...dateRegistration,
-              type: 'text',
-              inputMode: 'numeric',
-              autoComplete: 'off',
-              placeholder: DATE_TEXT_PLACEHOLDER,
-              onChange: (event) => {
-                event.target.value = maskDateText(event.target.value);
-                void dateRegistration.onChange(event);
-              },
-            }}
+            input={readDateInputProps(register('transaction_date'))}
             action={
               <CalendarButton
                 label="transaction"
@@ -231,7 +226,7 @@ export function TransactionForm({
             error={formState.errors.transaction_date?.message}
           />
         </div>
-        {isBaseCurrencyAmountNeeded({ account, baseCurrency }) && (
+        {(isBaseAmountAsked || isBaseCurrencyAmountNeeded({ account, baseCurrency })) && (
           <div className={styles['rows']}>
             <InputRow
               label={`In ${baseCurrency}`}
@@ -284,6 +279,7 @@ export function TransactionForm({
           selectedId={account?.id}
           onSelect={(selectedAccountId) => {
             setValue('account_id', selectedAccountId, { shouldValidate: formState.isSubmitted });
+            setIsBaseAmountAsked(false);
             closePicker();
           }}
           onBack={closePicker}

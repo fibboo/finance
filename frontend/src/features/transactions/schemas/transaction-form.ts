@@ -23,15 +23,15 @@ export function isBaseCurrencyAmountNeeded({
   const isNeeded =
     account !== undefined &&
     account.currency !== baseCurrency &&
-    Number(account.base_currency_rate) === 0;
+    Number(account.base_currency_rate) <= 0;
   return isNeeded;
 }
 
 export function createAdjustmentFormSchema({
   account,
   baseCurrency,
-}: Readonly<{ account: Readonly<Account> | undefined; baseCurrency: string }>) {
-  const isBaseAmountNeeded = isBaseCurrencyAmountNeeded({ account, baseCurrency });
+  today,
+}: Readonly<{ account: Readonly<Account> | undefined; baseCurrency: string; today: string }>) {
   const adjustmentFormSchema = z.object({
     account_id: z.string().min(1, 'Choose the account to adjust'),
     new_balance: z
@@ -44,14 +44,15 @@ export function createAdjustmentFormSchema({
     base_currency_amount: z
       .string()
       .trim()
-      .transform((text) => (isBaseAmountNeeded ? text.replace(',', '.') : null))
+      .transform((text) => (text === '' ? null : text.replace(',', '.')))
       .refine((amount) => amount === null || (AMOUNT_PATTERN.test(amount) && Number(amount) > 0), {
         error: `Enter the amount in ${baseCurrency}, like 42.80`,
       }),
     transaction_date: z
       .string()
       .transform((text) => readIsoDate(text))
-      .pipe(z.string({ error: `Enter a date as ${DATE_TEXT_PLACEHOLDER}` })),
+      .pipe(z.string({ error: `Enter a date as ${DATE_TEXT_PLACEHOLDER}` }))
+      .refine((isoDate) => isoDate <= today, { error: 'Choose a date up to today' }),
     comment: z
       .string()
       .trim()

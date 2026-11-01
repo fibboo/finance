@@ -1,8 +1,7 @@
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
-import { DATE_TEXT_PLACEHOLDER, maskDateText } from '@/lib/format-date';
-
 import { CalendarButton } from './calendar-button';
+import { readDateInputProps } from './date-input';
 import { FilterField } from './filter-field';
 
 type DateFieldProps = Readonly<{
@@ -28,17 +27,7 @@ export function DateField({
     <FilterField
       label={label}
       error={error}
-      input={{
-        ...registration,
-        type: 'text',
-        inputMode: 'numeric',
-        autoComplete: 'off',
-        placeholder: DATE_TEXT_PLACEHOLDER,
-        onChange: (event) => {
-          event.target.value = maskDateText(event.target.value);
-          void registration.onChange(event);
-        },
-      }}
+      input={readDateInputProps(registration)}
       action={
         <CalendarButton
           label={label}

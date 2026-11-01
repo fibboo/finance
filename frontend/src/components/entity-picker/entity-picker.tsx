@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
@@ -37,6 +37,22 @@ export function EntityPicker({
   onBack,
 }: EntityPickerProps) {
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onBack();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [onBack]);
+
   const searchText = search.trim().toLowerCase();
   const matchingItems = items?.filter((item) => item.name.toLowerCase().includes(searchText));
 

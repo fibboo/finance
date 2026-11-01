@@ -1,24 +1,50 @@
 import { hashKey, mutationOptions, type QueryClient, type QueryKey } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
+import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
 import { transactionQueries } from './transaction-queries';
 
 type Transaction = components['schemas']['Transaction'];
 type AdjustmentRequest = components['schemas']['AdjustmentRequest'];
+type ErrorCode = components['schemas']['ErrorCodeType'];
+
+const BASE_CURRENCY_AMOUNT_MESSAGES: Partial<Record<ErrorCode, string>> = {
+  NO_ACCOUNT_BASE_CURRENCY_RATE:
+    'The account had no rate on this date, so enter the amount in the base currency',
+  BASE_CURRENCY_AMOUNT_NOT_ALLOWED:
+    'The account had a rate on this date, so leave the amount in the base currency empty',
+};
 
 async function postAdjustment({
   account_id,
   ...body
 }: Readonly<AdjustmentRequest & { account_id: string }>): Promise<Transaction> {
-  const adjustment = readData(
-    await apiClient.POST('/accounting/accounts/{account_id}/adjustment', {
-      params: { path: { account_id } },
-      body,
-    }),
-  );
-  return adjustment;
+  try {
+    const adjustment = readData(
+      await apiClient.POST('/accounting/accounts/{account_id}/adjustment', {
+        params: { path: { account_id } },
+        body,
+      }),
+    );
+    return adjustment;
+  } catch (error) {
+    const baseCurrencyAmountMessage =
+      error instanceof ApiError && error.error_code !== null
+        ? BASE_CURRENCY_AMOUNT_MESSAGES[error.error_code]
+        : undefined;
+    if (error instanceof ApiError && baseCurrencyAmountMessage !== undefined) {
+      throw new ApiError({
+        status: error.status,
+        message: error.message,
+        error_code: error.error_code,
+        fieldErrors: [{ field: 'base_currency_amount', message: baseCurrencyAmountMessage }],
+      });
+    }
+
+    throw error;
+  }
 }
 
 function invalidateFeeds({

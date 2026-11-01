@@ -91,7 +91,10 @@ test('sends the user to the provider to link it', async () => {
   expect(redirectUri).toBe('http://localhost:5173/auth/link-callback');
 });
 
-test('opens the new transaction form from the add button', async () => {
+test.each([
+  { action: 'opens', closeWith: null },
+  { action: 'returns focus after closing', closeWith: '{Escape}' },
+])('$action the new transaction form from the add button', async ({ closeWith }) => {
   // arrange
   server.use(
     http.get('http://localhost/api/user/me', () =>
@@ -131,9 +134,18 @@ test('opens the new transaction form from the add button', async () => {
   const user = userEvent.setup();
   render(<AppLayout />);
 
-  // act
   await user.click(screen.getByRole('button', { name: 'Add transaction' }));
+  await screen.findByRole('radio', { name: 'Adjustment' });
+
+  // act
+  if (closeWith !== null) {
+    await user.keyboard(closeWith);
+  }
 
   // assert
-  expect(await screen.findByRole('radio', { name: 'Adjustment' })).toBeChecked();
+  if (closeWith === null) {
+    expect(screen.getByRole('radio', { name: 'Adjustment' })).toBeChecked();
+  } else {
+    expect(screen.getByRole('button', { name: 'Add transaction' })).toHaveFocus();
+  }
 });

@@ -93,3 +93,17 @@ test('stays closed without the new transaction param', () => {
   // assert
   expect(screen.queryByRole('dialog', { name: 'New transaction' })).not.toBeInTheDocument();
 });
+
+test('leaves the account picker for the form with Escape', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=ADJUSTMENT'] });
+  await user.click(await screen.findByRole('button', { name: /^Account/ }));
+  await screen.findByRole('searchbox', { name: 'Search accounts' });
+
+  // act
+  await user.keyboard('{Escape}');
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Adjust balance' })).toBeVisible();
+});
