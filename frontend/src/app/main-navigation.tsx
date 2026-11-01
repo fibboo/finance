@@ -1,4 +1,9 @@
-import { NavLink } from 'react-router';
+import { NavLink, useSearchParams } from 'react-router';
+
+import {
+  DEFAULT_ENTRY_TRANSACTION_TYPE,
+  writeNewTransactionType,
+} from '@/features/transactions/api/new-transaction';
 
 import styles from './main-navigation.module.css';
 
@@ -18,9 +23,22 @@ const SOON_SECTIONS = [
 ] as const;
 
 export function MainNavigation() {
+  const [searchParams, setSearchParams] = useSearchParams();
   return (
     <nav aria-label="Main" className={styles['mainNavigation']}>
-      <button type="button" className={styles['addTransaction']} disabled>
+      <button
+        type="button"
+        className={styles['addTransaction']}
+        onClick={() => {
+          setSearchParams(
+            writeNewTransactionType({
+              searchParams,
+              transactionType: DEFAULT_ENTRY_TRANSACTION_TYPE,
+            }),
+            { preventScrollReset: true },
+          );
+        }}
+      >
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
           <path d={ADD_ICON_PATH} />
         </svg>

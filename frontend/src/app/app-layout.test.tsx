@@ -90,3 +90,50 @@ test('sends the user to the provider to link it', async () => {
   });
   expect(redirectUri).toBe('http://localhost:5173/auth/link-callback');
 });
+
+test('opens the new transaction form from the add button', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [],
+        category_types: [],
+        transaction_types: [{ key: 'ADJUSTMENT', label: 'Adjustment' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 0,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<AppLayout />);
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Add transaction' }));
+
+  // assert
+  expect(await screen.findByRole('radio', { name: 'Adjustment' })).toBeChecked();
+});

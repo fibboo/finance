@@ -29,7 +29,7 @@ TRANSACTION_TYPE_LABELS: frozendict[TransactionType, str] = frozendict(
         TransactionType.EXPENSE: "Expense",
         TransactionType.INCOME: "Income",
         TransactionType.TRANSFER: "Transfer",
-        TransactionType.ADJUSTMENT: "Balance adjustment",
+        TransactionType.ADJUSTMENT: "Adjustment",
     }
 )
 

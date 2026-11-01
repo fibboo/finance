@@ -1,4 +1,4 @@
-import { hashKey, mutationOptions, type QueryKey } from '@tanstack/react-query';
+import { hashKey, mutationOptions, type QueryClient, type QueryKey } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
 import type { components } from '@/lib/api-schema';
@@ -6,6 +6,32 @@ import type { components } from '@/lib/api-schema';
 import { transactionQueries } from './transaction-queries';
 
 type Transaction = components['schemas']['Transaction'];
+type AdjustmentRequest = components['schemas']['AdjustmentRequest'];
+
+async function postAdjustment({
+  account_id,
+  ...body
+}: Readonly<AdjustmentRequest & { account_id: string }>): Promise<Transaction> {
+  const adjustment = readData(
+    await apiClient.POST('/accounting/accounts/{account_id}/adjustment', {
+      params: { path: { account_id } },
+      body,
+    }),
+  );
+  return adjustment;
+}
+
+function invalidateFeeds({
+  client,
+  relatedQueryKeys,
+}: Readonly<{ client: QueryClient; relatedQueryKeys: readonly QueryKey[] }>): Promise<unknown> {
+  const invalidation = Promise.all(
+    [transactionQueries.feeds().queryKey, ...relatedQueryKeys].map((queryKey) =>
+      client.invalidateQueries({ queryKey }),
+    ),
+  );
+  return invalidation;
+}
 
 async function deleteTransaction(
   transaction: Readonly<Pick<Transaction, 'id' | 'transaction_type'>>,
@@ -33,11 +59,16 @@ export const transactionMutations = {
             predicate: (query) => query.queryHash !== deletedDetailHash,
             refetchType: 'none',
           }),
-          ...[transactionQueries.feeds().queryKey, ...relatedQueryKeys].map((queryKey) =>
-            client.invalidateQueries({ queryKey }),
-          ),
+          invalidateFeeds({ client, relatedQueryKeys }),
         ]);
       },
+    });
+  },
+  adjust(relatedQueryKeys: readonly QueryKey[]) {
+    return mutationOptions({
+      mutationFn: postAdjustment,
+      onSuccess: (_adjustment, _request, _onMutateResult, { client }) =>
+        invalidateFeeds({ client, relatedQueryKeys }),
     });
   },
 };

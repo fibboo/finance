@@ -165,7 +165,7 @@ test.each([
         { ...posting, amount: '12.00', base_amount: '12.00', account: equity },
       ],
     },
-    cells: ['Balance adjustment · Savings', '', '-$12.00'],
+    cells: ['Adjustment · Savings', '', '-$12.00'],
   },
   {
     kind: 'an increasing adjustment',
@@ -177,7 +177,7 @@ test.each([
         { ...posting, amount: '25.00', base_amount: '25.00', account: savings },
       ],
     },
-    cells: ['Balance adjustment · Savings', '', '+$25.00'],
+    cells: ['Adjustment · Savings', '', '+$25.00'],
   },
 ] satisfies {
   kind: string;

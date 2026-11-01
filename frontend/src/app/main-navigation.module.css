@@ -30,9 +30,13 @@
   cursor: pointer;
 }
 
-.addTransaction:disabled {
-  opacity: var(--opacity-disabled);
-  cursor: not-allowed;
+.addTransaction:hover {
+  opacity: var(--opacity-hover);
+}
+
+.addTransaction:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
 }
 
 .section {
