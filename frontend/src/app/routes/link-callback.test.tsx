@@ -11,6 +11,14 @@ test('goes home once the provider is linked', async () => {
   // arrange
   let linkQuery = new URLSearchParams();
   server.use(
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [
+          { key: 'TELEGRAM', label: 'Telegram' },
+          { key: 'GOOGLE', label: 'Google' },
+        ],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
     http.post('http://localhost/api/user/auth/link/GOOGLE', ({ request }) => {
       linkQuery = new URL(request.url).searchParams;
       return HttpResponse.json({ authorization_url: 'https://accounts.google.test/authorize' });
@@ -37,6 +45,18 @@ test('goes home once the provider is linked', async () => {
 });
 
 test('goes home with an error when the link does not finish', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [
+          { key: 'TELEGRAM', label: 'Telegram' },
+          { key: 'GOOGLE', label: 'Google' },
+        ],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+
   // act
   const response = await loader({
     request: new Request('http://localhost/auth/link-callback?code=code-1&state=foreign-state'),
@@ -51,6 +71,14 @@ test('goes home without an error when the user cancels at the provider', async (
   // arrange
   let linkQuery = new URLSearchParams();
   server.use(
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [
+          { key: 'TELEGRAM', label: 'Telegram' },
+          { key: 'GOOGLE', label: 'Google' },
+        ],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
     http.post('http://localhost/api/user/auth/link/GOOGLE', ({ request }) => {
       linkQuery = new URL(request.url).searchParams;
       return HttpResponse.json({ authorization_url: 'https://accounts.google.test/authorize' });
