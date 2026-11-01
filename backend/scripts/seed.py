@@ -3,6 +3,7 @@ import math
 import random
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Callable, NamedTuple
 from uuid import UUID
 
 from sqlalchemy import delete, func, Select, select
@@ -34,6 +35,9 @@ logger = get_logger(logger_name=__name__)
 DEFAULT_USERNAME = "test_1"
 BASE_CURRENCY = "USD"
 RECREATE_ANSWER = "r"
+FULL_DATASET = "full"
+SMALL_DATASET = "small"
+PROVIDERS: dict[str, ProviderType] = {provider.value.lower(): provider for provider in ProviderType}
 RANDOM_SEED = 20261026
 HISTORY_START = date(2024, 1, 1)
 CREDIT_PERIOD = timedelta(days=90)
@@ -42,8 +46,10 @@ RSD_PER_EUR = 117
 GEL_PER_EUR = 2.95
 USD_PER_EUR = 1.17
 PROGRESS_STEP = 500
+SMALL_PERIOD = timedelta(days=60)
+LONG_ACCOUNT_NAME = "Emergency fund kept in the high-yield savings account at my bank"
 
-EXTRA_ACCOUNTS: list[AccountCreateRequest] = [
+FULL_ACCOUNTS: list[AccountCreateRequest] = [
     AccountCreateRequest(name="Main card", kind=AccountKind.ASSET, currency="EUR", color="#5B6CD9"),
     AccountCreateRequest(name="Savings", kind=AccountKind.ASSET, currency="GEL", color="#2E8C7A"),
     AccountCreateRequest(name="Freelance", kind=AccountKind.ASSET, currency="USD", color="#A15CB8"),
@@ -110,6 +116,34 @@ OPENING_BALANCES = [
     ("Freelance", Decimal("500.00"), None),
 ]
 
+SMALL_ACCOUNTS: list[AccountCreateRequest] = [
+    AccountCreateRequest(name="Main card", kind=AccountKind.ASSET, currency="EUR", color="#5B6CD9"),
+    AccountCreateRequest(name="Crypto", kind=AccountKind.ASSET, currency="USD", color="#2E8C7A"),
+    AccountCreateRequest(name=LONG_ACCOUNT_NAME, kind=AccountKind.ASSET, currency="USD", color="#D9A441"),
+    AccountCreateRequest(name="Credit card", kind=AccountKind.LIABILITY, currency="USD", color="#C2563A"),
+    AccountCreateRequest(name="Salary", kind=AccountKind.INCOME),
+    AccountCreateRequest(name="Gifts", kind=AccountKind.INCOME),
+    AccountCreateRequest(name="Household", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
+    AccountCreateRequest(name="Hobbies", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
+    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
+]
+SMALL_OPENING_BALANCES = [
+    ("Wallet", Decimal("200.00"), None),
+    ("Main card", Decimal("1000.00"), Decimal("1170.00")),
+    ("Crypto", Decimal("500.00"), None),
+    (LONG_ACCOUNT_NAME, Decimal("3000.00"), None),
+]
+
+
+class SeedDataset(NamedTuple):
+    accounts: list[AccountCreateRequest]
+    location_names: list[str]
+    opening_balances: list[tuple[str, Decimal, Decimal | None]]
+    deleted_account_names: list[str]
+    deleted_location_names: list[str]
+    plan_history: Callable[..., list[MovementRequest]]
+    opening_date: Callable[[date], date]
+
 
 def _money(*, value: float) -> Decimal:
     money: Decimal = Decimal(f"{value:.2f}")
@@ -134,6 +168,30 @@ def _location_names() -> list[str]:
     return location_names
 
 
+def _ask_choice(*, question: str, choices: list[str]) -> str:
+    while True:
+        answer: str = input(f"{question} ({'/'.join(choices)}, default {choices[0]}): ").strip().lower()
+        if answer == "":
+            return choices[0]
+
+        if answer in choices:
+            return answer
+
+        logger.info(f"Type one of {', '.join(choices)}")
+
+
+def _ask_username(*, question: str, default: str | None) -> str:
+    while True:
+        answer: str = input(question if default is None else f"{question} (default {default}): ").strip()
+        if default is not None and answer.lower() in ("", default):
+            return default
+
+        if USERNAME_MIN_LENGTH <= len(answer) <= USERNAME_MAX_LENGTH:
+            return answer
+
+        logger.info(f"A username has {USERNAME_MIN_LENGTH} to {USERNAME_MAX_LENGTH} characters")
+
+
 async def _count_user_entities(*, db: AsyncSession, user_id: UUID) -> dict[str, int]:
     counts: dict[str, int] = {}
     for name, model in [("accounts", AccountModel), ("locations", LocationModel), ("transactions", Transaction)]:
@@ -154,9 +212,9 @@ async def _delete_user(*, db: AsyncSession, user_id: UUID) -> None:
     await user_crud.delete_by_id(db=db, user_id=user_id)
 
 
-async def _create_user(*, db: AsyncSession, username: str) -> UserModel:
+async def _create_user(*, db: AsyncSession, username: str, provider: ProviderType) -> UserModel:
     identity = ProviderIdentity(
-        provider=ProviderType.TELEGRAM,
+        provider=provider,
         external_id=username,
         username=username,
         first_name=None,
@@ -172,38 +230,43 @@ async def _create_user(*, db: AsyncSession, username: str) -> UserModel:
     return user_db
 
 
-def _plan_history(
-    *, accounts: dict[str, UUID], locations: dict[str, UUID], today: date, generator: random.Random
-) -> list[MovementRequest]:
+def _build_move(
+    *,
+    accounts: dict[str, UUID],
+    locations: dict[str, UUID],
+    day: date,
+    source: str,
+    target: str,
+    amount: float,
+    currency: str,
+    destination_amount: float | None = None,
+    destination_currency: str | None = None,
+    location: str | None = None,
+    **fields: object,
+) -> MovementRequest:
+    destination_currency = destination_currency if destination_currency is not None else currency
+    is_destination_amount_derived: bool = destination_currency != currency and destination_currency == BASE_CURRENCY
+    destination_amount = amount if destination_amount is None else destination_amount
+    request = MovementRequest(
+        transaction_date=day,
+        from_account_id=accounts[source],
+        to_account_id=accounts[target],
+        source_amount=_money(value=amount),
+        source_currency=currency,
+        destination_amount=None if is_destination_amount_derived else _money(value=destination_amount),
+        destination_currency=destination_currency,
+        location_id=None if location is None else locations[location],
+        **fields,
+    )
+    return request
+
+
+def _plan_history(*, accounts: dict[str, UUID], locations: dict[str, UUID], today: date) -> list[MovementRequest]:
+    generator = random.Random(RANDOM_SEED)
     moves: list[MovementRequest] = []
 
-    def move(
-        *,
-        day: date,
-        source: str,
-        target: str,
-        amount: float,
-        currency: str,
-        destination_amount: float | None = None,
-        destination_currency: str | None = None,
-        location: str | None = None,
-        **fields: object,
-    ) -> None:
-        destination_currency = destination_currency if destination_currency is not None else currency
-        is_destination_amount_derived: bool = destination_currency != currency and destination_currency == BASE_CURRENCY
-        destination_amount = amount if destination_amount is None else destination_amount
-        request = MovementRequest(
-            transaction_date=day,
-            from_account_id=accounts[source],
-            to_account_id=accounts[target],
-            source_amount=_money(value=amount),
-            source_currency=currency,
-            destination_amount=None if is_destination_amount_derived else _money(value=destination_amount),
-            destination_currency=destination_currency,
-            location_id=None if location is None else locations[location],
-            **fields,
-        )
-        moves.append(request)
+    def move(**move_fields: object) -> None:
+        moves.append(_build_move(accounts=accounts, locations=locations, **move_fields))
 
     month: date = HISTORY_START
     while month <= today:
@@ -403,51 +466,180 @@ def _plan_history(
     return moves
 
 
-async def seed(*, db: AsyncSession) -> None:
-    username: str = DEFAULT_USERNAME
-    user_db: UserModel | None = await user_crud.get_user_by_external_id(
-        db=db, external_id=username, provider=ProviderType.TELEGRAM
+def _plan_small_history(*, accounts: dict[str, UUID], locations: dict[str, UUID], today: date) -> list[MovementRequest]:
+    start: date = today - SMALL_PERIOD
+    previous_month: date = start.replace(day=1)
+    month: date = (previous_month + timedelta(days=32)).replace(day=1)
+    moves: list[MovementRequest] = []
+
+    def move(*, offset: int, **move_fields: object) -> None:
+        day: date = start + timedelta(days=offset)
+        moves.append(_build_move(accounts=accounts, locations=locations, day=day, **move_fields))
+
+    move(
+        offset=1,
+        source="Salary",
+        target="Main card",
+        amount=3200,
+        currency="EUR",
+        base_currency_amount=_money(value=3200 * USD_PER_EUR),
+        income_period=previous_month,
+        comment="Salary",
     )
-    while user_db is not None:
-        counts: dict[str, int] = await _count_user_entities(db=db, user_id=user_db.id)
-        logger.info(
-            f"{username} is already seeded as {user_db.username} with {counts['accounts']} accounts, "
-            f"{counts['locations']} locations and {counts['transactions']} transactions"
+    move(offset=2, source="Wallet", target="Groceries", amount=35.40, currency="USD", location="Lidl", comment="Lidl")
+    move(offset=4, source="Main card", target="Household", amount=60, currency="EUR", location="Maxi", comment="Maxi")
+    move(
+        offset=6, source="Wallet", target="Pets", amount=25, currency="USD", location="Premium Pet", comment="Pet food"
+    )
+    move(
+        offset=9,
+        source="Main card",
+        target="Wallet",
+        amount=200,
+        currency="EUR",
+        destination_amount=200 * USD_PER_EUR,
+        destination_currency="USD",
+        comment="ATM",
+    )
+    move(
+        offset=12, source="Wallet", target="Eating out", amount=18, currency="USD", location="Bakery", comment="Bakery"
+    )
+    move(
+        offset=15,
+        source="Gifts",
+        target="Crypto",
+        amount=150,
+        currency="USD",
+        income_period=previous_month,
+        comment="Birthday gift",
+    )
+    move(offset=18, source="Crypto", target="Wallet", amount=100, currency="USD")
+    move(
+        offset=21,
+        source="Main card",
+        target="Utilities",
+        amount=80,
+        currency="EUR",
+        location="Infostan",
+        comment="Electricity",
+    )
+    move(
+        offset=25, source="Wallet", target="Hobbies", amount=45, currency="USD", location="Art store", comment="Paints"
+    )
+    move(
+        offset=31,
+        source="Salary",
+        target="Main card",
+        amount=3200,
+        currency="EUR",
+        base_currency_amount=_money(value=3200 * USD_PER_EUR),
+        income_period=month,
+        comment="Salary",
+    )
+    move(
+        offset=34,
+        source=LONG_ACCOUNT_NAME,
+        target="Main card",
+        amount=500,
+        currency="USD",
+        destination_amount=500 / USD_PER_EUR,
+        destination_currency="EUR",
+    )
+    move(
+        offset=38,
+        source="Wallet",
+        target="Groceries",
+        amount=9.50,
+        currency="USD",
+        location="Bakery",
+        comment="Bakery. Bread",
+    )
+    move(
+        offset=44, source="Main card", target="Groceries", amount=52.30, currency="EUR", location="Lidl", comment="Lidl"
+    )
+    move(offset=50, source="Wallet", target="Transport", amount=12, currency="USD", location="Metro", comment="Taxi")
+    return moves
+
+
+DATASETS: dict[str, SeedDataset] = {
+    FULL_DATASET: SeedDataset(
+        accounts=FULL_ACCOUNTS,
+        location_names=_location_names(),
+        opening_balances=OPENING_BALANCES,
+        deleted_account_names=[],
+        deleted_location_names=[],
+        plan_history=_plan_history,
+        opening_date=lambda today: HISTORY_START,
+    ),
+    SMALL_DATASET: SeedDataset(
+        accounts=SMALL_ACCOUNTS,
+        location_names=["Art store", "Bakery", "Infostan", "Lidl", "Maxi", "Metro", "Premium Pet"],
+        opening_balances=SMALL_OPENING_BALANCES,
+        deleted_account_names=["Credit card", "Pets"],
+        deleted_location_names=["Maxi"],
+        plan_history=_plan_small_history,
+        opening_date=lambda today: today - SMALL_PERIOD,
+    ),
+}
+
+
+async def seed(*, db: AsyncSession) -> None:
+    username: str = _ask_username(question="Username", default=DEFAULT_USERNAME)
+    provider: ProviderType = PROVIDERS[_ask_choice(question="Sign-in provider", choices=list(PROVIDERS))]
+    dataset: SeedDataset = DATASETS[_ask_choice(question="Dataset", choices=list(DATASETS))]
+    while True:
+        user_db: UserModel | None = await user_crud.get_user_by_external_id(
+            db=db, external_id=username, provider=provider
         )
-        answer: str = input(f"Type {RECREATE_ANSWER} to recreate {username}, or another username to seed: ").strip()
-        if answer.lower() == RECREATE_ANSWER:
-            await _delete_user(db=db, user_id=user_db.id)
+        username_owner_db: UserModel | None = await user_crud.get_user_by_username(db=db, username=username)
+        if user_db is None and username_owner_db is None:
             break
 
-        is_username_valid: bool = USERNAME_MIN_LENGTH <= len(answer) <= USERNAME_MAX_LENGTH
-        if not is_username_valid:
-            logger.info(f"A username has {USERNAME_MIN_LENGTH} to {USERNAME_MAX_LENGTH} characters")
-            continue
+        if user_db is not None and user_db.username.lower() == username.lower():
+            counts: dict[str, int] = await _count_user_entities(db=db, user_id=user_db.id)
+            logger.info(
+                f"{username} is already seeded with {counts['accounts']} accounts, "
+                f"{counts['locations']} locations and {counts['transactions']} transactions"
+            )
+            answer: str = _ask_username(
+                question=f"Another username to seed, or {RECREATE_ANSWER} to recreate {username}",
+                default=RECREATE_ANSWER,
+            )
+            if answer == RECREATE_ANSWER:
+                await _delete_user(db=db, user_id=user_db.id)
+                break
+
+        else:
+            logger.info(f"{username} is taken by another user, which the script does not recreate")
+            answer: str = _ask_username(question="Another username to seed: ", default=None)
 
         username = answer
-        user_db = await user_crud.get_user_by_external_id(db=db, external_id=username, provider=ProviderType.TELEGRAM)
 
-    created_user_db: UserModel = await _create_user(db=db, username=username)
+    created_user_db: UserModel = await _create_user(db=db, username=username, provider=provider)
     user_id: UUID = created_user_db.id
 
     accounts: dict[str, UUID] = {}
     for account_db in await account_crud.get_user_accounts(db=db, user_id=user_id):
         accounts[account_db.name] = account_db.id
 
-    for create_data in EXTRA_ACCOUNTS:
+    for create_data in dataset.accounts:
         account: Account = await account_service.create_account(db=db, create_data=create_data, user_id=user_id)
         accounts[account.name] = account.id
 
     locations: dict[str, UUID] = {}
-    for name in _location_names():
+    for name in dataset.location_names:
         location: Location = await location_service.create_location(
             db=db, create_data=LocationCreateRequest(name=name), user_id=user_id
         )
         locations[name] = location.id
 
-    for name, balance, base_currency_amount in OPENING_BALANCES:
+    today: date = date.today()
+    opening_date: date = dataset.opening_date(today)
+    moves: list[MovementRequest] = dataset.plan_history(accounts=accounts, locations=locations, today=today)
+
+    for name, balance, base_currency_amount in dataset.opening_balances:
         adjustment_data = AdjustmentRequest(
-            transaction_date=HISTORY_START,
+            transaction_date=opening_date,
             new_balance=balance,
             base_currency_amount=base_currency_amount,
             comment="Opening balance",
@@ -456,17 +648,20 @@ async def seed(*, db: AsyncSession) -> None:
             db=db, account_id=accounts[name], adjustment_data=adjustment_data, user_id=user_id
         )
 
-    moves: list[MovementRequest] = _plan_history(
-        accounts=accounts, locations=locations, today=date.today(), generator=random.Random(RANDOM_SEED)
-    )
     for index, create_data in enumerate(moves):
         await transaction_service.create_transaction(db=db, create_data=create_data, user_id=user_id)
         if index % PROGRESS_STEP == 0:
             logger.info(f"{index}/{len(moves)} transactions")
 
+    for name in dataset.deleted_account_names:
+        await account_service.delete_account(db=db, account_id=accounts[name], user_id=user_id)
+
+    for name in dataset.deleted_location_names:
+        await location_service.delete_location(db=db, location_id=locations[name], user_id=user_id)
+
     logger.info(
-        f"{created_user_db.username} now has {len(moves) + len(OPENING_BALANCES)} transactions, "
-        f"sign in through mock-oidc as {username}"
+        f"{created_user_db.username} now has {len(moves) + len(dataset.opening_balances)} transactions, "
+        f"sign in through mock-oidc {provider.value.lower()} as {username}"
     )
     db.expire_all()
     for account_db in await account_crud.get_user_accounts(db=db, user_id=user_id):

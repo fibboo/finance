@@ -119,7 +119,7 @@ docker compose exec backend alembic revision --autogenerate -m "<description>"
 
 ### Test data
 
-`backend/scripts/seed.py` fills a migrated local database with the user `test_1` (base currency USD) and its transactions from 2024-01-01 to today, through the services; if the user exists, it asks whether to recreate it or to seed another username (README, Seeding test data):
+`backend/scripts/seed.py` fills a migrated local database through the services with a user whose username (default `test_1`), sign-in provider (Telegram or Google) and dataset it asks for: `full`, the transactions from 2024-01-01 to today, or `small`, a few transactions that cover every case of an account merge, both in base currency USD; if the user exists for that provider, it asks whether to recreate it or to seed another username (README, Seeding test data):
 
 ```bash
 docker compose exec backend python -m scripts.seed
