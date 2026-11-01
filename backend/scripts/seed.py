@@ -3,7 +3,7 @@ import math
 import random
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import NamedTuple
+from typing import Callable, NamedTuple
 from uuid import UUID
 
 from sqlalchemy import delete, func, Select, select
@@ -37,7 +37,7 @@ BASE_CURRENCY = "USD"
 RECREATE_ANSWER = "r"
 FULL_DATASET = "full"
 SMALL_DATASET = "small"
-PROVIDER_CHOICES: list[str] = [provider.value.lower() for provider in ProviderType]
+PROVIDERS: dict[str, ProviderType] = {provider.value.lower(): provider for provider in ProviderType}
 RANDOM_SEED = 20261026
 HISTORY_START = date(2024, 1, 1)
 CREDIT_PERIOD = timedelta(days=90)
@@ -141,6 +141,8 @@ class SeedDataset(NamedTuple):
     opening_balances: list[tuple[str, Decimal, Decimal | None]]
     deleted_account_names: list[str]
     deleted_location_names: list[str]
+    plan_history: Callable[..., list[MovementRequest]]
+    opening_date: Callable[[date], date]
 
 
 def _money(*, value: float) -> Decimal:
@@ -166,24 +168,6 @@ def _location_names() -> list[str]:
     return location_names
 
 
-DATASETS: dict[str, SeedDataset] = {
-    FULL_DATASET: SeedDataset(
-        accounts=FULL_ACCOUNTS,
-        location_names=_location_names(),
-        opening_balances=OPENING_BALANCES,
-        deleted_account_names=[],
-        deleted_location_names=[],
-    ),
-    SMALL_DATASET: SeedDataset(
-        accounts=SMALL_ACCOUNTS,
-        location_names=["Art store", "Bakery", "Infostan", "Lidl", "Maxi", "Metro", "Premium Pet"],
-        opening_balances=SMALL_OPENING_BALANCES,
-        deleted_account_names=["Credit card", "Pets"],
-        deleted_location_names=["Maxi"],
-    ),
-}
-
-
 def _ask_choice(*, question: str, choices: list[str]) -> str:
     while True:
         answer: str = input(f"{question} ({'/'.join(choices)}, default {choices[0]}): ").strip().lower()
@@ -196,11 +180,11 @@ def _ask_choice(*, question: str, choices: list[str]) -> str:
         logger.info(f"Type one of {', '.join(choices)}")
 
 
-def _ask_username() -> str:
+def _ask_username(*, question: str, default: str | None) -> str:
     while True:
-        answer: str = input(f"Username (default {DEFAULT_USERNAME}): ").strip()
-        if answer == "":
-            return DEFAULT_USERNAME
+        answer: str = input(question if default is None else f"{question} (default {default}): ").strip()
+        if default is not None and answer.lower() in ("", default):
+            return default
 
         if USERNAME_MIN_LENGTH <= len(answer) <= USERNAME_MAX_LENGTH:
             return answer
@@ -277,9 +261,8 @@ def _build_move(
     return request
 
 
-def _plan_history(
-    *, accounts: dict[str, UUID], locations: dict[str, UUID], today: date, generator: random.Random
-) -> list[MovementRequest]:
+def _plan_history(*, accounts: dict[str, UUID], locations: dict[str, UUID], today: date) -> list[MovementRequest]:
+    generator = random.Random(RANDOM_SEED)
     moves: list[MovementRequest] = []
 
     def move(**move_fields: object) -> None:
@@ -483,7 +466,8 @@ def _plan_history(
     return moves
 
 
-def _plan_small_history(*, accounts: dict[str, UUID], locations: dict[str, UUID], start: date) -> list[MovementRequest]:
+def _plan_small_history(*, accounts: dict[str, UUID], locations: dict[str, UUID], today: date) -> list[MovementRequest]:
+    start: date = today - SMALL_PERIOD
     previous_month: date = start.replace(day=1)
     month: date = (previous_month + timedelta(days=32)).replace(day=1)
     moves: list[MovementRequest] = []
@@ -577,30 +561,59 @@ def _plan_small_history(*, accounts: dict[str, UUID], locations: dict[str, UUID]
     return moves
 
 
+DATASETS: dict[str, SeedDataset] = {
+    FULL_DATASET: SeedDataset(
+        accounts=FULL_ACCOUNTS,
+        location_names=_location_names(),
+        opening_balances=OPENING_BALANCES,
+        deleted_account_names=[],
+        deleted_location_names=[],
+        plan_history=_plan_history,
+        opening_date=lambda today: HISTORY_START,
+    ),
+    SMALL_DATASET: SeedDataset(
+        accounts=SMALL_ACCOUNTS,
+        location_names=["Art store", "Bakery", "Infostan", "Lidl", "Maxi", "Metro", "Premium Pet"],
+        opening_balances=SMALL_OPENING_BALANCES,
+        deleted_account_names=["Credit card", "Pets"],
+        deleted_location_names=["Maxi"],
+        plan_history=_plan_small_history,
+        opening_date=lambda today: today - SMALL_PERIOD,
+    ),
+}
+
+
 async def seed(*, db: AsyncSession) -> None:
-    username: str = _ask_username()
-    provider = ProviderType(_ask_choice(question="Sign-in provider", choices=PROVIDER_CHOICES).upper())
-    dataset_name: str = _ask_choice(question="Dataset", choices=list(DATASETS))
-    dataset: SeedDataset = DATASETS[dataset_name]
-    user_db: UserModel | None = await user_crud.get_user_by_external_id(db=db, external_id=username, provider=provider)
-    while user_db is not None:
-        counts: dict[str, int] = await _count_user_entities(db=db, user_id=user_db.id)
-        logger.info(
-            f"{username} is already seeded as {user_db.username} with {counts['accounts']} accounts, "
-            f"{counts['locations']} locations and {counts['transactions']} transactions"
+    username: str = _ask_username(question="Username", default=DEFAULT_USERNAME)
+    provider: ProviderType = PROVIDERS[_ask_choice(question="Sign-in provider", choices=list(PROVIDERS))]
+    dataset: SeedDataset = DATASETS[_ask_choice(question="Dataset", choices=list(DATASETS))]
+    while True:
+        user_db: UserModel | None = await user_crud.get_user_by_external_id(
+            db=db, external_id=username, provider=provider
         )
-        answer: str = input(f"Type {RECREATE_ANSWER} to recreate {username}, or another username to seed: ").strip()
-        if answer.lower() == RECREATE_ANSWER:
-            await _delete_user(db=db, user_id=user_db.id)
+        username_owner_db: UserModel | None = await user_crud.get_user_by_username(db=db, username=username)
+        if user_db is None and username_owner_db is None:
             break
 
-        is_username_valid: bool = USERNAME_MIN_LENGTH <= len(answer) <= USERNAME_MAX_LENGTH
-        if not is_username_valid:
-            logger.info(f"A username has {USERNAME_MIN_LENGTH} to {USERNAME_MAX_LENGTH} characters")
-            continue
+        if user_db is not None and user_db.username.lower() == username.lower():
+            counts: dict[str, int] = await _count_user_entities(db=db, user_id=user_db.id)
+            logger.info(
+                f"{username} is already seeded with {counts['accounts']} accounts, "
+                f"{counts['locations']} locations and {counts['transactions']} transactions"
+            )
+            answer: str = _ask_username(
+                question=f"Another username to seed, or {RECREATE_ANSWER} to recreate {username}",
+                default=RECREATE_ANSWER,
+            )
+            if answer == RECREATE_ANSWER:
+                await _delete_user(db=db, user_id=user_db.id)
+                break
+
+        else:
+            logger.info(f"{username} is taken by another user, which the script does not recreate")
+            answer: str = _ask_username(question="Another username to seed: ", default=None)
 
         username = answer
-        user_db = await user_crud.get_user_by_external_id(db=db, external_id=username, provider=provider)
 
     created_user_db: UserModel = await _create_user(db=db, username=username, provider=provider)
     user_id: UUID = created_user_db.id
@@ -621,14 +634,8 @@ async def seed(*, db: AsyncSession) -> None:
         locations[name] = location.id
 
     today: date = date.today()
-    if dataset_name == FULL_DATASET:
-        opening_date: date = HISTORY_START
-        moves: list[MovementRequest] = _plan_history(
-            accounts=accounts, locations=locations, today=today, generator=random.Random(RANDOM_SEED)
-        )
-    else:
-        opening_date: date = today - SMALL_PERIOD
-        moves: list[MovementRequest] = _plan_small_history(accounts=accounts, locations=locations, start=opening_date)
+    opening_date: date = dataset.opening_date(today)
+    moves: list[MovementRequest] = dataset.plan_history(accounts=accounts, locations=locations, today=today)
 
     for name, balance, base_currency_amount in dataset.opening_balances:
         adjustment_data = AdjustmentRequest(

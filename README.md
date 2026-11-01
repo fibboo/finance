@@ -72,7 +72,8 @@ It asks three questions, and an empty answer takes the default:
   deleted ones moved as they are.
 
 Both datasets use the base currency USD. If the user already exists for that provider, the script shows what it has and
-asks whether to recreate it or to seed another username.
+asks whether to recreate it or to seed another username. A username another user already has, through the other
+provider or a merge, is never recreated; the script asks for another one.
 
 To try a merge, seed `test_1` through `telegram` with the `full` dataset and `test_2` through `google` with the `small`
 one, sign in as `test_1` through Telegram and link Google as `test_2`: the backend offers to merge `test_2` into
