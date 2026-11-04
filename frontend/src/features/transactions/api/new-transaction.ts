@@ -15,7 +15,9 @@ export const ENTRY_TRANSACTION_TYPES = [
 
 export type EntryTransactionType = (typeof ENTRY_TRANSACTION_TYPES)[number];
 
-export type MovementTransactionType = Exclude<EntryTransactionType, 'ADJUSTMENT'>;
+export type AdjustmentTransactionType = Extract<EntryTransactionType, 'ADJUSTMENT'>;
+
+export type MovementTransactionType = Exclude<EntryTransactionType, AdjustmentTransactionType>;
 
 export const DEFAULT_ENTRY_TRANSACTION_TYPE = 'EXPENSE' satisfies EntryTransactionType;
 

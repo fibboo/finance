@@ -16,8 +16,13 @@ type PickerCopy = Readonly<{
   searchLabel: string;
   emptyText: string;
 }>;
-type MovementPicker = PickerCopy &
-  Readonly<{ selectedId: string | undefined; items: readonly EntityPickerItem[] | undefined }>;
+type MovementPicker = Readonly<{
+  title: string;
+  searchLabel: string;
+  emptyText: string;
+  selectedId: string | undefined;
+  items: readonly EntityPickerItem[] | undefined;
+}>;
 type FieldTargets = Readonly<Partial<Record<MovementFormField, MovementFormField>>>;
 
 export type MovementPickerField = 'from_account_id' | 'to_account_id' | 'location_id';
@@ -42,6 +47,13 @@ const MONEY_ACCOUNT_COPY = {
   emptyText: 'There are no accounts yet.',
   placeholder: 'Choose an account',
 };
+
+export const LOCATION_COPY = {
+  title: 'Location',
+  placeholder: 'Choose a location',
+  searchLabel: 'Search locations',
+  emptyText: 'There are no locations yet.',
+} satisfies PickerCopy;
 
 export const MOVEMENT_COPY = {
   EXPENSE: {
@@ -166,19 +178,11 @@ export function readBaseCurrencyHint({
   return hint;
 }
 
-function toCategoryItem({
+function toAccountItem({
   account,
-  categoryTypes,
-}: Readonly<{
-  account: Readonly<Account>;
-  categoryTypes: readonly DictionaryItem[];
-}>): EntityPickerItem {
-  const item = {
-    id: account.id,
-    name: account.name,
-    color: readAccountColor(account),
-    note: categoryTypes.find((type) => type.key === account.category_type)?.label ?? '',
-  };
+  note,
+}: Readonly<{ account: Readonly<Account>; note: string }>): EntityPickerItem {
+  const item = { id: account.id, name: account.name, color: readAccountColor(account), note };
   return item;
 }
 
@@ -205,32 +209,38 @@ export function readMovementPickers({
   const copy = MOVEMENT_COPY[transactionType];
   const pickers = {
     from_account_id: {
-      ...copy.from,
+      title: copy.from.title,
+      searchLabel: copy.from.searchLabel,
+      emptyText: copy.from.emptyText,
       selectedId: fromAccounts?.find((account) => account.id === fromAccountId)?.id,
       items: fromAccounts
         ?.filter((account) => !isTransfer || account.id !== toAccountId)
         .map((account) =>
           transactionType === 'INCOME'
-            ? { id: account.id, name: account.name, color: readAccountColor(account), note: '' }
+            ? toAccountItem({ account, note: '' })
             : toMoneyAccountItem(account),
         ),
     },
     to_account_id: {
-      ...copy.to,
+      title: copy.to.title,
+      searchLabel: copy.to.searchLabel,
+      emptyText: copy.to.emptyText,
       selectedId: toAccounts?.find((account) => account.id === toAccountId)?.id,
       items: toAccounts
         ?.filter((account) => !isTransfer || account.id !== fromAccountId)
         .map((account) =>
           transactionType === 'EXPENSE'
-            ? toCategoryItem({ account, categoryTypes })
+            ? toAccountItem({
+                account,
+                note: categoryTypes.find((type) => type.key === account.category_type)?.label ?? '',
+              })
             : toMoneyAccountItem(account),
         ),
     },
     location_id: {
-      title: 'Location',
-      placeholder: 'Choose a location',
-      searchLabel: 'Search locations',
-      emptyText: 'There are no locations yet.',
+      title: LOCATION_COPY.title,
+      searchLabel: LOCATION_COPY.searchLabel,
+      emptyText: LOCATION_COPY.emptyText,
       selectedId: locations?.find((place) => place.id === locationId)?.id,
       items: locations?.map((place) => ({
         id: place.id,

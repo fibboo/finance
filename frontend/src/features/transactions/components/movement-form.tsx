@@ -31,13 +31,14 @@ import { InputRow } from './input-row';
 import { readMoneyAccountNote } from './money-account-item';
 import {
   HIDDEN_FIELD_TARGETS,
+  LOCATION_COPY,
   MOVEMENT_COPY,
   MOVEMENT_FORM_FIELDS,
   type MovementPickerField,
   readBaseCurrencyHint,
   readMovementCurrencies,
   readMovementPickers,
-} from './movement-types';
+} from './movement-config';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
@@ -286,9 +287,9 @@ export function MovementForm({
           {transactionType === 'EXPENSE' && (
             <PickerRow
               id={`${rowIdPrefix}-location_id`}
-              label="Location"
+              label={LOCATION_COPY.title}
               value={location?.name}
-              placeholder="Choose a location"
+              placeholder={LOCATION_COPY.placeholder}
               color={undefined}
               note={undefined}
               error={formState.errors.location_id?.message}
