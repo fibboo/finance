@@ -8,6 +8,11 @@
   cursor: pointer;
 }
 
+.currencySelect option {
+  background: var(--color-panel);
+  color: var(--color-ink);
+}
+
 .fieldError {
   display: block;
   padding-bottom: var(--space-2);

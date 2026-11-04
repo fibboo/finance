@@ -39,6 +39,11 @@
   cursor: pointer;
 }
 
+.select option {
+  background: var(--color-panel);
+  color: var(--color-ink);
+}
+
 .chevron {
   flex: none;
   width: var(--size-icon-sm);
