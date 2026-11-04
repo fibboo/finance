@@ -31,6 +31,14 @@ const groceries = {
   category_type: 'VARIABLE',
 } satisfies components['schemas']['Account'];
 
+const salary = {
+  ...groceries,
+  name: 'Salary',
+  id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
+  kind: 'INCOME',
+  category_type: null,
+} satisfies components['schemas']['Account'];
+
 beforeEach(() => {
   server.use(
     http.get('http://localhost/api/user/me', () =>
@@ -195,4 +203,35 @@ test('lists the categories and the locations used most recently first', async ()
   // assert
   expect(await screen.findByRole('button', { name: /^Central market/ })).toBeInTheDocument();
   expect([requestedCategoryOrder, requestedLocationOrder]).toEqual(['recent_use', 'recent_use']);
+});
+
+test('lists the income sources used most recently first', async () => {
+  // arrange
+  let requestedOrder: string | null = null;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const searchParams = new URL(request.url).searchParams;
+      const isIncomeSourceList = searchParams.getAll('kinds').includes('INCOME');
+      const items = isIncomeSourceList ? [salary] : [wallet];
+      if (isIncomeSourceList) {
+        requestedOrder = searchParams.get('order');
+      }
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=INCOME'] });
+
+  // act
+  await user.click(await screen.findByRole('button', { name: /^Source/ }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Salary/ })).toBeInTheDocument();
+  expect(requestedOrder).toBe('recent_use');
 });

@@ -17,7 +17,7 @@ import {
   readNewTransactionType,
   writeNewTransactionType,
 } from '@/features/transactions/api/new-transaction';
-import { ExpenseForm } from '@/features/transactions/components/expense-form';
+import { MovementForm } from '@/features/transactions/components/movement-form';
 import { TransactionForm } from '@/features/transactions/components/transaction-form';
 
 import styles from './new-transaction.module.css';
@@ -52,6 +52,11 @@ export function NewTransaction() {
     enabled: isExpense,
     throwOnError: (_error, query) => query.state.data === undefined,
   });
+  const { data: incomeSources } = useQuery({
+    ...accountQueries.list({ kinds: ['INCOME'], size: ACCOUNT_PAGE_SIZE, order: 'recent_use' }),
+    enabled: transactionType === 'INCOME',
+    throwOnError: (_error, query) => query.state.data === undefined,
+  });
   if (transactionType === undefined) {
     return null;
   }
@@ -78,26 +83,29 @@ export function NewTransaction() {
           <Skeleton className={styles['amountSkeleton']} />
           <Skeleton className={styles['rowsSkeleton']} />
         </div>
-      ) : isExpense ? (
-        <ExpenseForm
-          transactionTypes={dictionaries.transaction_types}
-          categoryTypes={dictionaries.category_types}
-          currencies={dictionaries.currencies}
-          moneyAccounts={moneyAccounts?.items}
-          categories={categories?.items}
-          locations={locations?.items}
-          baseCurrency={baseCurrency}
-          relatedQueryKeys={[...relatedQueryKeys, locationQueries.all().queryKey]}
-          onTypeChange={changeType}
-          onClose={close}
-        />
-      ) : (
+      ) : transactionType === 'ADJUSTMENT' ? (
         <TransactionForm
           transactionType={transactionType}
           transactionTypes={dictionaries.transaction_types}
           moneyAccounts={moneyAccounts?.items}
           baseCurrency={baseCurrency}
           relatedQueryKeys={relatedQueryKeys}
+          onTypeChange={changeType}
+          onClose={close}
+        />
+      ) : (
+        <MovementForm
+          key={transactionType}
+          transactionType={transactionType}
+          transactionTypes={dictionaries.transaction_types}
+          categoryTypes={dictionaries.category_types}
+          currencies={dictionaries.currencies}
+          moneyAccounts={moneyAccounts?.items}
+          categories={categories?.items}
+          incomeSources={incomeSources?.items}
+          locations={locations?.items}
+          baseCurrency={baseCurrency}
+          relatedQueryKeys={[...relatedQueryKeys, locationQueries.all().queryKey]}
           onTypeChange={changeType}
           onClose={close}
         />

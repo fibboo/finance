@@ -315,6 +315,7 @@ test('offers only the transaction types the form can enter', () => {
   // assert
   expect(screen.getAllByRole('radio').map((radio) => radio.parentElement?.textContent)).toEqual([
     'Expense',
+    'Transfer',
     'Adjustment',
   ]);
 });

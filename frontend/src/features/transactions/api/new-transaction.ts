@@ -8,10 +8,16 @@ const NEW_TRANSACTION_PARAM = 'new_transaction';
 
 export const ENTRY_TRANSACTION_TYPES = [
   'EXPENSE',
+  'INCOME',
+  'TRANSFER',
   'ADJUSTMENT',
 ] as const satisfies readonly TransactionType[];
 
 export type EntryTransactionType = (typeof ENTRY_TRANSACTION_TYPES)[number];
+
+export type AdjustmentTransactionType = Extract<EntryTransactionType, 'ADJUSTMENT'>;
+
+export type MovementTransactionType = Exclude<EntryTransactionType, AdjustmentTransactionType>;
 
 export const DEFAULT_ENTRY_TRANSACTION_TYPE = 'EXPENSE' satisfies EntryTransactionType;
 

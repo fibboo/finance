@@ -12,7 +12,7 @@ import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
-import type { EntryTransactionType } from '../api/new-transaction';
+import type { AdjustmentTransactionType, EntryTransactionType } from '../api/new-transaction';
 import { transactionMutations } from '../api/transaction-mutations';
 import {
   COMMENT_MAX_LENGTH,
@@ -66,7 +66,7 @@ function readBalanceHint({
 }
 
 type TransactionFormProps = Readonly<{
-  transactionType: EntryTransactionType;
+  transactionType: AdjustmentTransactionType;
   transactionTypes: readonly DictionaryItem[];
   moneyAccounts: readonly Account[] | undefined;
   baseCurrency: string;
