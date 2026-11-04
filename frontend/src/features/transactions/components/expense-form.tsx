@@ -25,7 +25,7 @@ import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { FormHeader } from './form-header';
 import { InputRow } from './input-row';
-import { toMoneyAccountItem } from './money-account-item';
+import { readMoneyAccountNote, toMoneyAccountItem } from './money-account-item';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
@@ -49,6 +49,12 @@ const FORM_FIELDS = [
   'transaction_date',
   'comment',
 ] as const;
+const SOURCE_FIELDS: Partial<
+  Record<(typeof FORM_FIELDS)[number] | 'root.server', 'source_amount' | 'from_account_id'>
+> = {
+  destination_amount: 'source_amount',
+  destination_currency: 'from_account_id',
+};
 
 function readBaseCurrencyHint({
   account,
@@ -100,7 +106,7 @@ export function ExpenseForm({
   const today = useToday();
   const [pickerField, setPickerField] = useState<PickerField | undefined>(undefined);
   const rowIdPrefix = useId();
-  const sellerErrorId = useId();
+  const currencyErrorId = useId();
   const resolver: Resolver<ExpenseFormInput, unknown, ExpenseFormOutput> = (
     values,
     context,
@@ -115,7 +121,7 @@ export function ExpenseForm({
       }),
     )(values, context, options);
   };
-  const { control, register, handleSubmit, setError, setValue, formState } = useForm<
+  const { control, register, handleSubmit, getValues, setError, setValue, formState } = useForm<
     ExpenseFormInput,
     unknown,
     ExpenseFormOutput
@@ -155,7 +161,7 @@ export function ExpenseForm({
       searchLabel: 'Search accounts',
       emptyText: 'There are no accounts yet.',
       selectedId: fromAccount?.id,
-      items: moneyAccounts?.map((account) => toMoneyAccountItem(account)),
+      items: moneyAccounts?.map(toMoneyAccountItem),
     },
     to_account_id: {
       title: 'Category',
@@ -207,10 +213,12 @@ export function ExpenseForm({
                   fields: FORM_FIELDS,
                   fallbackMessage: SAVE_ERROR_MESSAGE,
                 }).forEach(({ field, message }) => {
-                  const isFieldHidden =
-                    !isPaidInAnotherCurrency &&
-                    (field === 'destination_amount' || field === 'destination_currency');
-                  setError(isFieldHidden ? 'root.server' : field, { message });
+                  setError(
+                    getValues('is_paid_in_another_currency')
+                      ? field
+                      : (SOURCE_FIELDS[field] ?? field),
+                    { message },
+                  );
                 });
               },
             });
@@ -237,7 +245,7 @@ export function ExpenseForm({
             value={fromAccount?.name}
             placeholder="Choose an account"
             color={fromAccount === undefined ? undefined : readAccountColor(fromAccount)}
-            note={fromAccount === undefined ? undefined : toMoneyAccountItem(fromAccount).note}
+            note={fromAccount === undefined ? undefined : readMoneyAccountNote(fromAccount)}
             error={formState.errors.from_account_id?.message}
             onOpen={() => {
               setPickerField('from_account_id');
@@ -295,38 +303,43 @@ export function ExpenseForm({
         </label>
         {isPaidInAnotherCurrency && (
           <div className={[styles['rows'], styles['sellerRows']].join(' ')}>
-            <InputRow
-              label="Seller’s amount"
-              errorId={sellerErrorId}
-              input={{
-                ...register('destination_amount'),
-                inputMode: 'decimal',
-                autoComplete: 'off',
-                placeholder: '0.00',
-              }}
-              suffix={
-                <select
-                  {...register('destination_currency')}
-                  className={styles['currencySelect']}
-                  aria-label="Seller’s currency"
-                  aria-invalid={formState.errors.destination_currency !== undefined}
-                  aria-describedby={
-                    formState.errors.destination_currency === undefined ? undefined : sellerErrorId
-                  }
-                >
-                  <option value="">Currency</option>
-                  {currencies.map((currency) => (
-                    <option key={currency.key} value={currency.key}>
-                      {currency.key}
-                    </option>
-                  ))}
-                </select>
-              }
-              error={
-                formState.errors.destination_amount?.message ??
-                formState.errors.destination_currency?.message
-              }
-            />
+            <div>
+              <InputRow
+                label="Seller’s amount"
+                input={{
+                  ...register('destination_amount'),
+                  inputMode: 'decimal',
+                  autoComplete: 'off',
+                  placeholder: '0.00',
+                }}
+                suffix={
+                  <select
+                    {...register('destination_currency')}
+                    className={styles['currencySelect']}
+                    aria-label="Seller’s currency"
+                    aria-invalid={formState.errors.destination_currency !== undefined}
+                    aria-describedby={
+                      formState.errors.destination_currency === undefined
+                        ? undefined
+                        : currencyErrorId
+                    }
+                  >
+                    <option value="">Currency</option>
+                    {currencies.map((currency) => (
+                      <option key={currency.key} value={currency.key}>
+                        {currency.key}
+                      </option>
+                    ))}
+                  </select>
+                }
+                error={formState.errors.destination_amount?.message}
+              />
+              {formState.errors.destination_currency !== undefined && (
+                <span id={currencyErrorId} className={styles['fieldError']}>
+                  {formState.errors.destination_currency.message}
+                </span>
+              )}
+            </div>
           </div>
         )}
         <div className={styles['rows']}>

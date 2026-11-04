@@ -224,6 +224,7 @@ test('asks for the category, the location and the seller’s currency before sen
   expect(screen.getByRole('combobox', { name: 'Seller’s currency' })).toHaveAccessibleDescription(
     'Choose the seller’s currency',
   );
+  expect(screen.getByLabelText('Seller’s amount')).toBeValid();
   expect(isRequestSent).toBe(false);
 });
 
@@ -295,7 +296,7 @@ test('shows a field error of the backend at its field', async () => {
   );
 });
 
-test('shows a backend error of the seller’s amount when another currency is not ticked', async () => {
+test('shows a backend error of the seller’s amount at the amount when another currency is not ticked', async () => {
   // arrange
   server.use(
     http.post('http://localhost/api/accounting/transactions', () =>
@@ -337,7 +338,7 @@ test('shows a backend error of the seller’s amount when another currency is no
 
   // assert
   await waitFor(() => {
-    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toContain(
+    expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription(
       'Decimal input should be positive',
     );
   });

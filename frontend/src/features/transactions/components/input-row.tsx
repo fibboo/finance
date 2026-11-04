@@ -7,14 +7,12 @@ type InputRowProps = Readonly<{
   input: ComponentProps<'input'>;
   suffix?: ReactNode;
   action?: ReactNode;
-  errorId?: string;
   error: string | undefined;
 }>;
 
-export function InputRow({ label, input, suffix, action, errorId, error }: InputRowProps) {
+export function InputRow({ label, input, suffix, action, error }: InputRowProps) {
   const inputId = useId();
-  const generatedErrorId = useId();
-  const describedErrorId = errorId ?? generatedErrorId;
+  const errorId = useId();
   return (
     <div className={styles['inputRow']}>
       <span className={action === undefined ? styles['control'] : styles['controlWithAction']}>
@@ -26,13 +24,13 @@ export function InputRow({ label, input, suffix, action, errorId, error }: Input
           id={inputId}
           className={styles['input']}
           aria-invalid={error !== undefined}
-          aria-describedby={error === undefined ? undefined : describedErrorId}
+          aria-describedby={error === undefined ? undefined : errorId}
         />
         {suffix !== undefined && <span className={styles['suffix']}>{suffix}</span>}
         {action}
       </span>
       {error !== undefined && (
-        <span id={describedErrorId} className={styles['error']}>
+        <span id={errorId} className={styles['error']}>
           {error}
         </span>
       )}

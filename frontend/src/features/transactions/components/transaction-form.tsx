@@ -26,7 +26,7 @@ import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { FormHeader } from './form-header';
 import { InputRow } from './input-row';
-import { toMoneyAccountItem } from './money-account-item';
+import { readMoneyAccountNote, toMoneyAccountItem } from './money-account-item';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
@@ -175,7 +175,7 @@ export function TransactionForm({
             value={account?.name}
             placeholder="Choose an account"
             color={account === undefined ? undefined : readAccountColor(account)}
-            note={account === undefined ? undefined : toMoneyAccountItem(account).note}
+            note={account === undefined ? undefined : readMoneyAccountNote(account)}
             error={formState.errors.account_id?.message}
             onOpen={() => {
               setIsPickingAccount(true);
@@ -240,7 +240,7 @@ export function TransactionForm({
           title="Account"
           searchLabel="Search accounts"
           emptyText="There are no accounts yet."
-          items={moneyAccounts?.map((moneyAccount) => toMoneyAccountItem(moneyAccount))}
+          items={moneyAccounts?.map(toMoneyAccountItem)}
           selectedId={account?.id}
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {

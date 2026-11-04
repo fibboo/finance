@@ -78,3 +78,11 @@
   color: inherit;
   cursor: pointer;
 }
+
+.fieldError {
+  display: block;
+  padding-bottom: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
+}
