@@ -1,0 +1,47 @@
+.selectRow {
+  position: relative;
+  min-height: var(--size-field-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+}
+
+.selectRow:focus-within {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+  border-radius: var(--radius-control);
+}
+
+.label {
+  flex: none;
+  width: var(--size-row-label);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.select {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  font: inherit;
+  font-size: var(--font-size-base);
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.chevron {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
