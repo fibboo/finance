@@ -6,11 +6,14 @@ type TransactionType = components['schemas']['TransactionType'];
 
 const NEW_TRANSACTION_PARAM = 'new_transaction';
 
-export const ENTRY_TRANSACTION_TYPES = ['ADJUSTMENT'] as const satisfies readonly TransactionType[];
+export const ENTRY_TRANSACTION_TYPES = [
+  'EXPENSE',
+  'ADJUSTMENT',
+] as const satisfies readonly TransactionType[];
 
 export type EntryTransactionType = (typeof ENTRY_TRANSACTION_TYPES)[number];
 
-export const DEFAULT_ENTRY_TRANSACTION_TYPE = 'ADJUSTMENT' satisfies EntryTransactionType;
+export const DEFAULT_ENTRY_TRANSACTION_TYPE = 'EXPENSE' satisfies EntryTransactionType;
 
 export function readNewTransactionType(
   searchParams: URLSearchParams,

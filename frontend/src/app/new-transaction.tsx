@@ -10,11 +10,14 @@ import {
   MONEY_ACCOUNT_KINDS,
 } from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
 import { summaryQueries } from '@/features/summary/api/summary-queries';
 import {
+  type EntryTransactionType,
   readNewTransactionType,
   writeNewTransactionType,
 } from '@/features/transactions/api/new-transaction';
+import { ExpenseForm } from '@/features/transactions/components/expense-form';
 import { TransactionForm } from '@/features/transactions/components/transaction-form';
 
 import styles from './new-transaction.module.css';
@@ -38,6 +41,17 @@ export function NewTransaction() {
     enabled: isOpen,
     throwOnError: (_error, query) => query.state.data === undefined,
   });
+  const isExpense = transactionType === 'EXPENSE';
+  const { data: categories } = useQuery({
+    ...accountQueries.list({ kinds: ['EXPENSE'], size: ACCOUNT_PAGE_SIZE, order: 'recent_use' }),
+    enabled: isExpense,
+    throwOnError: (_error, query) => query.state.data === undefined,
+  });
+  const { data: locations } = useQuery({
+    ...locationQueries.list({ size: LOCATION_PAGE_SIZE, order: 'recent_use' }),
+    enabled: isExpense,
+    throwOnError: (_error, query) => query.state.data === undefined,
+  });
   if (transactionType === undefined) {
     return null;
   }
@@ -48,6 +62,14 @@ export function NewTransaction() {
     });
   }
 
+  function changeType(nextType: EntryTransactionType) {
+    setSearchParams(writeNewTransactionType({ searchParams, transactionType: nextType }), {
+      preventScrollReset: true,
+      replace: true,
+    });
+  }
+
+  const relatedQueryKeys = [accountQueries.all().queryKey, summaryQueries.current().queryKey];
   return (
     <Sheet label="New transaction" onClose={close}>
       {dictionaries === undefined || baseCurrency === undefined ? (
@@ -56,19 +78,27 @@ export function NewTransaction() {
           <Skeleton className={styles['amountSkeleton']} />
           <Skeleton className={styles['rowsSkeleton']} />
         </div>
+      ) : isExpense ? (
+        <ExpenseForm
+          transactionTypes={dictionaries.transaction_types}
+          categoryTypes={dictionaries.category_types}
+          currencies={dictionaries.currencies}
+          moneyAccounts={moneyAccounts?.items}
+          categories={categories?.items}
+          locations={locations?.items}
+          baseCurrency={baseCurrency}
+          relatedQueryKeys={relatedQueryKeys}
+          onTypeChange={changeType}
+          onClose={close}
+        />
       ) : (
         <TransactionForm
           transactionType={transactionType}
           transactionTypes={dictionaries.transaction_types}
           moneyAccounts={moneyAccounts?.items}
           baseCurrency={baseCurrency}
-          relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
-          onTypeChange={(nextType) => {
-            setSearchParams(writeNewTransactionType({ searchParams, transactionType: nextType }), {
-              preventScrollReset: true,
-              replace: true,
-            });
-          }}
+          relatedQueryKeys={relatedQueryKeys}
+          onTypeChange={changeType}
           onClose={close}
         />
       )}

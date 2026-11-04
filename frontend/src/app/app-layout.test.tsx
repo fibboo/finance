@@ -117,7 +117,10 @@ test.each([
         currencies: [],
         account_kinds: [],
         category_types: [],
-        transaction_types: [{ key: 'ADJUSTMENT', label: 'Adjustment' }],
+        transaction_types: [
+          { key: 'EXPENSE', label: 'Expense' },
+          { key: 'ADJUSTMENT', label: 'Adjustment' },
+        ],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
@@ -130,12 +133,21 @@ test.each([
         pages: 0,
       } satisfies components['schemas']['Page_Account_']),
     ),
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 0,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
   );
   const user = userEvent.setup();
   render(<AppLayout />);
 
   await user.click(screen.getByRole('button', { name: 'Add transaction' }));
-  await screen.findByRole('radio', { name: 'Adjustment' });
+  await screen.findByRole('radio', { name: 'Expense' });
 
   // act
   if (closeWith !== null) {
@@ -144,7 +156,7 @@ test.each([
 
   // assert
   if (closeWith === null) {
-    expect(screen.getByRole('radio', { name: 'Adjustment' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Expense' })).toBeChecked();
   } else {
     expect(screen.getByRole('button', { name: 'Add transaction' })).toHaveFocus();
   }

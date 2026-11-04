@@ -22,6 +22,15 @@ const wallet = {
   base_currency_balance: '412.50',
 } satisfies components['schemas']['Account'];
 
+const groceries = {
+  ...wallet,
+  name: 'Groceries',
+  id: '3c2b1a04-8c1a-4b9e-9d1f-0e6a7f0c2f4e',
+  kind: 'EXPENSE',
+  currency: null,
+  category_type: 'VARIABLE',
+} satisfies components['schemas']['Account'];
+
 beforeEach(() => {
   server.use(
     http.get('http://localhost/api/user/me', () =>
@@ -132,4 +141,58 @@ test('lists the money accounts used most recently first', async () => {
   // assert
   await screen.findByRole('button', { name: /^Wallet/ });
   expect(requestedOrder).toBe('recent_use');
+});
+
+test('lists the categories and the locations used most recently first', async () => {
+  // arrange
+  let requestedCategoryOrder: string | null = null;
+  let requestedLocationOrder: string | null = null;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const searchParams = new URL(request.url).searchParams;
+      const items = searchParams.getAll('kinds').includes('EXPENSE') ? [groceries] : [wallet];
+      if (searchParams.getAll('kinds').includes('EXPENSE')) {
+        requestedCategoryOrder = searchParams.get('order');
+      }
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+    http.get('http://localhost/api/accounting/locations', ({ request }) => {
+      requestedLocationOrder = new URL(request.url).searchParams.get('order');
+      return HttpResponse.json({
+        items: [
+          {
+            name: 'Central market',
+            description: null,
+            user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+            id: '9e0f1a2b-2b4f-4e6a-8c7d-5a1d9c3e3c40',
+            status: 'ACTIVE',
+            created_at: '2026-10-01T09:00:00Z',
+            updated_at: '2026-10-01T09:00:00Z',
+          },
+        ],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
+  await user.click(await screen.findByRole('button', { name: /^Category/ }));
+  await screen.findByRole('button', { name: /^Groceries/ });
+  await user.click(screen.getByRole('button', { name: 'Back' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^Location/ }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Central market/ })).toBeInTheDocument();
+  expect([requestedCategoryOrder, requestedLocationOrder]).toEqual(['recent_use', 'recent_use']);
 });

@@ -13,7 +13,7 @@ const SKELETON_ROW_COUNT = 4;
 export type EntityPickerItem = Readonly<{
   id: string;
   name: string;
-  color: string;
+  color: string | undefined;
   note: string;
 }>;
 
@@ -107,11 +107,13 @@ export function EntityPicker({
                     onSelect(item.id);
                   }}
                 >
-                  <span
-                    className={styles['mark']}
-                    style={{ backgroundColor: item.color }}
-                    aria-hidden="true"
-                  />
+                  {item.color !== undefined && (
+                    <span
+                      className={styles['mark']}
+                      style={{ backgroundColor: item.color }}
+                      aria-hidden="true"
+                    />
+                  )}
                   <span className={styles['name']}>{item.name}</span>
                   <span className={styles['note']}>{item.note}</span>
                   {item.id === selectedId && (

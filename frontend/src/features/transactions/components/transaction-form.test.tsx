@@ -35,6 +35,7 @@ const euroCard = {
 
 const transactionTypes = [
   { key: 'EXPENSE', label: 'Expense' },
+  { key: 'TRANSFER', label: 'Transfer' },
   { key: 'ADJUSTMENT', label: 'Adjustment' },
 ] satisfies components['schemas']['DictionaryItem'][];
 
@@ -313,6 +314,7 @@ test('offers only the transaction types the form can enter', () => {
 
   // assert
   expect(screen.getAllByRole('radio').map((radio) => radio.parentElement?.textContent)).toEqual([
+    'Expense',
     'Adjustment',
   ]);
 });
