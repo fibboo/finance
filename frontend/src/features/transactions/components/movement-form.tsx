@@ -2,14 +2,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type QueryKey, useMutation } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { type Resolver, useForm, useWatch } from 'react-hook-form';
+import { FormProvider, type Resolver, useForm, useWatch } from 'react-hook-form';
 
 import { EntityPicker } from '@/components/entity-picker/entity-picker';
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
-import { readIsoDate, toDateText } from '@/lib/format-date';
-import { formatMoney } from '@/lib/format-money';
+import { toDateText } from '@/lib/format-date';
 
 import type { EntryTransactionType, MovementTransactionType } from '../api/new-transaction';
 import { transactionMutations } from '../api/transaction-mutations';
@@ -20,128 +19,34 @@ import {
   createTransferFormSchema,
   type MovementFormValues,
   readAccountCurrency,
-  readAmountText,
 } from '../schemas/transaction-form';
 import { AmountField } from './amount-field';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
-import { ForeignAmountRow } from './foreign-amount-row';
+import { ExpenseExtraRows } from './expense-extra-rows';
 import { FormHeader } from './form-header';
-import { readIncomeMonths } from './income-months';
+import { IncomeExtraRows } from './income-extra-rows';
+import { IncomeMonthRow } from './income-month-row';
 import { InputRow } from './input-row';
-import { readMoneyAccountNote, toMoneyAccountItem } from './money-account-item';
+import { readMoneyAccountNote } from './money-account-item';
+import {
+  HIDDEN_FIELD_TARGETS,
+  MOVEMENT_COPY,
+  MOVEMENT_FORM_FIELDS,
+  type MovementPickerField,
+  readBaseCurrencyHint,
+  readMovementCurrencies,
+  readMovementPickers,
+} from './movement-types';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
-import { SelectRow } from './select-row';
 import styles from './transaction-form.module.css';
+import { TransferExtraRows } from './transfer-extra-rows';
 
 type Account = components['schemas']['Account'];
 type Location = components['schemas']['Location'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 type MovementRequest = components['schemas']['MovementRequest'];
-type PickerField = 'from_account_id' | 'to_account_id' | 'location_id';
-type FormField = (typeof FORM_FIELDS)[number];
-type PickerCopy = Readonly<{
-  title: string;
-  placeholder: string;
-  searchLabel: string;
-  emptyText: string;
-}>;
-
-const FORM_FIELDS = [
-  'from_account_id',
-  'to_account_id',
-  'location_id',
-  'source_amount',
-  'source_currency',
-  'destination_amount',
-  'destination_currency',
-  'base_currency_amount',
-  'income_period',
-  'transaction_date',
-  'comment',
-] as const;
-const MONEY_ACCOUNT_COPY = {
-  searchLabel: 'Search accounts',
-  emptyText: 'There are no accounts yet.',
-  placeholder: 'Choose an account',
-};
-const MOVEMENT_COPY = {
-  EXPENSE: {
-    amountLabel: 'Amount',
-    submitLabel: 'Add expense',
-    saveError: "Couldn't save the expense. Please try again.",
-    from: { ...MONEY_ACCOUNT_COPY, title: 'From' },
-    to: {
-      title: 'Category',
-      placeholder: 'Choose a category',
-      searchLabel: 'Search categories',
-      emptyText: 'There are no categories yet.',
-    },
-  },
-  INCOME: {
-    amountLabel: 'Amount received',
-    submitLabel: 'Add income',
-    saveError: "Couldn't save the income. Please try again.",
-    from: {
-      title: 'Source',
-      placeholder: 'Choose a source',
-      searchLabel: 'Search income sources',
-      emptyText: 'There are no income sources yet.',
-    },
-    to: { ...MONEY_ACCOUNT_COPY, title: 'To' },
-  },
-  TRANSFER: {
-    amountLabel: 'Amount sent',
-    submitLabel: 'Add transfer',
-    saveError: "Couldn't save the transfer. Please try again.",
-    from: { ...MONEY_ACCOUNT_COPY, title: 'From' },
-    to: { ...MONEY_ACCOUNT_COPY, title: 'To' },
-  },
-} satisfies Record<
-  MovementTransactionType,
-  Readonly<{
-    amountLabel: string;
-    submitLabel: string;
-    saveError: string;
-    from: PickerCopy;
-    to: PickerCopy;
-  }>
->;
-const HIDDEN_FIELD_TARGETS: Readonly<
-  Record<MovementTransactionType, Partial<Record<FormField, FormField>>>
-> = {
-  EXPENSE: { destination_amount: 'source_amount', destination_currency: 'from_account_id' },
-  INCOME: { source_amount: 'destination_amount', source_currency: 'to_account_id' },
-  TRANSFER: { destination_amount: 'source_amount' },
-};
-
-function readBaseCurrencyHint({
-  account,
-  amountText,
-  baseCurrency,
-}: Readonly<{
-  account: Readonly<Account> | undefined;
-  amountText: string;
-  baseCurrency: string;
-}>): string | undefined {
-  const amount = readAmountText(amountText);
-  const rate = Number(account?.base_currency_rate);
-  const hint =
-    account === undefined ||
-    amount === undefined ||
-    Number(amount) <= 0 ||
-    readAccountCurrency(account) === baseCurrency ||
-    rate <= 0
-      ? undefined
-      : `≈ ${formatMoney({ amount: Number(amount) / rate, currency: baseCurrency })}`;
-  return hint;
-}
-
-function toAccountItem({ account, note }: Readonly<{ account: Readonly<Account>; note: string }>) {
-  const item = { id: account.id, name: account.name, color: readAccountColor(account), note };
-  return item;
-}
 
 type MovementFormProps = Readonly<{
   transactionType: MovementTransactionType;
@@ -173,55 +78,25 @@ export function MovementForm({
   onClose,
 }: MovementFormProps) {
   const today = useToday();
-  const [pickerField, setPickerField] = useState<PickerField | undefined>(undefined);
+  const [pickerField, setPickerField] = useState<MovementPickerField | undefined>(undefined);
   const rowIdPrefix = useId();
   const copy = MOVEMENT_COPY[transactionType];
   const fromAccounts = transactionType === 'INCOME' ? incomeSources : moneyAccounts;
   const toAccounts = transactionType === 'EXPENSE' ? categories : moneyAccounts;
-  const isIncome = transactionType === 'INCOME';
-  const isTransfer = transactionType === 'TRANSFER';
-
-  function readMoneyCurrencies(
-    values: Readonly<
-      Pick<
-        MovementFormValues,
-        'from_account_id' | 'to_account_id' | 'is_paid_in_another_currency' | 'source_currency'
-      >
-    >,
-  ) {
-    const fromAccount = fromAccounts?.find((account) => account.id === values.from_account_id);
-    const toAccount = toAccounts?.find((account) => account.id === values.to_account_id);
-    const moneyCurrencies = {
-      source: fromAccount === undefined || isIncome ? undefined : readAccountCurrency(fromAccount),
-      destination:
-        toAccount === undefined || transactionType === 'EXPENSE'
-          ? undefined
-          : readAccountCurrency(toAccount),
-    };
-    const isDestinationAmountAsked =
-      isTransfer &&
-      moneyCurrencies.source !== undefined &&
-      moneyCurrencies.destination !== undefined &&
-      moneyCurrencies.source !== moneyCurrencies.destination &&
-      moneyCurrencies.destination !== baseCurrency;
-    const paidCurrency = values.is_paid_in_another_currency
-      ? values.source_currency
-      : moneyCurrencies.destination;
-    const isBaseCurrencyAmountAsked =
-      isIncome &&
-      moneyCurrencies.destination !== undefined &&
-      moneyCurrencies.destination !== baseCurrency &&
-      paidCurrency !== baseCurrency;
-    return { ...moneyCurrencies, isDestinationAmountAsked, isBaseCurrencyAmountAsked };
-  }
-
   const resolver: Resolver<MovementFormValues, unknown, MovementRequest> = (
     values,
     context,
     options,
   ) => {
     const { source, destination, isDestinationAmountAsked, isBaseCurrencyAmountAsked } =
-      readMoneyCurrencies(values);
+      readMovementCurrencies({
+        transactionType,
+        fromAccount: fromAccounts?.find((account) => account.id === values.from_account_id),
+        toAccount: toAccounts?.find((account) => account.id === values.to_account_id),
+        isPaidInAnotherCurrency: values.is_paid_in_another_currency,
+        paidCurrency: values.source_currency,
+        baseCurrency,
+      });
     const schemas = {
       EXPENSE: () =>
         createExpenseFormSchema({
@@ -245,13 +120,10 @@ export function MovementForm({
           today,
         }),
     };
-    return zodResolver(schemas[transactionType]())(values, context, options);
+    const resolution = zodResolver(schemas[transactionType]())(values, context, options);
+    return resolution;
   };
-  const { control, register, handleSubmit, setError, setValue, formState } = useForm<
-    MovementFormValues,
-    unknown,
-    MovementRequest
-  >({
+  const form = useForm<MovementFormValues, unknown, MovementRequest>({
     resolver,
     defaultValues: {
       from_account_id: '',
@@ -268,6 +140,7 @@ export function MovementForm({
       comment: '',
     },
   });
+  const { control, register, handleSubmit, setError, setValue, formState } = form;
   const [
     fromAccountId,
     toAccountId,
@@ -276,7 +149,6 @@ export function MovementForm({
     sourceCurrency,
     isPaidInAnotherCurrency,
     destinationAmount,
-    incomePeriod,
     date,
   ] = useWatch({
     control,
@@ -288,7 +160,6 @@ export function MovementForm({
       'source_currency',
       'is_paid_in_another_currency',
       'destination_amount',
-      'income_period',
       'transaction_date',
     ],
   });
@@ -296,55 +167,32 @@ export function MovementForm({
   const fromAccount = fromAccounts?.find((account) => account.id === fromAccountId);
   const toAccount = toAccounts?.find((account) => account.id === toAccountId);
   const location = locations?.find((place) => place.id === locationId);
-  const { destination, isDestinationAmountAsked, isBaseCurrencyAmountAsked } = readMoneyCurrencies({
-    from_account_id: fromAccountId,
-    to_account_id: toAccountId,
-    is_paid_in_another_currency: isPaidInAnotherCurrency,
-    source_currency: sourceCurrency,
-  });
+  const { destination, isDestinationAmountAsked, isBaseCurrencyAmountAsked } =
+    readMovementCurrencies({
+      transactionType,
+      fromAccount,
+      toAccount,
+      isPaidInAnotherCurrency,
+      paidCurrency: sourceCurrency,
+      baseCurrency,
+    });
+  const isIncome = transactionType === 'INCOME';
   const amountAccount = isIncome ? toAccount : fromAccount;
-  const amountField = isIncome ? 'destination_amount' : 'source_amount';
-  const isExtraAmountShown = isTransfer ? isDestinationAmountAsked : isPaidInAnotherCurrency;
-  const pickers = {
-    from_account_id: {
-      ...copy.from,
-      selectedId: fromAccount?.id,
-      items: fromAccounts
-        ?.filter((account) => !isTransfer || account.id !== toAccountId)
-        .map((account) =>
-          isIncome ? toAccountItem({ account, note: '' }) : toMoneyAccountItem(account),
-        ),
-    },
-    to_account_id: {
-      ...copy.to,
-      selectedId: toAccount?.id,
-      items: toAccounts
-        ?.filter((account) => !isTransfer || account.id !== fromAccountId)
-        .map((account) =>
-          transactionType === 'EXPENSE'
-            ? toAccountItem({
-                account,
-                note: categoryTypes.find((type) => type.key === account.category_type)?.label ?? '',
-              })
-            : toMoneyAccountItem(account),
-        ),
-    },
-    location_id: {
-      title: 'Location',
-      searchLabel: 'Search locations',
-      emptyText: 'There are no locations yet.',
-      selectedId: location?.id,
-      items: locations?.map((place) => ({
-        id: place.id,
-        name: place.name,
-        color: undefined,
-        note: '',
-      })),
-    },
-  } satisfies Record<PickerField, unknown>;
+  const isExtraAmountShown =
+    transactionType === 'TRANSFER' ? isDestinationAmountAsked : isPaidInAnotherCurrency;
+  const pickers = readMovementPickers({
+    transactionType,
+    fromAccounts,
+    toAccounts,
+    locations,
+    categoryTypes,
+    fromAccountId,
+    toAccountId,
+    locationId,
+  });
   const requestError = formState.errors.root?.['server']?.message;
 
-  function closePicker(field: PickerField) {
+  function closePicker(field: MovementPickerField) {
     flushSync(() => {
       setPickerField(undefined);
     });
@@ -352,7 +200,7 @@ export function MovementForm({
   }
 
   return (
-    <>
+    <FormProvider {...form}>
       <form
         className={styles['transactionForm']}
         hidden={pickerField !== undefined}
@@ -362,16 +210,18 @@ export function MovementForm({
             create.mutate(movement, {
               onSuccess: onClose,
               onError: (error) => {
+                const targets = HIDDEN_FIELD_TARGETS[transactionType];
                 readSaveErrors({
                   error,
-                  fields: FORM_FIELDS,
+                  fields: MOVEMENT_FORM_FIELDS,
                   fallbackMessage: copy.saveError,
                 }).forEach(({ field, message }) => {
-                  const hiddenFieldTarget =
-                    field === 'root.server' || isExtraAmountShown
+                  const target =
+                    field === 'root.server'
                       ? undefined
-                      : HIDDEN_FIELD_TARGETS[transactionType][field];
-                  setError(hiddenFieldTarget ?? field, { message });
+                      : ((isExtraAmountShown ? undefined : targets.extra[field]) ??
+                        targets.always[field]);
+                  setError(target ?? field, { message });
                 });
               },
             });
@@ -386,14 +236,21 @@ export function MovementForm({
         />
         <AmountField
           label={copy.amountLabel}
-          registration={register(amountField)}
+          registration={register(isIncome ? 'destination_amount' : 'source_amount')}
           currency={amountAccount === undefined ? undefined : readAccountCurrency(amountAccount)}
-          hint={readBaseCurrencyHint({
-            account: amountAccount,
-            amountText: isIncome ? destinationAmount : sourceAmount,
-            baseCurrency,
-          })}
-          error={formState.errors[amountField]?.message}
+          hint={
+            isIncome && isPaidInAnotherCurrency
+              ? undefined
+              : readBaseCurrencyHint({
+                  account: amountAccount,
+                  amountText: isIncome ? destinationAmount : sourceAmount,
+                  baseCurrency,
+                })
+          }
+          error={
+            (isIncome ? formState.errors.destination_amount : formState.errors.source_amount)
+              ?.message
+          }
         />
         <div className={styles['rows']}>
           <PickerRow
@@ -440,16 +297,7 @@ export function MovementForm({
               }}
             />
           )}
-          {isIncome && (
-            <SelectRow
-              label="For month"
-              registration={register('income_period')}
-              options={readIncomeMonths({
-                isoDate: readIsoDate(date) ?? today,
-                selectedMonth: incomePeriod,
-              })}
-            />
-          )}
+          {isIncome && <IncomeMonthRow />}
           <InputRow
             label="Date"
             input={readDateInputProps(register('transaction_date'))}
@@ -468,7 +316,7 @@ export function MovementForm({
             error={formState.errors.transaction_date?.message}
           />
         </div>
-        {!isTransfer && (
+        {transactionType !== 'TRANSFER' && (
           <label className={styles['anotherCurrency']}>
             <input
               {...register('is_paid_in_another_currency')}
@@ -478,57 +326,19 @@ export function MovementForm({
             Paid in another currency
           </label>
         )}
-        {(isExtraAmountShown || isBaseCurrencyAmountAsked) && (
-          <div className={[styles['rows'], styles['extraRows']].join(' ')}>
-            {transactionType === 'EXPENSE' && (
-              <ForeignAmountRow
-                label="Seller’s amount"
-                currencyLabel="Seller’s currency"
-                amountRegistration={register('destination_amount')}
-                currencyRegistration={register('destination_currency')}
-                currencies={currencies}
-                amountError={formState.errors.destination_amount?.message}
-                currencyError={formState.errors.destination_currency?.message}
-              />
-            )}
-            {isIncome && isPaidInAnotherCurrency && (
-              <ForeignAmountRow
-                label="Paid amount"
-                currencyLabel="Paid currency"
-                amountRegistration={register('source_amount')}
-                currencyRegistration={register('source_currency')}
-                currencies={currencies}
-                amountError={formState.errors.source_amount?.message}
-                currencyError={formState.errors.source_currency?.message}
-              />
-            )}
-            {isBaseCurrencyAmountAsked && (
-              <InputRow
-                label={`In ${baseCurrency}`}
-                input={{
-                  ...register('base_currency_amount'),
-                  inputMode: 'decimal',
-                  autoComplete: 'off',
-                  placeholder: '0.00',
-                }}
-                suffix={baseCurrency}
-                error={formState.errors.base_currency_amount?.message}
-              />
-            )}
-            {isDestinationAmountAsked && (
-              <InputRow
-                label="Amount received"
-                input={{
-                  ...register('destination_amount'),
-                  inputMode: 'decimal',
-                  autoComplete: 'off',
-                  placeholder: '0.00',
-                }}
-                suffix={destination}
-                error={formState.errors.destination_amount?.message}
-              />
-            )}
-          </div>
+        {transactionType === 'EXPENSE' && <ExpenseExtraRows currencies={currencies} />}
+        {isIncome && (
+          <IncomeExtraRows
+            currencies={currencies}
+            baseCurrency={baseCurrency}
+            isBaseCurrencyAmountAsked={isBaseCurrencyAmountAsked}
+          />
+        )}
+        {transactionType === 'TRANSFER' && (
+          <TransferExtraRows
+            destinationCurrency={destination}
+            isDestinationAmountAsked={isDestinationAmountAsked}
+          />
         )}
         <div className={styles['rows']}>
           <InputRow
@@ -563,6 +373,6 @@ export function MovementForm({
           }}
         />
       )}
-    </>
+    </FormProvider>
   );
 }

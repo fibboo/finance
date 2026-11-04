@@ -1,4 +1,9 @@
 .selectRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.control {
   position: relative;
   min-height: var(--size-field-lg);
   display: flex;
@@ -6,7 +11,7 @@
   gap: var(--space-2-5);
 }
 
-.selectRow:focus-within {
+.control:focus-within {
   outline: var(--size-focus) solid var(--color-ink);
   outline-offset: calc(var(--size-focus) * -1);
   border-radius: var(--radius-control);
@@ -44,4 +49,11 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: none;
+}
+
+.error {
+  padding-bottom: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
 }

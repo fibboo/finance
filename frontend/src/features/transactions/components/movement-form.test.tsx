@@ -636,3 +636,136 @@ test('lists the accounts to send to without the account sent from', async () => 
   expect(screen.queryByRole('button', { name: /^Euro card/ })).toBeNull();
   expect(screen.getByRole('button', { name: /^Lari savings/ })).toBeInTheDocument();
 });
+
+test('keeps a picked month of an income that matches the month before the date when the date changes', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="INCOME"
+      transactionTypes={transactionTypes}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={undefined}
+      incomeSources={[salary]}
+      locations={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.selectOptions(screen.getByLabelText('For month'), 'September 2026');
+
+  // act
+  await user.clear(screen.getByLabelText('Date'));
+  await user.type(screen.getByLabelText('Date'), '03.11.2026');
+
+  // assert
+  expect(screen.getByLabelText('For month')).toHaveDisplayValue('September 2026');
+});
+
+test.each([
+  {
+    transactionType: 'TRANSFER' as const,
+    field: 'destination_currency',
+    picker: /^To/,
+    submitLabel: 'Add transfer',
+  },
+  {
+    transactionType: 'TRANSFER' as const,
+    field: 'source_currency',
+    picker: /^From/,
+    submitLabel: 'Add transfer',
+  },
+  {
+    transactionType: 'INCOME' as const,
+    field: 'income_period',
+    picker: null,
+    submitLabel: 'Add income',
+  },
+])(
+  'shows a backend error of $field of a $transactionType where the form shows it',
+  async ({ transactionType, field, picker, submitLabel }) => {
+    // arrange
+    server.use(
+      http.post('http://localhost/api/accounting/transactions', () =>
+        HttpResponse.json(
+          { detail: [{ loc: ['body', field], msg: 'Input should be valid' }] },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(
+      <MovementForm
+        transactionType={transactionType}
+        transactionTypes={transactionTypes}
+        categoryTypes={categoryTypes}
+        currencies={currencies}
+        moneyAccounts={[euroCard, dollarCash]}
+        categories={undefined}
+        incomeSources={[salary]}
+        locations={undefined}
+        baseCurrency="USD"
+        relatedQueryKeys={[]}
+        onTypeChange={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    await user.type(
+      screen.getByLabelText(transactionType === 'INCOME' ? 'Amount received' : 'Amount sent'),
+      '100',
+    );
+    await user.click(screen.getByRole('button', { name: /^(From|Source)/ }));
+    await user.click(
+      screen.getByRole('button', { name: transactionType === 'INCOME' ? /^Salary/ : /^Euro card/ }),
+    );
+    await user.click(screen.getByRole('button', { name: /^To/ }));
+    await user.click(screen.getByRole('button', { name: /^Cash/ }));
+
+    // act
+    await user.click(screen.getByRole('button', { name: submitLabel }));
+
+    // assert
+    await waitFor(() => {
+      expect(
+        picker === null
+          ? screen.getByLabelText('For month')
+          : screen.getByRole('button', { name: picker }),
+      ).toHaveAccessibleDescription('Input should be valid');
+    });
+  },
+);
+
+test('leaves out the base currency estimate of an income paid in another currency', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="INCOME"
+      transactionTypes={transactionTypes}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={undefined}
+      incomeSources={[salary]}
+      locations={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /^To/ }));
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  await user.type(screen.getByLabelText('Amount received'), '42.80');
+  expect(screen.getByLabelText('Amount received')).toHaveAccessibleDescription('≈ $47.08');
+
+  // act
+  await user.click(screen.getByRole('checkbox', { name: 'Paid in another currency' }));
+
+  // assert
+  expect(screen.getByLabelText('Amount received')).toHaveAccessibleDescription('');
+});
