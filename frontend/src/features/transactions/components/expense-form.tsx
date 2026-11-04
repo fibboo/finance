@@ -205,6 +205,7 @@ export function ExpenseForm({
         noValidate
         onSubmit={(event) => {
           void handleSubmit((movement) => {
+            const isSentInAnotherCurrency = getValues('is_paid_in_another_currency');
             create.mutate(movement, {
               onSuccess: onClose,
               onError: (error) => {
@@ -213,12 +214,9 @@ export function ExpenseForm({
                   fields: FORM_FIELDS,
                   fallbackMessage: SAVE_ERROR_MESSAGE,
                 }).forEach(({ field, message }) => {
-                  setError(
-                    getValues('is_paid_in_another_currency')
-                      ? field
-                      : (SOURCE_FIELDS[field] ?? field),
-                    { message },
-                  );
+                  setError(isSentInAnotherCurrency ? field : (SOURCE_FIELDS[field] ?? field), {
+                    message,
+                  });
                 });
               },
             });
