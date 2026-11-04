@@ -5,7 +5,7 @@ import styles from './input-row.module.css';
 type InputRowProps = Readonly<{
   label: string;
   input: ComponentProps<'input'>;
-  suffix?: string;
+  suffix?: ReactNode;
   action?: ReactNode;
   error: string | undefined;
 }>;

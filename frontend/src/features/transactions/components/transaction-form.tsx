@@ -8,26 +8,28 @@ import type { z } from 'zod';
 import { EntityPicker } from '@/components/entity-picker/entity-picker';
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
-import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
-import { ENTRY_TRANSACTION_TYPES, type EntryTransactionType } from '../api/new-transaction';
+import type { EntryTransactionType } from '../api/new-transaction';
 import { transactionMutations } from '../api/transaction-mutations';
 import {
   COMMENT_MAX_LENGTH,
   createAdjustmentFormSchema,
   isBaseCurrencyAmountNeeded,
+  readAccountCurrency,
   readAmountText,
 } from '../schemas/transaction-form';
 import { AmountField } from './amount-field';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
+import { FormHeader } from './form-header';
 import { InputRow } from './input-row';
+import { readMoneyAccountNote, toMoneyAccountItem } from './money-account-item';
 import { PickerRow } from './picker-row';
+import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
-import { TypeChips } from './type-chips';
 
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -35,8 +37,6 @@ type AdjustmentFormSchema = ReturnType<typeof createAdjustmentFormSchema>;
 type AdjustmentFormInput = z.input<AdjustmentFormSchema>;
 type AdjustmentFormOutput = z.output<AdjustmentFormSchema>;
 
-const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
-const SERVER_ERROR_STATUS = 500;
 const SAVE_ERROR_MESSAGE = "Couldn't save the adjustment. Please try again.";
 const FORM_FIELDS = [
   'account_id',
@@ -45,14 +45,6 @@ const FORM_FIELDS = [
   'transaction_date',
   'comment',
 ] as const;
-
-function readAccountCurrency(account: Readonly<Account>): string {
-  if (account.currency === null) {
-    throw new Error(`The money account ${account.id} has no currency.`);
-  }
-
-  return account.currency;
-}
 
 function readBalanceHint({
   account,
@@ -128,9 +120,6 @@ export function TransactionForm({
   });
   const adjust = useMutation(transactionMutations.adjust(relatedQueryKeys));
   const account = moneyAccounts?.find((moneyAccount) => moneyAccount.id === accountId);
-  const entryTypes = transactionTypes.filter((type) =>
-    ENTRY_TRANSACTION_TYPES.some((entryType) => entryType === type.key),
-  );
   const requestError = formState.errors.root?.['server']?.message;
 
   function closePicker() {
@@ -151,44 +140,26 @@ export function TransactionForm({
             adjust.mutate(values, {
               onSuccess: onClose,
               onError: (error) => {
-                if (!(error instanceof ApiError) || error.fieldErrors.length === 0) {
-                  setError('root.server', {
-                    message:
-                      error instanceof ApiError && error.status < SERVER_ERROR_STATUS
-                        ? error.message
-                        : SAVE_ERROR_MESSAGE,
-                  });
-                } else {
-                  error.fieldErrors.forEach((fieldError) => {
-                    const field = FORM_FIELDS.find((formField) => formField === fieldError.field);
-                    if (field === 'base_currency_amount') {
-                      setIsBaseAmountAsked(true);
-                    }
-                    setError(field ?? 'root.server', { message: fieldError.message });
-                  });
-                }
+                readSaveErrors({
+                  error,
+                  fields: FORM_FIELDS,
+                  fallbackMessage: SAVE_ERROR_MESSAGE,
+                }).forEach(({ field, message }) => {
+                  if (field === 'base_currency_amount') {
+                    setIsBaseAmountAsked(true);
+                  }
+                  setError(field, { message });
+                });
               },
             });
           })(event);
         }}
       >
-        <div className={styles['header']}>
-          <h2 className={styles['title']}>New transaction</h2>
-          <button type="button" className={styles['close']} aria-label="Close" onClick={onClose}>
-            <svg className={styles['closeIcon']} aria-hidden="true" viewBox="0 0 24 24">
-              <path d={CLOSE_ICON_PATH} />
-            </svg>
-          </button>
-        </div>
-        <TypeChips
-          types={entryTypes}
-          selectedType={transactionType}
-          onChange={(typeKey) => {
-            const nextType = ENTRY_TRANSACTION_TYPES.find((entryType) => entryType === typeKey);
-            if (nextType !== undefined) {
-              onTypeChange(nextType);
-            }
-          }}
+        <FormHeader
+          transactionType={transactionType}
+          transactionTypes={transactionTypes}
+          onTypeChange={onTypeChange}
+          onClose={onClose}
         />
         <AmountField
           label="New balance"
@@ -204,14 +175,7 @@ export function TransactionForm({
             value={account?.name}
             placeholder="Choose an account"
             color={account === undefined ? undefined : readAccountColor(account)}
-            note={
-              account === undefined
-                ? undefined
-                : formatMoney({
-                    amount: Number(account.balance),
-                    currency: readAccountCurrency(account),
-                  })
-            }
+            note={account === undefined ? undefined : readMoneyAccountNote(account)}
             error={formState.errors.account_id?.message}
             onOpen={() => {
               setIsPickingAccount(true);
@@ -276,15 +240,7 @@ export function TransactionForm({
           title="Account"
           searchLabel="Search accounts"
           emptyText="There are no accounts yet."
-          items={moneyAccounts?.map((moneyAccount) => ({
-            id: moneyAccount.id,
-            name: moneyAccount.name,
-            color: readAccountColor(moneyAccount),
-            note: formatMoney({
-              amount: Number(moneyAccount.balance),
-              currency: readAccountCurrency(moneyAccount),
-            }),
-          }))}
+          items={moneyAccounts?.map(toMoneyAccountItem)}
           selectedId={account?.id}
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {

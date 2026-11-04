@@ -8,6 +8,7 @@ import { transactionQueries } from './transaction-queries';
 
 type Transaction = components['schemas']['Transaction'];
 type AdjustmentRequest = components['schemas']['AdjustmentRequest'];
+type MovementRequest = components['schemas']['MovementRequest'];
 type ErrorCode = components['schemas']['ErrorCodeType'];
 
 const BASE_CURRENCY_AMOUNT_MESSAGES: Partial<Record<ErrorCode, string>> = {
@@ -45,6 +46,13 @@ async function postAdjustment({
 
     throw error;
   }
+}
+
+async function postMovement(movement: Readonly<MovementRequest>): Promise<Transaction> {
+  const transaction = readData(
+    await apiClient.POST('/accounting/transactions', { body: movement }),
+  );
+  return transaction;
 }
 
 function invalidateFeeds({
@@ -88,6 +96,13 @@ export const transactionMutations = {
           invalidateFeeds({ client, relatedQueryKeys }),
         ]);
       },
+    });
+  },
+  create(relatedQueryKeys: readonly QueryKey[]) {
+    return mutationOptions({
+      mutationFn: postMovement,
+      onSuccess: (_transaction, _movement, _onMutateResult, { client }) =>
+        invalidateFeeds({ client, relatedQueryKeys }),
     });
   },
   adjust(relatedQueryKeys: readonly QueryKey[]) {
