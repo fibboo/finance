@@ -8,7 +8,6 @@ import type { z } from 'zod';
 import { EntityPicker } from '@/components/entity-picker/entity-picker';
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
-import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
@@ -27,7 +26,9 @@ import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { FormHeader } from './form-header';
 import { InputRow } from './input-row';
+import { toMoneyAccountItem } from './money-account-item';
 import { PickerRow } from './picker-row';
+import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
 
 type Account = components['schemas']['Account'];
@@ -36,7 +37,6 @@ type AdjustmentFormSchema = ReturnType<typeof createAdjustmentFormSchema>;
 type AdjustmentFormInput = z.input<AdjustmentFormSchema>;
 type AdjustmentFormOutput = z.output<AdjustmentFormSchema>;
 
-const SERVER_ERROR_STATUS = 500;
 const SAVE_ERROR_MESSAGE = "Couldn't save the adjustment. Please try again.";
 const FORM_FIELDS = [
   'account_id',
@@ -140,22 +140,16 @@ export function TransactionForm({
             adjust.mutate(values, {
               onSuccess: onClose,
               onError: (error) => {
-                if (!(error instanceof ApiError) || error.fieldErrors.length === 0) {
-                  setError('root.server', {
-                    message:
-                      error instanceof ApiError && error.status < SERVER_ERROR_STATUS
-                        ? error.message
-                        : SAVE_ERROR_MESSAGE,
-                  });
-                } else {
-                  error.fieldErrors.forEach((fieldError) => {
-                    const field = FORM_FIELDS.find((formField) => formField === fieldError.field);
-                    if (field === 'base_currency_amount') {
-                      setIsBaseAmountAsked(true);
-                    }
-                    setError(field ?? 'root.server', { message: fieldError.message });
-                  });
-                }
+                readSaveErrors({
+                  error,
+                  fields: FORM_FIELDS,
+                  fallbackMessage: SAVE_ERROR_MESSAGE,
+                }).forEach(({ field, message }) => {
+                  if (field === 'base_currency_amount') {
+                    setIsBaseAmountAsked(true);
+                  }
+                  setError(field, { message });
+                });
               },
             });
           })(event);
@@ -181,14 +175,7 @@ export function TransactionForm({
             value={account?.name}
             placeholder="Choose an account"
             color={account === undefined ? undefined : readAccountColor(account)}
-            note={
-              account === undefined
-                ? undefined
-                : formatMoney({
-                    amount: Number(account.balance),
-                    currency: readAccountCurrency(account),
-                  })
-            }
+            note={account === undefined ? undefined : toMoneyAccountItem(account).note}
             error={formState.errors.account_id?.message}
             onOpen={() => {
               setIsPickingAccount(true);
@@ -253,15 +240,7 @@ export function TransactionForm({
           title="Account"
           searchLabel="Search accounts"
           emptyText="There are no accounts yet."
-          items={moneyAccounts?.map((moneyAccount) => ({
-            id: moneyAccount.id,
-            name: moneyAccount.name,
-            color: readAccountColor(moneyAccount),
-            note: formatMoney({
-              amount: Number(moneyAccount.balance),
-              currency: readAccountCurrency(moneyAccount),
-            }),
-          }))}
+          items={moneyAccounts?.map((moneyAccount) => toMoneyAccountItem(moneyAccount))}
           selectedId={account?.id}
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {

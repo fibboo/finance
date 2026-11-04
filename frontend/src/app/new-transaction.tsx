@@ -87,7 +87,7 @@ export function NewTransaction() {
           categories={categories?.items}
           locations={locations?.items}
           baseCurrency={baseCurrency}
-          relatedQueryKeys={relatedQueryKeys}
+          relatedQueryKeys={[...relatedQueryKeys, locationQueries.all().queryKey]}
           onTypeChange={changeType}
           onClose={close}
         />

@@ -5,10 +5,9 @@ import { flushSync } from 'react-dom';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
-import { EntityPicker, type EntityPickerItem } from '@/components/entity-picker/entity-picker';
+import { EntityPicker } from '@/components/entity-picker/entity-picker';
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
-import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
@@ -26,7 +25,9 @@ import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { FormHeader } from './form-header';
 import { InputRow } from './input-row';
+import { toMoneyAccountItem } from './money-account-item';
 import { PickerRow } from './picker-row';
+import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
 
 type Account = components['schemas']['Account'];
@@ -37,7 +38,6 @@ type ExpenseFormInput = z.input<ExpenseFormSchema>;
 type ExpenseFormOutput = z.output<ExpenseFormSchema>;
 type PickerField = 'from_account_id' | 'to_account_id' | 'location_id';
 
-const SERVER_ERROR_STATUS = 500;
 const SAVE_ERROR_MESSAGE = "Couldn't save the expense. Please try again.";
 const FORM_FIELDS = [
   'from_account_id',
@@ -64,21 +64,12 @@ function readBaseCurrencyHint({
   const hint =
     account === undefined ||
     amount === undefined ||
+    Number(amount) <= 0 ||
     readAccountCurrency(account) === baseCurrency ||
     rate <= 0
       ? undefined
-      : `≈ ${formatMoney({ amount: Number(amount) * rate, currency: baseCurrency })}`;
+      : `≈ ${formatMoney({ amount: Number(amount) / rate, currency: baseCurrency })}`;
   return hint;
-}
-
-function toMoneyAccountItem(account: Readonly<Account>): EntityPickerItem {
-  const item = {
-    id: account.id,
-    name: account.name,
-    color: readAccountColor(account),
-    note: formatMoney({ amount: Number(account.balance), currency: readAccountCurrency(account) }),
-  };
-  return item;
 }
 
 type ExpenseFormProps = Readonly<{
@@ -109,6 +100,7 @@ export function ExpenseForm({
   const today = useToday();
   const [pickerField, setPickerField] = useState<PickerField | undefined>(undefined);
   const rowIdPrefix = useId();
+  const sellerErrorId = useId();
   const resolver: Resolver<ExpenseFormInput, unknown, ExpenseFormOutput> = (
     values,
     context,
@@ -210,19 +202,16 @@ export function ExpenseForm({
             create.mutate(movement, {
               onSuccess: onClose,
               onError: (error) => {
-                if (!(error instanceof ApiError) || error.fieldErrors.length === 0) {
-                  setError('root.server', {
-                    message:
-                      error instanceof ApiError && error.status < SERVER_ERROR_STATUS
-                        ? error.message
-                        : SAVE_ERROR_MESSAGE,
-                  });
-                } else {
-                  error.fieldErrors.forEach((fieldError) => {
-                    const field = FORM_FIELDS.find((formField) => formField === fieldError.field);
-                    setError(field ?? 'root.server', { message: fieldError.message });
-                  });
-                }
+                readSaveErrors({
+                  error,
+                  fields: FORM_FIELDS,
+                  fallbackMessage: SAVE_ERROR_MESSAGE,
+                }).forEach(({ field, message }) => {
+                  const isFieldHidden =
+                    !isPaidInAnotherCurrency &&
+                    (field === 'destination_amount' || field === 'destination_currency');
+                  setError(isFieldHidden ? 'root.server' : field, { message });
+                });
               },
             });
           })(event);
@@ -308,6 +297,7 @@ export function ExpenseForm({
           <div className={[styles['rows'], styles['sellerRows']].join(' ')}>
             <InputRow
               label="Seller’s amount"
+              errorId={sellerErrorId}
               input={{
                 ...register('destination_amount'),
                 inputMode: 'decimal',
@@ -320,6 +310,9 @@ export function ExpenseForm({
                   className={styles['currencySelect']}
                   aria-label="Seller’s currency"
                   aria-invalid={formState.errors.destination_currency !== undefined}
+                  aria-describedby={
+                    formState.errors.destination_currency === undefined ? undefined : sellerErrorId
+                  }
                 >
                   <option value="">Currency</option>
                   {currencies.map((currency) => (

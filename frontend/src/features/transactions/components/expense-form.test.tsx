@@ -18,7 +18,7 @@ const euroCard = {
   currency: 'EUR',
   color: '#5B6CD9',
   category_type: null,
-  base_currency_rate: '1.1',
+  base_currency_rate: '0.9090909091',
   status: 'ACTIVE',
   base_currency_balance: '1364.00',
 } satisfies components['schemas']['Account'];
@@ -221,7 +221,7 @@ test('asks for the category, the location and the seller’s currency before sen
   expect(screen.getByRole('button', { name: /^Location/ })).toHaveAccessibleDescription(
     'Choose a location',
   );
-  expect(screen.getByLabelText('Seller’s amount')).toHaveAccessibleDescription(
+  expect(screen.getByRole('combobox', { name: 'Seller’s currency' })).toHaveAccessibleDescription(
     'Choose the seller’s currency',
   );
   expect(isRequestSent).toBe(false);
@@ -293,4 +293,52 @@ test('shows a field error of the backend at its field', async () => {
   expect(screen.getByRole('button', { name: /^Location/ })).toHaveAccessibleDescription(
     'Input should be a valid UUID',
   );
+});
+
+test('shows a backend error of the seller’s amount when another currency is not ticked', async () => {
+  // arrange
+  server.use(
+    http.post('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json(
+        {
+          detail: [
+            { loc: ['body', 'destination_amount'], msg: 'Decimal input should be positive' },
+          ],
+        },
+        { status: 422 },
+      ),
+    ),
+  );
+  const user = userEvent.setup();
+  render(
+    <ExpenseForm
+      transactionTypes={transactionTypes}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={[groceries]}
+      locations={[market]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.type(screen.getByLabelText('Amount'), '42.80');
+  await user.click(screen.getByRole('button', { name: /^From/ }));
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  await user.click(screen.getByRole('button', { name: /^Category/ }));
+  await user.click(screen.getByRole('button', { name: /^Groceries/ }));
+  await user.click(screen.getByRole('button', { name: /^Location/ }));
+  await user.click(screen.getByRole('button', { name: /^Central market/ }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Add expense' }));
+
+  // assert
+  await waitFor(() => {
+    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toContain(
+      'Decimal input should be positive',
+    );
+  });
 });
