@@ -43,6 +43,7 @@
   --font-size-detail-amount: 2.25rem;
   --font-size-display: 2.5rem;
   --font-size-display-lg: 3.5rem;
+  --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
@@ -119,6 +120,8 @@
   --size-skeleton-balance: 2rem;
   --size-skeleton-balance-lg: 3.125rem;
   --size-account-mark-sm: 1.75rem;
+  --size-color-swatch: 1.625rem;
+  --size-color-option: 2.375rem;
   --size-transaction-row: 2rem;
   --size-transaction-row-lg: 2.25rem;
   --size-recent-min: calc(
@@ -163,6 +166,13 @@
   --size-dialog: 27.5rem;
   --size-picker-results: calc(100dvh - 11.25rem);
   --size-picker-results-lg: 28.5rem;
+  --size-picker: calc(
+    var(--size-panel-header) + var(--size-touch) + var(--space-3) * 2 + var(--size-picker-results)
+  );
+  --size-picker-lg: calc(
+    var(--size-panel-header) + var(--size-touch) + var(--space-3) * 2 +
+      var(--size-picker-results-lg)
+  );
   --size-column: 30rem;
   --size-merge-panel: 35rem;
   --size-pace-bar: 0.5rem;
@@ -170,6 +180,7 @@
   --opacity-hover: 0.8;
   --opacity-still: 0.5;
   --opacity-stale: 0.6;
+  --opacity-used-color: 0.25;
   --duration-fade: 0.2s;
   --duration-shimmer: 1.4s;
   --duration-progress: 1.3s;

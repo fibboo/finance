@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
@@ -8,6 +8,7 @@ import styles from './entity-picker.module.css';
 const BACK_ICON_PATH = 'm15 6-6 6 6 6';
 const SEARCH_ICON_PATH = 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14m9 16-3.5-3.5';
 const CHECK_ICON_PATH = 'm5 12 5 5 9-10';
+const PLUS_ICON_PATH = 'M12 5v14M5 12h14';
 const SKELETON_ROW_COUNT = 4;
 
 export type EntityPickerItem = Readonly<{
@@ -17,6 +18,12 @@ export type EntityPickerItem = Readonly<{
   note: string;
 }>;
 
+export type CreateFormProps = Readonly<{
+  name: string;
+  onCreated: (id: string) => void;
+  onBack: () => void;
+}>;
+
 type EntityPickerProps = Readonly<{
   title: string;
   searchLabel: string;
@@ -24,6 +31,7 @@ type EntityPickerProps = Readonly<{
   items: readonly EntityPickerItem[] | undefined;
   selectedId: string | undefined;
   onSelect: (id: string) => void;
+  renderCreateForm: ((props: CreateFormProps) => ReactNode) | undefined;
   onBack: () => void;
 }>;
 
@@ -33,17 +41,23 @@ export function EntityPicker({
   emptyText,
   items,
   selectedId,
+  renderCreateForm,
   onSelect,
   onBack,
 }: EntityPickerProps) {
   const [search, setSearch] = useState('');
+  const [newName, setNewName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape' && !event.isComposing) {
         event.preventDefault();
         event.stopPropagation();
-        onBack();
+        if (newName === undefined) {
+          onBack();
+        } else {
+          setNewName(undefined);
+        }
       }
     }
 
@@ -52,10 +66,24 @@ export function EntityPicker({
     return () => {
       document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [onBack]);
+  }, [onBack, newName]);
 
-  const searchText = search.trim().toLowerCase();
+  const searchName = search.trim();
+  const searchText = searchName.toLowerCase();
   const matchingItems = items?.filter((item) => item.name.toLowerCase().includes(searchText));
+  const isCreateShown =
+    renderCreateForm !== undefined &&
+    searchText !== '' &&
+    items?.some((item) => item.name.toLowerCase() === searchText) === false;
+  if (renderCreateForm !== undefined && newName !== undefined) {
+    return renderCreateForm({
+      name: newName,
+      onCreated: onSelect,
+      onBack: () => {
+        setNewName(undefined);
+      },
+    });
+  }
 
   return (
     <div className={styles['entityPicker']}>
@@ -78,7 +106,7 @@ export function EntityPicker({
           }}
           type="search"
           className={styles['searchInput']}
-          placeholder="Search"
+          placeholder={renderCreateForm === undefined ? 'Search' : 'Search or create'}
           autoComplete="off"
           value={search}
           onChange={(event) => {
@@ -87,6 +115,20 @@ export function EntityPicker({
         />
       </label>
       <div className={styles['results']}>
+        {isCreateShown && (
+          <button
+            type="button"
+            className={styles['create']}
+            onClick={() => {
+              setNewName(searchName);
+            }}
+          >
+            <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+              <path d={PLUS_ICON_PATH} />
+            </svg>
+            <span className={styles['name']}>Create “{searchName}”</span>
+          </button>
+        )}
         {matchingItems === undefined ? (
           <ul className={styles['list']} aria-busy="true" aria-label={title}>
             {listSkeletonKeys(SKELETON_ROW_COUNT).map((key) => (
@@ -125,9 +167,9 @@ export function EntityPicker({
               </li>
             ))}
           </ul>
-        ) : (
+        ) : isCreateShown ? null : (
           <p className={styles['empty']}>
-            {searchText === '' ? emptyText : `Nothing matches “${search.trim()}”.`}
+            {searchText === '' ? emptyText : `Nothing matches “${searchName}”.`}
           </p>
         )}
       </div>

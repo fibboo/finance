@@ -9,8 +9,10 @@ import {
   accountQueries,
   MONEY_ACCOUNT_KINDS,
 } from '@/features/accounts/api/account-queries';
+import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
+import { LocationForm } from '@/features/locations/components/location-form';
 import { summaryQueries } from '@/features/summary/api/summary-queries';
 import {
   type EntryTransactionType,
@@ -106,6 +108,8 @@ export function NewTransaction() {
           locations={locations?.items}
           baseCurrency={baseCurrency}
           relatedQueryKeys={[...relatedQueryKeys, locationQueries.all().queryKey]}
+          renderIncomeSourceForm={(props) => <IncomeSourceForm {...props} />}
+          renderLocationForm={(props) => <LocationForm {...props} />}
           onTypeChange={changeType}
           onClose={close}
         />

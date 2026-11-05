@@ -1,10 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type QueryKey, useMutation } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { FormProvider, type Resolver, useForm, useWatch } from 'react-hook-form';
 
-import { EntityPicker } from '@/components/entity-picker/entity-picker';
+import { type CreateFormProps, EntityPicker } from '@/components/entity-picker/entity-picker';
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
@@ -48,6 +48,7 @@ type Account = components['schemas']['Account'];
 type Location = components['schemas']['Location'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 type MovementRequest = components['schemas']['MovementRequest'];
+type CreateFormRenderer = (props: CreateFormProps) => ReactNode;
 
 type MovementFormProps = Readonly<{
   transactionType: MovementTransactionType;
@@ -60,6 +61,8 @@ type MovementFormProps = Readonly<{
   locations: readonly Location[] | undefined;
   baseCurrency: string;
   relatedQueryKeys: readonly QueryKey[];
+  renderIncomeSourceForm: CreateFormRenderer;
+  renderLocationForm: CreateFormRenderer;
   onTypeChange: (transactionType: EntryTransactionType) => void;
   onClose: () => void;
 }>;
@@ -75,6 +78,8 @@ export function MovementForm({
   locations,
   baseCurrency,
   relatedQueryKeys,
+  renderIncomeSourceForm,
+  renderLocationForm,
   onTypeChange,
   onClose,
 }: MovementFormProps) {
@@ -191,6 +196,12 @@ export function MovementForm({
     toAccountId,
     locationId,
   });
+  const createFormRenderers: Readonly<Record<MovementPickerField, CreateFormRenderer | undefined>> =
+    {
+      from_account_id: transactionType === 'INCOME' ? renderIncomeSourceForm : undefined,
+      to_account_id: undefined,
+      location_id: renderLocationForm,
+    };
   const requestError = formState.errors.root?.['server']?.message;
 
   function closePicker(field: MovementPickerField) {
@@ -365,6 +376,7 @@ export function MovementForm({
       {pickerField !== undefined && (
         <EntityPicker
           {...pickers[pickerField]}
+          renderCreateForm={createFormRenderers[pickerField]}
           onSelect={(selectedId) => {
             setValue(pickerField, selectedId, { shouldValidate: formState.isSubmitted });
             closePicker(pickerField);

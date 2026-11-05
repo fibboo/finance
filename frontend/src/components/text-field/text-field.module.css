@@ -1,0 +1,46 @@
+.textField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-muted);
+}
+
+.optional {
+  font-weight: var(--font-weight-regular);
+}
+
+.control {
+  min-height: var(--size-touch);
+  padding: var(--space-2-5) var(--space-3);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-base);
+  background: var(--color-ground);
+  color: var(--color-ink);
+  resize: none;
+}
+
+.control::placeholder {
+  color: var(--color-muted);
+}
+
+.control:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+}
+
+.control[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
+}

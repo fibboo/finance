@@ -53,13 +53,15 @@ FULL_ACCOUNTS: list[AccountCreateRequest] = [
     AccountCreateRequest(name="Main card", kind=AccountKind.ASSET, currency="EUR", color="#5B6CD9"),
     AccountCreateRequest(name="Savings", kind=AccountKind.ASSET, currency="GEL", color="#2E8C7A"),
     AccountCreateRequest(name="Freelance", kind=AccountKind.ASSET, currency="USD", color="#A15CB8"),
-    AccountCreateRequest(name="Credit card", kind=AccountKind.LIABILITY, currency="USD", color="#C2563A"),
-    AccountCreateRequest(name="Dinar card", kind=AccountKind.ASSET, currency="RSD", color="#D9A441"),
-    AccountCreateRequest(name="Intesa credit", kind=AccountKind.LIABILITY, currency="EUR", color="#7A4FC2"),
-    AccountCreateRequest(name="Salary", kind=AccountKind.INCOME),
-    AccountCreateRequest(name="Freelance projects", kind=AccountKind.INCOME),
-    AccountCreateRequest(name="Household", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
-    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
+    AccountCreateRequest(name="Credit card", kind=AccountKind.LIABILITY, currency="USD", color="#C2613F"),
+    AccountCreateRequest(name="Dinar card", kind=AccountKind.ASSET, currency="RSD", color="#B8862C"),
+    AccountCreateRequest(name="Intesa credit", kind=AccountKind.LIABILITY, currency="EUR", color="#8A6FD1"),
+    AccountCreateRequest(name="Salary", kind=AccountKind.INCOME, color="#4D8FBF"),
+    AccountCreateRequest(name="Freelance projects", kind=AccountKind.INCOME, color="#3E9A5C"),
+    AccountCreateRequest(
+        name="Household", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE, color="#9C7A5B"
+    ),
+    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE, color="#D07FA8"),
 ]
 
 SPENDING = [
@@ -119,13 +121,17 @@ OPENING_BALANCES = [
 SMALL_ACCOUNTS: list[AccountCreateRequest] = [
     AccountCreateRequest(name="Main card", kind=AccountKind.ASSET, currency="EUR", color="#5B6CD9"),
     AccountCreateRequest(name="Crypto", kind=AccountKind.ASSET, currency="USD", color="#2E8C7A"),
-    AccountCreateRequest(name=LONG_ACCOUNT_NAME, kind=AccountKind.ASSET, currency="USD", color="#D9A441"),
-    AccountCreateRequest(name="Credit card", kind=AccountKind.LIABILITY, currency="USD", color="#C2563A"),
-    AccountCreateRequest(name="Salary", kind=AccountKind.INCOME),
-    AccountCreateRequest(name="Gifts", kind=AccountKind.INCOME),
-    AccountCreateRequest(name="Household", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
-    AccountCreateRequest(name="Hobbies", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
-    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
+    AccountCreateRequest(name=LONG_ACCOUNT_NAME, kind=AccountKind.ASSET, currency="USD", color="#B8862C"),
+    AccountCreateRequest(name="Credit card", kind=AccountKind.LIABILITY, currency="USD", color="#C2613F"),
+    AccountCreateRequest(name="Salary", kind=AccountKind.INCOME, color="#4D8FBF"),
+    AccountCreateRequest(name="Gifts", kind=AccountKind.INCOME, color="#B05C9E"),
+    AccountCreateRequest(
+        name="Household", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE, color="#9C7A5B"
+    ),
+    AccountCreateRequest(
+        name="Hobbies", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE, color="#2F9BB3"
+    ),
+    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE, color="#D07FA8"),
 ]
 SMALL_OPENING_BALANCES = [
     ("Wallet", Decimal("200.00"), None),
