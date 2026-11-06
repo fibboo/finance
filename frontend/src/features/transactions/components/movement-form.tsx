@@ -65,7 +65,9 @@ type MovementFormProps = Readonly<{
   locations: readonly Location[] | undefined;
   baseCurrency: string;
   relatedQueryKeys: readonly QueryKey[];
+  renderCategoryForm: CreateFormRenderer;
   renderIncomeSourceForm: CreateFormRenderer;
+  renderMoneyAccountForm: CreateFormRenderer;
   renderLocationForm: CreateFormRenderer;
   onTypeChange: (transactionType: EntryTransactionType) => void;
   onClose: () => void;
@@ -82,7 +84,9 @@ export function MovementForm({
   locations,
   baseCurrency,
   relatedQueryKeys,
+  renderCategoryForm,
   renderIncomeSourceForm,
+  renderMoneyAccountForm,
   renderLocationForm,
   onTypeChange,
   onClose,
@@ -200,12 +204,16 @@ export function MovementForm({
     toAccountId,
     locationId,
   });
+  const moneyAccountCreate = { label: 'Create account', renderForm: renderMoneyAccountForm };
   const creates: Readonly<Record<MovementPickerField, EntityCreate | undefined>> = {
     from_account_id:
       transactionType === 'INCOME'
         ? { label: 'Create income source', renderForm: renderIncomeSourceForm }
-        : undefined,
-    to_account_id: undefined,
+        : moneyAccountCreate,
+    to_account_id:
+      transactionType === 'EXPENSE'
+        ? { label: 'Create category', renderForm: renderCategoryForm }
+        : moneyAccountCreate,
     location_id: { label: 'Create location', renderForm: renderLocationForm },
   };
   const requestError = formState.errors.root?.['server']?.message;

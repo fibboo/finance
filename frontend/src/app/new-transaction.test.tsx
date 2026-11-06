@@ -291,6 +291,50 @@ test.each([
   },
 );
 
+test.each([
+  { transactionType: 'EXPENSE', picker: /^From/, create: 'Create account', form: 'New account' },
+  {
+    transactionType: 'EXPENSE',
+    picker: /^Category/,
+    create: 'Create category',
+    form: 'New category',
+  },
+  { transactionType: 'INCOME', picker: /^To/, create: 'Create account', form: 'New account' },
+  { transactionType: 'TRANSFER', picker: /^From/, create: 'Create account', form: 'New account' },
+  { transactionType: 'TRANSFER', picker: /^To/, create: 'Create account', form: 'New account' },
+  {
+    transactionType: 'ADJUSTMENT',
+    picker: /^Account/,
+    create: 'Create account',
+    form: 'New account',
+  },
+])(
+  'opens $form from the $picker picker of $transactionType',
+  async ({ transactionType, picker, create, form }) => {
+    // arrange
+    server.use(
+      http.get('http://localhost/api/accounting/locations', () =>
+        HttpResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Location_']),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<NewTransaction />, { initialEntries: [`/?new_transaction=${transactionType}`] });
+    await user.click(await screen.findByRole('button', { name: picker }));
+
+    // act
+    await user.click(await screen.findByRole('button', { name: create }));
+
+    // assert
+    expect(screen.getByRole('form', { name: form })).toBeInTheDocument();
+  },
+);
+
 test('lists Create location first before any search', async () => {
   // arrange
   server.use(

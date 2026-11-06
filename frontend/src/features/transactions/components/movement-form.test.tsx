@@ -159,7 +159,9 @@ test.each([
       locations={[market]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={onClose}
@@ -212,7 +214,9 @@ test('shows the amount in the base currency at the account rate', async () => {
       locations={[market]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
@@ -250,7 +254,9 @@ test('asks for the category, the location and the seller’s currency before sen
       locations={[market]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
@@ -296,7 +302,9 @@ test('lists the categories with their category type', async () => {
       locations={[market]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
@@ -333,7 +341,9 @@ test('shows a field error of the backend at its field', async () => {
       locations={[market]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
@@ -384,7 +394,9 @@ test('shows a backend error of the seller’s amount at the amount when another 
       locations={[market]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
@@ -445,7 +457,9 @@ test.each([
         locations={undefined}
         baseCurrency="USD"
         relatedQueryKeys={[]}
+        renderCategoryForm={() => null}
         renderIncomeSourceForm={() => null}
+        renderMoneyAccountForm={() => null}
         renderLocationForm={() => null}
         onTypeChange={vi.fn()}
         onClose={onClose}
@@ -506,7 +520,9 @@ test.each([
         locations={undefined}
         baseCurrency="USD"
         relatedQueryKeys={[]}
+        renderCategoryForm={() => null}
         renderIncomeSourceForm={() => null}
+        renderMoneyAccountForm={() => null}
         renderLocationForm={() => null}
         onTypeChange={vi.fn()}
         onClose={vi.fn()}
@@ -544,7 +560,9 @@ test('keeps the month of an income on the month before the date until a month is
       locations={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
@@ -592,7 +610,9 @@ test.each([
         locations={undefined}
         baseCurrency="USD"
         relatedQueryKeys={[]}
+        renderCategoryForm={() => null}
         renderIncomeSourceForm={() => null}
+        renderMoneyAccountForm={() => null}
         renderLocationForm={() => null}
         onTypeChange={vi.fn()}
         onClose={onClose}
@@ -642,7 +662,9 @@ test('lists the accounts to send to without the account sent from', async () => 
       locations={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
@@ -674,7 +696,9 @@ test('keeps a picked month of an income that matches the month before the date w
       locations={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
@@ -734,7 +758,9 @@ test.each([
         locations={undefined}
         baseCurrency="USD"
         relatedQueryKeys={[]}
+        renderCategoryForm={() => null}
         renderIncomeSourceForm={() => null}
+        renderMoneyAccountForm={() => null}
         renderLocationForm={() => null}
         onTypeChange={vi.fn()}
         onClose={vi.fn()}
@@ -780,7 +806,9 @@ test('leaves out the base currency estimate of an income paid in another currenc
       locations={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
       renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
