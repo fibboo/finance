@@ -7,8 +7,6 @@ import { Page } from '@/components/page/page';
 import { Sheet } from '@/components/sheet/sheet';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import {
-  CLEARED_SEARCH_STATE,
-  isAccountSearchCleared,
   isAccountSearchTyped,
   readAccountSearch,
   readAccountSearchTerm,
@@ -39,14 +37,27 @@ export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigationType = useNavigationType();
-  const [searchFieldKey, setSearchFieldKey] = useState(location.key);
-  if (
-    location.key !== searchFieldKey &&
-    (navigationType === NavigationType.Pop || !isAccountSearchTyped(location.state))
-  ) {
-    setSearchFieldKey(location.key);
-  }
   const search = readAccountSearch(searchParams);
+  const [searchField, setSearchField] = useState({
+    locationKey: location.key,
+    search,
+    version: 0,
+    isFocusedOnMount: false,
+  });
+  const [isSearchClearPending, setIsSearchClearPending] = useState(false);
+  if (location.key !== searchField.locationKey) {
+    const isTyped = navigationType !== NavigationType.Pop && isAccountSearchTyped(location.state);
+    const isFieldReset = !isTyped && search !== searchField.search;
+    setSearchField({
+      locationKey: location.key,
+      search,
+      version: isFieldReset ? searchField.version + 1 : searchField.version,
+      isFocusedOnMount: isFieldReset && isSearchClearPending,
+    });
+    if (isFieldReset) {
+      setIsSearchClearPending(false);
+    }
+  }
   const searchTerm = readAccountSearchTerm(search);
   const accountQuery = { size: ACCOUNT_PAGE_SIZE, kinds: [...MONEY_ACCOUNT_KINDS] };
   const { data: allAccountPage } = useQuery({
@@ -71,9 +82,9 @@ export function Component() {
     <Page title="Accounts" count={readAccountCount(allAccountPage?.total)}>
       <div className={styles['actions']}>
         <AccountSearch
-          key={searchFieldKey}
+          key={searchField.version}
           term={search}
-          isFocused={isAccountSearchCleared(location.state)}
+          isFocusedOnMount={searchField.isFocusedOnMount}
           onSearch={(nextSearch) => {
             setSearchParams(writeAccountSearch({ searchParams, search: nextSearch }), {
               replace: true,
@@ -100,9 +111,9 @@ export function Component() {
           {isNothingMatched ? (
             <NoMatchingAccounts
               onClear={() => {
+                setIsSearchClearPending(true);
                 setSearchParams(writeAccountSearch({ searchParams, search: '' }), {
                   replace: true,
-                  state: CLEARED_SEARCH_STATE,
                 });
               }}
             />
