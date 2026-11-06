@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const NAME_MIN_LENGTH = 3;
-export const NAME_MAX_LENGTH = 64;
+export const NAME_MAX_LENGTH = 16;
 const DESCRIPTION_MIN_LENGTH = 3;
 export const DESCRIPTION_MAX_LENGTH = 256;
 

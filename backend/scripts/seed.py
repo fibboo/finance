@@ -47,7 +47,7 @@ GEL_PER_EUR = 2.95
 USD_PER_EUR = 1.17
 PROGRESS_STEP = 500
 SMALL_PERIOD = timedelta(days=60)
-LONG_ACCOUNT_NAME = "Emergency fund kept in the high-yield savings account at my bank"
+LONG_ACCOUNT_NAME = "Emergency backup"
 
 FULL_ACCOUNTS: list[AccountCreateRequest] = [
     AccountCreateRequest(name="Main card", kind=AccountKind.ASSET, currency="EUR", color="#5B6CD9"),
@@ -57,7 +57,7 @@ FULL_ACCOUNTS: list[AccountCreateRequest] = [
     AccountCreateRequest(name="Dinar card", kind=AccountKind.ASSET, currency="RSD", color="#B8862C"),
     AccountCreateRequest(name="Intesa credit", kind=AccountKind.LIABILITY, currency="EUR", color="#8A6FD1"),
     AccountCreateRequest(name="Salary", kind=AccountKind.INCOME),
-    AccountCreateRequest(name="Freelance projects", kind=AccountKind.INCOME),
+    AccountCreateRequest(name="Freelance gigs", kind=AccountKind.INCOME),
     AccountCreateRequest(name="Household", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
     AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
 ]
@@ -432,7 +432,7 @@ def _plan_history(*, accounts: dict[str, UUID], locations: dict[str, UUID], toda
         if month.month % 2 == 0 and invoice_day <= today:
             move(
                 day=invoice_day,
-                source="Freelance projects",
+                source="Freelance gigs",
                 target="Freelance",
                 amount=generator.uniform(500, 1400),
                 currency="USD",

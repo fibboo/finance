@@ -28,7 +28,7 @@ class Location(Base):
     )
     user_id: Mapped[UUID] = mapped_column(DB_UUID, nullable=False, index=True)
 
-    name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(String(4096), nullable=True)
     status: Mapped[EntityStatusType] = mapped_column(
         Enum(

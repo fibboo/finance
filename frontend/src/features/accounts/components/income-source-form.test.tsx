@@ -60,10 +60,10 @@ test('creates an income source without a color', async () => {
 });
 
 test.each([
-  { length: 64, createdCount: 1, error: '' },
-  { length: 65, createdCount: 0, error: 'Write at most 64 characters' },
+  { length: 16, createdCount: 1, error: '' },
+  { length: 17, createdCount: 0, error: 'Write at most 16 characters' },
 ])(
-  'creates the income source only with a name of 64 characters or fewer: $length',
+  'creates the income source only with a name of 16 characters or fewer: $length',
   async ({ length, createdCount, error }) => {
     // arrange
     let requestCount = 0;
