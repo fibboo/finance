@@ -150,6 +150,7 @@ test('keeps the accounts listed and New account disabled when the dictionary fai
   render(<Component />);
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
   expect(screen.getByRole('button', { name: 'New account' })).toBeDisabled();
 });
