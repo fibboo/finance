@@ -5,9 +5,12 @@
 }
 
 .accounts {
+  min-inline-size: 0;
+  max-height: calc(var(--size-option) * 8.5);
   margin: 0;
   padding: 0;
   border: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }

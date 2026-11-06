@@ -49,7 +49,7 @@ class Account(Base):
         index=True,
     )
 
-    name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(String(4096), nullable=True)
 
     balance: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
