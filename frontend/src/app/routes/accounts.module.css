@@ -32,8 +32,8 @@
 }
 
 .newAccount:focus-visible {
-  outline: var(--size-focus) solid var(--color-ink);
-  outline-offset: var(--size-focus);
+  outline: var(--size-focus) solid var(--color-ground);
+  outline-offset: calc(var(--size-focus) * -2);
 }
 
 .icon {
