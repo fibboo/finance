@@ -24,7 +24,18 @@ export function EntityForm({
   children,
 }: EntityFormProps) {
   return (
-    <form className={styles['entityForm']} aria-label={title} noValidate onSubmit={onSubmit}>
+    <form
+      ref={(form) => {
+        const nameInput = form?.elements.namedItem('name');
+        if (nameInput instanceof HTMLInputElement) {
+          nameInput.focus({ preventScroll: true });
+        }
+      }}
+      className={styles['entityForm']}
+      aria-label={title}
+      noValidate
+      onSubmit={onSubmit}
+    >
       <div className={styles['header']}>
         <button type="button" className={styles['back']} aria-label="Back" onClick={onBack}>
           <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">

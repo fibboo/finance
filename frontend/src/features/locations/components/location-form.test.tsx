@@ -19,6 +19,46 @@ const carrefour = {
   updated_at: '2026-10-01T09:00:00Z',
 } satisfies components['schemas']['Location'];
 
+test('opens with the name in focus', () => {
+  // act
+  render(<LocationForm name="Carrefour" onCreated={vi.fn()} onBack={vi.fn()} />);
+
+  // assert
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveFocus();
+});
+
+test.each([
+  { length: 64, createdCount: 1 },
+  { length: 65, createdCount: 0 },
+])(
+  'creates the location only with a name of 64 characters or fewer: $length',
+  async ({ length, createdCount }) => {
+    // arrange
+    let requestCount = 0;
+    server.use(
+      http.post('http://localhost/api/accounting/locations', () => {
+        requestCount += 1;
+        return HttpResponse.json(carrefour satisfies components['schemas']['Location'], {
+          status: 201,
+        });
+      }),
+    );
+    const onCreated = vi.fn();
+    const user = userEvent.setup();
+    render(<LocationForm name={'a'.repeat(length)} onCreated={onCreated} onBack={vi.fn()} />);
+
+    // act
+    await user.click(screen.getByRole('button', { name: 'Create location' }));
+
+    // assert
+    await vi.waitFor(() => {
+      expect(onCreated).toHaveBeenCalledTimes(createdCount);
+      expect(screen.queryByText('Write at most 64 characters') === null ? 1 : 0).toBe(createdCount);
+    });
+    expect(requestCount).toBe(createdCount);
+  },
+);
+
 test('shows a taken name at the Name field', async () => {
   // arrange
   server.use(
