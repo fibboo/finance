@@ -10,6 +10,7 @@ type Drag = {
   pointerId: number;
   startY: number;
   lastY: number;
+  deepestY: number;
   lastTime: number;
   speed: number;
 };
@@ -55,7 +56,8 @@ function isCloseRelease({
 }>): boolean {
   const isStill = releaseTime - drag.lastTime > STILL_TIME;
   const isFlickDown = !isStill && drag.speed > FLICK_SPEED && distance > FLICK_MIN_DISTANCE;
-  const isFlickUp = !isStill && drag.speed < -FLICK_SPEED;
+  const isFlickUp =
+    !isStill && drag.speed < -FLICK_SPEED && drag.deepestY - drag.lastY > FLICK_MIN_DISTANCE;
   const isCloseRelease = (distance > height * CLOSE_SHARE_OF_HEIGHT && !isFlickUp) || isFlickDown;
   return isCloseRelease;
 }
@@ -74,12 +76,13 @@ export function useSheetDrag({
 }>): SheetDragHandlers {
   const dragRef = useRef<Drag | null>(null);
 
-  function slideAway(sheet: HTMLElement) {
+  function slideAway({ sheet, distance }: Readonly<{ sheet: HTMLElement; distance: number }>) {
+    const offScreenDistance = distance + window.innerHeight - sheet.getBoundingClientRect().top;
     delete sheet.dataset['dragging'];
     sheet.dataset['slidingAway'] = '';
-    sheet.style.transform = 'translateY(100dvh)';
+    sheet.style.transform = `translateY(${String(offScreenDistance)}px)`;
     const hasTransition = Number.parseFloat(getComputedStyle(sheet).transitionDuration) > 0;
-    if (!hasTransition) {
+    if (!hasTransition || offScreenDistance <= distance) {
       onClose();
       return;
     }
@@ -91,7 +94,7 @@ export function useSheetDrag({
 
       sheet.removeEventListener('transitionend', closeAfterSlide);
       sheet.removeEventListener('transitioncancel', closeAfterSlide);
-      if (getComputedStyle(sheet).display !== 'none') {
+      if (sheet.isConnected && getComputedStyle(sheet).display !== 'none') {
         onClose();
       }
     }
@@ -107,6 +110,7 @@ export function useSheetDrag({
           pointerId: event.pointerId,
           startY: event.clientY,
           lastY: event.clientY,
+          deepestY: event.clientY,
           lastTime: event.timeStamp,
           speed: 0,
         };
@@ -121,6 +125,7 @@ export function useSheetDrag({
       const elapsed = event.timeStamp - drag.lastTime;
       drag.speed = elapsed > 0 ? (event.clientY - drag.lastY) / elapsed : 0;
       drag.lastY = event.clientY;
+      drag.deepestY = Math.max(drag.deepestY, event.clientY);
       drag.lastTime = event.timeStamp;
       const sheet = event.currentTarget;
       sheet.dataset['dragging'] = '';
@@ -137,7 +142,7 @@ export function useSheetDrag({
       const distance = readDragDistance(drag);
       const height = sheet.offsetHeight;
       if (isCloseRelease({ drag, distance, height, releaseTime: event.timeStamp })) {
-        slideAway(sheet);
+        slideAway({ sheet, distance });
         return;
       }
 
