@@ -73,6 +73,9 @@ class AccountCreateRequest(AccountCreateBase):
         if is_money_account != (self.currency is not None):
             raise ValueError("currency should be filled for ASSET and LIABILITY accounts only")
 
+        if not is_money_account and self.color is not None:
+            raise ValueError("color can be filled for ASSET and LIABILITY accounts only")
+
         is_expense_account: bool = self.kind == AccountKind.EXPENSE
         if is_expense_account != (self.category_type is not None):
             raise ValueError("category_type should be filled for EXPENSE accounts only")

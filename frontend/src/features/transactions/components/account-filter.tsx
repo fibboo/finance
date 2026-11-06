@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
-import { readAccountColor } from '@/lib/account-colors';
+import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 
 import { accountFilterFormSchema } from '../schemas/transaction-filter-forms';
@@ -50,25 +50,26 @@ export function AccountFilter({
     >
       <fieldset className={styles['accounts']}>
         <legend className="visually-hidden">{title}</legend>
-        {accounts.map((account) => (
-          <label key={account.id} className={styles['account']}>
-            <input
-              type="checkbox"
-              className={styles['checkbox']}
-              value={account.id}
-              {...register('account_ids')}
-            />
-            <span
-              className={styles['dot']}
-              style={{ color: readAccountColor(account) }}
-              aria-hidden="true"
-            />
-            <span className={styles['name']}>{account.name}</span>
-            {account.currency !== null && (
-              <span className={styles['currency']}>{account.currency}</span>
-            )}
-          </label>
-        ))}
+        {accounts.map((account) => {
+          const color = readMoneyAccountColor(account);
+          return (
+            <label key={account.id} className={styles['account']}>
+              <input
+                type="checkbox"
+                className={styles['checkbox']}
+                value={account.id}
+                {...register('account_ids')}
+              />
+              {color !== undefined && (
+                <span className={styles['dot']} style={{ color }} aria-hidden="true" />
+              )}
+              <span className={styles['name']}>{account.name}</span>
+              {account.currency !== null && (
+                <span className={styles['currency']}>{account.currency}</span>
+              )}
+            </label>
+          );
+        })}
       </fieldset>
       {note !== undefined && <p className={styles['note']}>{note}</p>}
       <FilterActions

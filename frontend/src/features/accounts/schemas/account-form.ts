@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
+import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import { categoryTypeValues } from '@/lib/api-schema';
-
-import { MONEY_ACCOUNT_KINDS } from '../api/account-queries';
 
 const NAME_MIN_LENGTH = 3;
 export const NAME_MAX_LENGTH = 64;
@@ -22,7 +21,6 @@ export const accountFormSchema = z.object({
       error: `Write at least ${String(DESCRIPTION_MIN_LENGTH)} characters`,
     })
     .transform((description) => (description === '' ? null : description)),
-  color: z.string(),
 });
 
 export const categoryFormSchema = accountFormSchema.extend({
@@ -32,6 +30,7 @@ export const categoryFormSchema = accountFormSchema.extend({
 export const moneyAccountFormSchema = accountFormSchema.extend({
   kind: z.enum(MONEY_ACCOUNT_KINDS),
   currency: z.string(),
+  color: z.string(),
 });
 
 export type AccountFormValues = z.input<typeof accountFormSchema>;

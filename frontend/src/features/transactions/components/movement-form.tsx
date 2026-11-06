@@ -10,7 +10,7 @@ import {
   EntityPicker,
 } from '@/components/entity-picker/entity-picker';
 import { useToday } from '@/hooks/use-today';
-import { readAccountColor } from '@/lib/account-colors';
+import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 
@@ -284,7 +284,7 @@ export function MovementForm({
             label={copy.from.title}
             value={fromAccount?.name}
             placeholder={copy.from.placeholder}
-            color={fromAccount === undefined ? undefined : readAccountColor(fromAccount)}
+            color={fromAccount === undefined ? undefined : readMoneyAccountColor(fromAccount)}
             note={
               fromAccount === undefined || isIncome ? undefined : readMoneyAccountNote(fromAccount)
             }
@@ -298,7 +298,7 @@ export function MovementForm({
             label={copy.to.title}
             value={toAccount?.name}
             placeholder={copy.to.placeholder}
-            color={toAccount === undefined ? undefined : readAccountColor(toAccount)}
+            color={toAccount === undefined ? undefined : readMoneyAccountColor(toAccount)}
             note={
               toAccount === undefined || transactionType === 'EXPENSE'
                 ? undefined

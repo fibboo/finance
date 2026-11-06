@@ -206,6 +206,9 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
     if update_data.category_type is not None and account_db.kind != AccountKind.EXPENSE:
         raise AccountKindMismatch(account_id=account_id, kinds=[AccountKind.EXPENSE], logger=logger)
 
+    if update_data.color is not None and account_db.kind not in MONEY_ACCOUNT_KINDS:
+        raise AccountKindMismatch(account_id=account_id, kinds=MONEY_ACCOUNT_KINDS, logger=logger)
+
     try:
         account_db: AccountModel = await account_crud.update_orm(
             db=db, obj_in=update_data, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE

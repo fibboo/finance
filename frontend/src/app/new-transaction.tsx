@@ -5,11 +5,7 @@ import { useBaseCurrency } from '@/app/use-base-currency';
 import type { CreateFormProps } from '@/components/entity-picker/entity-picker';
 import { Sheet } from '@/components/sheet/sheet';
 import { Skeleton } from '@/components/skeleton/skeleton';
-import {
-  ACCOUNT_PAGE_SIZE,
-  accountQueries,
-  MONEY_ACCOUNT_KINDS,
-} from '@/features/accounts/api/account-queries';
+import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
@@ -24,6 +20,7 @@ import {
 } from '@/features/transactions/api/new-transaction';
 import { MovementForm } from '@/features/transactions/components/movement-form';
 import { TransactionForm } from '@/features/transactions/components/transaction-form';
+import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 
 import styles from './new-transaction.module.css';
 

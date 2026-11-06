@@ -1,3 +1,5 @@
+import { isMoneyAccountKind } from '@/lib/account-kinds';
+
 export type AccountColor = Readonly<{ name: string; value: string }>;
 
 export const ACCOUNT_COLORS = [
@@ -23,6 +25,13 @@ export const ACCOUNT_COLORS = [
 
 export function readAccountColor(account: Readonly<{ color: string | null }>): string {
   const color = account.color ?? ACCOUNT_COLORS[0].value;
+  return color;
+}
+
+export function readMoneyAccountColor(
+  account: Readonly<{ kind: string; color: string | null }>,
+): string | undefined {
+  const color = isMoneyAccountKind(account.kind) ? readAccountColor(account) : undefined;
   return color;
 }
 

@@ -1,6 +1,6 @@
 import { useId } from 'react';
 
-import { readAccountColor } from '@/lib/account-colors';
+import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -50,13 +50,14 @@ export function TransactionPostings({
       <ul className={styles['postings']}>
         {postings.map((posting) => {
           const baseAmount = readBaseAmount(posting);
+          const color = readMoneyAccountColor(posting.account);
           return (
             <li key={posting.id} className={styles['posting']}>
-              <span
-                className={styles['dot']}
-                style={{ color: readAccountColor(posting.account) }}
-                aria-hidden="true"
-              />
+              {color === undefined ? (
+                <span className={styles['dotSpace']} aria-hidden="true" />
+              ) : (
+                <span className={styles['dot']} style={{ color }} aria-hidden="true" />
+              )}
               <span className={styles['account']}>
                 {posting.account.name}
                 <span className={styles['note']}>{readKindLabel({ posting, accountKinds })}</span>

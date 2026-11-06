@@ -4,11 +4,7 @@ import { useSearchParams } from 'react-router';
 import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
-import {
-  ACCOUNT_PAGE_SIZE,
-  accountQueries,
-  MONEY_ACCOUNT_KINDS,
-} from '@/features/accounts/api/account-queries';
+import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
@@ -26,6 +22,7 @@ import { TransactionFeed } from '@/features/transactions/components/transaction-
 import { useDateJump } from '@/features/transactions/hooks/use-date-jump';
 import { useTransactionFeed } from '@/features/transactions/hooks/use-transaction-feed';
 import { useToday } from '@/hooks/use-today';
+import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
 import styles from './transactions.module.css';
