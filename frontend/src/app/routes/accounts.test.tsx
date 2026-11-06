@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, expect, test } from 'vitest';
@@ -153,4 +153,69 @@ test('keeps the accounts listed and New account disabled when the dictionary fai
   expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
   expect(screen.getByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
   expect(screen.getByRole('button', { name: 'New account' })).toBeDisabled();
+});
+
+test('narrows the groups to the accounts matching a term of at least 3 characters', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const searchTerms: (string | null)[] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const searchTerm = new URL(request.url).searchParams.get('search_term');
+      searchTerms.push(searchTerm);
+      const items = searchTerm === 'cre' ? [creditCard] : [wallet, creditCard];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  render(<Component />);
+  await screen.findByRole('region', { name: 'Assets' });
+  await user.type(screen.getByRole('searchbox', { name: 'Search accounts' }), 'cr');
+
+  // act
+  await user.type(screen.getByRole('searchbox', { name: 'Search accounts' }), 'e');
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByRole('region', { name: 'Assets' })).not.toBeInTheDocument();
+  });
+  expect(screen.getByRole('region', { name: 'Liabilities' })).toHaveTextContent('Credit card');
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Accounts, 2 accounts' }),
+  ).toBeInTheDocument();
+  expect(searchTerms).toEqual([null, 'cre']);
+});
+
+test('reads the term from the URL and clears it into a focused field when nothing matches', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const items =
+        new URL(request.url).searchParams.get('search_term') === 'cash' ? [] : [wallet, creditCard];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  render(<Component />, { initialEntries: ['/?search=cash'] });
+  expect(screen.getByRole('searchbox', { name: 'Search accounts' })).toHaveValue('cash');
+
+  // act
+  await user.click(await screen.findByRole('button', { name: 'Clear search' }));
+
+  // assert
+  expect(await screen.findByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
+  expect(screen.getByRole('searchbox', { name: 'Search accounts' })).toHaveValue('');
+  expect(screen.getByRole('searchbox', { name: 'Search accounts' })).toHaveFocus();
+  expect(screen.queryByText('No accounts match this search')).not.toBeInTheDocument();
 });
