@@ -86,6 +86,7 @@ test('sends the new balance of the chosen account and closes', async () => {
       moneyAccounts={[wallet, euroCard]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={onClose}
     />,
@@ -121,6 +122,7 @@ test('shows the current balance and the difference the new balance makes', async
       moneyAccounts={[wallet]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
@@ -156,6 +158,7 @@ test('asks for the base currency amount of an account without a rate', async () 
       moneyAccounts={[wallet, euroCard]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={onClose}
     />,
@@ -194,6 +197,7 @@ test.each([
       moneyAccounts={[wallet]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
@@ -219,6 +223,7 @@ test('refuses a new balance equal to the current one', async () => {
       moneyAccounts={[wallet]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
@@ -254,6 +259,7 @@ test('shows a field error of the backend at its field', async () => {
       moneyAccounts={[wallet]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
@@ -283,6 +289,7 @@ test('finds an account by a part of its name', async () => {
       moneyAccounts={[wallet, euroCard]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
@@ -307,6 +314,7 @@ test('offers only the transaction types the form can enter', () => {
       moneyAccounts={[wallet]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
@@ -349,6 +357,7 @@ test('asks for the base currency amount when the account had no rate on the date
       moneyAccounts={[{ ...euroCard, balance: '50', base_currency_rate: '0.92' }]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={onClose}
     />,
@@ -384,6 +393,7 @@ test('refuses a date after today', async () => {
       moneyAccounts={[wallet]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
@@ -419,6 +429,7 @@ test('drops the base currency amount typed for another account', async () => {
       moneyAccounts={[wallet, euroCard]}
       baseCurrency="USD"
       relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
       onClose={onClose}
     />,

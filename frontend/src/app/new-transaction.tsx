@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 
 import { useBaseCurrency } from '@/app/use-base-currency';
+import type { CreateFormProps } from '@/components/entity-picker/entity-picker';
 import { Sheet } from '@/components/sheet/sheet';
 import { Skeleton } from '@/components/skeleton/skeleton';
 import {
@@ -9,7 +10,9 @@ import {
   accountQueries,
   MONEY_ACCOUNT_KINDS,
 } from '@/features/accounts/api/account-queries';
+import { CategoryForm } from '@/features/accounts/components/category-form';
 import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
+import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
 import { LocationForm } from '@/features/locations/components/location-form';
@@ -77,6 +80,21 @@ export function NewTransaction() {
   }
 
   const relatedQueryKeys = [accountQueries.all().queryKey, summaryQueries.current().queryKey];
+  function renderMoneyAccountForm(props: CreateFormProps) {
+    if (dictionaries === undefined || baseCurrency === undefined) {
+      throw new Error('A money account form needs the dictionaries and the base currency.');
+    }
+
+    return (
+      <MoneyAccountForm
+        {...props}
+        accountKinds={dictionaries.account_kinds}
+        currencies={dictionaries.currencies}
+        baseCurrency={baseCurrency}
+      />
+    );
+  }
+
   return (
     <Sheet label="New transaction" onClose={close}>
       {dictionaries === undefined || baseCurrency === undefined ? (
@@ -92,6 +110,7 @@ export function NewTransaction() {
           moneyAccounts={moneyAccounts?.items}
           baseCurrency={baseCurrency}
           relatedQueryKeys={relatedQueryKeys}
+          renderMoneyAccountForm={renderMoneyAccountForm}
           onTypeChange={changeType}
           onClose={close}
         />
@@ -108,7 +127,11 @@ export function NewTransaction() {
           locations={locations?.items}
           baseCurrency={baseCurrency}
           relatedQueryKeys={[...relatedQueryKeys, locationQueries.all().queryKey]}
+          renderCategoryForm={(props) => (
+            <CategoryForm {...props} categoryTypes={dictionaries.category_types} />
+          )}
           renderIncomeSourceForm={(props) => <IncomeSourceForm {...props} />}
+          renderMoneyAccountForm={renderMoneyAccountForm}
           renderLocationForm={(props) => <LocationForm {...props} />}
           onTypeChange={changeType}
           onClose={close}

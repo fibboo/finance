@@ -10,7 +10,7 @@ type AccountListQuery = NonNullable<
 >;
 
 export const ACCOUNT_PAGE_SIZE = 100;
-export const MONEY_ACCOUNT_KINDS: readonly AccountKind[] = ['ASSET', 'LIABILITY'];
+export const MONEY_ACCOUNT_KINDS = ['ASSET', 'LIABILITY'] as const satisfies readonly AccountKind[];
 
 async function fetchAccounts(query: Readonly<AccountListQuery>): Promise<AccountPage> {
   const accounts = readData(await apiClient.GET('/accounting/accounts', { params: { query } }));
