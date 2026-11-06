@@ -88,15 +88,16 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
             </div>
             <ul className={styles['accounts']}>
               {group.accounts.map((account) => (
-                <li key={account.id} className={styles['account']}>
+                <li
+                  key={account.id}
+                  className={`${styles['account'] ?? ''} ${Number(account.balance) < 0 ? (styles['debtAccount'] ?? '') : ''}`}
+                >
                   <AccountMark account={account} />
                   <span className={styles['identity']}>
                     <span className={styles['name']}>{account.name}</span>
                     <span className={styles['currency']}>{account.currency}</span>
                   </span>
-                  <span
-                    className={`${styles['balance'] ?? ''} ${Number(account.base_currency_balance) < 0 ? (styles['debt'] ?? '') : ''}`}
-                  >
+                  <span className={styles['balance']}>
                     {formatMoney({
                       amount: Number(account.base_currency_balance),
                       currency: baseCurrency,

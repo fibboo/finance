@@ -128,3 +128,28 @@ test('creates an account from New account and lists it', async () => {
   expect(await screen.findByText('Travel card')).toBeInTheDocument();
   expect(screen.queryByRole('form', { name: 'New account' })).not.toBeInTheDocument();
 });
+
+test('keeps the accounts listed and New account disabled when the dictionary fails', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json(null, { status: 500 }),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  expect(await screen.findByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
+  expect(screen.getByRole('button', { name: 'New account' })).toBeDisabled();
+});

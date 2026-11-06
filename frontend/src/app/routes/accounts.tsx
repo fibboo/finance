@@ -29,10 +29,7 @@ export function Component() {
     ...accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...MONEY_ACCOUNT_KINDS] }),
     throwOnError: true,
   });
-  const { data: dictionaries } = useQuery({
-    ...dictionaryQueries.accounting(),
-    throwOnError: true,
-  });
+  const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
 
   function closeForm() {
     setIsCreating(false);
