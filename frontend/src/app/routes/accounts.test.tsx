@@ -191,7 +191,7 @@ test('narrows the groups to the accounts matching a term of at least 3 character
   expect(searchTerms).toEqual([null, 'cre']);
 });
 
-test('reads the term from the URL and clears it when nothing matches', async () => {
+test('reads the term from the URL and clears it into a focused field when nothing matches', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
@@ -216,5 +216,6 @@ test('reads the term from the URL and clears it when nothing matches', async () 
   // assert
   expect(await screen.findByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
   expect(screen.getByRole('searchbox', { name: 'Search accounts' })).toHaveValue('');
+  expect(screen.getByRole('searchbox', { name: 'Search accounts' })).toHaveFocus();
   expect(screen.queryByText('No accounts match this search')).not.toBeInTheDocument();
 });

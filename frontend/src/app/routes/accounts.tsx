@@ -1,12 +1,14 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router';
+import { NavigationType, useLocation, useNavigationType, useSearchParams } from 'react-router';
 
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
 import { Sheet } from '@/components/sheet/sheet';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import {
+  CLEARED_SEARCH_STATE,
+  isAccountSearchCleared,
   isAccountSearchTyped,
   readAccountSearch,
   readAccountSearchTerm,
@@ -36,8 +38,12 @@ export function Component() {
   const [isCreating, setIsCreating] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const [searchFieldKey, setSearchFieldKey] = useState(location.key);
-  if (location.key !== searchFieldKey && !isAccountSearchTyped(location.state)) {
+  if (
+    location.key !== searchFieldKey &&
+    (navigationType === NavigationType.Pop || !isAccountSearchTyped(location.state))
+  ) {
     setSearchFieldKey(location.key);
   }
   const search = readAccountSearch(searchParams);
@@ -67,6 +73,7 @@ export function Component() {
         <AccountSearch
           key={searchFieldKey}
           term={search}
+          isFocused={isAccountSearchCleared(location.state)}
           onSearch={(nextSearch) => {
             setSearchParams(writeAccountSearch({ searchParams, search: nextSearch }), {
               replace: true,
@@ -95,6 +102,7 @@ export function Component() {
               onClear={() => {
                 setSearchParams(writeAccountSearch({ searchParams, search: '' }), {
                   replace: true,
+                  state: CLEARED_SEARCH_STATE,
                 });
               }}
             />

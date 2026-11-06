@@ -15,6 +15,7 @@
 
 .accountSearch:focus-within {
   outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
 }
 
 .icon {
