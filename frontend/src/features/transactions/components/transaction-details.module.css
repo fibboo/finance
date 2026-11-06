@@ -22,6 +22,11 @@
   background: var(--color-panel);
   color: var(--color-ink);
   box-shadow: var(--shadow-popover);
+  transition: transform var(--duration-sheet) ease-out;
+}
+
+.transactionDetails[data-dragging] {
+  transition: none;
 }
 
 .transactionDetails:focus {

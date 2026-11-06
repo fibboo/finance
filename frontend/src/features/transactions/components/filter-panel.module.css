@@ -89,6 +89,11 @@
   gap: var(--space-3);
   background: var(--color-panel);
   box-shadow: var(--shadow-popover);
+  transition: transform var(--duration-sheet) ease-out;
+}
+
+.panel[data-dragging] {
+  transition: none;
 }
 
 .panel:focus {

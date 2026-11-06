@@ -1,7 +1,8 @@
 import { type QueryKey, useQuery } from '@tanstack/react-query';
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
+import { useSheetDrag } from '@/hooks/use-sheet-drag';
 import type { components } from '@/lib/api-schema';
 
 import { readTransactionLinkId } from '../api/selected-transaction';
@@ -39,11 +40,14 @@ export function TransactionDetails({
   } = useQuery(transactionQueries.detail(transactionId));
   const backdropId = useId();
   const panelId = useId();
+  const handleRef = useRef<HTMLSpanElement>(null);
 
   function close() {
     onClose();
     document.getElementById(readTransactionLinkId(transactionId))?.focus();
   }
+
+  const dragHandlers = useSheetDrag({ handleRef, onClose: close });
 
   useEffect(() => {
     function closeDetails() {
@@ -96,8 +100,14 @@ export function TransactionDetails({
         aria-busy={transaction === undefined && !isError}
         tabIndex={-1}
         className={styles['transactionDetails']}
+        {...dragHandlers}
       >
-        <span className={styles['handle']} aria-hidden="true" />
+        <span
+          ref={handleRef}
+          className={styles['handle']}
+          aria-hidden="true"
+          data-sheet-drag-area
+        />
         {transaction !== undefined ? (
           <TransactionOverview
             transaction={transaction}

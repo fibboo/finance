@@ -21,6 +21,10 @@
   display: none;
 }
 
+[data-sheet-drag-area] {
+  touch-action: none;
+}
+
 body {
   margin: 0;
   background: var(--color-ground);

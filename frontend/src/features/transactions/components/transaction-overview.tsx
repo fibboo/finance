@@ -59,7 +59,7 @@ export function TransactionOverview({
   const baseAmount = readBaseAmount({ transaction, baseAmount: view.baseAmount });
   return (
     <article aria-labelledby={titleId} className={styles['transactionOverview']}>
-      <div className={styles['header']}>
+      <div className={styles['header']} data-sheet-drag-area>
         <div className={styles['heading']}>
           <span className={styles['meta']}>
             {readTypeLabel({ transaction, transactionTypes })} ·{' '}
