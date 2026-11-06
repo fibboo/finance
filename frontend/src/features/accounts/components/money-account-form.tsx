@@ -9,7 +9,7 @@ import { SegmentedField } from '@/components/segmented-field/segmented-field';
 import { SelectField } from '@/components/select-field/select-field';
 import { TextField } from '@/components/text-field/text-field';
 import { readFreeAccountColors } from '@/lib/account-colors';
-import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import { isMoneyAccountKind, MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '../api/account-queries';
@@ -117,9 +117,7 @@ export function MoneyAccountForm({
       <SegmentedField
         legend="Kind"
         registration={register('kind')}
-        options={accountKinds.filter((accountKind) =>
-          MONEY_ACCOUNT_KINDS.some((moneyKind) => moneyKind === accountKind.key),
-        )}
+        options={accountKinds.filter((accountKind) => isMoneyAccountKind(accountKind.key))}
         hint={kindCopy.hint}
       />
       <SelectField
