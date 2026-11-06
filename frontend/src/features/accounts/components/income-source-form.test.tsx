@@ -104,6 +104,48 @@ test('disables creating while every color is used by another income source', asy
   expect(screen.getByRole('button', { name: 'Create income source' })).toBeDisabled();
 });
 
+test.each([
+  { length: 64, createdCount: 1, error: '' },
+  { length: 65, createdCount: 0, error: 'Write at most 64 characters' },
+])(
+  'creates the income source only with a name of 64 characters or fewer: $length',
+  async ({ length, createdCount, error }) => {
+    // arrange
+    let requestCount = 0;
+    server.use(
+      http.get('http://localhost/api/accounting/accounts', () =>
+        HttpResponse.json({
+          items: [salary],
+          total: 1,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Account_']),
+      ),
+      http.post('http://localhost/api/accounting/accounts', () => {
+        requestCount += 1;
+        return HttpResponse.json(freelance satisfies components['schemas']['Account'], {
+          status: 201,
+        });
+      }),
+    );
+    const onCreated = vi.fn();
+    const user = userEvent.setup();
+    render(<IncomeSourceForm name={'a'.repeat(length)} onCreated={onCreated} onBack={vi.fn()} />);
+    await screen.findByText('Dimmed colors are used by other income sources.');
+
+    // act
+    await user.click(screen.getByRole('button', { name: 'Create income source' }));
+
+    // assert
+    await vi.waitFor(() => {
+      expect(onCreated).toHaveBeenCalledTimes(createdCount);
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(error);
+    });
+    expect(requestCount).toBe(createdCount);
+  },
+);
+
 test('shows a taken name at the Name field', async () => {
   // arrange
   server.use(

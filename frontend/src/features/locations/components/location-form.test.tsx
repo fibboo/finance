@@ -28,11 +28,11 @@ test('opens with the name in focus', () => {
 });
 
 test.each([
-  { length: 64, createdCount: 1 },
-  { length: 65, createdCount: 0 },
+  { length: 64, createdCount: 1, error: '' },
+  { length: 65, createdCount: 0, error: 'Write at most 64 characters' },
 ])(
   'creates the location only with a name of 64 characters or fewer: $length',
-  async ({ length, createdCount }) => {
+  async ({ length, createdCount, error }) => {
     // arrange
     let requestCount = 0;
     server.use(
@@ -53,7 +53,7 @@ test.each([
     // assert
     await vi.waitFor(() => {
       expect(onCreated).toHaveBeenCalledTimes(createdCount);
-      expect(screen.queryByText('Write at most 64 characters') === null ? 1 : 0).toBe(createdCount);
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(error);
     });
     expect(requestCount).toBe(createdCount);
   },
@@ -85,11 +85,11 @@ test('shows a taken name at the Name field', async () => {
 });
 
 test.each([
-  { description: 'ab', createdCount: 0 },
-  { description: 'abc', createdCount: 1 },
+  { description: 'ab', createdCount: 0, error: 'Write at least 3 characters' },
+  { description: 'abc', createdCount: 1, error: '' },
 ])(
   'creates the location only with a description of 3 characters or more: “$description”',
-  async ({ description, createdCount }) => {
+  async ({ description, createdCount, error }) => {
     // arrange
     let requestCount = 0;
     server.use(
@@ -111,7 +111,9 @@ test.each([
     // assert
     await vi.waitFor(() => {
       expect(onCreated).toHaveBeenCalledTimes(createdCount);
-      expect(screen.queryByText('Write at least 3 characters') === null ? 1 : 0).toBe(createdCount);
+      expect(screen.getByRole('textbox', { name: /^Description/ })).toHaveAccessibleDescription(
+        error,
+      );
     });
     expect(requestCount).toBe(createdCount);
   },
