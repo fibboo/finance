@@ -20,3 +20,13 @@ export function formatMoney({
   }).format(amount);
   return money;
 }
+
+const RATE_FORMAT = new Intl.NumberFormat(LOCALE, {
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 4,
+});
+
+export function formatRate(rate: number): string {
+  const rateText = RATE_FORMAT.format(rate);
+  return rateText;
+}

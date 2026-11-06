@@ -69,6 +69,7 @@ type TransactionFormProps = Readonly<{
   transactionType: AdjustmentTransactionType;
   transactionTypes: readonly DictionaryItem[];
   moneyAccounts: readonly Account[] | undefined;
+  presetAccountId: string | undefined;
   baseCurrency: string;
   relatedQueryKeys: readonly QueryKey[];
   renderMoneyAccountForm: (props: CreateFormProps) => ReactNode;
@@ -80,6 +81,7 @@ export function TransactionForm({
   transactionType,
   transactionTypes,
   moneyAccounts,
+  presetAccountId,
   baseCurrency,
   relatedQueryKeys,
   renderMoneyAccountForm,
@@ -109,7 +111,7 @@ export function TransactionForm({
   >({
     resolver,
     defaultValues: {
-      account_id: '',
+      account_id: presetAccountId ?? '',
       new_balance: '',
       base_currency_amount: '',
       transaction_date: toDateText(today),

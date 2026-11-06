@@ -1,9 +1,16 @@
+import { Link, useSearchParams } from 'react-router';
+
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
+import {
+  readAccountLinkId,
+  readSelectedAccountId,
+  writeSelectedAccount,
+} from '../api/selected-account';
 import { AccountMark } from './account-mark';
 import styles from './account-groups.module.css';
 
@@ -46,6 +53,8 @@ function sumBaseCurrencyBalances(accounts: readonly Account[]): number {
 }
 
 export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
+  const [searchParams] = useSearchParams();
+  const selectedAccountId = readSelectedAccountId(searchParams);
   const groups = MONEY_ACCOUNT_KINDS.map((kind) => ({
     kind,
     accounts: accounts === undefined ? [] : readGroupAccounts({ accounts, kind }),
@@ -90,11 +99,24 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
               {group.accounts.map((account) => (
                 <li
                   key={account.id}
-                  className={`${styles['account'] ?? ''} ${Number(account.balance) < 0 ? (styles['debtAccount'] ?? '') : ''}`}
+                  className={`${styles['account'] ?? ''} ${Number(account.balance) < 0 ? (styles['debtAccount'] ?? '') : ''} ${account.id === selectedAccountId ? (styles['selected'] ?? '') : ''}`}
                 >
                   <AccountMark account={account} />
                   <span className={styles['identity']}>
-                    <span className={styles['name']}>{account.name}</span>
+                    <Link
+                      id={readAccountLinkId(account.id)}
+                      to={{
+                        search: writeSelectedAccount({
+                          searchParams,
+                          accountId: account.id,
+                        }).toString(),
+                      }}
+                      preventScrollReset
+                      aria-current={account.id === selectedAccountId ? 'true' : undefined}
+                      className={styles['name']}
+                    >
+                      {account.name}
+                    </Link>
                     <span className={styles['currency']}>{account.currency}</span>
                   </span>
                   <span className={styles['balance']}>

@@ -1,20 +1,17 @@
 import { type QueryKey, useQuery } from '@tanstack/react-query';
-import { useEffect, useId, useRef } from 'react';
 
+import { DetailsPanel } from '@/components/details-panel/details-panel';
+import { LoadError } from '@/components/load-error/load-error';
 import { Skeleton } from '@/components/skeleton/skeleton';
-import { useSheetDrag } from '@/hooks/use-sheet-drag';
 import type { components } from '@/lib/api-schema';
 
 import { readTransactionLinkId } from '../api/selected-transaction';
 import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
-import { LoadError } from './load-error';
 import styles from './transaction-details.module.css';
 import { TransactionOverview } from './transaction-overview';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
-
-const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
 
 type TransactionDetailsProps = Readonly<{
   transactionId: string;
@@ -38,77 +35,14 @@ export function TransactionDetails({
     isError,
     refetch,
   } = useQuery(transactionQueries.detail(transactionId));
-  const backdropId = useId();
-  const panelId = useId();
-  const handleRef = useRef<HTMLSpanElement>(null);
-
-  function close() {
-    onClose();
-    document.getElementById(readTransactionLinkId(transactionId))?.focus();
-  }
-
-  const dragHandlers = useSheetDrag({ handleRef, onClose: close });
-
-  useEffect(() => {
-    function closeDetails() {
-      onClose();
-      document.getElementById(readTransactionLinkId(transactionId))?.focus();
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      if (event.target === document.getElementById(backdropId)) {
-        closeDetails();
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      const { target } = event;
-      const dialog = target instanceof Element ? target.closest('[role="dialog"]') : null;
-      const isInOtherDialog = dialog !== null && dialog.id !== panelId;
-      if (event.key === 'Escape' && !isInOtherDialog) {
-        closeDetails();
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose, transactionId, backdropId, panelId]);
-
-  const closeButton = (
-    <button type="button" className={styles['close']} aria-label="Close details" onClick={close}>
-      <svg className={styles['closeIcon']} aria-hidden="true" viewBox="0 0 24 24">
-        <path d={CLOSE_ICON_PATH} />
-      </svg>
-    </button>
-  );
   return (
-    <>
-      <div id={backdropId} className={styles['backdrop']} aria-hidden="true" />
-      <section
-        id={panelId}
-        ref={(panel) => {
-          panel?.focus({ preventScroll: true });
-          panel?.scrollIntoView({ block: 'nearest' });
-        }}
-        role="dialog"
-        aria-label="Transaction details"
-        aria-busy={transaction === undefined && !isError}
-        tabIndex={-1}
-        className={styles['transactionDetails']}
-        {...dragHandlers}
-      >
-        <span
-          ref={handleRef}
-          className={styles['handle']}
-          aria-hidden="true"
-          data-sheet-drag-area
-        />
-        {transaction !== undefined ? (
+    <DetailsPanel
+      label="Transaction details"
+      isBusy={transaction === undefined && !isError}
+      returnFocusId={readTransactionLinkId(transactionId)}
+      onClose={onClose}
+      renderContent={(closeButton) =>
+        transaction !== undefined ? (
           <TransactionOverview
             transaction={transaction}
             baseCurrency={baseCurrency}
@@ -141,8 +75,8 @@ export function TransactionDetails({
             )}
             {closeButton}
           </div>
-        )}
-      </section>
-    </>
+        )
+      }
+    />
   );
 }

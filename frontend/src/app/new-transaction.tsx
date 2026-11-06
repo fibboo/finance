@@ -15,6 +15,7 @@ import { LocationForm } from '@/features/locations/components/location-form';
 import { summaryQueries } from '@/features/summary/api/summary-queries';
 import {
   type EntryTransactionType,
+  readNewTransactionAccountId,
   readNewTransactionType,
   writeNewTransactionType,
 } from '@/features/transactions/api/new-transaction';
@@ -105,6 +106,7 @@ export function NewTransaction() {
           transactionType={transactionType}
           transactionTypes={dictionaries.transaction_types}
           moneyAccounts={moneyAccounts?.items}
+          presetAccountId={readNewTransactionAccountId(searchParams)}
           baseCurrency={baseCurrency}
           relatedQueryKeys={relatedQueryKeys}
           renderMoneyAccountForm={renderMoneyAccountForm}

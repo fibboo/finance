@@ -2,7 +2,7 @@ import { Link, useSearchParams } from 'react-router';
 
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
-import { formatMoney, LOCALE } from '@/lib/format-money';
+import { formatMoney, formatRate } from '@/lib/format-money';
 
 import {
   readSelectedTransactionId,
@@ -13,11 +13,6 @@ import styles from './transaction-row.module.css';
 import { readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
-
-const RATE_FORMAT = new Intl.NumberFormat(LOCALE, {
-  minimumFractionDigits: 4,
-  maximumFractionDigits: 4,
-});
 
 type TransactionRowProps = Readonly<{
   transaction: Readonly<Transaction>;
@@ -94,7 +89,7 @@ export function TransactionRow({ transaction, baseCurrency, dateLabel }: Transac
         {view.currency !== baseCurrency &&
           view.baseAmount !== null &&
           view.baseAmount !== 0 &&
-          RATE_FORMAT.format(Math.abs(view.amount / view.baseAmount))}
+          formatRate(Math.abs(view.amount / view.baseAmount))}
       </span>
     </li>
   );

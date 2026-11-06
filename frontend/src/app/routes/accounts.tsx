@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { NavigationType, useLocation, useNavigationType, useSearchParams } from 'react-router';
 
+import { SelectedAccountDetails } from '@/app/selected-account-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
 import { Sheet } from '@/components/sheet/sheet';
@@ -120,6 +121,7 @@ export function Component() {
           ) : (
             <AccountGroups accounts={accountPage?.items} baseCurrency={baseCurrency} />
           )}
+          <SelectedAccountDetails baseCurrency={baseCurrency} />
         </div>
       )}
       {isCreating && dictionaries !== undefined && baseCurrency !== undefined && (

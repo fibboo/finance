@@ -120,6 +120,7 @@
   --size-skeleton-balance: 2rem;
   --size-skeleton-balance-lg: 3.125rem;
   --size-account-mark-sm: 1.75rem;
+  --size-account-mark-lg: 2.5rem;
   --size-color-swatch: 1.625rem;
   --size-color-option: 2.375rem;
   --size-transaction-row: 2rem;
@@ -155,6 +156,7 @@
   --size-rate-column-lg: 6.25rem;
   --size-row-label: 5.75rem;
   --size-stat-tile: 6.5rem;
+  --size-action-tile: 4rem;
   --size-empty-state: 8.25rem;
   --size-empty-state-lg: 10rem;
   --size-account-tile: 11.875rem;

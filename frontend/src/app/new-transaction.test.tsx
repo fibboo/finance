@@ -127,6 +127,16 @@ test.each(['{Escape}', 'close button'])('closes the form with the %s', async (cl
   expect(screen.queryByRole('dialog', { name: 'New transaction' })).not.toBeInTheDocument();
 });
 
+test('opens an adjustment with the account of the new transaction account param chosen', async () => {
+  // act
+  render(<NewTransaction />, {
+    initialEntries: [`/?new_transaction=ADJUSTMENT&new_transaction_account=${wallet.id}`],
+  });
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Account/ })).toHaveTextContent('Wallet');
+});
+
 test('stays closed without the new transaction param', () => {
   // act
   render(<NewTransaction />, { initialEntries: ['/?new_transaction=LOAN'] });

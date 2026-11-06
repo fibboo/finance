@@ -23,4 +23,14 @@
     border-radius: var(--radius-segment);
     font-size: var(--font-size-sm);
   }
+
+  .large {
+    border-radius: var(--radius-full);
+  }
+}
+
+.large {
+  width: var(--size-account-mark-lg);
+  height: var(--size-account-mark-lg);
+  font-size: var(--font-size-avatar);
 }
