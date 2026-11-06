@@ -70,6 +70,26 @@ test.each([
     isClosed: false,
   },
   {
+    name: 'a drag past 30% that ends moving up slower than 0.5px per ms closes it',
+    pointerName: 'TouchA',
+    moves: [
+      { clientY: 400, time: 1000 },
+      { clientY: 351, time: 1100 },
+    ],
+    releaseTime: 1100,
+    isClosed: true,
+  },
+  {
+    name: 'a drag past 30% that ends in a flick up keeps it open',
+    pointerName: 'TouchA',
+    moves: [
+      { clientY: 400, time: 1000 },
+      { clientY: 349, time: 1100 },
+    ],
+    releaseTime: 1100,
+    isClosed: false,
+  },
+  {
     name: 'a mouse drag keeps it open',
     pointerName: 'mouse',
     moves: [{ clientY: 500, time: 100 }],

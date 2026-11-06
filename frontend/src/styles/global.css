@@ -21,9 +21,13 @@
   display: none;
 }
 
-@media not (--desktop) {
+[data-sheet-drag-area] {
+  touch-action: none;
+}
+
+@media (--desktop) {
   [data-sheet-drag-area] {
-    touch-action: none;
+    touch-action: auto;
   }
 }
 

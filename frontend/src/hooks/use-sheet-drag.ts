@@ -44,13 +44,19 @@ function readDragDistance(drag: Readonly<Drag>): number {
 
 function isCloseRelease({
   drag,
+  distance,
   height,
   releaseTime,
-}: Readonly<{ drag: Readonly<Drag>; height: number; releaseTime: number }>): boolean {
-  const distance = readDragDistance(drag);
+}: Readonly<{
+  drag: Readonly<Drag>;
+  distance: number;
+  height: number;
+  releaseTime: number;
+}>): boolean {
   const isStill = releaseTime - drag.lastTime > STILL_TIME;
-  const isFlick = !isStill && drag.speed > FLICK_SPEED && distance > FLICK_MIN_DISTANCE;
-  const isCloseRelease = distance > height * CLOSE_SHARE_OF_HEIGHT || isFlick;
+  const isFlickDown = !isStill && drag.speed > FLICK_SPEED && distance > FLICK_MIN_DISTANCE;
+  const isFlickUp = !isStill && drag.speed < -FLICK_SPEED;
+  const isCloseRelease = (distance > height * CLOSE_SHARE_OF_HEIGHT && !isFlickUp) || isFlickDown;
   return isCloseRelease;
 }
 
@@ -67,23 +73,25 @@ export function useSheetDrag({
   onClose: () => void;
 }>): SheetDragHandlers {
   const dragRef = useRef<Drag | null>(null);
-  const isSlidingAwayRef = useRef(false);
 
-  function slideAway({ sheet, distance }: Readonly<{ sheet: HTMLElement; distance: number }>) {
+  function slideAway(sheet: HTMLElement) {
     delete sheet.dataset['dragging'];
-    sheet.style.transform = 'translateY(100%)';
+    sheet.dataset['slidingAway'] = '';
+    sheet.style.transform = 'translateY(100dvh)';
     const hasTransition = Number.parseFloat(getComputedStyle(sheet).transitionDuration) > 0;
-    if (!hasTransition || distance >= sheet.offsetHeight) {
+    if (!hasTransition) {
       onClose();
       return;
     }
 
-    isSlidingAwayRef.current = true;
     function closeAfterSlide(event: TransitionEvent) {
-      if (event.target === sheet) {
-        sheet.removeEventListener('transitionend', closeAfterSlide);
-        sheet.removeEventListener('transitioncancel', closeAfterSlide);
-        isSlidingAwayRef.current = false;
+      if (event.target !== sheet) {
+        return;
+      }
+
+      sheet.removeEventListener('transitionend', closeAfterSlide);
+      sheet.removeEventListener('transitioncancel', closeAfterSlide);
+      if (getComputedStyle(sheet).display !== 'none') {
         onClose();
       }
     }
@@ -93,7 +101,7 @@ export function useSheetDrag({
 
   return {
     onPointerDown: (event) => {
-      const isFree = dragRef.current === null && !isSlidingAwayRef.current;
+      const isFree = dragRef.current === null && !('slidingAway' in event.currentTarget.dataset);
       if (isFree && isDragStart({ event, handle: handleRef.current })) {
         dragRef.current = {
           pointerId: event.pointerId,
@@ -126,8 +134,10 @@ export function useSheetDrag({
 
       dragRef.current = null;
       const sheet = event.currentTarget;
-      if (isCloseRelease({ drag, height: sheet.offsetHeight, releaseTime: event.timeStamp })) {
-        slideAway({ sheet, distance: readDragDistance(drag) });
+      const distance = readDragDistance(drag);
+      const height = sheet.offsetHeight;
+      if (isCloseRelease({ drag, distance, height, releaseTime: event.timeStamp })) {
+        slideAway(sheet);
         return;
       }
 
