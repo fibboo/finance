@@ -14,6 +14,7 @@ test.each([
       { clientY: 290, time: 1000 },
       { clientY: 281, time: 1100 },
     ],
+    releaseTime: 1100,
     isClosed: true,
   },
   {
@@ -23,27 +24,59 @@ test.each([
       { clientY: 290, time: 1000 },
       { clientY: 279, time: 1100 },
     ],
+    releaseTime: 1100,
     isClosed: false,
   },
   {
     name: 'a flick faster than 0.5px per ms closes it',
     pointerName: 'TouchA',
     moves: [{ clientY: 151, time: 100 }],
+    releaseTime: 100,
     isClosed: true,
   },
   {
     name: 'a move slower than 0.5px per ms keeps it open',
     pointerName: 'TouchA',
     moves: [{ clientY: 149, time: 100 }],
+    releaseTime: 100,
+    isClosed: false,
+  },
+  {
+    name: 'a flick released within 100ms closes it',
+    pointerName: 'TouchA',
+    moves: [{ clientY: 151, time: 100 }],
+    releaseTime: 199,
+    isClosed: true,
+  },
+  {
+    name: 'a flick held still for over 100ms keeps it open',
+    pointerName: 'TouchA',
+    moves: [{ clientY: 151, time: 100 }],
+    releaseTime: 201,
+    isClosed: false,
+  },
+  {
+    name: 'a fast move of over 16px closes it',
+    pointerName: 'TouchA',
+    moves: [{ clientY: 117, time: 10 }],
+    releaseTime: 10,
+    isClosed: true,
+  },
+  {
+    name: 'a fast move of under 16px keeps it open',
+    pointerName: 'TouchA',
+    moves: [{ clientY: 115, time: 10 }],
+    releaseTime: 10,
     isClosed: false,
   },
   {
     name: 'a mouse drag keeps it open',
     pointerName: 'mouse',
     moves: [{ clientY: 500, time: 100 }],
+    releaseTime: 100,
     isClosed: false,
   },
-])('$name', async ({ pointerName, moves, isClosed }) => {
+])('$name', async ({ pointerName, moves, releaseTime, isClosed }) => {
   // arrange
   // the sheet is 600px tall, and the drag starts at 100px at time 0
   vi.setSystemTime(0);
@@ -69,6 +102,7 @@ test.each([
     vi.setSystemTime(move.time);
     await user.pointer({ pointerName, coords: { clientY: move.clientY } });
   }
+  vi.setSystemTime(releaseTime);
   await user.pointer({ keys: `[/${pressKey}]` });
 
   // assert

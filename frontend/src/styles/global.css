@@ -21,8 +21,10 @@
   display: none;
 }
 
-[data-sheet-drag-area] {
-  touch-action: none;
+@media not (--desktop) {
+  [data-sheet-drag-area] {
+    touch-action: none;
+  }
 }
 
 body {
