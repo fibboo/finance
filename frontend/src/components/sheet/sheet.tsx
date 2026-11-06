@@ -1,5 +1,7 @@
 import { type ReactNode, useLayoutEffect, useRef } from 'react';
 
+import { useSheetDrag } from '@/hooks/use-sheet-drag';
+
 import styles from './sheet.module.css';
 
 type SheetProps = Readonly<{
@@ -10,7 +12,9 @@ type SheetProps = Readonly<{
 
 export function Sheet({ label, onClose, children }: SheetProps) {
   const sheetRef = useRef<HTMLDialogElement>(null);
+  const handleRef = useRef<HTMLSpanElement>(null);
   const isUnmountingRef = useRef(false);
+  const dragHandlers = useSheetDrag({ handleRef, onClose });
 
   useLayoutEffect(() => {
     const sheet = sheetRef.current;
@@ -46,11 +50,22 @@ export function Sheet({ label, onClose, children }: SheetProps) {
       onPointerDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
+          return;
         }
+
+        dragHandlers.onPointerDown(event);
       }}
+      onPointerMove={dragHandlers.onPointerMove}
+      onPointerUp={dragHandlers.onPointerUp}
+      onPointerCancel={dragHandlers.onPointerCancel}
     >
       <div className={styles['content']}>
-        <span className={styles['handle']} aria-hidden="true" />
+        <span
+          ref={handleRef}
+          className={styles['handle']}
+          aria-hidden="true"
+          data-sheet-drag-area
+        />
         {children}
       </div>
     </dialog>

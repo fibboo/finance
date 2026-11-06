@@ -1,4 +1,6 @@
-import { type ReactNode, useEffect, useId, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+
+import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './filter-panel.module.css';
 
@@ -17,11 +19,14 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
   const chipId = useId();
   const panelId = useId();
   const titleId = useId();
+  const handleRef = useRef<HTMLSpanElement>(null);
 
   function close() {
     setIsOpen(false);
     document.getElementById(chipId)?.focus();
   }
+
+  const dragHandlers = useSheetDrag({ handleRef, onClose: close });
 
   useEffect(() => {
     if (!isOpen) {
@@ -86,9 +91,15 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
             aria-labelledby={titleId}
             tabIndex={-1}
             className={styles['panel']}
+            {...dragHandlers}
           >
-            <span className={styles['handle']} aria-hidden="true" />
-            <div className={styles['header']}>
+            <span
+              ref={handleRef}
+              className={styles['handle']}
+              aria-hidden="true"
+              data-sheet-drag-area
+            />
+            <div className={styles['header']} data-sheet-drag-area>
               <h2 id={titleId} className={styles['title']}>
                 {title}
               </h2>

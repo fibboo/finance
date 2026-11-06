@@ -21,6 +21,16 @@
   display: none;
 }
 
+[data-sheet-drag-area] {
+  touch-action: none;
+}
+
+@media (--desktop) {
+  [data-sheet-drag-area] {
+    touch-action: auto;
+  }
+}
+
 body {
   margin: 0;
   background: var(--color-ground);

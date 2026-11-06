@@ -26,7 +26,7 @@ export function FormHeader({
   );
   return (
     <>
-      <div className={styles['header']}>
+      <div className={styles['header']} data-sheet-drag-area>
         <h2 className={styles['title']}>New transaction</h2>
         <button type="button" className={styles['close']} aria-label="Close" onClick={onClose}>
           <svg className={styles['closeIcon']} aria-hidden="true" viewBox="0 0 24 24">
