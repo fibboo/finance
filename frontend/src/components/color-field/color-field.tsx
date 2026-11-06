@@ -51,7 +51,10 @@ export function ColorField({ value, freeColors, usedBy, onChange }: ColorFieldPr
         ))}
       </div>
       {note !== undefined && (
-        <p id={noteId} className={styles['note']}>
+        <p
+          id={noteId}
+          className={freeColors?.length === 0 ? styles['blockingNote'] : styles['note']}
+        >
           {note}
         </p>
       )}

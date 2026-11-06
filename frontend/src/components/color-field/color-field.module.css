@@ -61,3 +61,8 @@
   line-height: var(--line-height-note);
   color: var(--color-muted);
 }
+
+.blockingNote {
+  composes: note;
+  color: var(--color-danger);
+}

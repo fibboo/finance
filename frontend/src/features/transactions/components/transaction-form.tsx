@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type QueryKey, useMutation } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
-import { EntityPicker } from '@/components/entity-picker/entity-picker';
+import { type CreateFormProps, EntityPicker } from '@/components/entity-picker/entity-picker';
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
@@ -71,6 +71,7 @@ type TransactionFormProps = Readonly<{
   moneyAccounts: readonly Account[] | undefined;
   baseCurrency: string;
   relatedQueryKeys: readonly QueryKey[];
+  renderMoneyAccountForm: (props: CreateFormProps) => ReactNode;
   onTypeChange: (transactionType: EntryTransactionType) => void;
   onClose: () => void;
 }>;
@@ -81,6 +82,7 @@ export function TransactionForm({
   moneyAccounts,
   baseCurrency,
   relatedQueryKeys,
+  renderMoneyAccountForm,
   onTypeChange,
   onClose,
 }: TransactionFormProps) {
@@ -242,7 +244,7 @@ export function TransactionForm({
           emptyText="There are no accounts yet."
           items={moneyAccounts?.map(toMoneyAccountItem)}
           selectedId={account?.id}
-          create={undefined}
+          create={{ label: 'Create account', renderForm: renderMoneyAccountForm }}
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {
               setValue('base_currency_amount', '');
