@@ -14,10 +14,11 @@ type ColorFieldProps = Readonly<{
 export function ColorField({ value, freeColors, usedBy, onChange }: ColorFieldProps) {
   const groupName = useId();
   const noteId = useId();
+  const isEveryColorUsed = freeColors?.length === 0;
   const note =
     freeColors === undefined
       ? undefined
-      : freeColors.length === 0
+      : isEveryColorUsed
         ? `Every color is used by other ${usedBy}, so a new one can't be created yet.`
         : `Dimmed colors are used by other ${usedBy}.`;
 
@@ -51,10 +52,7 @@ export function ColorField({ value, freeColors, usedBy, onChange }: ColorFieldPr
         ))}
       </div>
       {note !== undefined && (
-        <p
-          id={noteId}
-          className={freeColors?.length === 0 ? styles['blockingNote'] : styles['note']}
-        >
+        <p id={noteId} className={isEveryColorUsed ? styles['blockingNote'] : styles['note']}>
           {note}
         </p>
       )}
