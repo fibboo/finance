@@ -39,23 +39,26 @@ def _cut_names(*, table: str, group_columns: list[str]) -> None:
         sa.text(f"SELECT id, name, status, {group} FROM {table} ORDER BY id")
     ).fetchall()
 
+    active_rows: list[sa.Row] = [row for row in rows if row.status == "ACTIVE"]
+    deleted_rows: list[sa.Row] = [row for row in rows if row.status != "ACTIVE"]
     taken_names: dict[tuple, set[str]] = {}
-    for row in rows:
-        if row.status == "ACTIVE" and len(row.name) <= NAME_LENGTH:
-            taken_names.setdefault(tuple(getattr(row, column) for column in group_columns), set()).add(row.name)
+    for status_rows in (active_rows, deleted_rows):
+        for row in status_rows:
+            if len(row.name) <= NAME_LENGTH:
+                taken_names.setdefault(tuple(getattr(row, column) for column in group_columns), set()).add(row.name)
 
-    for row in rows:
-        if len(row.name) <= NAME_LENGTH:
-            continue
+        for row in status_rows:
+            if len(row.name) <= NAME_LENGTH:
+                continue
 
-        group_names: set[str] = taken_names.setdefault(tuple(getattr(row, column) for column in group_columns), set())
-        free_name: str = _build_free_name(name=row.name, taken_names=group_names)
-        if row.status == "ACTIVE":
+            group_names: set[str] = taken_names.setdefault(
+                tuple(getattr(row, column) for column in group_columns), set()
+            )
+            free_name: str = _build_free_name(name=row.name, taken_names=group_names)
             group_names.add(free_name)
-
-        connection.execute(
-            sa.text(f"UPDATE {table} SET name = :name WHERE id = :id"), {"name": free_name, "id": row.id}
-        )
+            connection.execute(
+                sa.text(f"UPDATE {table} SET name = :name WHERE id = :id"), {"name": free_name, "id": row.id}
+            )
 
 
 def upgrade() -> None:
