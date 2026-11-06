@@ -1,0 +1,63 @@
+.colorField {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.legend {
+  padding: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-muted);
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  row-gap: var(--space-1-5);
+  justify-items: center;
+}
+
+.option {
+  width: var(--size-color-option);
+  height: var(--size-color-option);
+  border: var(--size-focus) solid transparent;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.option:has(:checked) {
+  border-color: var(--color-ink);
+}
+
+.option:has(:focus-visible) {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.option:has(:disabled) {
+  cursor: not-allowed;
+}
+
+.swatch {
+  width: var(--size-color-swatch);
+  height: var(--size-color-swatch);
+  border-radius: var(--radius-full);
+}
+
+.option:has(:disabled) .swatch {
+  opacity: var(--opacity-used-color);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-note);
+  color: var(--color-muted);
+}

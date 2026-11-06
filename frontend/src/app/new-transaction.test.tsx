@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, expect, test } from 'vitest';
@@ -37,6 +37,30 @@ const salary = {
   id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
   kind: 'INCOME',
   category_type: null,
+} satisfies components['schemas']['Account'];
+
+const market = {
+  name: 'Central market',
+  description: null,
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  id: '9e0f1a2b-2b4f-4e6a-8c7d-5a1d9c3e3c40',
+  status: 'ACTIVE',
+  created_at: '2026-10-01T09:00:00Z',
+  updated_at: '2026-10-01T09:00:00Z',
+} satisfies components['schemas']['Location'];
+
+const carrefour = {
+  ...market,
+  name: 'Carrefour',
+  description: 'Supermarket next to home',
+  id: '2b4f9e0f-1a2b-4e6a-8c7d-5a1d9c3e3c41',
+} satisfies components['schemas']['Location'];
+
+const freelance = {
+  ...salary,
+  name: 'Freelance',
+  id: '1d7b4a52-f0e1-4a52-9f3a-0b5c1f0e8d45',
+  color: '#2E8C7A',
 } satisfies components['schemas']['Account'];
 
 beforeEach(() => {
@@ -235,3 +259,182 @@ test('lists the income sources used most recently first', async () => {
   expect(await screen.findByRole('button', { name: /^Salary/ })).toBeInTheDocument();
   expect(requestedOrder).toBe('recent_use');
 });
+
+test.each([
+  { search: 'Central', isCreateOffered: true },
+  { search: ' central market ', isCreateOffered: false },
+])(
+  'offers to create “$search” only when no location has that name',
+  async ({ search, isCreateOffered }) => {
+    // arrange
+    server.use(
+      http.get('http://localhost/api/accounting/locations', () =>
+        HttpResponse.json({
+          items: [market],
+          total: 1,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Location_']),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
+    await user.click(await screen.findByRole('button', { name: /^Location/ }));
+    await screen.findByRole('button', { name: /^Central market/ });
+
+    // act
+    await user.type(screen.getByRole('searchbox', { name: 'Search locations' }), search);
+
+    // assert
+    expect(screen.queryByRole('button', { name: /^Create/ }) !== null).toBe(isCreateOffered);
+  },
+);
+
+test('lists Create location first before any search', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [market],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
+
+  // act
+  await user.click(await screen.findByRole('button', { name: /^Location/ }));
+
+  // assert
+  const locationList = await screen.findByRole('list', { name: 'Location' });
+  expect(
+    within(locationList)
+      .getAllByRole('button')
+      .map((button) => button.textContent),
+  ).toEqual(['Create location', 'Central market']);
+});
+
+test('creates a location from its picker and selects it', async () => {
+  // arrange
+  let locations: components['schemas']['Location'][] = [market];
+  let createdLocation: unknown = null;
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: locations,
+        total: locations.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+    http.post('http://localhost/api/accounting/locations', async ({ request }) => {
+      createdLocation = await request.json();
+      locations = [market, carrefour];
+      return HttpResponse.json(carrefour satisfies components['schemas']['Location'], {
+        status: 201,
+      });
+    }),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
+  await user.click(await screen.findByRole('button', { name: /^Location/ }));
+  await screen.findByRole('button', { name: /^Central market/ });
+  await user.type(screen.getByRole('searchbox', { name: 'Search locations' }), ' Carrefour ');
+  await user.click(screen.getByRole('button', { name: 'Create “Carrefour”' }));
+  await user.type(
+    screen.getByRole('textbox', { name: /^Description/ }),
+    'Supermarket next to home',
+  );
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Create location' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Location.*Carrefour/ })).toBeVisible();
+  expect(createdLocation).toEqual({ name: 'Carrefour', description: 'Supermarket next to home' });
+});
+
+test('creates an income source in the first color no other one uses', async () => {
+  // arrange
+  let incomeSources: components['schemas']['Account'][] = [{ ...salary, color: '#4d8fbf' }];
+  let createdAccount: unknown = null;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const items = new URL(request.url).searchParams.getAll('kinds').includes('INCOME')
+        ? incomeSources
+        : [wallet];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+    http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
+      createdAccount = await request.json();
+      incomeSources = [...incomeSources, freelance];
+      return HttpResponse.json(freelance satisfies components['schemas']['Account'], {
+        status: 201,
+      });
+    }),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=INCOME'] });
+  await user.click(await screen.findByRole('button', { name: /^Source/ }));
+  await screen.findByRole('button', { name: /^Salary/ });
+  await user.type(screen.getByRole('searchbox', { name: 'Search income sources' }), 'Freelance');
+  await user.click(screen.getByRole('button', { name: 'Create “Freelance”' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Create income source' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Source.*Freelance/ })).toBeVisible();
+  expect(createdAccount).toEqual({
+    name: 'Freelance',
+    description: null,
+    kind: 'INCOME',
+    color: '#2E8C7A',
+  });
+});
+
+test.each(['{Escape}', 'back button'])(
+  'returns from the create form to the picker with its search with the %s',
+  async (backWith) => {
+    // arrange
+    server.use(
+      http.get('http://localhost/api/accounting/locations', () =>
+        HttpResponse.json({
+          items: [market],
+          total: 1,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Location_']),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
+    await user.click(await screen.findByRole('button', { name: /^Location/ }));
+    await screen.findByRole('button', { name: /^Central market/ });
+    await user.type(screen.getByRole('searchbox', { name: 'Search locations' }), 'Carrefour');
+    await user.click(screen.getByRole('button', { name: 'Create “Carrefour”' }));
+
+    // act
+    if (backWith === 'back button') {
+      await user.click(screen.getByRole('button', { name: 'Back' }));
+    } else {
+      await user.keyboard(backWith);
+    }
+
+    // assert
+    expect(screen.getByRole('searchbox', { name: 'Search locations' })).toHaveValue('Carrefour');
+  },
+);

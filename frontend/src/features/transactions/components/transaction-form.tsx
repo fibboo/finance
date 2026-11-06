@@ -242,6 +242,7 @@ export function TransactionForm({
           emptyText="There are no accounts yet."
           items={moneyAccounts?.map(toMoneyAccountItem)}
           selectedId={account?.id}
+          create={undefined}
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {
               setValue('base_currency_amount', '');
