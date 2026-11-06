@@ -1,4 +1,5 @@
 import type { EntityPickerItem } from '@/components/entity-picker/entity-picker';
+import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -181,7 +182,7 @@ function toAccountItem({
   account,
   note,
 }: Readonly<{ account: Readonly<Account>; note: string }>): EntityPickerItem {
-  const item = { id: account.id, name: account.name, color: undefined, note };
+  const item = { id: account.id, name: account.name, color: readMoneyAccountColor(account), note };
   return item;
 }
 

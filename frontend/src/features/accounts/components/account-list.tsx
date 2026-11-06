@@ -3,9 +3,10 @@ import { type ReactNode, useRef } from 'react';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
+import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import { formatMoney } from '@/lib/format-money';
 
-import { ACCOUNT_PAGE_SIZE, accountQueries, MONEY_ACCOUNT_KINDS } from '../api/account-queries';
+import { ACCOUNT_PAGE_SIZE, accountQueries } from '../api/account-queries';
 import { useStripEdges } from '../hooks/use-strip-edges';
 import { AccountMark } from './account-mark';
 import styles from './account-list.module.css';

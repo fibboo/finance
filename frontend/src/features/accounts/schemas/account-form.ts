@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
+import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import { categoryTypeValues } from '@/lib/api-schema';
-
-import { MONEY_ACCOUNT_KINDS } from '../api/account-queries';
 
 const NAME_MIN_LENGTH = 3;
 export const NAME_MAX_LENGTH = 64;

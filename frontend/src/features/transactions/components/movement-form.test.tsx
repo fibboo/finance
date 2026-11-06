@@ -30,7 +30,7 @@ const groceries = {
   kind: 'EXPENSE',
   balance: '0',
   currency: null,
-  color: '#2E8C7A',
+  color: null,
   category_type: 'VARIABLE',
   base_currency_rate: '0',
   base_currency_balance: '0',
@@ -97,7 +97,7 @@ const salary = {
   name: 'Salary',
   id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
   kind: 'INCOME',
-  color: '#4A90C2',
+  color: null,
   category_type: null,
 } satisfies components['schemas']['Account'];
 

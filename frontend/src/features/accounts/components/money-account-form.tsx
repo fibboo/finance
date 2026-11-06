@@ -9,9 +9,10 @@ import { SegmentedField } from '@/components/segmented-field/segmented-field';
 import { SelectField } from '@/components/select-field/select-field';
 import { TextField } from '@/components/text-field/text-field';
 import { readFreeAccountColors } from '@/lib/account-colors';
+import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
-import { ACCOUNT_PAGE_SIZE, accountQueries, MONEY_ACCOUNT_KINDS } from '../api/account-queries';
+import { ACCOUNT_PAGE_SIZE, accountQueries } from '../api/account-queries';
 import { useAccountCreate } from '../hooks/use-account-create';
 import {
   DESCRIPTION_MAX_LENGTH,

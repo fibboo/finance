@@ -1,3 +1,8 @@
+import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import type { components } from '@/lib/api-schema';
+
+type AccountKind = components['schemas']['AccountKind'];
+
 export type AccountColor = Readonly<{ name: string; value: string }>;
 
 export const ACCOUNT_COLORS = [
@@ -27,9 +32,10 @@ export function readAccountColor(account: Readonly<{ color: string | null }>): s
 }
 
 export function readMoneyAccountColor(
-  account: Readonly<{ currency: string | null; color: string | null }>,
+  account: Readonly<{ kind: AccountKind; color: string | null }>,
 ): string | undefined {
-  const color = account.currency === null ? undefined : readAccountColor(account);
+  const isMoneyAccount = MONEY_ACCOUNT_KINDS.some((moneyKind) => moneyKind === account.kind);
+  const color = isMoneyAccount ? readAccountColor(account) : undefined;
   return color;
 }
 
