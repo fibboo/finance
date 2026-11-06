@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { ColorField } from '@/components/color-field/color-field';
@@ -7,9 +8,10 @@ import type { CreateFormProps } from '@/components/entity-picker/entity-picker';
 import { SegmentedField } from '@/components/segmented-field/segmented-field';
 import { SelectField } from '@/components/select-field/select-field';
 import { TextField } from '@/components/text-field/text-field';
+import { readFreeAccountColors } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 
-import { MONEY_ACCOUNT_KINDS } from '../api/account-queries';
+import { ACCOUNT_PAGE_SIZE, accountQueries, MONEY_ACCOUNT_KINDS } from '../api/account-queries';
 import { useAccountCreate } from '../hooks/use-account-create';
 import {
   DESCRIPTION_MAX_LENGTH,
@@ -59,9 +61,19 @@ export function MoneyAccountForm({
     defaultValues: { name, description: '', color: '', kind: 'ASSET', currency: baseCurrency },
   });
   const [pickedColor, kind] = useWatch({ control, name: ['color', 'kind'] });
+  const { data: moneyAccounts } = useQuery(
+    accountQueries.list({
+      kinds: [...MONEY_ACCOUNT_KINDS],
+      size: ACCOUNT_PAGE_SIZE,
+      order: 'recent_use',
+    }),
+  );
+  const freeColors =
+    moneyAccounts === undefined ? undefined : readFreeAccountColors(moneyAccounts.items);
+  const color =
+    freeColors?.find((freeColor) => freeColor.value === pickedColor)?.value ??
+    freeColors?.[0]?.value;
   const accountCreate = useAccountCreate({
-    colorGroup: MONEY_ACCOUNT_KINDS,
-    pickedColor,
     onCreated,
     onFieldError: ({ field, message }) => {
       setError(field, { message });
@@ -73,16 +85,21 @@ export function MoneyAccountForm({
     <EntityForm
       title="New account"
       submitLabel="Create account"
-      isSubmitDisabled={accountCreate.isSubmitDisabled}
+      isSubmitDisabled={color === undefined || accountCreate.isPending}
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
         void handleSubmit((account) => {
+          if (color === undefined) {
+            throw new Error('An account needs a free color.');
+          }
+
           accountCreate.create({
             name: account.name,
             description: account.description,
             kind: account.kind,
             currency: account.currency,
+            color,
           });
         })(event);
       }}
@@ -113,9 +130,8 @@ export function MoneyAccountForm({
         }))}
       />
       <ColorField
-        value={accountCreate.color}
-        freeColors={accountCreate.freeColors}
-        usedBy="accounts"
+        value={color}
+        freeColors={freeColors}
         onChange={(nextColor) => {
           setValue('color', nextColor);
         }}

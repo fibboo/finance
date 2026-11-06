@@ -404,9 +404,9 @@ test('creates a location from its picker and selects it', async () => {
   expect(createdLocation).toEqual({ name: 'Carrefour', description: 'Supermarket next to home' });
 });
 
-test('creates an income source in the first color no other one uses', async () => {
+test('creates an income source from the Source picker and selects it', async () => {
   // arrange
-  let incomeSources: components['schemas']['Account'][] = [{ ...salary, color: '#4d8fbf' }];
+  let incomeSources: components['schemas']['Account'][] = [salary];
   let createdAccount: unknown = null;
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
@@ -445,7 +445,6 @@ test('creates an income source in the first color no other one uses', async () =
     name: 'Freelance',
     description: null,
     kind: 'INCOME',
-    color: '#2E8C7A',
   });
 });
 

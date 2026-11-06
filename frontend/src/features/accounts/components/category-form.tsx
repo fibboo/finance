@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 
-import { ColorField } from '@/components/color-field/color-field';
 import { EntityForm } from '@/components/entity-form/entity-form';
 import type { CreateFormProps } from '@/components/entity-picker/entity-picker';
 import { SegmentedField } from '@/components/segmented-field/segmented-field';
@@ -25,8 +24,6 @@ type CategoryFormProps = CreateFormProps &
     categoryTypes: readonly DictionaryItem[];
   }>;
 
-const CATEGORY_COLOR_GROUP = ['EXPENSE'] as const;
-
 const CATEGORY_TYPE_HINTS = {
   VARIABLE: 'Spending that changes from month to month, like groceries or taxis.',
   FIXED: 'The same amount every month, like rent or subscriptions.',
@@ -34,18 +31,16 @@ const CATEGORY_TYPE_HINTS = {
 } satisfies Readonly<Record<CategoryType, string>>;
 
 export function CategoryForm({ name, categoryTypes, onCreated, onBack }: CategoryFormProps) {
-  const { control, register, handleSubmit, setError, setValue, formState } = useForm<
+  const { control, register, handleSubmit, setError, formState } = useForm<
     CategoryFormValues,
     unknown,
     CategoryFormOutput
   >({
     resolver: zodResolver(categoryFormSchema),
-    defaultValues: { name, description: '', color: '', category_type: 'VARIABLE' },
+    defaultValues: { name, description: '', category_type: 'VARIABLE' },
   });
-  const [pickedColor, categoryType] = useWatch({ control, name: ['color', 'category_type'] });
+  const categoryType = useWatch({ control, name: 'category_type' });
   const accountCreate = useAccountCreate({
-    colorGroup: CATEGORY_COLOR_GROUP,
-    pickedColor,
     onCreated,
     onFieldError: ({ field, message }) => {
       setError(field, { message });
@@ -56,7 +51,7 @@ export function CategoryForm({ name, categoryTypes, onCreated, onBack }: Categor
     <EntityForm
       title="New category"
       submitLabel="Create category"
-      isSubmitDisabled={accountCreate.isSubmitDisabled}
+      isSubmitDisabled={accountCreate.isPending}
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
@@ -84,14 +79,6 @@ export function CategoryForm({ name, categoryTypes, onCreated, onBack }: Categor
         registration={register('category_type')}
         options={categoryTypes}
         hint={CATEGORY_TYPE_HINTS[categoryType]}
-      />
-      <ColorField
-        value={accountCreate.color}
-        freeColors={accountCreate.freeColors}
-        usedBy="categories"
-        onChange={(nextColor) => {
-          setValue('color', nextColor);
-        }}
       />
       <TextField
         label="Description"

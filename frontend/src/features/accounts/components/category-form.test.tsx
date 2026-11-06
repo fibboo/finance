@@ -16,7 +16,7 @@ const groceries = {
   kind: 'EXPENSE',
   balance: '0',
   currency: null,
-  color: '#4D8FBF',
+  color: null,
   category_type: 'VARIABLE',
   base_currency_rate: '0',
   status: 'ACTIVE',
@@ -27,7 +27,6 @@ const coffee = {
   ...groceries,
   name: 'Coffee shops',
   id: '8c1a3c2b-1a04-4b9e-9d1f-0e6a7f0c2f4f',
-  color: '#2E8C7A',
 } satisfies components['schemas']['Account'];
 
 const categoryTypes = [
@@ -57,15 +56,6 @@ test.each([
   let createdCategory: unknown = null;
   const onCreated = vi.fn();
   server.use(
-    http.get('http://localhost/api/accounting/accounts', () =>
-      HttpResponse.json({
-        items: [groceries],
-        total: 1,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Account_']),
-    ),
     http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
       createdCategory = await request.json();
       return HttpResponse.json(coffee satisfies components['schemas']['Account'], {
@@ -82,7 +72,6 @@ test.each([
       onBack={vi.fn()}
     />,
   );
-  await screen.findByText('Dimmed colors are used by other categories.');
   await user.click(screen.getByRole('radio', { name: type }));
 
   // act
@@ -98,6 +87,5 @@ test.each([
     description: null,
     kind: 'EXPENSE',
     category_type,
-    color: '#2E8C7A',
   });
 });

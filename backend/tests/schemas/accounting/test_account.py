@@ -67,6 +67,15 @@ def test_account_create_request_category_type_mismatch(
     assert "category_type should be filled for EXPENSE accounts only" in str(exc.value)
 
 
+@pytest.mark.parametrize("kind, category_type", [(AccountKind.INCOME, None), (AccountKind.EXPENSE, CategoryType.FIXED)])
+def test_account_create_request_color_mismatch(kind: AccountKind, category_type: CategoryType | None):
+    # Act / Assert
+    with pytest.raises(ValidationError) as exc:
+        AccountCreateRequest(kind=kind, name="Account", category_type=category_type, color="#2E8C7A")
+
+    assert "color can be filled for ASSET and LIABILITY accounts only" in str(exc.value)
+
+
 def test_account_update_null_category_type():
     # Act / Assert
     with pytest.raises(ValidationError) as exc:

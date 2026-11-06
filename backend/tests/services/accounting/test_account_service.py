@@ -581,12 +581,12 @@ async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSessi
     # Arrange
     user_id: UUID = uuid4()
     create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.EXPENSE, name="Groceries", category_type=CategoryType.VARIABLE, color="#112233"
+        kind=AccountKind.LIABILITY, name="Credit card", currency="USD", color="#112233"
     )
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
-    update_data: AccountUpdate = AccountUpdate(name="Groceries", color="#AABBCC")
+    update_data: AccountUpdate = AccountUpdate(name="Credit card", color="#AABBCC")
 
     # Act
     account: Account = await account_service.update_account(
@@ -596,10 +596,39 @@ async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSessi
 
     # Assert
     assert account.color == "#AABBCC"
-    assert account.category_type == CategoryType.VARIABLE
 
     account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
     assert account_db.color == "#AABBCC"
+
+
+@pytest.mark.parametrize(
+    "kind, category_type", [(AccountKind.EXPENSE, CategoryType.VARIABLE), (AccountKind.INCOME, None)]
+)
+async def test_update_account_color_kind_mismatch(
+    db: AsyncSession, db_transaction: AsyncSession, kind: AccountKind, category_type: CategoryType | None
+):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", category_type=category_type)
+    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await db.commit()
+
+    update_data: AccountUpdate = AccountUpdate(name="Updated", color="#AABBCC")
+
+    # Act / Assert
+    with pytest.raises(AccountKindMismatch) as exc:
+        await account_service.update_account(
+            db=db_transaction, account_id=account_created.id, user_id=user_id, update_data=update_data
+        )
+        await db_transaction.commit()
+
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.log_message == f"Account `{account_created.id}` is not an active account of kind ASSET, LIABILITY"
+    assert exc.value.error_code == ErrorCodeType.ACCOUNT_KIND_MISMATCH
+
+    account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
+    assert account_db.name == "Account"
+    assert account_db.color is None
 
 
 async def test_update_account_category_type_ok(db: AsyncSession, db_transaction: AsyncSession):

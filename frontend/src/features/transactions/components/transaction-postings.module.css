@@ -36,6 +36,11 @@
   background: currentColor;
 }
 
+.dotSpace {
+  flex: none;
+  width: var(--size-dot);
+}
+
 .account {
   flex: 1 1 auto;
   min-width: 0;

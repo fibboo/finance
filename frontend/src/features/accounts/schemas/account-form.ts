@@ -22,7 +22,6 @@ export const accountFormSchema = z.object({
       error: `Write at least ${String(DESCRIPTION_MIN_LENGTH)} characters`,
     })
     .transform((description) => (description === '' ? null : description)),
-  color: z.string(),
 });
 
 export const categoryFormSchema = accountFormSchema.extend({
@@ -32,6 +31,7 @@ export const categoryFormSchema = accountFormSchema.extend({
 export const moneyAccountFormSchema = accountFormSchema.extend({
   kind: z.enum(MONEY_ACCOUNT_KINDS),
   currency: z.string(),
+  color: z.string(),
 });
 
 export type AccountFormValues = z.input<typeof accountFormSchema>;

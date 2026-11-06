@@ -26,6 +26,13 @@ export function readAccountColor(account: Readonly<{ color: string | null }>): s
   return color;
 }
 
+export function readMoneyAccountColor(
+  account: Readonly<{ currency: string | null; color: string | null }>,
+): string | undefined {
+  const color = account.currency === null ? undefined : readAccountColor(account);
+  return color;
+}
+
 export function readFreeAccountColors(
   accounts: readonly Readonly<{ color: string | null }>[],
 ): readonly AccountColor[] {

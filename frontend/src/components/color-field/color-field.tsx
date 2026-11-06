@@ -7,11 +7,10 @@ import styles from './color-field.module.css';
 type ColorFieldProps = Readonly<{
   value: string | undefined;
   freeColors: readonly AccountColor[] | undefined;
-  usedBy: string;
   onChange: (color: string) => void;
 }>;
 
-export function ColorField({ value, freeColors, usedBy, onChange }: ColorFieldProps) {
+export function ColorField({ value, freeColors, onChange }: ColorFieldProps) {
   const groupName = useId();
   const noteId = useId();
   const isEveryColorUsed = freeColors?.length === 0;
@@ -19,8 +18,8 @@ export function ColorField({ value, freeColors, usedBy, onChange }: ColorFieldPr
     freeColors === undefined
       ? undefined
       : isEveryColorUsed
-        ? `Every color is used by other ${usedBy}, so a new one can't be created yet.`
-        : `Dimmed colors are used by other ${usedBy}.`;
+        ? "Every color is used by other accounts, so a new one can't be created yet."
+        : 'Dimmed colors are used by other accounts.';
 
   return (
     <fieldset

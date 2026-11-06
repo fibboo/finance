@@ -33,6 +33,10 @@ class Account(Base):
             f"(category_type IS NOT NULL) = (kind = '{AccountKind.EXPENSE.value}')",
             name="account_category_type_by_kind",
         ),
+        CheckConstraint(
+            f"color IS NULL OR kind IN ('{AccountKind.ASSET.value}', '{AccountKind.LIABILITY.value}')",
+            name="account_color_by_kind",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(  # noqa: A003
