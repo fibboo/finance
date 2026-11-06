@@ -23,13 +23,18 @@ test('links Transactions to its section', () => {
   );
 });
 
-test.each(['Accounts', 'Categories'])(
-  'keeps %s disabled and marked Soon until its screen exists',
-  (section) => {
-    // act
-    render(<MainNavigation />);
+test('links Accounts to its section', () => {
+  // act
+  render(<MainNavigation />);
 
-    // assert
-    expect(screen.getByRole('button', { name: `${section} Soon` })).toBeDisabled();
-  },
-);
+  // assert
+  expect(screen.getByRole('link', { name: 'Accounts' })).toHaveAttribute('href', '/accounts');
+});
+
+test('keeps Categories disabled and marked Soon until its screen exists', () => {
+  // act
+  render(<MainNavigation />);
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Categories Soon' })).toBeDisabled();
+});

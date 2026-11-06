@@ -1,0 +1,210 @@
+@import '@/styles/media.css';
+
+.accountGroups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.columns {
+  display: none;
+}
+
+.group {
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-panel);
+  list-style: none;
+  background: var(--color-panel);
+}
+
+.groupHeader {
+  min-height: var(--size-panel-header-lg);
+  border-bottom: var(--size-border) solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.groupHeading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.accounts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account {
+  min-height: var(--size-option-lg);
+  padding: var(--space-2-5) 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'mark identity balance'
+    'mark identity accountBalance';
+  align-items: center;
+  gap: 0 var(--space-3);
+}
+
+.account + .account {
+  border-top: var(--size-border) solid var(--color-border);
+}
+
+.account > :first-child {
+  grid-area: mark;
+}
+
+.identity {
+  grid-area: identity;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  overflow: hidden;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.currency {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.balance {
+  grid-area: balance;
+  justify-self: end;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.accountBalance {
+  grid-area: accountBalance;
+  justify-self: end;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.account:not(:has(.accountBalance)) .balance {
+  grid-row: 1 / -1;
+}
+
+.debt {
+  color: var(--color-danger);
+}
+
+.markSkeleton {
+  grid-area: mark;
+  width: var(--size-account-mark-xs);
+  height: var(--size-account-mark-xs);
+  border-radius: var(--radius-full);
+}
+
+.nameSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text);
+}
+
+.balanceSkeleton {
+  grid-area: balance;
+  grid-row: 1 / -1;
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+@media (--desktop) {
+  .accountGroups {
+    flex: 1 1 auto;
+    min-width: 0;
+    align-self: flex-start;
+    padding: var(--space-2) var(--space-5) var(--space-3);
+    border-radius: var(--radius-panel);
+    gap: 0;
+    background: var(--color-panel);
+  }
+
+  .columns {
+    min-height: var(--size-columns-header-lg);
+    padding-left: calc(var(--size-account-mark-sm) + var(--space-3));
+    border-bottom: var(--size-border) solid var(--color-border);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg);
+    align-items: center;
+    gap: 0 var(--space-3);
+    font-size: var(--font-size-sm);
+    color: var(--color-muted);
+  }
+
+  .amountColumn {
+    text-align: right;
+  }
+
+  .group {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .groupHeader {
+    min-height: var(--size-panel-header-lg);
+    margin: var(--space-1-5) calc(-1 * var(--space-2)) 0;
+    padding: 0 var(--space-2);
+    border-bottom: 0;
+    border-radius: var(--radius-segment);
+    font-size: var(--font-size-md);
+    background: var(--color-band);
+  }
+
+  .account {
+    min-height: var(--size-option-lg);
+    padding: 0;
+    grid-template-columns:
+      auto minmax(0, 1fr) var(--size-amount-column-lg)
+      var(--size-amount-column-lg);
+    grid-template-areas: 'mark identity accountBalance balance';
+  }
+
+  .account + .account {
+    border-top: 0;
+  }
+
+  .identity {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-1);
+  }
+
+  .currency::before {
+    content: '· ';
+  }
+
+  .accountBalance {
+    font-size: var(--font-size-md);
+  }
+
+  .account:not(:has(.accountBalance)) .balance {
+    grid-row: auto;
+  }
+
+  .markSkeleton {
+    width: var(--size-account-mark-sm);
+    height: var(--size-account-mark-sm);
+    border-radius: var(--radius-segment);
+  }
+
+  .balanceSkeleton {
+    grid-row: auto;
+  }
+}
