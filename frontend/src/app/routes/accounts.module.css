@@ -1,0 +1,57 @@
+@import '@/styles/media.css';
+
+.actions {
+  flex: none;
+  display: flex;
+}
+
+.newAccount {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-5) 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-ink);
+  color: var(--color-ground);
+  cursor: pointer;
+}
+
+.newAccount:hover:not(:disabled) {
+  opacity: var(--opacity-hover);
+}
+
+.newAccount:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+.newAccount:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.icon {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.accounts {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (--desktop) {
+  .accounts {
+    flex-direction: row;
+    gap: var(--space-4);
+  }
+}
