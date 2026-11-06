@@ -24,6 +24,11 @@ export type CreateFormProps = Readonly<{
   onBack: () => void;
 }>;
 
+export type EntityCreate = Readonly<{
+  label: string;
+  renderForm: (props: CreateFormProps) => ReactNode;
+}>;
+
 type EntityPickerProps = Readonly<{
   title: string;
   searchLabel: string;
@@ -31,7 +36,7 @@ type EntityPickerProps = Readonly<{
   items: readonly EntityPickerItem[] | undefined;
   selectedId: string | undefined;
   onSelect: (id: string) => void;
-  renderCreateForm: ((props: CreateFormProps) => ReactNode) | undefined;
+  create: EntityCreate | undefined;
   onBack: () => void;
 }>;
 
@@ -41,7 +46,7 @@ export function EntityPicker({
   emptyText,
   items,
   selectedId,
-  renderCreateForm,
+  create,
   onSelect,
   onBack,
 }: EntityPickerProps) {
@@ -72,11 +77,9 @@ export function EntityPicker({
   const searchText = searchName.toLowerCase();
   const matchingItems = items?.filter((item) => item.name.toLowerCase().includes(searchText));
   const isCreateShown =
-    renderCreateForm !== undefined &&
-    searchText !== '' &&
-    items?.some((item) => item.name.toLowerCase() === searchText) === false;
-  if (renderCreateForm !== undefined && newName !== undefined) {
-    return renderCreateForm({
+    create !== undefined && items?.some((item) => item.name.toLowerCase() === searchText) === false;
+  if (create !== undefined && newName !== undefined) {
+    return create.renderForm({
       name: newName,
       onCreated: onSelect,
       onBack: () => {
@@ -106,7 +109,7 @@ export function EntityPicker({
           }}
           type="search"
           className={styles['searchInput']}
-          placeholder={renderCreateForm === undefined ? 'Search' : 'Search or create'}
+          placeholder={create === undefined ? 'Search' : 'Search or create'}
           autoComplete="off"
           value={search}
           onChange={(event) => {
@@ -115,20 +118,6 @@ export function EntityPicker({
         />
       </label>
       <div className={styles['results']}>
-        {isCreateShown && (
-          <button
-            type="button"
-            className={styles['create']}
-            onClick={() => {
-              setNewName(searchName);
-            }}
-          >
-            <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-              <path d={PLUS_ICON_PATH} />
-            </svg>
-            <span className={styles['name']}>Create “{searchName}”</span>
-          </button>
-        )}
         {matchingItems === undefined ? (
           <ul className={styles['list']} aria-busy="true" aria-label={title}>
             {listSkeletonKeys(SKELETON_ROW_COUNT).map((key) => (
@@ -137,8 +126,26 @@ export function EntityPicker({
               </li>
             ))}
           </ul>
-        ) : matchingItems.length > 0 ? (
+        ) : matchingItems.length > 0 || isCreateShown ? (
           <ul className={styles['list']} aria-label={title}>
+            {isCreateShown && (
+              <li>
+                <button
+                  type="button"
+                  className={styles['create']}
+                  onClick={() => {
+                    setNewName(searchName);
+                  }}
+                >
+                  <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+                    <path d={PLUS_ICON_PATH} />
+                  </svg>
+                  <span className={styles['name']}>
+                    {searchName === '' ? create.label : `Create “${searchName}”`}
+                  </span>
+                </button>
+              </li>
+            )}
             {matchingItems.map((item) => (
               <li key={item.id}>
                 <button
@@ -167,7 +174,7 @@ export function EntityPicker({
               </li>
             ))}
           </ul>
-        ) : isCreateShown ? null : (
+        ) : (
           <p className={styles['empty']}>
             {searchText === '' ? emptyText : `Nothing matches “${searchName}”.`}
           </p>

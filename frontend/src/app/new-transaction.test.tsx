@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, expect, test } from 'vitest';
@@ -290,6 +290,34 @@ test.each([
     expect(screen.queryByRole('button', { name: /^Create/ }) !== null).toBe(isCreateOffered);
   },
 );
+
+test('lists Create location first before any search', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [market],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
+
+  // act
+  await user.click(await screen.findByRole('button', { name: /^Location/ }));
+
+  // assert
+  const locationList = await screen.findByRole('list', { name: 'Location' });
+  expect(
+    within(locationList)
+      .getAllByRole('button')
+      .map((button) => button.textContent),
+  ).toEqual(['Create location', 'Central market']);
+});
 
 test('creates a location from its picker and selects it', async () => {
   // arrange
