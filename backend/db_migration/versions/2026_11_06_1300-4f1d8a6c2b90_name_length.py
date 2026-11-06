@@ -49,7 +49,7 @@ def _cut_names(*, table: str, group_columns: list[str]) -> None:
             continue
 
         group_names: set[str] = taken_names.setdefault(tuple(getattr(row, column) for column in group_columns), set())
-        free_name: str = _build_free_name(name=row.name, taken_names=group_names if row.status == "ACTIVE" else set())
+        free_name: str = _build_free_name(name=row.name, taken_names=group_names)
         if row.status == "ACTIVE":
             group_names.add(free_name)
 

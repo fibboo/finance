@@ -1,11 +1,12 @@
 .accountFilter {
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
 .accounts {
-  min-inline-size: 0;
+  min-width: 0;
   max-height: calc(var(--size-option) * 8.5);
   margin: 0;
   padding: 0;
