@@ -70,6 +70,7 @@
   align-content: start;
   align-items: center;
   gap: 0 var(--space-2);
+  line-height: var(--line-height-tight);
   color: inherit;
   text-decoration: none;
   background: var(--color-ground);
@@ -129,7 +130,6 @@ a.account:focus-visible {
 .amounts,
 .debtAmounts {
   grid-column: 1 / -1;
-  margin-top: var(--space-1-5);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -240,6 +240,7 @@ a.account:focus-visible {
     padding: var(--space-2-5) var(--space-3-5);
     border-radius: var(--radius-track);
     gap: 0 var(--space-2-5);
+    line-height: var(--line-height-base);
   }
 
   .amounts,
