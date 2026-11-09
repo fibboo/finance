@@ -409,3 +409,40 @@ test('edits an account from its details and lists it under the new name', async 
     }),
   ).toBeInTheDocument();
 });
+
+test('drops the account param of an account that is not a money account', async () => {
+  // arrange
+  const groceries = {
+    ...wallet,
+    name: 'Groceries',
+    id: '3c2b1a04-8c1a-4b9e-9d1f-0e6a7f0c2f4e',
+    kind: 'EXPENSE',
+    currency: null,
+    color: null,
+    category_type: 'VARIABLE',
+  } satisfies components['schemas']['Account'];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${groceries.id}`, () =>
+      HttpResponse.json(groceries),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/?account=${groceries.id}`] });
+
+  // assert
+  await screen.findByRole('link', { name: 'Wallet' });
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  });
+  expect(screen.queryByRole('heading', { name: 'Groceries' })).not.toBeInTheDocument();
+});

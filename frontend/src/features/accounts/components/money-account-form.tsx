@@ -7,7 +7,7 @@ import { EntityForm } from '@/components/entity-form/entity-form';
 import { SegmentedField } from '@/components/segmented-field/segmented-field';
 import { SelectField } from '@/components/select-field/select-field';
 import { TextField } from '@/components/text-field/text-field';
-import { readFreeAccountColors } from '@/lib/account-colors';
+import { readAccountColor, readFreeAccountColors } from '@/lib/account-colors';
 import { isMoneyAccountKind, MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
@@ -81,11 +81,21 @@ function readStartingValues({
   const editValues = {
     name: account.name,
     description: account.description ?? '',
-    color: account.color ?? '',
+    color: readAccountColor(account).toUpperCase(),
     kind: account.kind,
     currency: account.currency,
   } satisfies MoneyAccountFormValues;
   return editValues;
+}
+
+function readKindAndCurrency({
+  account,
+  accountKinds,
+}: Readonly<{ account: Readonly<Account>; accountKinds: readonly DictionaryItem[] }>): string {
+  const kindLabel =
+    accountKinds.find((accountKind) => accountKind.key === account.kind)?.label ?? account.kind;
+  const kindAndCurrency = `${kindLabel} · ${account.currency ?? ''}`;
+  return kindAndCurrency;
 }
 
 export function MoneyAccountForm({
@@ -103,10 +113,7 @@ export function MoneyAccountForm({
     resolver: zodResolver(moneyAccountFormSchema),
     defaultValues: readStartingValues({ mode, baseCurrency }),
   });
-  const [pickedColor, kind, currency] = useWatch({
-    control,
-    name: ['color', 'kind', 'currency'],
-  });
+  const [pickedColor, kind] = useWatch({ control, name: ['color', 'kind'] });
   const { data: moneyAccounts } = useQuery(
     accountQueries.list({
       kinds: [...MONEY_ACCOUNT_KINDS],
@@ -121,9 +128,12 @@ export function MoneyAccountForm({
       : readFreeAccountColors(
           moneyAccounts.items.filter((account) => account.id !== editedAccountId),
         );
+  const ownColor = mode.kind === 'edit' ? readAccountColor(mode.account).toUpperCase() : undefined;
   const color =
-    freeColors?.find((freeColor) => freeColor.value === pickedColor.toUpperCase())?.value ??
-    freeColors?.[0]?.value;
+    pickedColor === ownColor
+      ? ownColor
+      : (freeColors?.find((freeColor) => freeColor.value === pickedColor)?.value ??
+        freeColors?.[0]?.value);
 
   function showFieldError({ field, message }: AccountFieldError) {
     setError(field, { message });
@@ -147,7 +157,6 @@ export function MoneyAccountForm({
     onFieldError: showFieldError,
   });
   const kindCopy = MONEY_ACCOUNT_KIND_COPY[kind];
-  const kindLabel = accountKinds.find((accountKind) => accountKind.key === kind)?.label ?? kind;
 
   return (
     <EntityForm
@@ -210,7 +219,9 @@ export function MoneyAccountForm({
       ) : (
         <div className={styles['fixedField']}>
           <span className={styles['label']}>Kind and currency</span>
-          <span className={styles['fixedValue']}>{`${kindLabel} · ${currency}`}</span>
+          <span className={styles['fixedValue']}>
+            {readKindAndCurrency({ account: mode.account, accountKinds })}
+          </span>
           <p className={styles['hint']}>They can&apos;t be changed once the account exists.</p>
         </div>
       )}

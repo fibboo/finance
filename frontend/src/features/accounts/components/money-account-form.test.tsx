@@ -256,3 +256,51 @@ test('starts the edit with the color of the account and shows a taken name at th
   expect(await screen.findByText('An account with this name already exists')).toBeInTheDocument();
   expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAttribute('aria-invalid', 'true');
 });
+
+test.each([
+  { case: 'shares its color with another account', color: '#4D8FBF' },
+  { case: 'has no color', color: null },
+])('keeps the color of an account that $case when only its name changes', async ({ color }) => {
+  // arrange
+  let updatedAccount: unknown = null;
+  const onSaved = vi.fn();
+  const account = { ...wallet, color };
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [account, { ...creditCard, color: '#4D8FBF' }],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.put('http://localhost/api/accounting/accounts/:accountId', async ({ request }) => {
+      updatedAccount = await request.json();
+      return HttpResponse.json({ ...account, name: 'Pocket' });
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <MoneyAccountForm
+      mode={{ kind: 'edit', account, relatedQueryKeys: [], onSaved }}
+      accountKinds={accountKinds}
+      currencies={currencies}
+      baseCurrency="USD"
+      onBack={vi.fn()}
+    />,
+  );
+  await screen.findByText('Dimmed colors are used by other accounts.');
+  const nameField = screen.getByRole('textbox', { name: 'Name' });
+  await user.clear(nameField);
+  await user.type(nameField, 'Pocket');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await vi.waitFor(() => {
+    expect(onSaved).toHaveBeenCalled();
+  });
+  expect(updatedAccount).toEqual({ name: 'Pocket', description: null, color: '#4D8FBF' });
+});

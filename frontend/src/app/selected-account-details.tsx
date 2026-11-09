@@ -15,6 +15,7 @@ import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-querie
 import { writeNewAdjustment } from '@/features/transactions/api/new-transaction';
 import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
+import { isMoneyAccountKind } from '@/lib/account-kinds';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 
 type SelectedAccountDetailsProps = Readonly<{ baseCurrency: string }>;
@@ -22,7 +23,10 @@ type SelectedAccountDetailsProps = Readonly<{ baseCurrency: string }>;
 export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedAccountId = readSelectedAccountId(searchParams);
-  const [isEditing, setIsEditing] = useState(false);
+  const [editedAccountId, setEditedAccountId] = useState<string | undefined>(undefined);
+  if (editedAccountId !== undefined && editedAccountId !== selectedAccountId) {
+    setEditedAccountId(undefined);
+  }
   const { data: account, error } = useQuery({
     ...accountQueries.detail(selectedAccountId ?? ''),
     enabled: selectedAccountId !== undefined,
@@ -32,7 +36,8 @@ export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsP
     return null;
   }
 
-  if (error instanceof ApiError && error.status === NOT_FOUND_STATUS) {
+  const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
+  if (isNotFound || (account !== undefined && !isMoneyAccountKind(account.kind))) {
     return (
       <Navigate
         to={{ search: writeSelectedAccount({ searchParams, accountId: undefined }).toString() }}
@@ -42,7 +47,7 @@ export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsP
   }
 
   function closeEditForm() {
-    setIsEditing(false);
+    setEditedAccountId(undefined);
   }
 
   return (
@@ -65,7 +70,7 @@ export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsP
           }).toString(),
         }}
         onEdit={() => {
-          setIsEditing(true);
+          setEditedAccountId(selectedAccountId);
         }}
         onClose={() => {
           setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
@@ -73,7 +78,7 @@ export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsP
           });
         }}
       />
-      {isEditing && account !== undefined && (
+      {editedAccountId !== undefined && account !== undefined && (
         <Sheet label="Edit account" onClose={closeEditForm}>
           <MoneyAccountForm
             mode={{
