@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
-const ACCOUNT_PARAM = 'account';
+export const SELECTED_ACCOUNT_PARAM = 'account';
 const ACCOUNT_LINK_ID_PREFIX = 'account-link-';
 
 export function readSelectedAccountId(searchParams: URLSearchParams): string | undefined {
-  const parsedId = z.uuid().safeParse(searchParams.get(ACCOUNT_PARAM));
+  const parsedId = z.uuid().safeParse(searchParams.get(SELECTED_ACCOUNT_PARAM));
   const accountId = parsedId.success ? parsedId.data : undefined;
   return accountId;
 }
@@ -18,9 +18,9 @@ export function writeSelectedAccount({
 }>): URLSearchParams {
   const nextSearchParams = new URLSearchParams(searchParams);
   if (accountId === undefined) {
-    nextSearchParams.delete(ACCOUNT_PARAM);
+    nextSearchParams.delete(SELECTED_ACCOUNT_PARAM);
   } else {
-    nextSearchParams.set(ACCOUNT_PARAM, accountId);
+    nextSearchParams.set(SELECTED_ACCOUNT_PARAM, accountId);
   }
 
   return nextSearchParams;
