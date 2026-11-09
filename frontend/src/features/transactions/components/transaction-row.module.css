@@ -136,7 +136,7 @@
 
 @media (--landscape), (--desktop) {
   .rate {
-    display: block;
+    display: var(--rate-column-display, block);
     font-size: var(--font-size-2xs);
     color: var(--color-muted);
     text-align: right;
