@@ -9,7 +9,7 @@ import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import { transactionMutations } from '../api/transaction-mutations';
 import { transactionQueries } from '../api/transaction-queries';
-import { readTransactionView } from './transaction-view';
+import { readPlainText, readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 
@@ -33,7 +33,7 @@ function readConfirmationText(transaction: Readonly<Transaction>): string {
     accountNames.length === 1
       ? `The balance of ${ACCOUNT_LIST_FORMAT.format(accountNames)} is`
       : `The balances of ${ACCOUNT_LIST_FORMAT.format(accountNames)} are`;
-  const confirmationText = `${view.title}, ${amount} on ${toDateText(transaction.transaction_date)}. ${balances} recalculated. This can't be undone.`;
+  const confirmationText = `${readPlainText(view.title)}, ${amount} on ${toDateText(transaction.transaction_date)}. ${balances} recalculated. This can't be undone.`;
   return confirmationText;
 }
 

@@ -1023,6 +1023,12 @@ test('shows the selected transaction with its postings, location and comment', a
   const postings = within(details).getAllByRole('listitem');
   expect(postings[0]).toHaveTextContent('WalletAsset · USD-€42.80≈ -$46.70');
   expect(postings[1]).toHaveTextContent('GroceriesExpense+€42.80≈ +$46.70');
+  // the money account leads to the Accounts section, the category leads nowhere
+  expect(within(details).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
+    'href',
+    `/accounts?account=${walletPosting.account.id}`,
+  );
+  expect(within(details).queryByRole('link', { name: 'Groceries' })).not.toBeInTheDocument();
   expect(within(details).getByText('Tbilisi')).toBeInTheDocument();
   expect(within(details).getByText('Weekly shop')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Groceries' })).toHaveAttribute('aria-current', 'true');
@@ -1220,6 +1226,61 @@ test('leaves the adjustment account out of the balances the deletion recalculate
   await user.click(await within(details).findByRole('button', { name: 'Delete transaction' }));
 
   // assert
+  expect(
+    screen.getByRole('alertdialog', { name: 'Delete this transaction?' }),
+  ).toHaveAccessibleDescription(
+    "Adjustment · Wallet, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
+  );
+});
+
+test('marks the deleted account in the title of the details but not in the deletion text', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const adjustment = {
+    ...expense,
+    transaction_type: 'ADJUSTMENT',
+    postings: [
+      {
+        ...categoryPosting,
+        amount: '-12.00',
+        base_amount: '-12.00',
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+      },
+      {
+        ...walletPosting,
+        amount: '12.00',
+        base_amount: '12.00',
+        account: { ...wallet, status: 'DELETED' },
+      },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [adjustment],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(adjustment),
+    ),
+  );
+  render(<Component />, {
+    initialEntries: [`/transactions?transaction=${expense.id}`],
+  });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+
+  // act
+  await user.click(await within(details).findByRole('button', { name: 'Delete transaction' }));
+
+  // assert
+  expect(
+    within(details).getByRole('heading', { level: 2, name: 'Adjustment · Wallet, deleted' }),
+  ).toBeInTheDocument();
+  expect(within(details).queryByRole('link', { name: /Wallet/ })).not.toBeInTheDocument();
   expect(
     screen.getByRole('alertdialog', { name: 'Delete this transaction?' }),
   ).toHaveAccessibleDescription(

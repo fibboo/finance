@@ -10,6 +10,7 @@ import {
   writeSelectedTransaction,
 } from '../api/selected-transaction';
 import styles from './transaction-row.module.css';
+import { TransactionTextParts } from './transaction-text-parts';
 import { readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
@@ -37,7 +38,7 @@ export function TransactionRow({ transaction, baseCurrency, dateLabel }: Transac
       aria-current={isSelected ? 'true' : undefined}
       className={styles['link']}
     >
-      {view.title}
+      <TransactionTextParts text={view.title} />
     </Link>
   );
   return (
@@ -60,7 +61,9 @@ export function TransactionRow({ transaction, baseCurrency, dateLabel }: Transac
             {titleLink}
             {dateLabel !== undefined && <span className={styles['date']}>{dateLabel}</span>}
           </span>
-          <span className={styles['accounts']}>{view.accountNames}</span>
+          <span className={styles['accounts']}>
+            <TransactionTextParts text={view.accountNames} />
+          </span>
         </>
       )}
       <span className={styles['originalAmount']}>

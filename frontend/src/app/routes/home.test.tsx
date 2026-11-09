@@ -175,6 +175,28 @@ test('opens an account from its card on Home and links the strip to the Accounts
   expect(within(accounts).getByRole('link', { name: 'All' })).toHaveAttribute('href', '/accounts');
 });
 
+test('opens the account of a posting on Home as the last opened panel', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
+      HttpResponse.json(wallet),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/?account=${wallet.id}&transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  const accountLink = await within(details).findByRole('link', { name: 'Wallet' });
+
+  // act
+  await user.click(accountLink);
+
+  // assert
+  // the account param moves after the transaction one, so a phone shows the account
+  expect(accountLink).toHaveAttribute('href', `/?transaction=${expense.id}&account=${wallet.id}`);
+  expect(await screen.findByRole('dialog', { name: 'Account details' })).toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
+});
+
 test.each([
   {
     case: 'an account while a transaction is open',

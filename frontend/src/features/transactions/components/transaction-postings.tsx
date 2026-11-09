@@ -1,10 +1,14 @@
 import { useId } from 'react';
+import { Link, type To } from 'react-router';
 
 import { readMoneyAccountColor } from '@/lib/account-colors';
+import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
+import { DeletedAccountName } from './deleted-account-name';
 import styles from './transaction-postings.module.css';
+import { isDeletedAccount } from './transaction-view';
 
 type Posting = components['schemas']['Posting'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -30,16 +34,39 @@ function readBaseAmount(posting: Posting): number | undefined {
   return baseAmount;
 }
 
+type PostingAccountProps = Readonly<{
+  account: Posting['account'];
+  readAccountLink: (accountId: string) => To;
+}>;
+
+function PostingAccount({ account, readAccountLink }: PostingAccountProps) {
+  if (isDeletedAccount(account)) {
+    return <DeletedAccountName name={account.name} />;
+  }
+
+  if (isMoneyAccountKind(account.kind)) {
+    return (
+      <Link to={readAccountLink(account.id)} preventScrollReset className={styles['accountLink']}>
+        {account.name}
+      </Link>
+    );
+  }
+
+  return account.name;
+}
+
 type TransactionPostingsProps = Readonly<{
   postings: readonly Posting[];
   baseCurrency: string;
   accountKinds: readonly DictionaryItem[];
+  readAccountLink: (accountId: string) => To;
 }>;
 
 export function TransactionPostings({
   postings,
   baseCurrency,
   accountKinds,
+  readAccountLink,
 }: TransactionPostingsProps) {
   const titleId = useId();
   return (
@@ -59,7 +86,9 @@ export function TransactionPostings({
                 <span className={styles['dot']} style={{ color }} aria-hidden="true" />
               )}
               <span className={styles['account']}>
-                {posting.account.name}
+                <span>
+                  <PostingAccount account={posting.account} readAccountLink={readAccountLink} />
+                </span>
                 <span className={styles['note']}>{readKindLabel({ posting, accountKinds })}</span>
               </span>
               <span className={styles['amounts']}>
