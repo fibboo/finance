@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, expect, test } from 'vitest';
+import { beforeEach, expect, onTestFinished, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -594,4 +594,42 @@ test('refetches the account when the deletion is refused', async () => {
   expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
   expect(deleteButton).toHaveFocus();
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+});
+
+test('keeps the accounts on screen without an error when their refetch fails', async () => {
+  // arrange
+  const otherTab = new BroadcastChannel('finance-data-change');
+  onTestFinished(() => {
+    otherTab.close();
+  });
+  let isFailing = false;
+  let failedRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () => {
+      if (isFailing) {
+        failedRequestCount += 1;
+        return HttpResponse.json({ message: 'Server error' }, { status: 500 });
+      }
+      return HttpResponse.json({
+        items: [mainCard],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  render(<Component />);
+  expect(await screen.findByRole('link', { name: 'Main card' })).toBeInTheDocument();
+  isFailing = true;
+
+  // act
+  otherTab.postMessage(null);
+
+  // assert
+  await waitFor(() => {
+    expect(failedRequestCount).toBeGreaterThan(0);
+  });
+  expect(screen.getByRole('link', { name: 'Main card' })).toBeInTheDocument();
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });

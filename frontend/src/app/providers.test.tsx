@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { Link, Route, Routes } from 'react-router';
-import { afterEach, beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, onTestFinished, test } from 'vitest';
 
 import { refreshSession, startSession } from '@/features/auth/api/session';
 import { RequireSession } from '@/features/auth/components/require-session';
@@ -112,6 +112,9 @@ test('shows no data of the previous user after another tab signs in as another u
 test('refetches the data on screen when another tab announces a change', async () => {
   // arrange
   const dataChangeTab = new BroadcastChannel('finance-data-change');
+  onTestFinished(() => {
+    dataChangeTab.close();
+  });
   let requestCount = 0;
   server.use(
     http.get('http://localhost/api/user/me', () => {
@@ -142,5 +145,4 @@ test('refetches the data on screen when another tab announces a change', async (
 
   // assert
   expect(await screen.findByText('anna')).toBeInTheDocument();
-  dataChangeTab.close();
 });

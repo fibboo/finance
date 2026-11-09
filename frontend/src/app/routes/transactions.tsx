@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 
 import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
@@ -40,10 +40,10 @@ function readTransactionCount(
 }
 
 function readAccountsQuery(kinds: readonly AccountKind[]) {
-  const accountsQuery = {
+  const accountsQuery = queryOptions({
     ...accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...kinds] }),
-    throwOnError: true,
-  };
+    throwOnError: (_error, query) => query.state.data === undefined,
+  });
   return accountsQuery;
 }
 

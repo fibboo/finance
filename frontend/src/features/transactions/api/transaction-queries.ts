@@ -2,6 +2,7 @@ import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
 import type { components, operations } from '@/lib/api-schema';
+import { NOT_FOUND_EXPECTED_META } from '@/lib/query-meta';
 
 type Transaction = components['schemas']['Transaction'];
 type TransactionPage = components['schemas']['Page_Transaction_'];
@@ -40,6 +41,7 @@ export const transactionQueries = {
       getNextPageParam: (lastPage) =>
         lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined,
       refetchInterval: false,
+      refetchOnWindowFocus: true,
     });
   },
   details() {
@@ -49,6 +51,7 @@ export const transactionQueries = {
     return queryOptions({
       queryKey: [...DETAIL_KEY, transactionId],
       queryFn: () => fetchTransaction(transactionId),
+      meta: NOT_FOUND_EXPECTED_META,
     });
   },
 };

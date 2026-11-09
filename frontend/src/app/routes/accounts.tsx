@@ -63,14 +63,14 @@ export function Component() {
   const accountQuery = { size: ACCOUNT_PAGE_SIZE, kinds: [...MONEY_ACCOUNT_KINDS] };
   const { data: allAccountPage } = useQuery({
     ...accountQueries.list(accountQuery),
-    throwOnError: true,
+    throwOnError: (_error, query) => query.state.data === undefined,
   });
   const { data: accountPage } = useQuery({
     ...accountQueries.list(
       searchTerm === undefined ? accountQuery : { ...accountQuery, search_term: searchTerm },
     ),
     placeholderData: keepPreviousData,
-    throwOnError: true,
+    throwOnError: (_error, query) => query.state.data === undefined,
   });
   const isNothingMatched = searchTerm !== undefined && accountPage?.items.length === 0;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());

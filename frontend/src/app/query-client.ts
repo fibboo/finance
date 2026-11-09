@@ -28,7 +28,8 @@ function notifyQueryError(error: Error, query: Query<unknown, unknown, unknown>)
     isNotFoundExpected(query.meta) &&
     error instanceof ApiError &&
     error.status === NOT_FOUND_STATUS;
-  if (!isExpectedNotFound) {
+  const isDataShown = query.state.data !== undefined;
+  if (!isExpectedNotFound && !isDataShown) {
     notifyError(error);
   }
 }

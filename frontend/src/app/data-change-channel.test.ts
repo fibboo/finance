@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { announceDataChange, subscribeToDataChanges } from '@/app/data-change-channel';
 
-let otherTab = new BroadcastChannel('finance-data-change');
+let otherTab: BroadcastChannel;
 
 beforeEach(() => {
   otherTab = new BroadcastChannel('finance-data-change');

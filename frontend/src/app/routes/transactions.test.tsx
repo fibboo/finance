@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, onTestFinished, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -1225,4 +1225,49 @@ test('leaves the adjustment account out of the balances the deletion recalculate
   ).toHaveAccessibleDescription(
     "Adjustment · Wallet, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
   );
+});
+
+test('closes the details of a transaction that another tab deleted', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const otherTab = new BroadcastChannel('finance-data-change');
+  onTestFinished(() => {
+    otherTab.close();
+  });
+  let isDeleted = false;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: isDeleted ? [] : [expense],
+        total: isDeleted ? 0 : 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      isDeleted
+        ? HttpResponse.json(
+            { error_code: 'NOT_FOUND', message: 'Transaction not found' },
+            { status: 404 },
+          )
+        : HttpResponse.json(expense),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('link', { name: 'Groceries' }));
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  isDeleted = true;
+
+  // act
+  otherTab.postMessage(null);
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
+  });
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
