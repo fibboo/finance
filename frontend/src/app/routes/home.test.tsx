@@ -150,3 +150,64 @@ test('opens the details of a recent transaction on Home', async () => {
     'true',
   );
 });
+
+test('opens an account from its card on Home and links the strip to the Accounts section', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
+      HttpResponse.json(wallet),
+    ),
+  );
+  render(<Component />);
+  const accounts = await screen.findByRole('region', { name: 'Accounts' });
+
+  // act
+  await user.click(await within(accounts).findByRole('link', { name: /^Wallet/ }));
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(await within(details).findByRole('heading', { name: 'Wallet' })).toBeInTheDocument();
+  expect(within(accounts).getByRole('link', { name: /^Wallet/ })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+  expect(within(accounts).getByRole('link', { name: 'All' })).toHaveAttribute('href', '/accounts');
+});
+
+test.each([
+  {
+    case: 'an account while a transaction is open',
+    initialEntry: `/?transaction=${expense.id}`,
+    region: 'Accounts',
+    link: /^Wallet/,
+    opened: 'Account details',
+    kept: 'Transaction details',
+  },
+  {
+    case: 'a transaction while an account is open',
+    initialEntry: `/?account=${wallet.id}`,
+    region: 'Recent transactions',
+    link: /^Groceries/,
+    opened: 'Transaction details',
+    kept: 'Account details',
+  },
+])('opens $case and keeps both', async ({ initialEntry, region, link, opened, kept }) => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
+      HttpResponse.json(wallet),
+    ),
+  );
+  render(<Component />, { initialEntries: [initialEntry] });
+  await screen.findByRole('dialog', { name: kept });
+  const section = await screen.findByRole('region', { name: region });
+
+  // act
+  await user.click(await within(section).findByRole('link', { name: link }));
+
+  // assert
+  expect(await screen.findByRole('dialog', { name: opened })).toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: kept })).toBeInTheDocument();
+});

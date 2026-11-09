@@ -1,5 +1,21 @@
 @import '@/styles/media.css';
 
+.overview,
+.summaries {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.selection {
+  display: contents;
+}
+
+.earlierSelection {
+  display: none;
+}
+
 .transactions {
   flex: 1 1 auto;
   min-height: var(--size-recent-min);
@@ -8,6 +24,21 @@
 }
 
 @media (--desktop) {
+  .earlierSelection {
+    display: contents;
+  }
+
+  .overview {
+    flex-direction: row;
+    gap: var(--space-4);
+  }
+
+  .summaries {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: var(--space-4);
+  }
+
   .transactions {
     flex-basis: 0;
     min-height: var(--size-recent-min-lg);

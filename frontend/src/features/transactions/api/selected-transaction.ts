@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-const TRANSACTION_PARAM = 'transaction';
+export const SELECTED_TRANSACTION_PARAM = 'transaction';
 
 export function readSelectedTransactionId(searchParams: URLSearchParams): string | undefined {
-  const parsedId = z.uuid().safeParse(searchParams.get(TRANSACTION_PARAM));
+  const parsedId = z.uuid().safeParse(searchParams.get(SELECTED_TRANSACTION_PARAM));
   const transactionId = parsedId.success ? parsedId.data : undefined;
   return transactionId;
 }
@@ -17,9 +17,10 @@ export function writeSelectedTransaction({
 }>): URLSearchParams {
   const nextSearchParams = new URLSearchParams(searchParams);
   if (transactionId === undefined) {
-    nextSearchParams.delete(TRANSACTION_PARAM);
+    nextSearchParams.delete(SELECTED_TRANSACTION_PARAM);
   } else {
-    nextSearchParams.set(TRANSACTION_PARAM, transactionId);
+    nextSearchParams.delete(SELECTED_TRANSACTION_PARAM);
+    nextSearchParams.set(SELECTED_TRANSACTION_PARAM, transactionId);
   }
 
   return nextSearchParams;
