@@ -100,7 +100,6 @@ export function TransactionForm({
     zodResolver(
       createAdjustmentFormSchema({
         account: moneyAccounts?.find((account) => account.id === values.account_id),
-        areMoneyAccountsLoaded: moneyAccounts !== undefined,
         baseCurrency,
         today,
       }),
@@ -236,7 +235,11 @@ export function TransactionForm({
             {requestError}
           </p>
         )}
-        <button type="submit" className={styles['submit']} disabled={adjust.isPending}>
+        <button
+          type="submit"
+          className={styles['submit']}
+          disabled={adjust.isPending || moneyAccounts === undefined}
+        >
           Adjust balance
         </button>
       </form>

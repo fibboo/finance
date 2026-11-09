@@ -94,20 +94,14 @@ export function isBaseCurrencyAmountNeeded({
 
 export function createAdjustmentFormSchema({
   account,
-  areMoneyAccountsLoaded,
   baseCurrency,
   today,
-}: Readonly<{
-  account: Readonly<Account> | undefined;
-  areMoneyAccountsLoaded: boolean;
-  baseCurrency: string;
-  today: string;
-}>) {
+}: Readonly<{ account: Readonly<Account> | undefined; baseCurrency: string; today: string }>) {
   const adjustmentFormSchema = z.object({
     account_id: z
       .string()
       .min(1, ADJUSTMENT_ACCOUNT_ERROR)
-      .refine(() => account !== undefined || !areMoneyAccountsLoaded, {
+      .refine(() => account !== undefined, {
         error: ADJUSTMENT_ACCOUNT_ERROR,
       }),
     new_balance: z

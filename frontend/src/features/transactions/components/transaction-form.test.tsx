@@ -529,17 +529,8 @@ test('asks for the account when the preset account is not a money account', asyn
   expect(await screen.findByText('Choose the account to adjust')).toBeInTheDocument();
 });
 
-test('adjusts the preset account while the money accounts are still loading', async () => {
-  // arrange
-  let requestPath = '';
-  server.use(
-    http.post('http://localhost/api/accounting/accounts/:accountId/adjustment', ({ request }) => {
-      requestPath = new URL(request.url).pathname;
-      return HttpResponse.json(adjustment);
-    }),
-  );
-  const onClose = vi.fn<() => void>();
-  const user = userEvent.setup();
+test('keeps Adjust balance disabled until the money accounts have loaded', () => {
+  // act
   render(
     <TransactionForm
       transactionType="ADJUSTMENT"
@@ -550,17 +541,10 @@ test('adjusts the preset account while the money accounts are still loading', as
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
       onTypeChange={vi.fn()}
-      onClose={onClose}
+      onClose={vi.fn()}
     />,
   );
-  await user.type(screen.getByLabelText('New balance'), '15');
-
-  // act
-  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
 
   // assert
-  await waitFor(() => {
-    expect(onClose).toHaveBeenCalled();
-  });
-  expect(requestPath).toBe(`/api/accounting/accounts/${euroCard.id}/adjustment`);
+  expect(screen.getByRole('button', { name: 'Adjust balance' })).toBeDisabled();
 });
