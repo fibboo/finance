@@ -20,7 +20,8 @@
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
-  padding: 0;
+  margin: calc(var(--space-1) * -1) 0 calc(var(--space-1) * -1) calc(var(--space-2-5) * -1);
+  padding: var(--space-1) var(--space-2-5);
   border: 0;
   border-radius: var(--radius-control);
   font-size: var(--font-size-detail-amount);
@@ -38,7 +39,7 @@
 
 .input:focus-visible {
   outline: var(--size-focus) solid var(--color-ink);
-  outline-offset: var(--size-focus);
+  outline-offset: calc(var(--size-focus) * -1);
 }
 
 .currency {
