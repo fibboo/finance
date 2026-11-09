@@ -47,7 +47,7 @@
 
 @media (--desktop) {
   .typeChips {
-    margin: calc(var(--size-focus) * -2) calc(var(--space-6) * -1);
-    padding: calc(var(--size-focus) * 2) var(--space-6);
+    margin-inline: calc(var(--space-6) * -1);
+    padding-inline: var(--space-6);
   }
 }
