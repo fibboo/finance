@@ -11,7 +11,7 @@ from app.utils import utils
 
 
 class LocationBase(BaseModel):
-    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=16)]
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)]
     description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=256)] | None = None
 
 

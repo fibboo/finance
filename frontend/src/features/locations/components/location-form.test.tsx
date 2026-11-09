@@ -28,10 +28,10 @@ test('opens with the name in focus', () => {
 });
 
 test.each([
-  { length: 16, createdCount: 1, error: '' },
-  { length: 17, createdCount: 0, error: 'Write at most 16 characters' },
+  { length: 32, createdCount: 1, error: '' },
+  { length: 33, createdCount: 0, error: 'Write at most 32 characters' },
 ])(
-  'creates the location only with a name of 16 characters or fewer: $length',
+  'creates the location only with a name of 32 characters or fewer: $length',
   async ({ length, createdCount, error }) => {
     // arrange
     let requestCount = 0;
