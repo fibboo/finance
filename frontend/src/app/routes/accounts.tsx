@@ -127,11 +127,10 @@ export function Component() {
       {isCreating && dictionaries !== undefined && baseCurrency !== undefined && (
         <Sheet label="New account" onClose={closeForm}>
           <MoneyAccountForm
-            name=""
+            mode={{ kind: 'create', name: '', onCreated: closeForm }}
             accountKinds={dictionaries.account_kinds}
             currencies={dictionaries.currencies}
             baseCurrency={baseCurrency}
-            onCreated={closeForm}
             onBack={closeForm}
           />
         </Sheet>

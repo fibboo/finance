@@ -1,15 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 
-import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
+import { type AccountFieldError, readAccountFieldErrors } from '../api/account-field-errors';
 import { accountMutations } from '../api/account-mutations';
 
 type AccountCreateRequest = components['schemas']['AccountCreateRequest'];
-type AccountFieldError = Readonly<{
-  field: 'name' | 'description' | 'root.server';
-  message: string;
-}>;
 
 export function useAccountCreate({
   onCreated,
@@ -26,17 +22,7 @@ export function useAccountCreate({
         onCreated(createdAccount.id);
       },
       onError: (error) => {
-        if (error instanceof ApiError) {
-          error.fieldErrors.forEach((fieldError) => {
-            onFieldError({
-              field:
-                fieldError.field === 'name' || fieldError.field === 'description'
-                  ? fieldError.field
-                  : 'root.server',
-              message: fieldError.message,
-            });
-          });
-        }
+        readAccountFieldErrors(error).forEach(onFieldError);
       },
     });
   }

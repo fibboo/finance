@@ -85,7 +85,8 @@ export function NewTransaction() {
 
     return (
       <MoneyAccountForm
-        {...props}
+        mode={{ kind: 'create', name: props.name, onCreated: props.onCreated }}
+        onBack={props.onBack}
         accountKinds={dictionaries.account_kinds}
         currencies={dictionaries.currencies}
         baseCurrency={baseCurrency}
