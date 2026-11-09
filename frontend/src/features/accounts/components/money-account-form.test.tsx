@@ -94,11 +94,10 @@ test.each([
     const user = userEvent.setup();
     render(
       <MoneyAccountForm
-        name="Travel card"
+        mode={{ kind: 'create', name: 'Travel card', onCreated }}
         accountKinds={accountKinds}
         currencies={currencies}
         baseCurrency="USD"
-        onCreated={onCreated}
         onBack={vi.fn()}
       />,
     );
@@ -147,11 +146,10 @@ test('starts as an asset in the base currency', () => {
   // act
   render(
     <MoneyAccountForm
-      name="Travel card"
+      mode={{ kind: 'create', name: 'Travel card', onCreated: vi.fn() }}
       accountKinds={accountKinds}
       currencies={currencies}
       baseCurrency="EUR"
-      onCreated={vi.fn()}
       onBack={vi.fn()}
     />,
   );
@@ -159,4 +157,102 @@ test('starts as an asset in the base currency', () => {
   // assert
   expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('EUR');
   expect(screen.getByRole('radio', { name: 'Asset' })).toBeChecked();
+});
+
+test('edits the name, color and description of an account and keeps its kind and currency', async () => {
+  // arrange
+  let updatedAccount: unknown = null;
+  let updatePath = '';
+  const onSaved = vi.fn();
+  const euroWallet = { ...wallet, currency: 'EUR', description: 'Cash at home' };
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [euroWallet, creditCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.put('http://localhost/api/accounting/accounts/:accountId', async ({ request }) => {
+      updatePath = new URL(request.url).pathname;
+      updatedAccount = await request.json();
+      return HttpResponse.json({ ...euroWallet, name: 'Pocket' });
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <MoneyAccountForm
+      mode={{ kind: 'edit', account: euroWallet, relatedQueryKeys: [], onSaved }}
+      accountKinds={accountKinds}
+      currencies={currencies}
+      baseCurrency="USD"
+      onBack={vi.fn()}
+    />,
+  );
+  await screen.findByText('Dimmed colors are used by other accounts.');
+  const nameField = screen.getByRole('textbox', { name: 'Name' });
+  await user.clear(nameField);
+  await user.type(nameField, 'Pocket');
+  await user.click(screen.getByRole('radio', { name: 'Indigo' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await vi.waitFor(() => {
+    expect(onSaved).toHaveBeenCalled();
+  });
+  expect(screen.getByRole('heading', { name: 'Edit account' })).toBeInTheDocument();
+  expect(screen.getByText('Asset · EUR')).toBeInTheDocument();
+  expect(screen.queryByRole('combobox', { name: 'Currency' })).not.toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: 'Blue' })).toBeEnabled();
+  expect(screen.getByRole('radio', { name: 'Teal' })).toBeDisabled();
+  expect(updatePath).toBe(`/api/accounting/accounts/${wallet.id}`);
+  expect(updatedAccount).toEqual({
+    name: 'Pocket',
+    description: 'Cash at home',
+    color: '#5B6CD9',
+  });
+});
+
+test('starts the edit with the color of the account and shows a taken name at the name field', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, creditCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.put('http://localhost/api/accounting/accounts/:accountId', () =>
+      HttpResponse.json(
+        { error_code: 'NAME_ALREADY_EXISTS', message: 'An account with this name already exists' },
+        { status: 409 },
+      ),
+    ),
+  );
+  const user = userEvent.setup();
+  render(
+    <MoneyAccountForm
+      mode={{ kind: 'edit', account: wallet, relatedQueryKeys: [], onSaved: vi.fn() }}
+      accountKinds={accountKinds}
+      currencies={currencies}
+      baseCurrency="USD"
+      onBack={vi.fn()}
+    />,
+  );
+  await screen.findByText('Dimmed colors are used by other accounts.');
+  expect(screen.getByRole('radio', { name: 'Blue' })).toBeChecked();
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  expect(await screen.findByText('An account with this name already exists')).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAttribute('aria-invalid', 'true');
 });

@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
+
+import { Sheet } from '@/components/sheet/sheet';
 
 import { accountQueries } from '@/features/accounts/api/account-queries';
 import {
@@ -7,9 +10,11 @@ import {
   writeSelectedAccount,
 } from '@/features/accounts/api/selected-account';
 import { AccountDetails } from '@/features/accounts/components/account-details';
+import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { writeNewAdjustment } from '@/features/transactions/api/new-transaction';
 import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
+import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 
 type SelectedAccountDetailsProps = Readonly<{ baseCurrency: string }>;
@@ -17,7 +22,8 @@ type SelectedAccountDetailsProps = Readonly<{ baseCurrency: string }>;
 export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedAccountId = readSelectedAccountId(searchParams);
-  const { error } = useQuery({
+  const [isEditing, setIsEditing] = useState(false);
+  const { data: account, error } = useQuery({
     ...accountQueries.detail(selectedAccountId ?? ''),
     enabled: selectedAccountId !== undefined,
   });
@@ -35,29 +41,57 @@ export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsP
     );
   }
 
+  function closeEditForm() {
+    setIsEditing(false);
+  }
+
   return (
-    <AccountDetails
-      key={selectedAccountId}
-      accountId={selectedAccountId}
-      baseCurrency={baseCurrency}
-      accountKinds={dictionaries.account_kinds}
-      adjustBalanceLink={{
-        search: writeNewAdjustment({ searchParams, accountId: selectedAccountId }).toString(),
-      }}
-      transactionsLink={{
-        pathname: '/transactions',
-        search: writeTransactionFilters({
-          transaction_types: [],
-          account_ids: [selectedAccountId],
-          category_ids: [],
-          income_source_ids: [],
-        }).toString(),
-      }}
-      onClose={() => {
-        setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
-          preventScrollReset: true,
-        });
-      }}
-    />
+    <>
+      <AccountDetails
+        key={selectedAccountId}
+        accountId={selectedAccountId}
+        baseCurrency={baseCurrency}
+        accountKinds={dictionaries.account_kinds}
+        adjustBalanceLink={{
+          search: writeNewAdjustment({ searchParams, accountId: selectedAccountId }).toString(),
+        }}
+        transactionsLink={{
+          pathname: '/transactions',
+          search: writeTransactionFilters({
+            transaction_types: [],
+            account_ids: [selectedAccountId],
+            category_ids: [],
+            income_source_ids: [],
+          }).toString(),
+        }}
+        onEdit={() => {
+          setIsEditing(true);
+        }}
+        onClose={() => {
+          setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
+            preventScrollReset: true,
+          });
+        }}
+      />
+      {isEditing && account !== undefined && (
+        <Sheet label="Edit account" onClose={closeEditForm}>
+          <MoneyAccountForm
+            mode={{
+              kind: 'edit',
+              account,
+              relatedQueryKeys: [
+                transactionQueries.feeds().queryKey,
+                transactionQueries.details().queryKey,
+              ],
+              onSaved: closeEditForm,
+            }}
+            accountKinds={dictionaries.account_kinds}
+            currencies={dictionaries.currencies}
+            baseCurrency={baseCurrency}
+            onBack={closeEditForm}
+          />
+        </Sheet>
+      )}
+    </>
   );
 }

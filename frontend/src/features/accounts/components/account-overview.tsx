@@ -11,6 +11,7 @@ type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
 const ADJUST_ICON_PATH = 'M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4';
+const EDIT_ICON_PATH = 'M4 20h4L19 9l-4-4L4 16z';
 const TRANSACTIONS_ICON_PATH = 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01';
 
 function readBaseBalanceText({
@@ -36,6 +37,7 @@ type AccountOverviewProps = Readonly<{
   adjustBalanceLink: To;
   transactionsLink: To;
   closeButton: ReactNode;
+  onEdit: () => void;
 }>;
 
 export function AccountOverview({
@@ -45,6 +47,7 @@ export function AccountOverview({
   adjustBalanceLink,
   transactionsLink,
   closeButton,
+  onEdit,
 }: AccountOverviewProps) {
   const titleId = useId();
   const currency = account.currency ?? baseCurrency;
@@ -85,6 +88,12 @@ export function AccountOverview({
           </svg>
           Adjust balance
         </Link>
+        <button type="button" className={styles['action']} onClick={onEdit}>
+          <svg className={styles['actionIcon']} aria-hidden="true" viewBox="0 0 24 24">
+            <path d={EDIT_ICON_PATH} />
+          </svg>
+          Edit
+        </button>
         <Link to={transactionsLink} className={styles['action']}>
           <svg className={styles['actionIcon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={TRANSACTIONS_ICON_PATH} />

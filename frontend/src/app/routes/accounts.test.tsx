@@ -365,3 +365,47 @@ test('drops the account param of an account that does not exist', async () => {
   expect(accountLink).not.toHaveAttribute('aria-current');
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
+
+test('edits an account from its details and lists it under the new name', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let account: components['schemas']['Account'] = mainCard;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [account],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${mainCard.id}`, () =>
+      HttpResponse.json(account),
+    ),
+    http.put(`http://localhost/api/accounting/accounts/${mainCard.id}`, () => {
+      account = { ...mainCard, name: 'Salary card' };
+      return HttpResponse.json(account);
+    }),
+  );
+  render(<Component />, { initialEntries: [`/?account=${mainCard.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await user.click(await within(details).findByRole('button', { name: 'Edit' }));
+  const form = await screen.findByRole('form', { name: 'Edit account' });
+  await within(form).findByText('Dimmed colors are used by other accounts.');
+  const nameField = within(form).getByRole('textbox', { name: 'Name' });
+  await user.clear(nameField);
+  await user.type(nameField, 'Salary card');
+
+  // act
+  await user.click(within(form).getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  expect(await screen.findByRole('link', { name: 'Salary card' })).toBeInTheDocument();
+  expect(screen.queryByRole('form', { name: 'Edit account' })).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole('dialog', { name: 'Account details' })).getByRole('heading', {
+      name: 'Salary card',
+    }),
+  ).toBeInTheDocument();
+});

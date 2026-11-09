@@ -71,6 +71,9 @@
 
 .action {
   min-height: var(--size-action-tile);
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
   padding: var(--space-2);
   border-radius: var(--radius-action);
   display: flex;
@@ -102,6 +105,7 @@
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @media (--desktop) {

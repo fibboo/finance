@@ -16,6 +16,7 @@ type AccountDetailsProps = Readonly<{
   accountKinds: readonly DictionaryItem[];
   adjustBalanceLink: To;
   transactionsLink: To;
+  onEdit: () => void;
   onClose: () => void;
 }>;
 
@@ -25,6 +26,7 @@ export function AccountDetails({
   accountKinds,
   adjustBalanceLink,
   transactionsLink,
+  onEdit,
   onClose,
 }: AccountDetailsProps) {
   const {
@@ -54,6 +56,7 @@ export function AccountDetails({
             adjustBalanceLink={adjustBalanceLink}
             transactionsLink={transactionsLink}
             closeButton={closeButton}
+            onEdit={onEdit}
           />
         )
       }
