@@ -1,8 +1,8 @@
 @import '@/styles/media.css';
 
 .typeChips {
-  margin: 0 calc(var(--space-4) * -1);
-  padding: 0 var(--space-4);
+  margin: calc(var(--size-focus) * -2) calc(var(--space-4) * -1);
+  padding: calc(var(--size-focus) * 2) var(--space-4);
   border: 0;
   overflow-x: auto;
   display: flex;
@@ -47,7 +47,7 @@
 
 @media (--desktop) {
   .typeChips {
-    margin: 0 calc(var(--space-6) * -1);
-    padding: 0 var(--space-6);
+    margin-inline: calc(var(--space-6) * -1);
+    padding-inline: var(--space-6);
   }
 }
