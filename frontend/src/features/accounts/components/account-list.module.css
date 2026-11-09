@@ -95,9 +95,9 @@ a.account:focus-visible {
   color: var(--color-muted);
 }
 
-.detail,
-.detailSkeleton {
-  display: none;
+.detail {
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
 }
 
 .amounts,
@@ -237,9 +237,7 @@ a.account:focus-visible {
   }
 
   .detail {
-    display: inline;
     font-size: var(--font-size-xs);
-    color: var(--color-muted);
   }
 
   .amounts,
@@ -266,10 +264,6 @@ a.account:focus-visible {
 
   .account:nth-child(even) .nameSkeleton {
     width: 70%;
-  }
-
-  .detailSkeleton {
-    display: block;
   }
 
   .balanceSkeleton {
