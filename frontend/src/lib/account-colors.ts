@@ -24,7 +24,7 @@ export const ACCOUNT_COLORS = [
 ] as const satisfies readonly AccountColor[];
 
 export function readAccountColor(account: Readonly<{ color: string | null }>): string {
-  const color = account.color ?? ACCOUNT_COLORS[0].value;
+  const color = (account.color ?? ACCOUNT_COLORS[0].value).toUpperCase();
   return color;
 }
 
@@ -38,7 +38,7 @@ export function readMoneyAccountColor(
 export function readFreeAccountColors(
   accounts: readonly Readonly<{ color: string | null }>[],
 ): readonly AccountColor[] {
-  const usedColors = new Set(accounts.map((account) => readAccountColor(account).toUpperCase()));
+  const usedColors = new Set(accounts.map((account) => readAccountColor(account)));
   const freeColors = ACCOUNT_COLORS.filter((color) => !usedColors.has(color.value));
   return freeColors;
 }

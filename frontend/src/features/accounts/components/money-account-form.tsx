@@ -81,7 +81,7 @@ function readStartingValues({
   const editValues = {
     name: account.name,
     description: account.description ?? '',
-    color: readAccountColor(account).toUpperCase(),
+    color: readAccountColor(account),
     kind: account.kind,
     currency: account.currency,
   } satisfies MoneyAccountFormValues;
@@ -116,7 +116,8 @@ export function MoneyAccountForm({
     MoneyAccountFormOutput
   >({
     resolver: zodResolver(moneyAccountFormSchema),
-    defaultValues: startingValues,
+    values: startingValues,
+    resetOptions: { keepDirtyValues: true },
   });
   const [pickedColor, kind] = useWatch({ control, name: ['color', 'kind'] });
   const { data: moneyAccounts } = useQuery(
@@ -131,9 +132,7 @@ export function MoneyAccountForm({
     moneyAccounts === undefined
       ? undefined
       : readFreeAccountColors(
-          moneyAccounts.items.filter(
-            (account) => readAccountColor(account).toUpperCase() !== ownColor,
-          ),
+          moneyAccounts.items.filter((account) => readAccountColor(account) !== ownColor),
         );
   const color =
     pickedColor === ownColor
@@ -235,7 +234,7 @@ export function MoneyAccountForm({
         value={color}
         freeColors={freeColors}
         onChange={(nextColor) => {
-          setValue('color', nextColor);
+          setValue('color', nextColor, { shouldDirty: true });
         }}
       />
       <TextField
