@@ -599,9 +599,8 @@ test('refetches the account when the deletion is refused', async () => {
 test('keeps the accounts on screen and notifies once when their refetch fails', async () => {
   // arrange
   const user = userEvent.setup();
-  const otherTab = new BroadcastChannel('finance-data-change');
   onTestFinished(() => {
-    otherTab.close();
+    Reflect.deleteProperty(document, 'visibilityState');
   });
   let accountsResponse = 'ok';
   server.use(
@@ -623,15 +622,21 @@ test('keeps the accounts on screen and notifies once when their refetch fails', 
   expect(await screen.findByRole('link', { name: 'Main card' })).toBeInTheDocument();
   accountsResponse = 'failing';
 
-  // act
-  otherTab.postMessage(null);
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
 
   // assert
   expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Main card' })).toBeInTheDocument();
-  // a renamed account after the next announcement shows that the page stayed and kept refetching
+  // a renamed account after the next return shows that the page stayed and kept refetching
   await user.click(screen.getByRole('button', { name: 'Dismiss' }));
   accountsResponse = 'renamed';
-  otherTab.postMessage(null);
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
   expect(await screen.findByRole('link', { name: 'Daily card' })).toBeInTheDocument();
 });

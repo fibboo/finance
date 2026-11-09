@@ -1,7 +1,6 @@
 import { type QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode, useEffect } from 'react';
 
-import { subscribeToDataChanges } from '@/app/data-change-channel';
 import { ErrorNotification } from '@/components/error-notification/error-notification';
 import { useTheme } from '@/components/theme-switch/use-theme';
 import { authMiddleware } from '@/features/auth/api/auth-middleware';
@@ -26,13 +25,6 @@ export function Providers({ queryClient, children }: ProvidersProps) {
         if (change === 'signed-out') {
           queryClient.removeQueries();
         }
-      }),
-    [queryClient],
-  );
-  useEffect(
-    () =>
-      subscribeToDataChanges(() => {
-        void queryClient.invalidateQueries();
       }),
     [queryClient],
   );

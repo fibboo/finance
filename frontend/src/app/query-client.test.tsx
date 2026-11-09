@@ -3,7 +3,7 @@ import { act, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router';
-import { afterEach, beforeEach, expect, onTestFinished, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { createQueryClient } from '@/app/query-client';
 import { startSession } from '@/features/auth/api/session';
@@ -157,28 +157,6 @@ test('does not poll while the tab is hidden and refetches once it is shown again
   // assert
   expect(await screen.findByText('user-2')).toBeInTheDocument();
   expect(meRequestCount).toBe(2);
-});
-
-test('tells the other tabs that the data changed after a mutation succeeds', async () => {
-  // arrange
-  const otherTab = new BroadcastChannel('finance-data-change');
-  onTestFinished(() => {
-    otherTab.close();
-  });
-  const receivedMessages: unknown[] = [];
-  otherTab.addEventListener('message', (event) => {
-    receivedMessages.push(event.data);
-  });
-  const queryClient = createQueryClient();
-  const observer = new MutationObserver(queryClient, {
-    mutationFn: () => Promise.resolve('saved'),
-  });
-
-  // act
-  await observer.mutate();
-
-  // assert
-  await expect.poll(() => receivedMessages).toHaveLength(1);
 });
 
 test('notifies once while a query keeps failing and again once it failed after a success', async () => {

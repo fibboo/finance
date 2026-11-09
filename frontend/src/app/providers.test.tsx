@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { Link, Route, Routes } from 'react-router';
-import { afterEach, beforeEach, expect, onTestFinished, test } from 'vitest';
+import { afterEach, beforeEach, expect, test } from 'vitest';
 
 import { refreshSession, startSession } from '@/features/auth/api/session';
 import { RequireSession } from '@/features/auth/components/require-session';
@@ -107,42 +107,4 @@ test('shows no data of the previous user after another tab signs in as another u
   // assert
   expect(await screen.findByText('anna')).toBeInTheDocument();
   expect(screen.queryByText('nikita')).not.toBeInTheDocument();
-});
-
-test('refetches the data on screen when another tab announces a change', async () => {
-  // arrange
-  const dataChangeTab = new BroadcastChannel('finance-data-change');
-  onTestFinished(() => {
-    dataChangeTab.close();
-  });
-  let requestCount = 0;
-  server.use(
-    http.get('http://localhost/api/user/me', () => {
-      requestCount += 1;
-
-      return HttpResponse.json({
-        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-        username: requestCount === 1 ? 'nikita' : 'anna',
-        avatar: null,
-        registration_provider: 'TELEGRAM',
-        base_currency: 'EUR',
-        external_users: [],
-      } satisfies components['schemas']['User']);
-    }),
-  );
-  startSession('access-1');
-  render(
-    <Routes>
-      <Route element={<RequireSession />}>
-        <Route index element={<UserSummary providerTypes={[]} />} />
-      </Route>
-    </Routes>,
-  );
-  expect(await screen.findByText('nikita')).toBeInTheDocument();
-
-  // act
-  dataChangeTab.postMessage(null);
-
-  // assert
-  expect(await screen.findByText('anna')).toBeInTheDocument();
 });

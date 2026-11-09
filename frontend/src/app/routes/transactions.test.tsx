@@ -1227,12 +1227,11 @@ test('leaves the adjustment account out of the balances the deletion recalculate
   );
 });
 
-test('closes the details of a transaction that another tab deleted', async () => {
+test('closes the details of a transaction deleted elsewhere once the tab is shown again', async () => {
   // arrange
   const user = userEvent.setup();
-  const otherTab = new BroadcastChannel('finance-data-change');
   onTestFinished(() => {
-    otherTab.close();
+    Reflect.deleteProperty(document, 'visibilityState');
   });
   let isDeleted = false;
   server.use(
@@ -1262,8 +1261,11 @@ test('closes the details of a transaction that another tab deleted', async () =>
   ).toBeInTheDocument();
   isDeleted = true;
 
-  // act
-  otherTab.postMessage(null);
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
 
   // assert
   await waitFor(() => {
@@ -1274,22 +1276,18 @@ test('closes the details of a transaction that another tab deleted', async () =>
 
 test('keeps the list on screen when the accounts of the filters fail to refetch', async () => {
   // arrange
-  const otherTab = new BroadcastChannel('finance-data-change');
   onTestFinished(() => {
-    otherTab.close();
+    Reflect.deleteProperty(document, 'visibilityState');
   });
   let isFailing = false;
+  const user = userEvent.setup();
   let isRenamed = false;
-  const renamedExpense = {
-    ...expense,
-    postings: [walletPosting, { ...categoryPosting, account: { ...category, name: 'Food' } }],
-  } satisfies components['schemas']['Transaction'];
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
       isFailing
         ? HttpResponse.json({ message: 'Server error' }, { status: 500 })
         : HttpResponse.json({
-            items: [wallet],
+            items: [isRenamed ? { ...wallet, name: 'Cash' } : wallet],
             total: 1,
             page: 1,
             size: 100,
@@ -1298,7 +1296,7 @@ test('keeps the list on screen when the accounts of the filters fail to refetch'
     ),
     http.get('http://localhost/api/accounting/transactions', () =>
       HttpResponse.json({
-        items: [isRenamed ? renamedExpense : expense],
+        items: [expense],
         total: 1,
         page: 1,
         size: 15,
@@ -1310,14 +1308,22 @@ test('keeps the list on screen when the accounts of the filters fail to refetch'
   expect(await screen.findByRole('link', { name: 'Groceries' })).toBeInTheDocument();
   isFailing = true;
 
-  // act
-  otherTab.postMessage(null);
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
 
   // assert
   expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
-  // a renamed category after the next announcement shows that the page stayed and kept refetching
+  // a renamed account after the next return shows that the page stayed and kept refetching
   isFailing = false;
   isRenamed = true;
-  otherTab.postMessage(null);
-  expect(await screen.findByRole('link', { name: 'Food' })).toBeInTheDocument();
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  await user.click(screen.getByRole('button', { name: 'Accounts' }));
+  const accountFilter = screen.getByRole('dialog', { name: 'Accounts' });
+  expect(await within(accountFilter).findByRole('checkbox', { name: /Cash/ })).toBeInTheDocument();
 });

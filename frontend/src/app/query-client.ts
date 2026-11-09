@@ -1,6 +1,5 @@
 import { MutationCache, type Query, QueryCache, QueryClient } from '@tanstack/react-query';
 
-import { announceDataChange } from '@/app/data-change-channel';
 import { showErrorNotification } from '@/components/error-notification/error-notification-store';
 import { ApiError, NOT_FOUND_STATUS, UNAUTHORIZED_STATUS } from '@/lib/api-error';
 import { isNotFoundExpected } from '@/lib/query-meta';
@@ -55,7 +54,6 @@ export function createQueryClient(): QueryClient {
       onError: notifyMutationError,
       onSuccess: () => {
         notifiedQueries = new WeakSet();
-        announceDataChange();
       },
     }),
     defaultOptions: {
