@@ -47,7 +47,7 @@ GEL_PER_EUR = 2.95
 USD_PER_EUR = 1.17
 PROGRESS_STEP = 500
 SMALL_PERIOD = timedelta(days=60)
-LONG_ACCOUNT_NAME = "Emergency backup"
+LONG_ACCOUNT_NAME = "Emergency backup savings account"
 
 FULL_ACCOUNTS: list[AccountCreateRequest] = [
     AccountCreateRequest(name="Main card", kind=AccountKind.ASSET, currency="EUR", color="#5B6CD9"),

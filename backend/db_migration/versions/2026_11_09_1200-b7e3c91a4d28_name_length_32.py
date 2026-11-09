@@ -23,11 +23,12 @@ OLD_NAME_LENGTH = 16
 
 def _build_free_name(*, name: str, taken_names: set[str]) -> str:
     number: int = 1
-    free_name: str = name[:OLD_NAME_LENGTH].rstrip()
+    single_spaced_name: str = " ".join(name.split())
+    free_name: str = single_spaced_name[:OLD_NAME_LENGTH].rstrip()
     while free_name in taken_names:
         number += 1
         suffix: str = f" {number}"
-        free_name = f"{name[: OLD_NAME_LENGTH - len(suffix)].rstrip()}{suffix}"
+        free_name = f"{single_spaced_name[: OLD_NAME_LENGTH - len(suffix)].rstrip()}{suffix}"
 
     return free_name
 
