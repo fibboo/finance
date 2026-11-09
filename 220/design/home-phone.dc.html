@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home with the All link of the account strip, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; padding: 12px 12px 96px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; font-family: Geist, system-ui, sans-serif; background: {{t.bg}}; color: {{t.text}}">
+  <div style="flex: none; height: 44px; padding: 0 8px; display: flex; align-items: center; justify-content: space-between">
+    <span style="display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 700"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{t.accent}}"></span>finance</span>
+    <button type="button" aria-label="Open account menu" style="width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; font-size: 14px; font-weight: 600; background: {{t.panel}}; color: {{t.text}}">TE</button>
+  </div>
+  <section aria-label="Accounts" style="flex: none; padding: 10px 0; border-radius: 20px; display: flex; flex-direction: column; gap: 10px; background: {{t.panel}}">
+    <div style="padding: 0 14px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 13px; color: {{t.muted}}">Total balance · USD</span>
+        <span style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em">$40,637.52</span>
+      </div>
+      <a href="#" style="min-height: 24px; display: flex; align-items: center; font-size: 13px; font-weight: 500; text-decoration: none; color: {{t.muted}}">All</a>
+    </div>
+    <ul style="margin: 0; padding: 0 14px; display: flex; gap: 6px; overflow: hidden; list-style: none">
+      <sc-for list="{{cards}}" as="c" hint-placeholder-count="3">
+        <li style="flex: none; display: flex">
+          <a href="#" aria-current="{{c.current}}" style="height: 78px; box-sizing: border-box; padding: 8px 12px 8px 8px; border-radius: 12px; display: grid; grid-template-columns: auto auto; align-content: start; align-items: center; gap: 2px 8px; text-decoration: none; white-space: nowrap; background: {{c.bg}}">
+            <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: {{c.color}}; background: {{c.tint}}">{{c.initial}}</span>
+            <span style="font-size: 12px; color: {{t.muted}}">{{c.name}}</span>
+            <span style="grid-column: 2; display: flex; flex-direction: column">
+              <span style="font-size: 15px; font-weight: 600">{{c.base}}</span>
+              <span style="font-size: 12px; color: {{t.muted}}">{{c.own}}</span>
+            </span>
+          </a>
+        </li>
+      </sc-for>
+    </ul>
+  </section>
+  <section aria-label="This month" style="flex: none; padding: 14px 14px 12px; border-radius: 20px; display: flex; flex-direction: column; gap: 10px; background: {{t.panel}}">
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 700">This month</h2>
+      <span style="font-size: 13px; color: {{t.muted}}">Left <b style="font-size: 16px; color: {{t.danger}}">−$24.42</b></span>
+    </div>
+    <div aria-hidden="true" style="position: relative; height: 8px; border-radius: 999px; background: {{t.danger}}"><span style="position: absolute; left: 30%; top: -4px; width: 1px; height: 16px; background: {{t.text}}"></span></div>
+    <div style="display: flex; justify-content: space-between; font-size: 13px; color: {{t.muted}}"><span>Spent <b style="color: {{t.text}}">−$24.42</b></span><span>Earned <b style="color: {{t.text}}">$0.00</b></span></div>
+  </section>
+  <section aria-label="Recent transactions" style="flex: 1; min-height: 0; padding: 12px 8px 0; border-radius: 20px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; background: {{t.panel}}">
+    <div style="padding: 0 6px; display: flex; align-items: center; justify-content: space-between">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 700">Recent transactions</h2>
+      <a href="#" style="font-size: 13px; font-weight: 500; text-decoration: none; color: {{t.muted}}">All</a>
+    </div>
+    <div style="height: 30px; padding: 0 6px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; background: {{t.band}}"><span>Today</span><span style="font-weight: 400; color: {{t.muted}}">+$33,407.22</span></div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+      <a href="#" style="height: 28px; padding: 0 6px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 14px; text-decoration: none; background: {{r.bg}}">
+        <span aria-hidden="true" style="width: 7px; height: 7px; flex: none; border-radius: 999px; background: {{r.dot}}"></span>
+        <span style="flex: 1; font-weight: 500">{{r.title}}</span>
+        <span style="font-weight: 700">{{r.amount}}</span>
+      </a>
+    </sc-for>
+  </section>
+  <nav aria-label="Main" style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 64px; box-sizing: border-box; border-radius: 24px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; background: {{t.panel}}; border: 1px solid {{t.border}}; font-size: 11px; font-weight: 600">
+    <a href="#" aria-current="page" style="text-align: center; text-decoration: none; color: {{t.text}}">Home</a>
+    <a href="#" style="text-align: center; text-decoration: none; color: {{t.muted}}">Transactions</a>
+    <button type="button" aria-label="Add transaction" style="justify-self: center; width: 46px; height: 46px; border: 0; border-radius: 16px; font-size: 22px; background: {{t.text}}; color: {{t.bg}}">+</button>
+    <a href="#" style="text-align: center; text-decoration: none; color: {{t.muted}}">Accounts</a>
+    <a href="#" style="text-align: center; text-decoration: none; color: {{t.muted}}; opacity: .6">Categories</a>
+  </nav>
+  <sc-if value="{{isOpen}}" hint-placeholder-val="{{false}}">
+    <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.35)"></div>
+    <section role="dialog" aria-label="UniCredit card" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 16px 20px; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; gap: 16px; background: {{t.panel}}">
+      <span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 999px; background: {{t.border}}"></span>
+      <div style="display: flex; align-items: flex-start; gap: 12px">
+        <span aria-hidden="true" style="width: 40px; height: 40px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; color: #5B6CD9; background: #5B6CD92E">U</span>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; color: {{t.muted}}">Asset · EUR</span>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 700">UniCredit card</h2>
+        </div>
+        <button type="button" aria-label="Close details" style="width: 44px; height: 44px; margin: -6px -10px 0 0; border: 0; background: transparent; color: {{t.muted}}">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+        </button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 36px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08">€7,435.05</span>
+        <span style="font-size: 15px; color: {{t.muted}}">$8,699.01 · rate 1.1700</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <a href="#" style="height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; text-decoration: none; background: {{t.bg}}">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4"></path></svg>Adjust balance
+        </a>
+        <button type="button" style="height: 64px; border: 0; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; background: {{t.bg}}; color: {{t.text}}">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Edit
+        </button>
+        <a href="#" style="height: 64px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 600; text-decoration: none; background: {{t.bg}}">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Transactions
+        </a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <button type="button" aria-disabled="true" aria-describedby="hint" style="height: 48px; border: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; background: {{t.bg}}; color: {{t.danger}}; opacity: .5; cursor: default">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"></path></svg>Delete account
+        </button>
+        <span id="hint" style="font-size: 13px; text-align: center; color: {{t.muted}}">Bring the balance to zero to delete the account.</span>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"open":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const L = { bg: '#EEEEEB', panel: '#FFFFFF', text: '#17181A', muted: '#5A5D64', accent: '#1F7A55', border: '#E2E2DE', danger: '#B42318', band: '#F4F4F1', selected: '#EAF3EE', adjustment: '#F8EFDF', transfer: '#E8EEF9' };
+const D = { bg: '#0B0C0E', panel: '#17191C', text: '#ECEDEE', muted: '#9A9EA6', accent: '#4CC38A', border: '#2A2D32', danger: '#FF7A6B', band: '#1E2125', selected: '#16241D', adjustment: '#2A2216', transfer: '#172131' };
+const t = (this.props.dark ?? true) ? D : L;
+const isOpen = this.props.open ?? false;
+const card = (name, base, own, color, isCurrent) => ({ name, base, own, color, tint: color + '2E', initial: name[0], bg: isCurrent ? t.selected : t.bg, current: isCurrent ? 'page' : 'false' });
+const all = [
+  card('Freelance', '$16,187.89', '', '#A15CB8', false),
+  card('UniCredit card', '$8,699.01', '€7,435.05', '#5B6CD9', isOpen),
+  card('UniCredit štednj', '$8,684.97', '€7,423.05', '#4F6D8F', false),
+  card('Airbag USD Cash', '$2,500.00', '', '#6E8A3A', false),
+  card('Airbag USDT', '$2,500.00', '', '#B8862C', false)
+];
+const cards = all;
+const row = (title, amount, bg, dot) => ({ title, amount, bg, dot });
+const rows = [
+  row('Adjustment · Wallet', '−$2,685.43', t.adjustment, '#4D8FBF'),
+  row('Adjustment · Savings', '−$16,507.00', t.adjustment, '#2E8C7A'),
+  row('Adjustment · Crypto', '−$550.00', t.adjustment, '#3E9A5C'),
+  row('Transfer Wallet 2 → Wallet', '$389.10', t.transfer, '#4D8FBF'),
+  row('Transfer Wallet 3 → Wallet', '$389.10', t.transfer, '#4D8FBF'),
+  row('Adjustment · Main card', '−$53,699.49', t.adjustment, '#5B6CD9')
+];
+return { t, cards, rows, isOpen };
+}
+}
+</script>
+</body>
+</html>

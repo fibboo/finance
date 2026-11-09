@@ -88,6 +88,27 @@
       "w": 1280,
       "h": 800,
       "title": "Liabilities pushes Assets out (desktop)"
+    },
+    "home-phone.dc.html": {
+      "x": 0,
+      "y": 2804,
+      "w": 390,
+      "h": 844,
+      "title": "Home with All in the account strip (phone)"
+    },
+    "home-account-phone.dc.html": {
+      "x": 470,
+      "y": 2804,
+      "w": 390,
+      "h": 844,
+      "title": "An account open from Home (phone)"
+    },
+    "home-account-desktop.dc.html": {
+      "x": 940,
+      "y": 2804,
+      "w": 1280,
+      "h": 800,
+      "title": "An account open from Home, beside the accounts (desktop)"
     }
   },
   "order": [
@@ -101,7 +122,10 @@
     "pinned-phone.dc.html",
     "pinned-handoff-phone.dc.html",
     "pinned-desktop.dc.html",
-    "pinned-handoff-desktop.dc.html"
+    "pinned-handoff-desktop.dc.html",
+    "home-phone.dc.html",
+    "home-account-phone.dc.html",
+    "home-account-desktop.dc.html"
   ],
   "notes": {
     "newAccount": {
@@ -109,6 +133,13 @@
       "y": 0,
       "w": 320,
       "text": "New account is the form agreed in Transaction entry (sheet on a phone, dialog on desktop), reused as is; it opens from + New account here. Edit is the same form without kind and currency. Adjust balance opens the Transaction entry form with Balance adjustment chosen and this account filled in.",
+      "fill": "yellow"
+    },
+    "homeScope": {
+      "x": 2300,
+      "y": 2804,
+      "w": 320,
+      "text": "These Home screens show only what opening an account from Home adds: All in the head of the account strip, the selected card, the open account, and the recent transactions at full width while an account is open. Everything else on Home stays as it is in the app.",
       "fill": "yellow"
     }
   },
