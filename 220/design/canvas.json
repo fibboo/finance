@@ -60,6 +60,34 @@
       "w": 1280,
       "h": 800,
       "title": "Delete account (desktop)"
+    },
+    "pinned-phone.dc.html": {
+      "x": 0,
+      "y": 1884,
+      "w": 390,
+      "h": 844,
+      "title": "Accounts with the search and Assets pinned (phone)"
+    },
+    "pinned-handoff-phone.dc.html": {
+      "x": 470,
+      "y": 1884,
+      "w": 390,
+      "h": 844,
+      "title": "Liabilities pushes Assets out (phone)"
+    },
+    "pinned-desktop.dc.html": {
+      "x": 940,
+      "y": 1884,
+      "w": 1280,
+      "h": 800,
+      "title": "Accounts with the search, columns and Assets pinned (desktop)"
+    },
+    "pinned-handoff-desktop.dc.html": {
+      "x": 2300,
+      "y": 1884,
+      "w": 1280,
+      "h": 800,
+      "title": "Liabilities pushes Assets out (desktop)"
     }
   },
   "order": [
@@ -69,7 +97,11 @@
     "delete-phone.dc.html",
     "list-a-desktop.dc.html",
     "edit-desktop.dc.html",
-    "delete-desktop.dc.html"
+    "delete-desktop.dc.html",
+    "pinned-phone.dc.html",
+    "pinned-handoff-phone.dc.html",
+    "pinned-desktop.dc.html",
+    "pinned-handoff-desktop.dc.html"
   ],
   "notes": {
     "newAccount": {
