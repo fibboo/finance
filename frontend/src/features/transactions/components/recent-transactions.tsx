@@ -1,12 +1,19 @@
 import { Link } from 'react-router';
 
+import type { components } from '@/lib/api-schema';
+
 import { useTransactionFeed } from '../hooks/use-transaction-feed';
 import styles from './recent-transactions.module.css';
 import { TransactionFeed } from './transaction-feed';
 
-type RecentTransactionsProps = Readonly<{ baseCurrency: string }>;
+type DictionaryItem = components['schemas']['DictionaryItem'];
 
-export function RecentTransactions({ baseCurrency }: RecentTransactionsProps) {
+type RecentTransactionsProps = Readonly<{
+  baseCurrency: string;
+  transactionTypes: readonly DictionaryItem[] | undefined;
+}>;
+
+export function RecentTransactions({ baseCurrency, transactionTypes }: RecentTransactionsProps) {
   const feed = useTransactionFeed({
     isOpeningDayKept: false,
     isFirstPageErrorThrown: false,
@@ -21,6 +28,7 @@ export function RecentTransactions({ baseCurrency }: RecentTransactionsProps) {
       <TransactionFeed
         feed={feed}
         baseCurrency={baseCurrency}
+        transactionTypes={transactionTypes}
         label="Recent transactions"
         header={
           <div className={styles['header']}>

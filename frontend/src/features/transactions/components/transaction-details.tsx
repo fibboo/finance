@@ -60,6 +60,7 @@ export function TransactionDetails({
             deleteAction={
               <DeleteTransaction
                 transaction={transaction}
+                transactionTypes={transactionTypes}
                 relatedQueryKeys={relatedQueryKeys}
                 onDeleted={onClose}
               />

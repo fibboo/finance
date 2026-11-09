@@ -7,24 +7,10 @@ import { formatMoney } from '@/lib/format-money';
 import styles from './transaction-overview.module.css';
 import { TransactionPostings } from './transaction-postings';
 import { TransactionTextParts } from './transaction-text-parts';
-import { readTransactionView, readWeekdayDateText } from './transaction-view';
+import { readTransactionView, readTypeLabel, readWeekdayDateText } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
-
-function readTypeLabel({
-  transaction,
-  transactionTypes,
-}: Readonly<{ transaction: Transaction; transactionTypes: readonly DictionaryItem[] }>): string {
-  const type = transactionTypes.find(
-    (transactionType) => transactionType.key === transaction.transaction_type,
-  );
-  if (type === undefined) {
-    throw new Error(`The transaction type ${transaction.transaction_type} has no label.`);
-  }
-
-  return type.label;
-}
 
 function readBaseAmount({
   transaction,
@@ -59,7 +45,7 @@ export function TransactionOverview({
   deleteAction,
 }: TransactionOverviewProps) {
   const titleId = useId();
-  const view = readTransactionView(transaction);
+  const view = readTransactionView({ transaction, transactionTypes });
   const baseAmount = readBaseAmount({ transaction, baseAmount: view.baseAmount });
   return (
     <article aria-labelledby={titleId} className={styles['transactionOverview']}>

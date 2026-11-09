@@ -12,11 +12,18 @@ import { transactionQueries } from '../api/transaction-queries';
 import { readPlainText, readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
+type DictionaryItem = components['schemas']['DictionaryItem'];
 
 const ACCOUNT_LIST_FORMAT = new Intl.ListFormat(LOCALE, { type: 'conjunction' });
 
-function readConfirmationText(transaction: Readonly<Transaction>): string {
-  const view = readTransactionView(transaction);
+function readConfirmationText({
+  transaction,
+  transactionTypes,
+}: Readonly<{
+  transaction: Readonly<Transaction>;
+  transactionTypes: readonly DictionaryItem[];
+}>): string {
+  const view = readTransactionView({ transaction, transactionTypes });
   const amount = formatMoney({
     amount: view.amount,
     currency: view.currency,
@@ -39,12 +46,14 @@ function readConfirmationText(transaction: Readonly<Transaction>): string {
 
 type DeleteTransactionProps = Readonly<{
   transaction: Readonly<Transaction>;
+  transactionTypes: readonly DictionaryItem[];
   relatedQueryKeys: readonly QueryKey[];
   onDeleted: () => void;
 }>;
 
 export function DeleteTransaction({
   transaction,
+  transactionTypes,
   relatedQueryKeys,
   onDeleted,
 }: DeleteTransactionProps) {
@@ -71,7 +80,7 @@ export function DeleteTransaction({
       {isConfirming && (
         <DeleteConfirmation
           title="Delete this transaction?"
-          text={readConfirmationText(transaction)}
+          text={readConfirmationText({ transaction, transactionTypes })}
           isPending={isPending}
           onCancel={cancel}
           onConfirm={() => {

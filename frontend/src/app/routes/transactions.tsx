@@ -140,6 +140,7 @@ export function Component() {
             key={`${listKey}#${feed.anchorDate ?? ''}`}
             feed={feed}
             baseCurrency={baseCurrency}
+            transactionTypes={dictionaries?.transaction_types}
             label="Transactions"
             isGroupedByDay={filters === undefined || isSortedByDate(filters)}
             onReturnToToday={clearJump}

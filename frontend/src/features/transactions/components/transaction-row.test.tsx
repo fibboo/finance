@@ -27,6 +27,11 @@ const savings = {
   color: '#2E8C7A',
 } satisfies components['schemas']['Account'];
 
+const transactionTypes = [
+  { key: 'TRANSFER', label: 'Transfer' },
+  { key: 'ADJUSTMENT', label: 'Adjustment' },
+] satisfies components['schemas']['DictionaryItem'][];
+
 const transaction = {
   id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c4d',
   user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
@@ -165,7 +170,7 @@ test.each([
         { ...posting, amount: '12.00', base_amount: '12.00', account: equity },
       ],
     },
-    cells: ['Adjustment · Savings', '', '-$12.00'],
+    cells: ['Adjustment', 'Savings', '', '-$12.00'],
   },
   {
     kind: 'an increasing adjustment',
@@ -177,7 +182,7 @@ test.each([
         { ...posting, amount: '25.00', base_amount: '25.00', account: savings },
       ],
     },
-    cells: ['Adjustment · Savings', '', '+$25.00'],
+    cells: ['Adjustment', 'Savings', '', '+$25.00'],
   },
   {
     kind: 'an expense of a deleted category from a deleted account',
@@ -249,7 +254,7 @@ test.each([
         },
       ],
     },
-    cells: ['Adjustment · Savings, deleted', '', '+$25.00'],
+    cells: ['Adjustment', 'Savings, deleted', '', '+$25.00'],
   },
 ] satisfies {
   kind: string;
@@ -257,7 +262,9 @@ test.each([
   cells: string[];
 }[])('describes $kind', async ({ row, cells }) => {
   // act
-  render(<TransactionRow transaction={row} baseCurrency="USD" />);
+  render(
+    <TransactionRow transaction={row} baseCurrency="USD" transactionTypes={transactionTypes} />,
+  );
 
   // assert
   // the title, the accounts, the amount and its base-currency value, column by column
@@ -287,6 +294,7 @@ test.each([
         ],
       }}
       baseCurrency="USD"
+      transactionTypes={transactionTypes}
     />,
     { initialEntries: [url] },
   );
