@@ -144,6 +144,14 @@
   color: var(--color-muted);
 }
 
+.inlineRate:not(:empty)::before {
+  content: ' · ';
+}
+
+.rate {
+  display: none;
+}
+
 .balance {
   grid-area: balance;
   justify-self: end;
@@ -211,7 +219,9 @@
     padding-left: calc(var(--size-account-mark-sm) + var(--space-3));
     border-bottom: var(--size-border) solid var(--color-border);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg);
+    grid-template-columns:
+      minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg)
+      var(--size-rate-column-lg);
     align-items: center;
     gap: 0 var(--space-3);
     font-size: var(--font-size-sm);
@@ -282,8 +292,8 @@
     padding: 0;
     grid-template-columns:
       auto minmax(0, 1fr) var(--size-amount-column-lg)
-      var(--size-amount-column-lg);
-    grid-template-areas: 'mark identity accountBalance balance';
+      var(--size-amount-column-lg) var(--size-rate-column-lg);
+    grid-template-areas: 'mark identity accountBalance balance rate';
   }
 
   .account + .account {
@@ -300,8 +310,21 @@
     content: '· ';
   }
 
-  .accountBalance {
+  .accountBalance,
+  .rate {
     font-size: var(--font-size-md);
+  }
+
+  .inlineRate {
+    display: none;
+  }
+
+  .rate {
+    grid-area: rate;
+    display: block;
+    justify-self: end;
+    color: var(--color-muted);
+    white-space: nowrap;
   }
 
   .account:not(:has(.accountBalance)) .balance {

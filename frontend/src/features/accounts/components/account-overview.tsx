@@ -2,10 +2,11 @@ import { type ReactNode, useId } from 'react';
 import { Link, type To } from 'react-router';
 
 import type { components } from '@/lib/api-schema';
-import { formatMoney, formatRate } from '@/lib/format-money';
+import { formatMoney } from '@/lib/format-money';
 
 import { AccountMark } from './account-mark';
 import styles from './account-overview.module.css';
+import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -22,11 +23,9 @@ function readBaseBalanceText({
     amount: Number(account.base_currency_balance),
     currency: baseCurrency,
   });
-  const rate = Number(account.base_currency_rate);
+  const rateText = readAccountRateText({ account, baseCurrency });
   const baseBalanceText =
-    account.currency === baseCurrency || rate === 0
-      ? baseBalance
-      : `${baseBalance} · rate ${formatRate(rate)}`;
+    rateText === undefined ? baseBalance : `${baseBalance} · rate ${rateText}`;
   return baseBalanceText;
 }
 

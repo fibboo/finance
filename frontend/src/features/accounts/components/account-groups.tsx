@@ -13,6 +13,7 @@ import {
 } from '../api/selected-account';
 import { AccountMark } from './account-mark';
 import styles from './account-groups.module.css';
+import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
 type MoneyAccountKind = (typeof MONEY_ACCOUNT_KINDS)[number];
@@ -59,6 +60,7 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
         <span className={styles['accountColumn']}>Account</span>
         <span className={styles['amountColumn']}>Balance</span>
         <span className={styles['amountColumn']}>In {baseCurrency}</span>
+        <span className={styles['amountColumn']}>Rate</span>
       </div>
       {accounts === undefined && (
         <ul className={styles['group']}>
@@ -111,7 +113,12 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
                     >
                       {account.name}
                     </Link>
-                    <span className={styles['currency']}>{account.currency}</span>
+                    <span className={styles['currency']}>
+                      {account.currency}
+                      <span className={styles['inlineRate']}>
+                        {readAccountRateText({ account, baseCurrency })}
+                      </span>
+                    </span>
                   </span>
                   <span className={styles['balance']}>
                     {formatMoney({
@@ -124,6 +131,9 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
                       {formatMoney({ amount: Number(account.balance), currency: account.currency })}
                     </span>
                   )}
+                  <span className={styles['rate']}>
+                    {readAccountRateText({ account, baseCurrency })}
+                  </span>
                 </li>
               ))}
             </ul>

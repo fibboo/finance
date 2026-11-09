@@ -121,6 +121,10 @@ a.account:focus-visible {
   display: none;
 }
 
+.rate:not(:empty)::before {
+  content: ' · ';
+}
+
 @media (pointer: fine) {
   .previous,
   .next {

@@ -94,7 +94,7 @@ test('groups assets before liabilities, each with its total and its accounts in 
   expect(assetRows).toHaveLength(3);
   expect(assetRows[0]).toHaveTextContent('WalletUSD$412.50');
   expect(assetRows[0]).not.toHaveTextContent('$412.50$412.50');
-  expect(assetRows[1]).toHaveTextContent('Main cardEUR$3,471.20€3,180.00');
+  expect(assetRows[1]).toHaveTextContent('Main cardEUR0.9161$3,471.20€3,180.000.9161');
   expect(assetRows[2]).toHaveTextContent('Savings');
   expect(within(liabilities).getByRole('heading', { name: 'Liabilities' })).toBeInTheDocument();
   expect(liabilities).toHaveTextContent('-$2,469.60');
