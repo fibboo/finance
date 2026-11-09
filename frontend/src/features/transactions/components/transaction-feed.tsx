@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useRef } from 'react';
 
 import { LoadError } from '@/components/load-error/load-error';
 import type { components } from '@/lib/api-schema';
@@ -80,9 +80,8 @@ export function TransactionFeed({
   emptyState = <NoTransactions />,
   onReturnToToday,
 }: TransactionFeedProps) {
-  const { query, newerQuery, anchorDate, pageSize } = feed;
+  const { query, newerQuery, anchorDate, pageSize, isScrolledDown, setIsScrolledDown } = feed;
   const rowsRef = useRef<HTMLDivElement>(null);
-  const [isScrolledDown, setIsScrolledDown] = useState(false);
   const {
     data,
     isPending,

@@ -6,3 +6,11 @@ export function isNotFoundExpected(meta: Readonly<Record<string, unknown>> | und
   const isExpected = meta?.[NOT_FOUND_EXPECTED_KEY] === true;
   return isExpected;
 }
+
+export function isThrownWithoutData(
+  _error: unknown,
+  query: Readonly<{ state: Readonly<{ data: unknown }> }>,
+): boolean {
+  const isThrown = query.state.data === undefined;
+  return isThrown;
+}

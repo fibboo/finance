@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, onTestFinished, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -207,4 +207,46 @@ test('shows a busy recent panel while the transactions load', () => {
     'true',
   );
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+});
+
+test('shows a transaction added elsewhere once the tab is shown again at the top of the list', async () => {
+  // arrange
+  onTestFinished(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+  });
+  let isAdded = false;
+  const addedIncome = {
+    ...income,
+    id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c4f',
+    postings: income.postings.map((posting) => ({
+      ...posting,
+      account:
+        posting.account.kind === 'INCOME'
+          ? { ...posting.account, name: 'Consulting' }
+          : posting.account,
+    })),
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: isAdded ? [addedIncome, income] : [income],
+        total: isAdded ? 2 : 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<RecentTransactions baseCurrency="USD" />);
+  expect(await screen.findByText('Design project')).toBeInTheDocument();
+  isAdded = true;
+
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+
+  // assert
+  expect(await screen.findByText('Consulting')).toBeInTheDocument();
 });

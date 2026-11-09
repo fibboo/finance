@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, expect, test } from 'vitest';
+import { beforeEach, expect, onTestFinished, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -594,4 +594,49 @@ test('refetches the account when the deletion is refused', async () => {
   expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
   expect(deleteButton).toHaveFocus();
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+});
+
+test('keeps the accounts on screen and notifies once when their refetch fails', async () => {
+  // arrange
+  const user = userEvent.setup();
+  onTestFinished(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+  });
+  let accountsResponse = 'ok';
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () => {
+      if (accountsResponse === 'failing') {
+        return HttpResponse.json({ message: 'Server error' }, { status: 500 });
+      }
+      const account = accountsResponse === 'ok' ? mainCard : { ...mainCard, name: 'Daily card' };
+      return HttpResponse.json({
+        items: [account],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  render(<Component />);
+  expect(await screen.findByRole('link', { name: 'Main card' })).toBeInTheDocument();
+  accountsResponse = 'failing';
+
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+
+  // assert
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Main card' })).toBeInTheDocument();
+  // a renamed account after the next return shows that the page stayed and kept refetching
+  await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+  accountsResponse = 'renamed';
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  expect(await screen.findByRole('link', { name: 'Daily card' })).toBeInTheDocument();
 });

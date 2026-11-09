@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, onTestFinished, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -1225,4 +1225,141 @@ test('leaves the adjustment account out of the balances the deletion recalculate
   ).toHaveAccessibleDescription(
     "Adjustment · Wallet, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
   );
+});
+
+test('closes the details of a transaction deleted elsewhere once the tab is shown again', async () => {
+  // arrange
+  const user = userEvent.setup();
+  onTestFinished(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+  });
+  let isDeleted = false;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: isDeleted ? [] : [expense],
+        total: isDeleted ? 0 : 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      isDeleted
+        ? HttpResponse.json(
+            { error_code: 'NOT_FOUND', message: 'Transaction not found' },
+            { status: 404 },
+          )
+        : HttpResponse.json(expense),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('link', { name: 'Groceries' }));
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  isDeleted = true;
+
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
+  });
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+});
+
+test('keeps the list on screen when the accounts of the filters fail to refetch', async () => {
+  // arrange
+  onTestFinished(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+  });
+  let isFailing = false;
+  const user = userEvent.setup();
+  let isRenamed = false;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      isFailing
+        ? HttpResponse.json({ message: 'Server error' }, { status: 500 })
+        : HttpResponse.json({
+            items: [isRenamed ? { ...wallet, name: 'Cash' } : wallet],
+            total: 1,
+            page: 1,
+            size: 100,
+            pages: 1,
+          } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  expect(await screen.findByRole('link', { name: 'Groceries' })).toBeInTheDocument();
+  isFailing = true;
+
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+
+  // assert
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+  // a renamed account after the next return shows that the page stayed and kept refetching
+  isFailing = false;
+  isRenamed = true;
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  await user.click(screen.getByRole('button', { name: 'Accounts' }));
+  const accountFilter = screen.getByRole('dialog', { name: 'Accounts' });
+  expect(await within(accountFilter).findByRole('checkbox', { name: /Cash/ })).toBeInTheDocument();
+});
+
+test('refetches the feed once the tab is shown again at the top of the list', async () => {
+  // arrange
+  onTestFinished(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+  });
+  let isAdded = false;
+  const addedExpense = {
+    ...expense,
+    id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+    postings: [walletPosting, { ...categoryPosting, account: cafes }],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: isAdded ? [addedExpense, expense] : [expense],
+        total: isAdded ? 2 : 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  expect(await screen.findByRole('link', { name: 'Groceries' })).toBeInTheDocument();
+  isAdded = true;
+
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+
+  // assert
+  expect(await screen.findByRole('link', { name: 'Cafes' })).toBeInTheDocument();
 });
