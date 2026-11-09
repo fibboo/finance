@@ -124,6 +124,9 @@ test.each([
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
+    http.get('http://localhost/api/accounting/currencies', () =>
+      HttpResponse.json([] satisfies components['schemas']['DictionaryItem'][]),
+    ),
     http.get('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json({
         items: [],

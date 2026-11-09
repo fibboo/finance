@@ -84,6 +84,9 @@ beforeEach(() => {
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
+    http.get('http://localhost/api/accounting/currencies', () =>
+      HttpResponse.json([] satisfies components['schemas']['DictionaryItem'][]),
+    ),
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const kinds = new URL(request.url).searchParams.getAll('kinds');
       const items = kinds.includes('ASSET') && kinds.includes('LIABILITY') ? [wallet] : [];
@@ -276,6 +279,40 @@ test('lists the categories and the locations used most recently first', async ()
   // assert
   expect(await screen.findByRole('button', { name: /^Central market/ })).toBeInTheDocument();
   expect([requestedCategoryOrder, requestedLocationOrder]).toEqual(['recent_use', 'recent_use']);
+});
+
+test('lists the seller’s currencies in the order of their recent use', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/currencies', () =>
+      HttpResponse.json([
+        { key: 'GEL', label: 'Georgian Lari' },
+        { key: 'USD', label: 'US Dollar' },
+      ] satisfies components['schemas']['DictionaryItem'][]),
+    ),
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 0,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
+
+  // act
+  await user.click(await screen.findByRole('checkbox', { name: 'Paid in another currency' }));
+
+  // assert
+  const currencySelect = screen.getByRole('combobox', { name: 'Seller’s currency' });
+  expect(
+    within(currencySelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent),
+  ).toEqual(['Currency', 'GEL', 'USD']);
 });
 
 test('lists the income sources used most recently first', async () => {
