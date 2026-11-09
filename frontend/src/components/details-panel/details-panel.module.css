@@ -7,7 +7,7 @@
   background: var(--color-backdrop);
 }
 
-.transactionDetails {
+.detailsPanel {
   position: fixed;
   inset: auto 0 0;
   z-index: 2;
@@ -25,11 +25,11 @@
   transition: transform var(--duration-sheet) ease-out;
 }
 
-.transactionDetails[data-dragging] {
+.detailsPanel[data-dragging] {
   transition: none;
 }
 
-.transactionDetails:focus {
+.detailsPanel:focus {
   outline: none;
 }
 
@@ -120,7 +120,7 @@
     display: none;
   }
 
-  .transactionDetails {
+  .detailsPanel {
     position: static;
     flex: none;
     align-self: flex-start;

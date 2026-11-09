@@ -84,6 +84,7 @@ test('sends the new balance of the chosen account and closes', async () => {
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -120,6 +121,7 @@ test('shows the current balance and the difference the new balance makes', async
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -156,6 +158,7 @@ test('asks for the base currency amount of an account without a rate', async () 
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -195,6 +198,7 @@ test.each([
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -221,6 +225,7 @@ test('refuses a new balance equal to the current one', async () => {
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -257,6 +262,7 @@ test('shows a field error of the backend at its field', async () => {
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -287,6 +293,7 @@ test('finds an account by a part of its name', async () => {
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -312,6 +319,7 @@ test('offers only the transaction types the form can enter', () => {
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -355,6 +363,7 @@ test('asks for the base currency amount when the account had no rate on the date
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[{ ...euroCard, balance: '50', base_currency_rate: '0.92' }]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -391,6 +400,7 @@ test('refuses a date after today', async () => {
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -427,6 +437,7 @@ test('drops the base currency amount typed for another account', async () => {
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
+      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
       renderMoneyAccountForm={() => null}
@@ -454,4 +465,86 @@ test('drops the base currency amount typed for another account', async () => {
     new_balance: '380',
     base_currency_amount: null,
   });
+});
+
+test('starts with the preset account chosen and adjusts its balance', async () => {
+  // arrange
+  let requestPath = '';
+  server.use(
+    http.post('http://localhost/api/accounting/accounts/:accountId/adjustment', ({ request }) => {
+      requestPath = new URL(request.url).pathname;
+      return HttpResponse.json(adjustment);
+    }),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[wallet, euroCard]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={onClose}
+    />,
+  );
+  await user.type(screen.getByLabelText('New balance'), '15');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(screen.getByRole('button', { name: /^Account/ })).toHaveTextContent('Euro card');
+  expect(requestPath).toBe(`/api/accounting/accounts/${euroCard.id}/adjustment`);
+});
+
+test('asks for the account when the preset account is not a money account', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[wallet]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.type(screen.getByLabelText('New balance'), '15');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+
+  // assert
+  expect(await screen.findByText('Choose the account to adjust')).toBeInTheDocument();
+});
+
+test('keeps Adjust balance disabled until the money accounts have loaded', () => {
+  // act
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={undefined}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Adjust balance' })).toBeDisabled();
 });

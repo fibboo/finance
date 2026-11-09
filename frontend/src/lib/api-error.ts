@@ -17,6 +17,7 @@ type ApiErrorFields = Readonly<{
 }>;
 
 export const UNAUTHORIZED_STATUS = 401;
+export const NOT_FOUND_STATUS = 404;
 const VALIDATION_MESSAGE = 'The request is not valid.';
 
 const errorResponseSchema = z.object({

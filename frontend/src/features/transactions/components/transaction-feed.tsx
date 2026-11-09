@@ -1,11 +1,11 @@
 import { type ReactNode, useRef, useState } from 'react';
 
+import { LoadError } from '@/components/load-error/load-error';
 import type { components } from '@/lib/api-schema';
 
 import { useAnchorScroll } from '../hooks/use-anchor-scroll';
 import type { TransactionFeedQuery } from '../hooks/use-transaction-feed';
 import { BackToTop } from './back-to-top';
-import { LoadError } from './load-error';
 import { NoTransactions } from './no-transactions';
 import styles from './transaction-feed.module.css';
 import { TransactionDayList } from './transaction-day-list';

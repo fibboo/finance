@@ -5,6 +5,7 @@ import type { components } from '@/lib/api-schema';
 type TransactionType = components['schemas']['TransactionType'];
 
 const NEW_TRANSACTION_PARAM = 'new_transaction';
+const NEW_TRANSACTION_ACCOUNT_PARAM = 'new_transaction_account';
 
 export const ENTRY_TRANSACTION_TYPES = [
   'EXPENSE',
@@ -39,11 +40,27 @@ export function writeNewTransactionType({
   transactionType: EntryTransactionType | undefined;
 }>): URLSearchParams {
   const nextSearchParams = new URLSearchParams(searchParams);
+  nextSearchParams.delete(NEW_TRANSACTION_ACCOUNT_PARAM);
   if (transactionType === undefined) {
     nextSearchParams.delete(NEW_TRANSACTION_PARAM);
   } else {
     nextSearchParams.set(NEW_TRANSACTION_PARAM, transactionType);
   }
 
+  return nextSearchParams;
+}
+
+export function readNewTransactionAccountId(searchParams: URLSearchParams): string | undefined {
+  const parsedId = z.uuid().safeParse(searchParams.get(NEW_TRANSACTION_ACCOUNT_PARAM));
+  const accountId = parsedId.success ? parsedId.data : undefined;
+  return accountId;
+}
+
+export function writeNewAdjustment({
+  searchParams,
+  accountId,
+}: Readonly<{ searchParams: URLSearchParams; accountId: string }>): URLSearchParams {
+  const nextSearchParams = writeNewTransactionType({ searchParams, transactionType: 'ADJUSTMENT' });
+  nextSearchParams.set(NEW_TRANSACTION_ACCOUNT_PARAM, accountId);
   return nextSearchParams;
 }

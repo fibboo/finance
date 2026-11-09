@@ -219,3 +219,149 @@ test('reads the term from the URL and clears it into a focused field when nothin
   expect(screen.getByRole('searchbox', { name: 'Search accounts' })).toHaveFocus();
   expect(screen.queryByText('No accounts match this search')).not.toBeInTheDocument();
 });
+
+const mainCard = {
+  ...wallet,
+  name: 'Main card',
+  id: '5b6cd902-8c1a-4b9e-9d1f-0e6a3c2b1a06',
+  balance: '3180.00',
+  currency: 'EUR',
+  color: '#5B6CD9',
+  description: 'Salary card, Intesa',
+  base_currency_rate: '0.9161',
+  base_currency_balance: '3471.20',
+} satisfies components['schemas']['Account'];
+
+test('opens an account from its row with its balance, description and actions', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, mainCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${mainCard.id}`, () =>
+      HttpResponse.json(mainCard),
+    ),
+  );
+  render(<Component />);
+
+  // act
+  await user.click(await screen.findByRole('link', { name: 'Main card' }));
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(await within(details).findByRole('heading', { name: 'Main card' })).toBeInTheDocument();
+  expect(details).toHaveTextContent('Asset · EUR');
+  expect(details).toHaveTextContent('€3,180.00');
+  expect(details).toHaveTextContent('$3,471.20 · rate 0.9161');
+  expect(details).toHaveTextContent('Salary card, Intesa');
+  expect(within(details).getByRole('link', { name: 'Adjust balance' })).toHaveAttribute(
+    'href',
+    `/?account=${mainCard.id}&new_transaction=ADJUSTMENT&new_transaction_account=${mainCard.id}`,
+  );
+  expect(within(details).getByRole('link', { name: 'Transactions' })).toHaveAttribute(
+    'href',
+    `/transactions?account_ids=${mainCard.id}`,
+  );
+  expect(screen.getByRole('link', { name: 'Main card' })).toHaveAttribute('aria-current', 'true');
+});
+
+test.each([
+  { currency: 'EUR', rate: '0.9161', baseBalance: '$3,471.20 · rate 0.9161' },
+  { currency: 'EUR', rate: '0', baseBalance: '$3,471.20' },
+  { currency: 'USD', rate: '1', baseBalance: '$3,471.20' },
+])(
+  'shows the rate of a $currency account at rate $rate only outside the base currency',
+  async ({ currency, rate, baseBalance }) => {
+    // arrange
+    const account = { ...mainCard, currency, base_currency_rate: rate };
+    server.use(
+      http.get('http://localhost/api/accounting/accounts', () =>
+        HttpResponse.json({
+          items: [account],
+          total: 1,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Account_']),
+      ),
+      http.get(`http://localhost/api/accounting/accounts/${mainCard.id}`, () =>
+        HttpResponse.json(account),
+      ),
+    );
+
+    // act
+    render(<Component />, { initialEntries: [`/?account=${mainCard.id}`] });
+
+    // assert
+    const details = await screen.findByRole('dialog', { name: 'Account details' });
+    await within(details).findByRole('heading', { name: 'Main card' });
+    expect(within(details).getByText(baseBalance, { exact: true })).toBeInTheDocument();
+  },
+);
+
+test('closes the account with Escape and returns focus to its row', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [mainCard],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${mainCard.id}`, () =>
+      HttpResponse.json(mainCard),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('link', { name: 'Main card' }));
+  await screen.findByRole('dialog', { name: 'Account details' });
+
+  // act
+  await user.keyboard('{Escape}');
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  });
+  expect(screen.getByRole('link', { name: 'Main card' })).toHaveFocus();
+});
+
+test('drops the account param of an account that does not exist', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [mainCard],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${mainCard.id}`, () =>
+      HttpResponse.json({ error_code: 'NOT_FOUND', message: 'Account not found' }, { status: 404 }),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/?account=${mainCard.id}`] });
+
+  // assert
+  const accountLink = await screen.findByRole('link', { name: 'Main card' });
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  });
+  expect(accountLink).not.toHaveAttribute('aria-current');
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+});

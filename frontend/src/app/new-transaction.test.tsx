@@ -127,6 +127,55 @@ test.each(['{Escape}', 'close button'])('closes the form with the %s', async (cl
   expect(screen.queryByRole('dialog', { name: 'New transaction' })).not.toBeInTheDocument();
 });
 
+test('opens an adjustment with the account of the new transaction account param chosen', async () => {
+  // act
+  render(<NewTransaction />, {
+    initialEntries: [`/?new_transaction=ADJUSTMENT&new_transaction_account=${wallet.id}`],
+  });
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Account/ })).toHaveTextContent('Wallet');
+});
+
+test('drops the preset account once the type of the new transaction changes', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [],
+        category_types: [],
+        transaction_types: [
+          { key: 'EXPENSE', label: 'Expense' },
+          { key: 'ADJUSTMENT', label: 'Adjustment' },
+        ],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 0,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+  );
+  render(<NewTransaction />, {
+    initialEntries: [`/?new_transaction=ADJUSTMENT&new_transaction_account=${wallet.id}`],
+  });
+  await screen.findByRole('button', { name: /^Account/ });
+  await user.click(screen.getByRole('radio', { name: 'Expense' }));
+
+  // act
+  await user.click(await screen.findByRole('radio', { name: 'Adjustment' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Account/ })).not.toHaveTextContent('Wallet');
+});
+
 test('stays closed without the new transaction param', () => {
   // act
   render(<NewTransaction />, { initialEntries: ['/?new_transaction=LOAN'] });

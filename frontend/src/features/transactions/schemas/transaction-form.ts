@@ -10,6 +10,7 @@ const BALANCE_PATTERN = /^-?\d+([.,]\d{1,2})?$/;
 const AMOUNT_PATTERN = /^\d+([.,]\d{1,2})?$/;
 const COMMENT_MIN_LENGTH = 3;
 export const COMMENT_MAX_LENGTH = 256;
+const ADJUSTMENT_ACCOUNT_ERROR = 'Choose the account to adjust';
 const EXPENSE_SOURCE_ERROR = 'Choose the account you paid from';
 const INCOME_SOURCE_ERROR = 'Choose the income source';
 const INCOME_ACCOUNT_ERROR = 'Choose the account you received to';
@@ -97,7 +98,12 @@ export function createAdjustmentFormSchema({
   today,
 }: Readonly<{ account: Readonly<Account> | undefined; baseCurrency: string; today: string }>) {
   const adjustmentFormSchema = z.object({
-    account_id: z.string().min(1, 'Choose the account to adjust'),
+    account_id: z
+      .string()
+      .min(1, ADJUSTMENT_ACCOUNT_ERROR)
+      .refine(() => account !== undefined, {
+        error: ADJUSTMENT_ACCOUNT_ERROR,
+      }),
     new_balance: z
       .string()
       .transform((text) => readAmountText(text))
