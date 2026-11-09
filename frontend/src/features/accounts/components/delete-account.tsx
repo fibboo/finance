@@ -1,4 +1,4 @@
-import { type QueryKey, useMutation } from '@tanstack/react-query';
+import { type QueryKey, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 
 import { DeleteButton } from '@/components/delete-button/delete-button';
@@ -7,6 +7,7 @@ import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import { accountMutations } from '../api/account-mutations';
+import { accountQueries } from '../api/account-queries';
 import { ACCOUNT_SEARCH_FIELD_ID } from '../api/account-search';
 import { readNeighbourAccountLinkId } from '../api/selected-account';
 
@@ -41,6 +42,7 @@ export function DeleteAccount({
   onDeleted,
 }: DeleteAccountProps) {
   const [isConfirming, setIsConfirming] = useState(false);
+  const queryClient = useQueryClient();
   const { mutate, isPending } = useMutation(accountMutations.delete(relatedQueryKeys));
   const buttonId = useId();
   const blockingHint = readBlockingHint({ account, isOnlyAccount });
@@ -71,6 +73,10 @@ export function DeleteAccount({
             mutate(account.id, {
               onSuccess: () => {
                 onDeleted();
+                queryClient.removeQueries({
+                  queryKey: accountQueries.detail(account.id).queryKey,
+                  exact: true,
+                });
                 document.getElementById(neighbourLinkId ?? ACCOUNT_SEARCH_FIELD_ID)?.focus();
               },
               onError: closeConfirmation,

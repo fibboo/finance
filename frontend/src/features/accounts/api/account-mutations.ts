@@ -80,17 +80,17 @@ export const accountMutations = {
   delete(relatedQueryKeys: readonly QueryKey[]) {
     return mutationOptions({
       mutationFn: deleteAccount,
-      onSuccess: (deletedAccount, accountId, _onMutateResult, { client }) => {
+      onSuccess: async (_deletedAccount, accountId, _onMutateResult, { client }) => {
         const deletedDetailKey = accountQueries.detail(accountId).queryKey;
         const deletedDetailHash = hashKey(deletedDetailKey);
-        client.setQueryData(deletedDetailKey, deletedAccount);
-        return Promise.all([
+        await Promise.all([
           client.invalidateQueries({
             queryKey: accountQueries.all().queryKey,
             predicate: (query) => query.queryHash !== deletedDetailHash,
           }),
           ...relatedQueryKeys.map((queryKey) => client.invalidateQueries({ queryKey })),
         ]);
+        client.removeQueries({ queryKey: deletedDetailKey, exact: true, type: 'inactive' });
       },
       onError: (_error, _accountId, _onMutateResult, { client }) =>
         client.invalidateQueries({ queryKey: accountQueries.all().queryKey }),
