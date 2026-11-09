@@ -52,7 +52,7 @@
 }
 
 .accounts {
-  --account-list-top: calc(var(--size-touch) + var(--space-2));
+  --sticky-top: calc(var(--size-touch) + var(--space-2));
 
   flex: none;
   display: flex;
@@ -66,7 +66,7 @@
   }
 
   .accounts {
-    --account-list-top: calc(var(--size-touch) + var(--space-4));
+    --sticky-top: calc(var(--size-touch) + var(--space-4));
 
     flex-direction: row;
     gap: var(--space-4);

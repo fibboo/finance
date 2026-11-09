@@ -123,6 +123,7 @@
   .detailsPanel {
     position: static;
     z-index: auto;
+    scroll-margin-top: var(--sticky-top, 0);
     flex: none;
     align-self: flex-start;
     width: var(--size-details);
