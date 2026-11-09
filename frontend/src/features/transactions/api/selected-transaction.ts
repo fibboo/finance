@@ -19,6 +19,7 @@ export function writeSelectedTransaction({
   if (transactionId === undefined) {
     nextSearchParams.delete(SELECTED_TRANSACTION_PARAM);
   } else {
+    nextSearchParams.delete(SELECTED_TRANSACTION_PARAM);
     nextSearchParams.set(SELECTED_TRANSACTION_PARAM, transactionId);
   }
 

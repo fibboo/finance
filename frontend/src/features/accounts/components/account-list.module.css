@@ -29,10 +29,10 @@
   content: '';
   position: absolute;
   top: 50%;
-  right: calc(var(--space-2) * -1);
-  left: calc(var(--space-2) * -1);
+  left: 50%;
+  width: max(100% + var(--space-2) * 2, var(--size-touch));
   height: var(--size-touch);
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
 }
 
 .allLink:hover {
@@ -207,10 +207,12 @@ a.account:focus-visible {
     scroll-snap-align: start;
   }
 
+  a.account {
+    flex: 1 1 auto;
+  }
+
   .account {
-    flex: 0 0 var(--size-account-tile);
     min-width: 0;
-    scroll-snap-align: start;
     min-height: 0;
     padding: var(--space-2-5) var(--space-3-5);
     border-radius: var(--radius-track);

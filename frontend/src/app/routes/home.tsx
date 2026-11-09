@@ -6,11 +6,17 @@ import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
-import { SELECTED_ACCOUNT_PARAM } from '@/features/accounts/api/selected-account';
+import {
+  readSelectedAccountId,
+  SELECTED_ACCOUNT_PARAM,
+} from '@/features/accounts/api/selected-account';
 import { AccountList } from '@/features/accounts/components/account-list';
 import { MonthSummary } from '@/features/summary/components/month-summary';
 import { TotalBalance } from '@/features/summary/components/total-balance';
-import { SELECTED_TRANSACTION_PARAM } from '@/features/transactions/api/selected-transaction';
+import {
+  readSelectedTransactionId,
+  SELECTED_TRANSACTION_PARAM,
+} from '@/features/transactions/api/selected-transaction';
 import { RecentTransactions } from '@/features/transactions/components/recent-transactions';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 
@@ -21,7 +27,9 @@ export const handle = { isLogoShownOnPhone: true };
 function readIsAccountOpenedLast(searchParams: URLSearchParams): boolean {
   const keys = [...searchParams.keys()];
   const isAccountOpenedLast =
-    keys.indexOf(SELECTED_ACCOUNT_PARAM) > keys.indexOf(SELECTED_TRANSACTION_PARAM);
+    readSelectedAccountId(searchParams) !== undefined &&
+    (readSelectedTransactionId(searchParams) === undefined ||
+      keys.indexOf(SELECTED_ACCOUNT_PARAM) > keys.indexOf(SELECTED_TRANSACTION_PARAM));
   return isAccountOpenedLast;
 }
 

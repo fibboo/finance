@@ -72,7 +72,10 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
           <ul ref={accountsRef} className={styles['accounts']}>
             {accountPage === undefined &&
               listSkeletonKeys(ACCOUNT_SKELETON_COUNT).map((key) => (
-                <li key={key} className={styles['account']}>
+                <li
+                  key={key}
+                  className={`${styles['accountItem'] ?? ''} ${styles['account'] ?? ''}`}
+                >
                   <Skeleton className={styles['markSkeleton']} />
                   <span className={styles['identity']}>
                     <Skeleton className={styles['nameSkeleton']} />

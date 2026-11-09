@@ -139,3 +139,35 @@ test('keeps the header when the accounts fail to load', async () => {
   expect(screen.getByText('Total balance · USD')).toBeInTheDocument();
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
+
+test('links every card to its account, marks the selected one and links All to the Accounts section', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: accounts,
+        total: 3,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
+  // act
+  render(<AccountList baseCurrency="USD" />, {
+    initialEntries: [
+      `/?transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40&account=7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03`,
+    ],
+  });
+
+  // assert
+  const freelance = await screen.findByRole('link', { name: /^Freelance/ });
+  expect(freelance).toHaveAttribute(
+    'href',
+    `/?transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40&account=7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a01`,
+  );
+  expect(freelance).not.toHaveAttribute('aria-current');
+  expect(screen.getByRole('link', { name: /^Wallet/ })).toHaveAttribute('aria-current', 'true');
+  expect(screen.getByRole('link', { name: 'All' })).toHaveAttribute('href', '/accounts');
+});

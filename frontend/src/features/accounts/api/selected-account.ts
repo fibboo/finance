@@ -20,6 +20,7 @@ export function writeSelectedAccount({
   if (accountId === undefined) {
     nextSearchParams.delete(SELECTED_ACCOUNT_PARAM);
   } else {
+    nextSearchParams.delete(SELECTED_ACCOUNT_PARAM);
     nextSearchParams.set(SELECTED_ACCOUNT_PARAM, accountId);
   }
 

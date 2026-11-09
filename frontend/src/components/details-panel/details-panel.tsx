@@ -7,6 +7,16 @@ import { useSheetDrag } from '@/hooks/use-sheet-drag';
 import styles from './details-panel.module.css';
 
 const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
+const DETAILS_PANEL_SELECTOR = '[data-details-panel]';
+const DIALOG_SELECTOR = 'dialog, [role="dialog"]';
+
+function readIsLastShownPanel(panelId: string): boolean {
+  const shownPanels = [...document.querySelectorAll(DETAILS_PANEL_SELECTOR)].filter(
+    (panel) => panel.getClientRects().length > 0,
+  );
+  const isLastShownPanel = shownPanels.at(-1)?.id === panelId;
+  return isLastShownPanel;
+}
 
 type DetailsPanelProps = Readonly<{
   label: string;
@@ -56,9 +66,10 @@ export function DetailsPanel({
 
     function handleKeyDown(event: KeyboardEvent) {
       const { target } = event;
-      const dialog = target instanceof Element ? target.closest('dialog, [role="dialog"]') : null;
-      const isInOtherDialog = dialog !== null && dialog.id !== panelId;
-      if (event.key === 'Escape' && !isInOtherDialog) {
+      const dialog = target instanceof Element ? target.closest(DIALOG_SELECTOR) : null;
+      const isForThisPanel =
+        dialog === null ? readIsLastShownPanel(panelId) : dialog.id === panelId;
+      if (event.key === 'Escape' && isForThisPanel) {
         closePanel();
       }
     }
@@ -71,6 +82,29 @@ export function DetailsPanel({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [onClose, returnFocusId, backdropId, panelId]);
+
+  useEffect(() => {
+    const panel = document.getElementById(panelId);
+    if (panel === null) {
+      return undefined;
+    }
+
+    let isShown = panel.getClientRects().length > 0;
+    const observer = new IntersectionObserver(([entry]) => {
+      const isNowShown = entry !== undefined && entry.boundingClientRect.height > 0;
+      const isFocusInDialog = document.activeElement?.closest(DIALOG_SELECTOR) != null;
+      if (isNowShown && !isShown && !isFocusInDialog) {
+        panel.focus({ preventScroll: true });
+      }
+
+      isShown = isNowShown;
+    });
+    observer.observe(panel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [panelId]);
 
   const closeButton = (
     <button type="button" className={styles['close']} aria-label="Close details" onClick={close}>
@@ -90,6 +124,7 @@ export function DetailsPanel({
         }}
         role="dialog"
         aria-label={label}
+        data-details-panel
         aria-busy={!isLoaded && isFetching}
         tabIndex={-1}
         className={styles['detailsPanel']}
