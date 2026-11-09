@@ -78,7 +78,7 @@ export function TransactionDayList({
       <div className={styles['columns']} aria-hidden="true">
         <span />
         <span>Transaction</span>
-        <span>Account</span>
+        <span className={styles['accountColumn']}>Account</span>
         <span className={styles['amountColumn']}>Original</span>
         <span className={styles['amountColumn']}>Amount</span>
         <span className={styles['rateColumn']}>Rate</span>

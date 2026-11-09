@@ -132,6 +132,24 @@ afterEach(() => {
   document.documentElement.removeAttribute('style');
 });
 
+test('hides Recent when the accounting dictionary fails to load', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json(null, { status: 500 }),
+    ),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  expect(await screen.findByRole('region', { name: 'Accounts' })).toBeInTheDocument();
+  await vi.waitFor(() => {
+    expect(screen.queryByRole('region', { name: 'Recent transactions' })).not.toBeInTheDocument();
+  });
+});
+
 test('opens the details of a recent transaction on Home', async () => {
   // arrange
   const user = userEvent.setup();

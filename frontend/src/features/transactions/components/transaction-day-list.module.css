@@ -37,6 +37,10 @@
   white-space: nowrap;
 }
 
+.accountColumn {
+  padding-inline-start: var(--space-3);
+}
+
 .amountColumn {
   text-align: right;
 }
@@ -112,6 +116,10 @@
       --rate-column-display: block;
       --rate-column-track: var(--size-rate-column-lg);
     }
+  }
+
+  .accountColumn {
+    padding-inline-start: 0;
   }
 
   .columns {

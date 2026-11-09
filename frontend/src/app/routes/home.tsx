@@ -53,7 +53,9 @@ export function Component() {
       order: 'recent_use',
     }),
   );
-  const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
+  const { data: dictionaries, isError: isDictionaryFailed } = useQuery(
+    dictionaryQueries.accounting(),
+  );
   const isAccountOpenedLast = readIsAccountOpenedLast(searchParams);
   return (
     <Page title="Home">
@@ -75,10 +77,12 @@ export function Component() {
             </div>
           </div>
           <div className={styles['transactions']}>
-            <RecentTransactions
-              baseCurrency={baseCurrency}
-              transactionTypes={dictionaries?.transaction_types}
-            />
+            {!(isDictionaryFailed && dictionaries === undefined) && (
+              <RecentTransactions
+                baseCurrency={baseCurrency}
+                transactionTypes={dictionaries?.transaction_types}
+              />
+            )}
             <div className={isAccountOpenedLast ? styles['earlierSelection'] : styles['selection']}>
               <SelectedTransactionDetails
                 baseCurrency={baseCurrency}
