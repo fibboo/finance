@@ -1,7 +1,7 @@
 @import '@/styles/media.css';
 
 .accountGroups {
-  --group-header-top: var(--sticky-top, 0);
+  --group-header-top: calc(var(--sticky-top, 0) + var(--space-1));
 
   isolation: isolate;
   display: flex;
@@ -33,10 +33,24 @@
   gap: var(--space-3);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
+}
+
+.groupHeader::before,
+.groupHeader::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--space-1) * -1) calc(var(--space-4) * -1) 0;
+}
+
+.groupHeader::before {
+  z-index: -1;
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
   background: var(--color-panel);
-  box-shadow:
-    calc(var(--space-2) * -1) 0 0 var(--color-panel),
-    var(--space-2) 0 0 var(--color-panel);
+}
+
+.groupHeader::after {
+  z-index: -2;
+  background: var(--color-ground);
 }
 
 .groupHeading {
@@ -173,7 +187,7 @@
 @media (--desktop) {
   .accountGroups {
     --group-header-top: calc(
-      var(--sticky-top, 0) + var(--size-columns-header-lg) + var(--space-1-5)
+      var(--sticky-top, 0) + var(--space-2) + var(--size-columns-header-lg) + var(--space-1-5)
     );
 
     flex: 1 1 auto;
@@ -187,7 +201,7 @@
 
   .columns {
     position: sticky;
-    top: var(--sticky-top, 0);
+    top: calc(var(--sticky-top, 0) + var(--space-2));
     z-index: 2;
     min-height: var(--size-columns-header-lg);
     padding-left: calc(var(--size-account-mark-sm) + var(--space-3));
@@ -198,10 +212,24 @@
     gap: 0 var(--space-3);
     font-size: var(--font-size-sm);
     color: var(--color-muted);
+  }
+
+  .columns::before,
+  .columns::after {
+    content: '';
+    position: absolute;
+    inset: calc(var(--space-2) * -1) calc(var(--space-5) * -1) 0;
+  }
+
+  .columns::before {
+    z-index: -1;
+    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
     background: var(--color-panel);
-    box-shadow:
-      calc(var(--space-2) * -1) 0 0 var(--color-panel),
-      var(--space-2) 0 0 var(--color-panel);
+  }
+
+  .columns::after {
+    z-index: -2;
+    background: var(--color-ground);
   }
 
   .amountColumn {
@@ -225,10 +253,13 @@
   }
 
   .groupHeader::before {
-    content: '';
-    position: absolute;
     inset: calc(var(--space-1-5) * -1) 0 100%;
-    background: var(--color-panel);
+    z-index: auto;
+    border-radius: 0;
+  }
+
+  .groupHeader::after {
+    content: none;
   }
 
   .name {
