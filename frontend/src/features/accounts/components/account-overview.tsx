@@ -83,23 +83,37 @@ export function AccountOverview({
           <p className={styles['description']}>{account.description}</p>
         )}
       <div className={styles['actions']}>
-        <Link to={adjustBalanceLink} preventScrollReset className={styles['action']}>
+        <Link
+          to={adjustBalanceLink}
+          preventScrollReset
+          aria-label="Adjust balance"
+          title="Adjust balance"
+          className={styles['action']}
+        >
           <svg className={styles['actionIcon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={ADJUST_ICON_PATH} />
           </svg>
-          Adjust balance
         </Link>
-        <button type="button" className={styles['action']} onClick={onEdit}>
+        <button
+          type="button"
+          aria-label="Edit"
+          title="Edit"
+          className={styles['action']}
+          onClick={onEdit}
+        >
           <svg className={styles['actionIcon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={EDIT_ICON_PATH} />
           </svg>
-          Edit
         </button>
-        <Link to={transactionsLink} className={styles['action']}>
+        <Link
+          to={transactionsLink}
+          aria-label="Transactions"
+          title="Transactions"
+          className={styles['action']}
+        >
           <svg className={styles['actionIcon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={TRANSACTIONS_ICON_PATH} />
           </svg>
-          Transactions
         </Link>
       </div>
       {deleteAction}
