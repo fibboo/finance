@@ -105,7 +105,7 @@
 }
 
 .accounts {
-  padding-inline-start: var(--space-3);
+  padding-inline-start: var(--account-column-gap);
 }
 
 .accounts,
@@ -163,10 +163,6 @@
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
     font-size: var(--font-size-base);
-  }
-
-  .accounts {
-    padding-inline-start: 0;
   }
 
   .accounts,

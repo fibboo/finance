@@ -148,7 +148,8 @@
   content: ' · ';
 }
 
-.rate {
+.rate,
+.rateColumn {
   display: none;
 }
 
@@ -205,6 +206,7 @@
     flex: 1 1 auto;
     min-width: 0;
     align-self: flex-start;
+    container-type: inline-size;
     padding: var(--space-2) var(--space-5) var(--space-3);
     border-radius: var(--radius-panel);
     gap: 0;
@@ -219,9 +221,7 @@
     padding-left: calc(var(--size-account-mark-sm) + var(--space-3));
     border-bottom: var(--size-border) solid var(--color-border);
     display: grid;
-    grid-template-columns:
-      minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg)
-      var(--size-rate-column-lg);
+    grid-template-columns: minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg);
     align-items: center;
     gap: 0 var(--space-3);
     font-size: var(--font-size-sm);
@@ -292,8 +292,8 @@
     padding: 0;
     grid-template-columns:
       auto minmax(0, 1fr) var(--size-amount-column-lg)
-      var(--size-amount-column-lg) var(--size-rate-column-lg);
-    grid-template-areas: 'mark identity accountBalance balance rate';
+      var(--size-amount-column-lg);
+    grid-template-areas: 'mark identity accountBalance balance';
   }
 
   .account + .account {
@@ -310,21 +310,41 @@
     content: '· ';
   }
 
-  .accountBalance,
-  .rate {
+  .accountBalance {
     font-size: var(--font-size-md);
   }
 
-  .inlineRate {
-    display: none;
-  }
+  @container (width >= 42rem) {
+    .columns {
+      grid-template-columns:
+        minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg)
+        var(--size-rate-column-lg);
+    }
 
-  .rate {
-    grid-area: rate;
-    display: block;
-    justify-self: end;
-    color: var(--color-muted);
-    white-space: nowrap;
+    .rateColumn {
+      display: block;
+      text-align: right;
+    }
+
+    .account {
+      grid-template-columns:
+        auto minmax(0, 1fr) var(--size-amount-column-lg)
+        var(--size-amount-column-lg) var(--size-rate-column-lg);
+      grid-template-areas: 'mark identity accountBalance balance rate';
+    }
+
+    .inlineRate {
+      display: none;
+    }
+
+    .rate {
+      grid-area: rate;
+      display: block;
+      justify-self: end;
+      font-size: var(--font-size-md);
+      color: var(--color-muted);
+      white-space: nowrap;
+    }
   }
 
   .account:not(:has(.accountBalance)) .balance {

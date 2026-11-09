@@ -60,7 +60,7 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
         <span className={styles['accountColumn']}>Account</span>
         <span className={styles['amountColumn']}>Balance</span>
         <span className={styles['amountColumn']}>In {baseCurrency}</span>
-        <span className={styles['amountColumn']}>Rate</span>
+        <span className={styles['rateColumn']}>Rate</span>
       </div>
       {accounts === undefined && (
         <ul className={styles['group']}>

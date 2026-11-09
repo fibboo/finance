@@ -84,7 +84,6 @@ Tests run through `backend/tests/Dockerfile`, and `backend/pytest.ini` sets the 
 `backend/tests/db_migration/test_migrations.py` applies the Alembic revisions to an empty pytest-postgresql database, fails on any difference from the models, and runs the downgrade, so a model change needs a matching revision.
 
 **Scoping rules: always apply both levels.**
-
 1. **Module level**: only run tests for modules whose source files changed.
 2. **File level**: within that module, pass only the test paths that correspond to the changed source files. Do not run the full suite when a subset is enough. If no test maps to the changed files (for example, only config or rule files changed), skip tests entirely.
 
@@ -137,7 +136,6 @@ docker compose exec backend python -m scripts.seed
   - right after creating its pull request, into `main` or into another branch of a stack, set it to `In Review`. The project's built-in workflow "Pull request linked to issue" sets `In Review` too, when a pull request into `main` links the issue, so a stacked PR retargeted to `main` later keeps the status.
 
   The option ids and the commands that read and set a status are in the `issue-writer` skill (`.claude/skills/issue-writer/SKILL.md`, **Repository and Project** and **Commands**). A Container takes its status from its sub-issues: `In Development` while at least one is past `Ready for Development` (`In Development`, `In Review` or `Done`) and not all of them are `Done`, `Done` once all of them are, otherwise `In Refinement` while at least one is `In Refinement`, otherwise `Ready for Development`. Whenever a sub-issue changes status, check its parent and move the parent as well.
-
 - **Isolate process and prompt changes:** changes under `docs/` and `.claude/` go in a pull request of their own. They are never mixed into a product PR, unless the request explicitly says otherwise or the change is one piece of work with the code. `.claude/rules/modules/` is the one exception: it travels with the code it describes, like `CLAUDE.md` and `README.md`. See `.claude/rules/common.md` for this rule and for what counts toward the 500-line PR limit.
 - **First commit message:**
   ```

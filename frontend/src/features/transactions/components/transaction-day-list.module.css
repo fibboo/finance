@@ -1,6 +1,8 @@
 @import '@/styles/media.css';
 
 .transactionDayList {
+  --account-column-gap: var(--space-3);
+
   display: grid;
   grid-template-columns:
     var(--size-dot) minmax(0, auto) minmax(0, auto) max-content
@@ -38,7 +40,7 @@
 }
 
 .accountColumn {
-  padding-inline-start: var(--space-3);
+  padding-inline-start: var(--account-column-gap);
 }
 
 .amountColumn {
@@ -103,6 +105,7 @@
 @media (--desktop) {
   .transactionDayList {
     --rate-column-display: none;
+    --account-column-gap: 0;
 
     grid-template-columns:
       var(--size-dot) minmax(var(--size-title-column-min-lg), 1fr)
@@ -116,10 +119,6 @@
       --rate-column-display: block;
       --rate-column-track: var(--size-rate-column-lg);
     }
-  }
-
-  .accountColumn {
-    padding-inline-start: 0;
   }
 
   .columns {
