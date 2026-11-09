@@ -203,8 +203,8 @@ a.account:focus-visible {
   }
 
   .accountItem {
-    flex: 0 0 var(--size-account-tile);
-    min-width: 0;
+    flex: none;
+    min-width: var(--size-account-tile);
     scroll-snap-align: start;
   }
 
@@ -213,7 +213,6 @@ a.account:focus-visible {
   }
 
   .account {
-    min-width: 0;
     min-height: 0;
     padding: var(--space-2-5) var(--space-3-5);
     border-radius: var(--radius-track);
@@ -223,6 +222,7 @@ a.account:focus-visible {
 
   .identity {
     min-width: 0;
+    contain: inline-size;
   }
 
   .name {
