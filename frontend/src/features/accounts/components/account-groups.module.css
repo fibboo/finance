@@ -191,9 +191,8 @@
 
 @media (--desktop) {
   .accountGroups {
-    --group-header-top: calc(
-      var(--sticky-top, 0) + var(--space-2) + var(--size-columns-header-lg) + var(--space-1-5)
-    );
+    --columns-top: calc(var(--sticky-top, 0) + var(--space-2));
+    --group-header-top: calc(var(--columns-top) + var(--size-columns-header-lg) + var(--space-1-5));
 
     flex: 1 1 auto;
     min-width: 0;
@@ -206,7 +205,7 @@
 
   .columns {
     position: sticky;
-    top: calc(var(--sticky-top, 0) + var(--space-2));
+    top: var(--columns-top);
     z-index: 2;
     min-height: var(--size-columns-header-lg);
     padding-left: calc(var(--size-account-mark-sm) + var(--space-3));
@@ -264,7 +263,6 @@
 
   .groupHeader::before {
     inset: calc(var(--space-1-5) * -1) 0 100%;
-    z-index: auto;
     height: auto;
     border-radius: 0;
   }
