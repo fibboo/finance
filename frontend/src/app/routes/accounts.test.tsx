@@ -360,9 +360,9 @@ test('drops the account param of an account that does not exist', async () => {
   // assert
   const accountLink = await screen.findByRole('link', { name: 'Main card' });
   await waitFor(() => {
-    expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+    expect(accountLink).not.toHaveAttribute('aria-current');
   });
-  expect(accountLink).not.toHaveAttribute('aria-current');
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
 
@@ -498,9 +498,9 @@ test.each([
 
     // assert
     await waitFor(() => {
-      expect(screen.queryByRole('link', { name: 'Travel card' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
     });
-    expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Travel card' })).not.toBeInTheDocument();
     expect(
       focusedName === undefined
         ? screen.getByRole('searchbox', { name: 'Search accounts' })
