@@ -294,6 +294,9 @@ test.each([
   const nameField = screen.getByRole('textbox', { name: 'Name' });
   await user.clear(nameField);
   await user.type(nameField, 'Pocket');
+  // switching away and back shows the own color stays selectable
+  await user.click(screen.getByRole('radio', { name: 'Indigo' }));
+  await user.click(screen.getByRole('radio', { name: 'Blue' }));
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -302,5 +305,54 @@ test.each([
   await vi.waitFor(() => {
     expect(onSaved).toHaveBeenCalled();
   });
+  expect(screen.getByRole('radio', { name: 'Blue' })).toBeEnabled();
   expect(updatedAccount).toEqual({ name: 'Pocket', description: null, color: '#4D8FBF' });
+});
+
+test('counts an account without a color as using the first color', async () => {
+  // arrange
+  let createdAccount: unknown = null;
+  const onCreated = vi.fn();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [{ ...wallet, color: null }],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
+      createdAccount = await request.json();
+      return HttpResponse.json(creditCard, { status: 201 });
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <MoneyAccountForm
+      mode={{ kind: 'create', name: 'Credit card', onCreated }}
+      accountKinds={accountKinds}
+      currencies={currencies}
+      baseCurrency="USD"
+      onBack={vi.fn()}
+    />,
+  );
+  await screen.findByText('Dimmed colors are used by other accounts.');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Create account' }));
+
+  // assert
+  await vi.waitFor(() => {
+    expect(onCreated).toHaveBeenCalledWith(creditCard.id);
+  });
+  expect(screen.getByRole('radio', { name: 'Blue' })).toBeDisabled();
+  expect(createdAccount).toEqual({
+    name: 'Credit card',
+    description: null,
+    kind: 'ASSET',
+    currency: 'USD',
+    color: '#2E8C7A',
+  });
 });

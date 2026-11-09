@@ -89,12 +89,16 @@ function readStartingValues({
 }
 
 function readKindAndCurrency({
-  account,
+  startingValues,
   accountKinds,
-}: Readonly<{ account: Readonly<Account>; accountKinds: readonly DictionaryItem[] }>): string {
+}: Readonly<{
+  startingValues: MoneyAccountFormValues;
+  accountKinds: readonly DictionaryItem[];
+}>): string {
   const kindLabel =
-    accountKinds.find((accountKind) => accountKind.key === account.kind)?.label ?? account.kind;
-  const kindAndCurrency = `${kindLabel} · ${account.currency ?? ''}`;
+    accountKinds.find((accountKind) => accountKind.key === startingValues.kind)?.label ??
+    startingValues.kind;
+  const kindAndCurrency = `${kindLabel} · ${startingValues.currency}`;
   return kindAndCurrency;
 }
 
@@ -105,13 +109,14 @@ export function MoneyAccountForm({
   baseCurrency,
   onBack,
 }: MoneyAccountFormProps) {
+  const startingValues = readStartingValues({ mode, baseCurrency });
   const { control, register, handleSubmit, setError, setValue, formState } = useForm<
     MoneyAccountFormValues,
     unknown,
     MoneyAccountFormOutput
   >({
     resolver: zodResolver(moneyAccountFormSchema),
-    defaultValues: readStartingValues({ mode, baseCurrency }),
+    defaultValues: startingValues,
   });
   const [pickedColor, kind] = useWatch({ control, name: ['color', 'kind'] });
   const { data: moneyAccounts } = useQuery(
@@ -121,14 +126,15 @@ export function MoneyAccountForm({
       order: 'recent_use',
     }),
   );
-  const editedAccountId = mode.kind === 'edit' ? mode.account.id : undefined;
+  const ownColor = mode.kind === 'edit' ? startingValues.color : undefined;
   const freeColors =
     moneyAccounts === undefined
       ? undefined
       : readFreeAccountColors(
-          moneyAccounts.items.filter((account) => account.id !== editedAccountId),
+          moneyAccounts.items.filter(
+            (account) => readAccountColor(account).toUpperCase() !== ownColor,
+          ),
         );
-  const ownColor = mode.kind === 'edit' ? readAccountColor(mode.account).toUpperCase() : undefined;
   const color =
     pickedColor === ownColor
       ? ownColor
@@ -220,7 +226,7 @@ export function MoneyAccountForm({
         <div className={styles['fixedField']}>
           <span className={styles['label']}>Kind and currency</span>
           <span className={styles['fixedValue']}>
-            {readKindAndCurrency({ account: mode.account, accountKinds })}
+            {readKindAndCurrency({ startingValues, accountKinds })}
           </span>
           <p className={styles['hint']}>They can&apos;t be changed once the account exists.</p>
         </div>
