@@ -1,0 +1,539 @@
+<title>Two-line list rows</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a board page of the app's own screens, phone boards side by side, desktop boards scaled to the page width. Tokens are the app's tokens.css. */
+:root {
+  --color-ground: #eeeeeb;
+  --color-panel: #ffffff;
+  --color-border: #e2e2de;
+  --color-ink: #17181a;
+  --color-muted: #5a5d64;
+  --color-accent: #1f7a55;
+  --color-selected: #eaf3ee;
+  --color-bone: #e4e4e0;
+  --color-band: #f4f4f1;
+  --color-income-row: #e8f4ed;
+  --color-transfer-row: #e8eef9;
+  --color-adjustment-row: #f8efdf;
+  --color-danger: #b42318;
+  --color-note: #8a6a1f;
+  --mark-tint: 13%;
+
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-size-2xs: 0.6875rem;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.875rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  --font-size-heading: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.75rem;
+  --font-size-detail-amount: 2.25rem;
+
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius-badge: 0.5rem;
+  --radius-segment: 0.625rem;
+  --radius-action: 0.875rem;
+  --radius-panel: 1.25rem;
+  --radius-full: 999rem;
+
+  --size-dot: 0.5rem;
+  --size-border: 0.0625rem;
+  --size-mark: 1.75rem;
+  --size-sidebar: 14.5rem;
+  --size-details: 22.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+    --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-selected: #16241d; --color-bone: #24272b;
+    --color-band: #1e2125; --color-income-row: #14241c; --color-transfer-row: #172131;
+    --color-adjustment-row: #2a2216; --color-danger: #ff7a6b; --color-note: #f2a541; --mark-tint: 20%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+  --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-selected: #16241d; --color-bone: #24272b;
+  --color-band: #1e2125; --color-income-row: #14241c; --color-transfer-row: #172131;
+  --color-adjustment-row: #2a2216; --color-danger: #ff7a6b; --color-note: #f2a541; --mark-tint: 20%;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  color: var(--color-ink);
+  background: var(--color-ground);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+* { scrollbar-width: none; }
+
+.sheet {
+  max-width: 84rem;
+  margin: 0 auto;
+  padding-block: var(--space-6) var(--space-8);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.intro { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+.intro h1 { margin: 0; font-size: var(--font-size-3xl); letter-spacing: -0.02em; text-wrap: balance; }
+.intro p { margin: var(--space-2) 0 0; max-width: 46rem; color: var(--color-muted); }
+.themes { display: flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-panel); }
+.themes button {
+  font: inherit; font-size: var(--font-size-sm); border: 0; cursor: pointer;
+  padding: var(--space-1-5) var(--space-3); border-radius: var(--radius-full);
+  color: var(--color-muted); background: transparent;
+}
+.themes button[aria-pressed="true"] { color: var(--color-ink); background: var(--color-band); font-weight: 600; }
+.themes button:focus-visible { outline: 2px solid var(--color-ink); }
+
+section > h2 { margin: 0; font-size: var(--font-size-xl); }
+section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-muted); max-width: 52rem; }
+.boards { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start; }
+.variant { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.variant.wide { width: 100%; }
+.variantHead { display: flex; flex-direction: column; gap: var(--space-0-5); max-width: 40rem; }
+.variantHead b { font-size: var(--font-size-lg); }
+.variantHead span { font-size: var(--font-size-sm); color: var(--color-muted); }
+.frame { width: 100%; overflow: hidden; border-radius: var(--radius-panel); outline: var(--size-border) solid var(--color-border); }
+.board { background: var(--color-ground); transform-origin: 0 0; }
+
+/* phone page */
+.phone { width: 390px; padding: var(--space-4); }
+.pageTitle { margin: 0; font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.pageTitle small { margin-left: var(--space-2); font-size: var(--font-size-heading); color: var(--color-muted); font-weight: 500; letter-spacing: 0; }
+.chips { display: flex; gap: var(--space-1-5); margin-top: var(--space-3); overflow: hidden; }
+.chip { flex: none; padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); background: var(--color-panel); font-size: var(--font-size-sm); }
+.panel { background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-3) var(--space-3-5); margin-top: var(--space-3); }
+
+/* list */
+.list { display: grid; column-gap: var(--space-2-5); }
+.list.stack { grid-template-columns: var(--size-dot) minmax(0, 1fr) max-content; }
+.list.cols { grid-template-columns: var(--size-dot) minmax(0, 1fr) max-content max-content; }
+.colHead, .dayHead, .row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.colHead { min-height: 2rem; font-size: var(--font-size-2xs); color: var(--color-muted); border-bottom: var(--size-border) solid var(--color-border); }
+.colHead span:first-child { grid-column: 2; }
+.r { text-align: right; }
+.dayHead {
+  min-height: 1.5rem; margin: var(--space-1) calc(var(--space-2) * -1); padding: 0 var(--space-2);
+  border-radius: var(--radius-badge); background: var(--color-band); font-size: var(--font-size-xs);
+}
+.dayHead b { grid-column: 1 / -2; font-weight: 600; }
+.dayHead span { grid-column: -2; justify-self: end; color: var(--color-muted); }
+.row {
+  --tint: transparent;
+  position: relative; isolation: isolate;
+  min-height: 2.75rem; padding-block: var(--space-1-5);
+  font-size: var(--font-size-sm);
+}
+.row + .row { border-top: var(--size-border) solid var(--color-border); }
+.row::before {
+  content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1;
+  border-radius: var(--radius-badge); background: var(--tint);
+}
+.row.income { --tint: var(--color-income-row); }
+.row.transfer { --tint: var(--color-transfer-row); }
+.row.adjustment { --tint: var(--color-adjustment-row); }
+.row.selected::before { background: color-mix(in oklab, var(--tint, var(--color-panel)), var(--color-ink) 10%); }
+.row.selected:not(.income):not(.transfer):not(.adjustment)::before { background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
+.dot { width: var(--size-dot); height: var(--size-dot); border-radius: var(--radius-full); background: currentColor; align-self: center; }
+.text { min-width: 0; display: flex; flex-direction: column; }
+.title, .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { font-size: var(--font-size-2xs); color: var(--color-muted); line-height: 1.35; }
+.amounts { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.amount { font-weight: 500; text-align: right; white-space: nowrap; }
+.amount.in { color: var(--color-accent); }
+.orig { font-size: var(--font-size-2xs); color: var(--color-muted); text-align: right; white-space: nowrap; line-height: 1.35; }
+.info { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-muted); }
+.struck { text-decoration: line-through; color: var(--color-muted); }
+
+/* desktop page */
+.desktop { width: 1280px; height: 800px; padding: var(--space-4); display: flex; gap: var(--space-6); overflow: hidden; }
+.sidebar {
+  flex: none; width: var(--size-sidebar); align-self: flex-start;
+  padding: var(--space-5) var(--space-4); border-radius: var(--radius-panel); background: var(--color-panel);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.logo { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-1) var(--space-3); font-size: var(--font-size-xl); font-weight: 700; }
+.logo i { width: 0.6rem; height: 0.6rem; border-radius: 0.15rem; background: #2bb07f; }
+.addBtn { padding: var(--space-3); border-radius: var(--radius-action); background: var(--color-bone); text-align: center; font-weight: 600; margin-bottom: var(--space-3); }
+.nav { padding: var(--space-3) var(--space-3); border-radius: var(--radius-action); color: var(--color-muted); display: flex; justify-content: space-between; align-items: center; }
+.nav.on { background: var(--color-ground); color: var(--color-ink); font-weight: 600; }
+.nav.soon { opacity: 0.7; }
+.nav em { font-style: normal; font-size: var(--font-size-xs); padding: 0 var(--space-2); border-radius: var(--radius-full); background: var(--color-band); }
+.main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.topRow { display: flex; justify-content: space-between; align-items: center; min-height: 3rem; }
+.avatar { width: 3rem; height: 3rem; border-radius: var(--radius-full); background: var(--color-panel); display: grid; place-items: center; font-weight: 600; font-size: var(--font-size-md); }
+.desktop .chips { margin-top: var(--space-4); }
+.desktop .chip { font-size: var(--font-size-md); padding: var(--space-1-5) var(--space-3-5); }
+.content { display: flex; gap: var(--space-4); align-items: flex-start; margin-top: var(--space-4); min-height: 0; }
+.desktop .panel { margin-top: 0; padding: var(--space-2) var(--space-5) var(--space-4); flex: 1 1 auto; min-width: 0; }
+.desktop .panel.narrow { flex: 0 1 42rem; }
+.desktop .list { column-gap: var(--space-4); }
+.desktop .list.info3 { grid-template-columns: var(--size-dot) minmax(12rem, 1.2fr) minmax(0, 1fr) max-content; }
+.desktop .list.table { grid-template-columns: var(--size-dot) minmax(12rem, 1.3fr) minmax(0, 0.8fr) minmax(0, 1fr) 8.75rem 8.75rem; }
+.desktop .colHead { min-height: 2.25rem; font-size: var(--font-size-xs); font-weight: 500; border-bottom: 0; }
+.desktop .dayHead { min-height: 1.875rem; border-radius: var(--radius-segment); font-size: var(--font-size-sm); }
+.desktop .row { min-height: 3.25rem; font-size: var(--font-size-base); }
+.desktop .row + .row { border-top: 0; }
+.desktop .row::before { border-radius: var(--radius-segment); }
+.desktop .sub, .desktop .orig { font-size: var(--font-size-sm); }
+.desktop .info { font-size: var(--font-size-md); }
+.ghost {
+  flex: 0 0 var(--size-details); align-self: stretch; max-height: 20rem;
+  border: 2px dashed var(--color-border); border-radius: var(--radius-panel);
+  display: grid; place-items: center; text-align: center; padding: var(--space-6);
+  color: var(--color-muted); font-size: var(--font-size-sm);
+}
+.details { flex: 0 0 var(--size-details); background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+.dHead { display: flex; justify-content: space-between; gap: var(--space-3); }
+.meta { font-size: var(--font-size-sm); color: var(--color-muted); }
+.dTitle { margin: var(--space-1) 0 0; font-size: var(--font-size-heading); font-weight: 600; }
+.close { font-size: var(--font-size-2xl); color: var(--color-muted); line-height: 1; }
+.big { font-size: var(--font-size-detail-amount); font-weight: 600; line-height: 1.1; letter-spacing: -0.03em; }
+.postings { padding: var(--space-1) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.postings h4 { margin: 0; padding: var(--space-2-5) 0 var(--space-1); font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); }
+.posting { min-height: 3.25rem; display: flex; align-items: center; gap: var(--space-3); }
+.posting .text { flex: 1 1 auto; }
+.del { min-height: 3.25rem; border-radius: var(--radius-action); background: var(--color-ground); display: grid; place-items: center; color: var(--color-danger); font-weight: 600; }
+
+/* accounts */
+.toolbar { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
+.search { width: 20rem; padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-full); background: var(--color-panel); color: var(--color-muted); }
+.newBtn { padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-full); background: var(--color-ink); color: var(--color-panel); font-weight: 500; }
+.alist { display: grid; column-gap: var(--space-4); }
+.alist.stack { grid-template-columns: var(--size-mark) minmax(0, 1fr) max-content; }
+.alist.info3 { grid-template-columns: var(--size-mark) minmax(12rem, 1fr) minmax(0, 1fr) max-content; }
+.alist.table { grid-template-columns: var(--size-mark) minmax(12rem, 1fr) minmax(0, 1fr) 8.75rem 8.75rem; }
+.alist .colHead span:first-child { grid-column: 2; }
+.groupHead {
+  grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center;
+  min-height: 2.5rem; margin: var(--space-1-5) calc(var(--space-2) * -1) 0; padding: 0 var(--space-2);
+  border-radius: var(--radius-segment); background: var(--color-band); font-size: var(--font-size-md); font-weight: 700;
+}
+.groupHead b { grid-column: 1 / -2; }
+.groupHead span { grid-column: -2; justify-self: end; }
+.acc { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 3.5rem; padding-block: var(--space-1-5); }
+.acc .title { font-size: var(--font-size-base); font-weight: 500; }
+.acc .sub { font-size: var(--font-size-sm); }
+.mark {
+  width: var(--size-mark); height: var(--size-mark); border-radius: var(--radius-full); display: grid; place-items: center;
+  font-size: var(--font-size-sm); font-weight: 600; color: var(--c);
+  background: color-mix(in oklab, var(--c) var(--mark-tint), var(--color-panel));
+}
+.bal { font-weight: 700; text-align: right; white-space: nowrap; }
+.own { font-size: var(--font-size-sm); color: var(--color-muted); text-align: right; white-space: nowrap; }
+.debt { color: var(--color-danger); }
+.acc .amounts .orig { font-size: var(--font-size-sm); }
+
+.aHead { display: flex; gap: var(--space-3); align-items: center; }
+.mark.big { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-segment); font-size: var(--font-size-lg); }
+.desc { margin: 0; font-size: var(--font-size-md); color: var(--color-muted); }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+.tiles span { min-height: 4rem; border-radius: var(--radius-action); background: var(--color-ground); display: grid; place-items: center; font-size: var(--font-size-sm); font-weight: 600; text-align: center; }
+.hint { font-size: var(--font-size-sm); color: var(--color-muted); text-align: center; margin-top: calc(var(--space-2) * -1); }
+.homeTop { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); }
+.homeTop .panel { padding: var(--space-4) var(--space-5); }
+.phone .total { font-size: 2rem; }
+.phone .cards { overflow: hidden; }
+.phone .card { flex-basis: 10rem; }
+.balHead { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.balHead b { font-weight: 600; }
+.ok { color: var(--color-accent); }
+.total { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.cards { display: flex; gap: var(--space-3); margin-top: var(--space-3); }
+.card { flex: 0 0 13rem; padding: var(--space-3) var(--space-4); border-radius: var(--radius-action); background: var(--color-ground); }
+.card.on { background: var(--color-selected); }
+.cardHead { display: flex; gap: var(--space-2-5); align-items: center; }
+.cardHead .title { font-weight: 500; }
+.cardHead .sub { font-size: var(--font-size-xs); }
+.cardAmount { margin-top: var(--space-3); font-size: var(--font-size-tile-amount, 1.0625rem); font-weight: 700; }
+.bar { position: relative; height: 0.5rem; margin: var(--space-3) 0; border-radius: var(--radius-full); background: var(--color-bone); }
+.bar i { position: absolute; inset: 0 35% 0 0; border-radius: inherit; background: var(--color-accent); }
+.bar em { position: absolute; left: 30%; top: -0.25rem; bottom: -0.25rem; width: 2px; background: var(--color-ink); }
+.desktop .panel.recent { padding-top: var(--space-3); }
+.panelTitle { font-size: var(--font-size-lg); }
+.notes { margin: 0; padding-left: var(--space-5); color: var(--color-muted); font-size: var(--font-size-sm); display: flex; flex-direction: column; gap: var(--space-1); max-width: 52rem; }
+.notes b { color: var(--color-ink); font-weight: 600; }
+</style>
+
+<div class="sheet">
+  <header class="intro">
+    <div>
+      <h1>Two-line list rows</h1>
+      <p>The account moves under the transaction together with its currency and, outside USD, its rate; the Account and Rate columns go. The same for the accounts list on desktop. Base currency USD in every board.</p>
+    </div>
+    <div class="themes" role="group" aria-label="Theme">
+      <button type="button" id="theme-system" data-theme-choice="">System</button>
+      <button type="button" id="theme-light" data-theme-choice="light">Light</button>
+      <button type="button" id="theme-dark" data-theme-choice="dark">Dark</button>
+    </div>
+  </header>
+
+  <section>
+    <h2>1 · Transactions on a phone</h2>
+    <p class="lead">Agreed: 1A. The second line reads account · currency · rate; a transfer shows Transfer as its title and From → To under it; the account's own amount sits under the USD amount.</p>
+    <div class="boards" id="phoneBoards"></div>
+  </section>
+
+  <section>
+    <h2>2 · Transactions on desktop (1280 px)</h2>
+    <p class="lead">Agreed: 2A, with the details always open. Rows as on the phone, at desktop sizes.</p>
+    <div class="boards" id="txDesktopBoards"></div>
+  </section>
+
+  <section>
+    <h2>3 · Accounts on desktop (1280 px)</h2>
+    <p class="lead">Agreed: 3A, with the details always open. Currency and rate move under the name, as on the phone; the Rate column goes and the two balances stack (USD over the account's own).</p>
+    <div class="boards" id="accDesktopBoards"></div>
+  </section>
+
+  <section>
+    <h2>4 · Home</h2>
+    <p class="lead">Agreed: 4B. Recent shares the rows of the Transactions list; on desktop it keeps a reading width with the top transaction's details beside it.</p>
+    <div class="boards" id="homeBoards"></div>
+  </section>
+
+  <section>
+    <h2>What changes besides the layout</h2>
+    <ul class="notes">
+      <li><b>Details are always open on desktop</b> in Transactions, Accounts and Recent on Home: with nothing chosen, the top row's details show, without a close button. A phone opens nothing until a row is tapped.</li>
+      <li><b>Currency always shows</b> on the second line, also for USD accounts (as the Accounts list does: Wallet · USD); the rate shows only outside USD.</li>
+      <li><b>A transfer's title becomes Transfer</b>, and From → To moves to the second line, so the title is never cut by long account names.</li>
+      <li><b>Rows grow</b> from 32 to 44 px on a phone and from 36 to 52 px on desktop, so a screen holds fewer of them; Recent on Home gets the same rows.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const BASE = 'USD';
+  const COLORS = { green: '#2bb07f', blue: '#4b8fd6', purple: '#6b6fe0', orange: '#e0793b', pink: '#d0508a', teal: '#2aa6a6', gold: '#c9a227', red: '#d9534f' };
+
+  const money = (amount, currency, sign = 'exceptZero') =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', signDisplay: sign }).format(amount);
+  const rate = (value) => value.toFixed(4);
+  const name = (account) => account.deleted ? `<span class="struck">${account.name}</span>` : account.name;
+
+  const days = [
+    { label: 'Today', total: -13043.60, rows: [
+      { type: 'transfer', title: 'Transfer', accounts: [{ name: 'Wallet 2', deleted: true }, { name: 'Wallet' }], color: COLORS.blue, currency: 'USD', orig: 389.10, base: 389.10, sign: 'auto', location: null, comment: null, selected: true },
+      { type: 'adjustment', title: 'Adjustment', accounts: [{ name: 'Savings', deleted: true }], color: COLORS.green, currency: 'GEL', rate: 2.5184, orig: -41571.52, base: -16507.00, location: null, comment: 'Bank statement' },
+      { type: 'expense', title: 'Groceries', accounts: [{ name: 'Wallet 2', deleted: true }], color: COLORS.blue, currency: 'USD', orig: -42.10, base: -42.10, location: 'Spar', comment: null },
+      { type: 'expense', title: 'Coffee', accounts: [{ name: 'Wallet' }], color: COLORS.blue, currency: 'USD', orig: -4.50, base: -4.50, location: 'Coffee Lab', comment: 'With Anna' },
+      { type: 'income', title: 'Salary', accounts: [{ name: 'Main card' }], color: COLORS.purple, currency: 'EUR', rate: 0.8547, orig: 3000, base: 3510, location: null, comment: 'October' },
+    ] },
+    { label: 'Sun, 08.11.2026', total: -1603.00, rows: [
+      { type: 'expense', title: 'Rent', accounts: [{ name: 'Main card' }], color: COLORS.purple, currency: 'EUR', rate: 0.8547, orig: -900, base: -1053, location: null, comment: 'November' },
+      { type: 'adjustment', title: 'Adjustment', accounts: [{ name: 'Crypto' }], color: COLORS.green, currency: 'USD', orig: -550, base: -550, location: null, comment: null },
+    ] },
+  ];
+
+  const accountsText = (row) => row.accounts.map(name).join(' → ');
+  const isForeign = (row) => row.currency !== BASE;
+  const subLine = (row) => [accountsText(row), row.currency, isForeign(row) ? rate(row.rate) : null].filter(Boolean).join(' · ');
+  const baseAmount = (row) => `<span class="amount${row.type === 'income' ? ' in' : ''}">${money(row.base, BASE, row.sign)}</span>`;
+  const origAmount = (row) => isForeign(row) ? `<span class="orig">${money(row.orig, row.currency, row.sign)}</span>` : '';
+  const rowClass = (row) => `row ${row.type}${row.selected ? ' selected' : ''}`;
+  const dot = (row) => `<span class="dot" style="color:${row.color}"></span>`;
+  const text = (title, sub) => `<span class="text"><span class="title">${title}</span><span class="sub">${sub}</span></span>`;
+  const dayHead = (day) => `<div class="dayHead"><b>${day.label}</b><span>${money(day.total, BASE)}</span></div>`;
+
+  const rowRenderers = {
+    stacked: (row) => `<div class="${rowClass(row)}">${dot(row)}${text(row.title, subLine(row))}<span class="amounts">${baseAmount(row)}${origAmount(row)}</span></div>`,
+  };
+
+  const txList = ({ listClass, header, render }) =>
+    `<div class="list ${listClass}">${header ?? ''}${days.map((day) => dayHead(day) + day.rows.map(render).join('')).join('')}</div>`;
+
+  const chipsHtml = `<div class="chips">${['Period', 'Type', 'Accounts', 'Categories', 'Income', 'Amount', 'Sort'].map((chip) => `<span class="chip">${chip}</span>`).join('')}</div>`;
+
+  const phoneBoard = (list) => `
+    <div class="board phone">
+      <h3 class="pageTitle">Transactions<small>-$14,646.60</small></h3>
+      ${chipsHtml}
+      <div class="panel">${list}</div>
+    </div>`;
+
+  const sidebar = (active) => `
+    <aside class="sidebar">
+      <div class="logo"><i></i>finance</div>
+      <div class="addBtn">+ Add transaction</div>
+      ${['Home', 'Transactions', 'Accounts'].map((item) => `<div class="nav${item === active ? ' on' : ''}">${item}</div>`).join('')}
+      <div class="nav soon">Categories<em>Soon</em></div>
+    </aside>`;
+
+  const transactionDetails = `
+    <aside class="details">
+      <div class="dHead"><div><div class="meta">Transfer · Mon, 09.11.2026</div><h4 class="dTitle">Transfer <span class="struck">Wallet 2</span> → Wallet</h4></div></div>
+      <div class="big">$389.10</div>
+      <div class="postings"><h4>Postings</h4>
+        <div class="posting"><span class="dot" style="color:${COLORS.blue}"></span><span class="text"><span>Wallet ›</span><span class="sub">Asset · USD</span></span><span class="amount">+$389.10</span></div>
+        <div class="posting"><span class="dot" style="color:${COLORS.blue}"></span><span class="text"><span class="struck">Wallet 2</span><span class="sub">Asset · USD</span></span><span class="amount">-$389.10</span></div>
+      </div>
+      <div class="del">Delete transaction</div>
+    </aside>`;
+
+  const desktopBoard = ({ active, title, count, toolbar, content }) => `
+    <div class="board desktop">
+      ${sidebar(active)}
+      <div class="main">
+        <div class="topRow"><h3 class="pageTitle">${title}<small>${count}</small></h3><span class="avatar">FI</span></div>
+        ${toolbar}
+        <div class="content">${content}</div>
+      </div>
+    </div>`;
+
+  const variant = ({ id, name, note, board, wide }) =>
+    `<div class="variant${wide ? ' wide' : ''}" id="${id}"><div class="variantHead"><b>${name}</b><span>${note}</span></div><div class="frame" data-board-width="${wide ? 1280 : 390}">${board}</div></div>`;
+
+  document.getElementById('phoneBoards').innerHTML = [
+    variant({ id: 'transactions-phone', name: '1A · Under the USD amount', note: 'Right side: the USD amount, the account\'s amount under it. One column of amounts, no column header.',
+      board: phoneBoard(txList({ listClass: 'stack', render: rowRenderers.stacked })) }),
+  ].join('');
+
+  const txToolbar = chipsHtml;
+  document.getElementById('txDesktopBoards').innerHTML = [
+    variant({ id: 'transactions-desktop', wide: true, name: '2A · Narrow list, details always open', note: 'The list keeps a reading width (42rem) on the left; the details always show beside it. With no transaction chosen, the top one opens; desktop drops the × since there is nothing to close to.',
+      board: desktopBoard({ active: 'Transactions', title: 'Transactions', count: '-$14,646.60', toolbar: txToolbar,
+        content: `<div class="panel narrow">${txList({ listClass: 'stack', render: rowRenderers.stacked })}</div>${transactionDetails}` }) }),
+  ].join('');
+
+  const RATES = { USD: 1, EUR: 0.8547, GEL: 2.5174 };
+  const groups = [
+    { label: 'Assets', accounts: [
+      { name: 'Main card', currency: 'EUR', balance: 12450, color: COLORS.purple, description: 'Salary card', selected: true },
+      { name: 'Wallet', currency: 'USD', balance: 389.10, color: COLORS.blue, description: null },
+      { name: 'Travel card', currency: 'EUR', balance: 523.33, color: COLORS.teal, description: 'Revolut, for trips' },
+      { name: 'Deposit', currency: 'GEL', balance: 1145.70, color: COLORS.pink, description: 'TBC, 12 months at 9%' },
+      { name: 'Brokerage', currency: 'USD', balance: 380, color: COLORS.blue, description: 'IBKR' },
+    ] },
+    { label: 'Liabilities', accounts: [
+      { name: 'Mortgage', currency: 'USD', balance: -84000, color: COLORS.orange, description: 'Until 2041' },
+      { name: 'Car loan', currency: 'USD', balance: -6200, color: COLORS.red, description: null },
+      { name: 'Intesa credit', currency: 'EUR', balance: -1240, color: COLORS.purple, description: 'Consumer loan' },
+      { name: 'Credit card', currency: 'USD', balance: -318.40, color: COLORS.gold, description: null },
+    ] },
+  ];
+  const inBase = (account) => account.balance / RATES[account.currency];
+  const accountSub = (account) => [account.currency, account.currency !== BASE ? rate(RATES[account.currency]) : null].filter(Boolean).join(' · ');
+  const mark = (account) => `<span class="mark" style="--c:${account.color}">${account.name[0]}</span>`;
+  const debt = (account) => account.balance < 0 ? ' debt' : '';
+  const accText = (account) => `<span class="text"><span class="title">${account.name}</span><span class="sub">${accountSub(account)}</span></span>`;
+  const stackedBalance = (account) => `<span class="amounts"><span class="bal${debt(account)}">${money(inBase(account), BASE, 'auto')}</span>${account.currency !== BASE ? `<span class="orig${debt(account)}">${money(account.balance, account.currency, 'auto')}</span>` : ''}</span>`;
+  const accountRenderers = {
+    stacked: (account) => `<div class="acc${account.selected ? ' row selected' : ''}">${mark(account)}${accText(account)}${stackedBalance(account)}</div>`,
+  };
+  const groupTotal = (group) => group.accounts.reduce((total, account) => total + inBase(account), 0);
+  const accList = ({ listClass, header, render }) =>
+    `<div class="alist ${listClass}">${header ?? ''}${groups.map((group) => `<div class="groupHead"><b>${group.label}</b><span class="${groupTotal(group) < 0 ? 'debt' : ''}">${money(groupTotal(group), BASE, 'auto')}</span></div>${group.accounts.map(render).join('')}`).join('')}</div>`;
+  const accToolbar = '<div class="toolbar"><span class="search">Search accounts</span><span class="newBtn">+ New account</span></div>';
+  const mainCard = groups[0].accounts[0];
+  const accountDetails = `
+    <aside class="details">
+      <div class="aHead"><span class="mark big" style="--c:${mainCard.color}">M</span><div><div class="meta">Asset · EUR</div><h4 class="dTitle">Main card</h4></div></div>
+      <div><div class="big">${money(mainCard.balance, 'EUR', 'auto')}</div><div class="meta">${money(inBase(mainCard), BASE, 'auto')} · rate ${rate(RATES.EUR)}</div></div>
+      <p class="desc">Salary card</p>
+      <div class="tiles"><span>Adjust balance</span><span>Edit</span><span>Transactions</span></div>
+      <div class="del">Delete account</div>
+      <div class="hint">Bring the balance to zero to delete the account.</div>
+    </aside>`;
+
+  document.getElementById('accDesktopBoards').innerHTML = [
+    variant({ id: 'accounts-desktop', wide: true, name: '3A · Narrow list, details always open', note: 'Rows as on the phone. The account details always show beside the list; with no account chosen, the top one opens.',
+      board: desktopBoard({ active: 'Accounts', title: 'Accounts', count: '9', toolbar: accToolbar,
+        content: `<div class="panel narrow">${accList({ listClass: 'stack', header: '<div class="colHead"><span>Account</span><span class="r">In USD</span></div>', render: accountRenderers.stacked })}</div>${accountDetails}` }) }),
+  ].join('');
+
+  const homeCards = [mainCard, groups[0].accounts[1], groups[0].accounts[3]].map((account) => `
+    <div class="card${account === mainCard ? ' on' : ''}"><div class="cardHead">${mark(account)}<div class="text"><span class="title">${account.name}</span><span class="sub">${accountSub(account)}</span></div></div>
+    <div class="cardAmount">${money(inBase(account), BASE, 'auto')}</div>${account.currency !== BASE ? `<div class="sub">${money(account.balance, account.currency, 'auto')}</div>` : ''}</div>`).join('');
+  const homeTop = `
+    <div class="homeTop">
+      <div class="panel"><div class="balHead"><span class="meta">Total balance · USD</span><span class="meta">All</span></div><div class="total">$40,637.52</div><div class="cards">${homeCards}</div></div>
+      <div class="panel"><div class="balHead"><b>This month</b><span class="meta">Left <b class="ok">$1,240.00</b></span></div><div class="bar"><i></i><em></em></div><div class="balHead"><span class="meta">Spent <b>-$2,270.00</b></span><span class="meta">Earned <b>$3,510.00</b></span></div></div>
+    </div>`;
+  const recentPanel = (extraClass) => `<div class="panel recent ${extraClass}"><div class="balHead"><b class="panelTitle">Recent transactions</b><span class="meta">All</span></div>${txList({ listClass: 'stack', render: rowRenderers.stacked })}</div>`;
+  const homeBoard = (bottom) => `
+    <div class="board desktop" style="height: 1040px">
+      ${sidebar('Home')}
+      <div class="main">
+        <div class="topRow"><h3 class="pageTitle">Home</h3><span class="avatar">FI</span></div>
+        ${homeTop}
+        <div class="content">${bottom}</div>
+      </div>
+    </div>`;
+  const homePhoneBoard = `
+    <div class="board phone">
+      <h3 class="pageTitle">Home</h3>
+      <div class="panel"><div class="balHead"><span class="meta">Total balance · USD</span><span class="meta">All</span></div><div class="total">$40,637.52</div><div class="cards">${homeCards}</div></div>
+      <div class="panel"><div class="balHead"><b>This month</b><span class="meta">Left <b class="ok">$1,240.00</b></span></div><div class="bar"><i></i><em></em></div><div class="balHead"><span class="meta">Spent <b>-$2,270.00</b></span><span class="meta">Earned <b>$3,510.00</b></span></div></div>
+      <div class="panel"><div class="balHead"><b class="panelTitle">Recent transactions</b><span class="meta">All</span></div>${txList({ listClass: 'stack', render: rowRenderers.stacked }).replaceAll(' selected', '')}</div>
+    </div>`;
+  document.getElementById('homeBoards').innerHTML = [
+    variant({ id: 'home-phone', name: 'Home on a phone', note: 'Recent with the two-line rows; nothing opens until a row is tapped.', board: homePhoneBoard }),
+    variant({ id: 'home-desktop', wide: true, name: '4B · Recent narrow, details always open', note: 'As on Transactions: Recent keeps a reading width and the details of the top transaction show beside it until another is chosen.',
+      board: homeBoard(`${recentPanel('narrow')}${transactionDetails}`) }),
+  ].join('');
+
+  const params = new URLSearchParams(location.search);
+  const screen = params.get('screen');
+  if (screen) {
+    const board = document.querySelector(`#${screen} .board`);
+    document.documentElement.dataset.theme = params.get('theme') ?? 'dark';
+    document.body.replaceChildren(board);
+    document.body.style.width = 'max-content';
+    return;
+  }
+
+  const fitBoards = () => {
+    document.querySelectorAll('.frame').forEach((frame) => {
+      const board = frame.firstElementChild;
+      const width = Number(frame.dataset.boardWidth);
+      const available = frame.parentElement.clientWidth;
+      const scale = Math.min(1, available / width);
+      board.style.transform = `scale(${scale})`;
+      frame.style.width = `${width * scale}px`;
+      frame.style.height = `${board.offsetHeight * scale}px`;
+    });
+  };
+  new ResizeObserver(fitBoards).observe(document.querySelector('.sheet'));
+  document.fonts?.ready.then(fitBoards);
+  fitBoards();
+
+  const buttons = document.querySelectorAll('[data-theme-choice]');
+  const applyTheme = (choice) => {
+    if (choice) document.documentElement.dataset.theme = choice;
+    else delete document.documentElement.dataset.theme;
+    buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === choice)));
+    try { localStorage.setItem('list-rows-theme', choice); } catch {}
+  };
+  buttons.forEach((button) => button.addEventListener('click', () => applyTheme(button.dataset.themeChoice)));
+  let saved = '';
+  try { saved = localStorage.getItem('list-rows-theme') ?? ''; } catch {}
+  applyTheme(saved);
+})();
+</script>
