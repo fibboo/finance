@@ -1,0 +1,208 @@
+:root {
+  color-scheme: light dark;
+
+  --color-ground: light-dark(#eeeeeb, #0b0c0e);
+  --color-panel: light-dark(#ffffff, #17191c);
+  --color-border: light-dark(#e2e2de, #2a2d32);
+  --color-ink: light-dark(#17181a, #ecedee);
+  --color-muted: light-dark(#5a5d64, #9a9ea6);
+  --color-accent: light-dark(#1f7a55, #4cc38a);
+  --color-selected: light-dark(#eaf3ee, #16241d);
+  --color-bone: light-dark(#e4e4e0, #24272b);
+  --color-band: light-dark(#f4f4f1, #1e2125);
+  --color-income-row: light-dark(#e8f4ed, #14241c);
+  --color-transfer-row: light-dark(#e8eef9, #172131);
+  --color-adjustment-row: light-dark(#f8efdf, #2a2216);
+  --color-bone-ground: light-dark(#e0e0db, #1c1f22);
+  --color-shimmer: light-dark(rgb(255 255 255 / 65%), rgb(255 255 255 / 7%));
+  --color-track: light-dark(#dcdcd7, #24272b);
+  --color-danger: light-dark(#b42318, #ff7a6b);
+  --color-on-danger: light-dark(#ffffff, #0b0c0e);
+  --color-warning: light-dark(#b25e09, #f2a541);
+  --color-backdrop: rgb(0 0 0 / 35%);
+  --shadow-bar: 0 0.625rem 1.875rem rgb(0 0 0 / 28%);
+  --shadow-popover: 0 1.125rem 3.125rem light-dark(rgb(0 0 0 / 25%), rgb(0 0 0 / 30%));
+  --shadow-segment: 0 0.0625rem 0.1875rem rgb(0 0 0 / 18%);
+
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-size-2xs: 0.6875rem;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.875rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1rem;
+  --font-size-avatar: 1.0625rem;
+  --font-size-intro: 1.0625rem;
+  --font-size-xl: 1.125rem;
+  --font-size-heading: 1.25rem;
+  --font-size-heading-lg: 1.375rem;
+  --font-size-tile-amount: 1.0625rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.75rem;
+  --font-size-detail-amount: 2.25rem;
+  --font-size-display: 2.5rem;
+  --font-size-display-lg: 3.5rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.5;
+  --line-height-display: 1.08;
+  --line-height-display-lg: 1.05;
+  --line-height-tight: 1.1;
+  --line-height-note: 1.4;
+  --line-height-title: 1.15;
+  --letter-spacing-title: -0.02em;
+  --letter-spacing-amount: -0.01em;
+  --letter-spacing-display: -0.03em;
+  --letter-spacing-label: 0.04em;
+  --letter-spacing-display-lg: -0.035em;
+  --letter-spacing-balance-lg: -0.035em;
+
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  --radius-mark: 0.1875rem;
+  --radius-mark-lg: 0.25rem;
+  --radius-badge: 0.5rem;
+  --radius-provider-mark: 0.5625rem;
+  --radius-segment: 0.625rem;
+  --radius-control: 0.75rem;
+  --radius-track: 0.875rem;
+  --radius-summary: 1rem;
+  --radius-action: 0.875rem;
+  --radius-fab: 1.125rem;
+  --radius-sheet: 1.125rem;
+  --radius-panel: 1.25rem;
+  --radius-bar: 1.375rem;
+  --radius-full: 999rem;
+
+  --size-line: 0.1875rem;
+  --size-skeleton-text-sm: 0.5625rem;
+  --size-skeleton-text: 0.75rem;
+  --size-skeleton-text-lg: 1rem;
+  --size-mark: 0.625rem;
+  --size-mark-lg: 0.875rem;
+  --size-dot: 0.5rem;
+  --size-sheet-handle-thickness: 0.25rem;
+  --size-icon-sm: 1rem;
+  --size-icon-md: 1.125rem;
+  --size-icon: 1.25rem;
+  --size-border: 0.0625rem;
+  --size-focus: 0.125rem;
+  --size-touch: 2.75rem;
+  --size-skeleton-word: 2rem;
+  --size-sheet-handle: 2.25rem;
+  --size-day-header: 1.5rem;
+  --size-day-header-lg: 1.875rem;
+  --size-panel-header: 1.875rem;
+  --size-panel-header-lg: 2.5rem;
+  --size-columns-header: 2rem;
+  --size-chip: 2rem;
+  --size-provider-mark: 2rem;
+  --size-provider-action: 2.25rem;
+  --size-columns-header-lg: 2.25rem;
+  --size-account-mark-xs: 1.5rem;
+  --size-skeleton-code: 2.25rem;
+  --size-skeleton-balance: 2rem;
+  --size-skeleton-balance-lg: 3.125rem;
+  --size-account-mark-sm: 1.75rem;
+  --size-account-mark-lg: 2.5rem;
+  --size-color-swatch: 1.625rem;
+  --size-color-option: 2.375rem;
+  --size-transaction-row: 2rem;
+  --size-transaction-row-lg: 2.25rem;
+  --size-recent-min: calc(
+    var(--size-panel-header) + var(--size-columns-header) + var(--space-1-5) +
+      var(--size-day-header) + var(--size-transaction-row) * 2 + var(--space-1-5)
+  );
+  --size-recent-min-lg: calc(
+    var(--size-panel-header-lg) + var(--size-columns-header-lg) + var(--space-1-5) +
+      var(--size-day-header-lg) + var(--size-transaction-row-lg) * 2 + var(--space-4)
+  );
+  --size-segment: 2.5rem;
+  --size-button: 2.875rem;
+  --size-avatar: 3rem;
+  --size-empty-icon: 3.5rem;
+  --size-option: 3rem;
+  --size-field-lg: 3rem;
+  --size-fab: 2.875rem;
+  --size-button-lg: 3.25rem;
+  --size-option-lg: 3.25rem;
+  --size-posting: 3.25rem;
+  --size-bar-item: 3.125rem;
+  --size-bar: 3.75rem;
+  --size-skeleton-amount: 4.5rem;
+  --size-progress: 7.5rem;
+  --size-skeleton-label: 8rem;
+  --size-skeleton-label-lg: 9.375rem;
+  --size-button-wide: 13.75rem;
+  --size-skeleton-total-lg: 20rem;
+  --size-amount-column-lg: 8.75rem;
+  --size-account-column-lg: 13.75rem;
+  --size-rate-column-lg: 6.25rem;
+  --size-row-label: 5.75rem;
+  --size-stat-tile: 6.5rem;
+  --size-action-tile: 4rem;
+  --size-empty-state: 8.25rem;
+  --size-empty-state-lg: 10rem;
+  --size-account-tile: 11.875rem;
+  --size-sidebar: 14.5rem;
+  --size-popover: 18.75rem;
+  --size-search: 20rem;
+  --size-popover-wide: 21.25rem;
+  --size-actions: 22.5rem;
+  --size-details: 22.5rem;
+  --size-dialog: 27.5rem;
+  --size-picker-results: calc(100dvh - 11.25rem);
+  --size-picker-results-lg: 28.5rem;
+  --size-picker: calc(
+    var(--size-panel-header) + var(--size-touch) + var(--space-3) * 2 + var(--size-picker-results)
+  );
+  --size-picker-lg: calc(
+    var(--size-panel-header) + var(--size-touch) + var(--space-3) * 2 +
+      var(--size-picker-results-lg)
+  );
+  --size-column: 30rem;
+  --size-merge-panel: 35rem;
+  --size-pace-bar: 0.5rem;
+  --opacity-disabled: 0.5;
+  --opacity-hover: 0.8;
+  --opacity-still: 0.5;
+  --opacity-stale: 0.6;
+  --opacity-used-color: 0.25;
+  --duration-fade: 0.2s;
+  --duration-shimmer: 1.4s;
+  --duration-progress: 1.3s;
+  --duration-sheet: 0.25s;
+  --mix-selected-row: 10%;
+  --account-mark-tint-light: 13%;
+  --account-mark-tint-dark: 20%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-sheet: 0s;
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}

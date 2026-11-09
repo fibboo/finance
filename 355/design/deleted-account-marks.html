@@ -1,0 +1,436 @@
+<title>Deleted Account Marks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  color-scheme: light dark;
+
+  --color-ground: light-dark(#eeeeeb, #0b0c0e);
+  --color-panel: light-dark(#ffffff, #17191c);
+  --color-border: light-dark(#e2e2de, #2a2d32);
+  --color-ink: light-dark(#17181a, #ecedee);
+  --color-muted: light-dark(#5a5d64, #9a9ea6);
+  --color-accent: light-dark(#1f7a55, #4cc38a);
+  --color-selected: light-dark(#eaf3ee, #16241d);
+  --color-bone: light-dark(#e4e4e0, #24272b);
+  --color-band: light-dark(#f4f4f1, #1e2125);
+  --color-income-row: light-dark(#e8f4ed, #14241c);
+  --color-transfer-row: light-dark(#e8eef9, #172131);
+  --color-adjustment-row: light-dark(#f8efdf, #2a2216);
+  --color-bone-ground: light-dark(#e0e0db, #1c1f22);
+  --color-shimmer: light-dark(rgb(255 255 255 / 65%), rgb(255 255 255 / 7%));
+  --color-track: light-dark(#dcdcd7, #24272b);
+  --color-danger: light-dark(#b42318, #ff7a6b);
+  --color-on-danger: light-dark(#ffffff, #0b0c0e);
+  --color-warning: light-dark(#b25e09, #f2a541);
+  --color-backdrop: rgb(0 0 0 / 35%);
+  --shadow-bar: 0 0.625rem 1.875rem rgb(0 0 0 / 28%);
+  --shadow-popover: 0 1.125rem 3.125rem light-dark(rgb(0 0 0 / 25%), rgb(0 0 0 / 30%));
+  --shadow-segment: 0 0.0625rem 0.1875rem rgb(0 0 0 / 18%);
+
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-size-2xs: 0.6875rem;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.875rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1rem;
+  --font-size-avatar: 1.0625rem;
+  --font-size-intro: 1.0625rem;
+  --font-size-xl: 1.125rem;
+  --font-size-heading: 1.25rem;
+  --font-size-heading-lg: 1.375rem;
+  --font-size-tile-amount: 1.0625rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.75rem;
+  --font-size-detail-amount: 2.25rem;
+  --font-size-display: 2.5rem;
+  --font-size-display-lg: 3.5rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.5;
+  --line-height-display: 1.08;
+  --line-height-display-lg: 1.05;
+  --line-height-tight: 1.1;
+  --line-height-note: 1.4;
+  --line-height-title: 1.15;
+  --letter-spacing-title: -0.02em;
+  --letter-spacing-amount: -0.01em;
+  --letter-spacing-display: -0.03em;
+  --letter-spacing-label: 0.04em;
+  --letter-spacing-display-lg: -0.035em;
+  --letter-spacing-balance-lg: -0.035em;
+
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  --radius-mark: 0.1875rem;
+  --radius-mark-lg: 0.25rem;
+  --radius-badge: 0.5rem;
+  --radius-provider-mark: 0.5625rem;
+  --radius-segment: 0.625rem;
+  --radius-control: 0.75rem;
+  --radius-track: 0.875rem;
+  --radius-summary: 1rem;
+  --radius-action: 0.875rem;
+  --radius-fab: 1.125rem;
+  --radius-sheet: 1.125rem;
+  --radius-panel: 1.25rem;
+  --radius-bar: 1.375rem;
+  --radius-full: 999rem;
+
+  --size-line: 0.1875rem;
+  --size-skeleton-text-sm: 0.5625rem;
+  --size-skeleton-text: 0.75rem;
+  --size-skeleton-text-lg: 1rem;
+  --size-mark: 0.625rem;
+  --size-mark-lg: 0.875rem;
+  --size-dot: 0.5rem;
+  --size-sheet-handle-thickness: 0.25rem;
+  --size-icon-sm: 1rem;
+  --size-icon-md: 1.125rem;
+  --size-icon: 1.25rem;
+  --size-border: 0.0625rem;
+  --size-focus: 0.125rem;
+  --size-touch: 2.75rem;
+  --size-skeleton-word: 2rem;
+  --size-sheet-handle: 2.25rem;
+  --size-day-header: 1.5rem;
+  --size-day-header-lg: 1.875rem;
+  --size-panel-header: 1.875rem;
+  --size-panel-header-lg: 2.5rem;
+  --size-columns-header: 2rem;
+  --size-chip: 2rem;
+  --size-provider-mark: 2rem;
+  --size-provider-action: 2.25rem;
+  --size-columns-header-lg: 2.25rem;
+  --size-account-mark-xs: 1.5rem;
+  --size-skeleton-code: 2.25rem;
+  --size-skeleton-balance: 2rem;
+  --size-skeleton-balance-lg: 3.125rem;
+  --size-account-mark-sm: 1.75rem;
+  --size-account-mark-lg: 2.5rem;
+  --size-color-swatch: 1.625rem;
+  --size-color-option: 2.375rem;
+  --size-transaction-row: 2rem;
+  --size-transaction-row-lg: 2.25rem;
+  --size-recent-min: calc(
+    var(--size-panel-header) + var(--size-columns-header) + var(--space-1-5) +
+      var(--size-day-header) + var(--size-transaction-row) * 2 + var(--space-1-5)
+  );
+  --size-recent-min-lg: calc(
+    var(--size-panel-header-lg) + var(--size-columns-header-lg) + var(--space-1-5) +
+      var(--size-day-header-lg) + var(--size-transaction-row-lg) * 2 + var(--space-4)
+  );
+  --size-segment: 2.5rem;
+  --size-button: 2.875rem;
+  --size-avatar: 3rem;
+  --size-empty-icon: 3.5rem;
+  --size-option: 3rem;
+  --size-field-lg: 3rem;
+  --size-fab: 2.875rem;
+  --size-button-lg: 3.25rem;
+  --size-option-lg: 3.25rem;
+  --size-posting: 3.25rem;
+  --size-bar-item: 3.125rem;
+  --size-bar: 3.75rem;
+  --size-skeleton-amount: 4.5rem;
+  --size-progress: 7.5rem;
+  --size-skeleton-label: 8rem;
+  --size-skeleton-label-lg: 9.375rem;
+  --size-button-wide: 13.75rem;
+  --size-skeleton-total-lg: 20rem;
+  --size-amount-column-lg: 8.75rem;
+  --size-account-column-lg: 13.75rem;
+  --size-rate-column-lg: 6.25rem;
+  --size-row-label: 5.75rem;
+  --size-stat-tile: 6.5rem;
+  --size-action-tile: 4rem;
+  --size-empty-state: 8.25rem;
+  --size-empty-state-lg: 10rem;
+  --size-account-tile: 11.875rem;
+  --size-sidebar: 14.5rem;
+  --size-popover: 18.75rem;
+  --size-search: 20rem;
+  --size-popover-wide: 21.25rem;
+  --size-actions: 22.5rem;
+  --size-details: 22.5rem;
+  --size-dialog: 27.5rem;
+  --size-picker-results: calc(100dvh - 11.25rem);
+  --size-picker-results-lg: 28.5rem;
+  --size-picker: calc(
+    var(--size-panel-header) + var(--size-touch) + var(--space-3) * 2 + var(--size-picker-results)
+  );
+  --size-picker-lg: calc(
+    var(--size-panel-header) + var(--size-touch) + var(--space-3) * 2 +
+      var(--size-picker-results-lg)
+  );
+  --size-column: 30rem;
+  --size-merge-panel: 35rem;
+  --size-pace-bar: 0.5rem;
+  --opacity-disabled: 0.5;
+  --opacity-hover: 0.8;
+  --opacity-still: 0.5;
+  --opacity-stale: 0.6;
+  --opacity-used-color: 0.25;
+  --duration-fade: 0.2s;
+  --duration-shimmer: 1.4s;
+  --duration-progress: 1.3s;
+  --duration-sheet: 0.25s;
+  --mix-selected-row: 10%;
+  --account-mark-tint-light: 13%;
+  --account-mark-tint-dark: 20%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-sheet: 0s;
+  }
+}
+
+
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-ground);
+  line-height: var(--line-height-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+.panel {
+  background: var(--color-panel);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+}
+.panelTitle { margin: 0; font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); }
+.panelHead { display: flex; justify-content: space-between; align-items: center; min-height: var(--size-panel-header-lg); }
+.all { font-size: var(--font-size-md); color: var(--color-muted); }
+
+/* list */
+.list {
+  display: grid;
+  grid-template-columns: var(--size-dot) minmax(0, 1.3fr) minmax(0, 1fr) max-content max-content max-content;
+  column-gap: var(--space-4);
+}
+.list.phone {
+  grid-template-columns: var(--size-dot) minmax(0, 1.2fr) minmax(0, 1fr) max-content max-content max-content;
+  column-gap: var(--space-1);
+}
+.columns, .dayHeader, .row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.columns { min-height: var(--size-columns-header-lg); font-size: var(--font-size-md); color: var(--color-muted); border-bottom: var(--size-border) solid var(--color-border); }
+.phone .columns { min-height: var(--size-columns-header); font-size: var(--font-size-2xs); }
+.columns .r { text-align: right; }
+.dayHeader {
+  min-height: var(--size-day-header-lg);
+  margin: var(--space-1) calc(var(--space-2) * -1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-badge);
+  background: var(--color-band);
+  font-size: var(--font-size-md);
+}
+.phone .dayHeader { min-height: var(--size-day-header); font-size: var(--font-size-xs); }
+.dayHeader b { grid-column: 1 / 5; font-weight: var(--font-weight-semibold); }
+.phone .dayHeader b { grid-column: 1 / 4; }
+.dayHeader span { grid-column: 5; justify-self: end; color: var(--color-muted); }
+.phone .dayHeader span { grid-column: 5; }
+
+.row {
+  --row-tint: var(--color-panel);
+  position: relative;
+  isolation: isolate;
+  min-height: var(--size-transaction-row-lg);
+  font-size: var(--font-size-base);
+}
+.phone .row { min-height: var(--size-transaction-row); font-size: var(--font-size-sm); }
+.row + .row { border-top: var(--size-border) solid var(--color-border); }
+.row::before {
+  content: '';
+  position: absolute;
+  inset: var(--space-1-5) calc(var(--space-2) * -1);
+  z-index: -1;
+  border-radius: var(--radius-segment);
+  background: var(--row-tint);
+}
+.row.transfer { --row-tint: var(--color-transfer-row); }
+.row.adjustment { --row-tint: var(--color-adjustment-row); }
+.row.income { --row-tint: var(--color-income-row); }
+.row.selected::before { background: color-mix(in oklab, var(--row-tint), var(--color-ink) var(--mix-selected-row)); }
+.dot { width: var(--size-dot); height: var(--size-dot); border-radius: var(--radius-full); background: currentColor; }
+.title, .wide, .accounts { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wide { grid-column: span 2; }
+.accounts { font-size: var(--font-size-md); color: var(--color-muted); }
+.phone .accounts { font-size: var(--font-size-xs); }
+.orig { font-size: var(--font-size-md); color: var(--color-muted); text-align: right; white-space: nowrap; }
+.phone .orig { font-size: var(--font-size-2xs); }
+.amount { font-weight: var(--font-weight-medium); text-align: right; white-space: nowrap; }
+.amount.in { color: var(--color-accent); }
+.rate { font-size: var(--font-size-md); color: var(--color-muted); text-align: right; white-space: nowrap; }
+.phone .rate { display: none; }
+
+/* details */
+.details { display: flex; flex-direction: column; gap: var(--space-4); }
+.dHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.meta { font-size: var(--font-size-sm); color: var(--color-muted); }
+.dTitle { margin: var(--space-1) 0 0; font-size: var(--font-size-heading); font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
+.close { font-size: var(--font-size-2xl); color: var(--color-muted); line-height: 1; }
+.bigAmount { font-size: var(--font-size-detail-amount); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); letter-spacing: var(--letter-spacing-display); }
+.baseAmount { font-size: var(--font-size-md); color: var(--color-muted); }
+.postings { padding: var(--space-1) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.postingsTitle { margin: 0; padding: var(--space-2-5) 0 var(--space-1); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-label); text-transform: uppercase; color: var(--color-muted); }
+.posting { min-height: var(--size-posting); display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-base); }
+.posting .dot { flex: none; }
+.dotSpace { flex: none; width: var(--size-dot); }
+.account { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.amounts { display: flex; flex-direction: column; align-items: flex-end; font-weight: var(--font-weight-medium); white-space: nowrap; }
+.note { font-size: var(--font-size-xs); font-weight: normal; color: var(--color-muted); }
+.deleteBtn {
+  min-height: var(--size-button-lg); border-radius: var(--radius-action); background: var(--color-ground);
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+  color: var(--color-danger); font-weight: var(--font-weight-semibold); font-size: var(--font-size-lg);
+}
+
+
+
+.panel, .postings, .details, .sheet { color: var(--color-ink); }
+.columns, .dayHeader, .row { min-width: 0; }
+.list { width: 100%; }
+/* Artifact chrome: a neutral board around the app's own screens */
+:root { --page-bg: #e7e7e3; --page-fg: #17181a; --page-muted: #5a5d64; --page-rule: #d2d2cd; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page-bg: #050607; --page-fg: #ecedee; --page-muted: #9a9ea6; --page-rule: #24272b; color-scheme: dark; } }
+:root[data-theme="dark"] { --page-bg: #050607; --page-fg: #ecedee; --page-muted: #9a9ea6; --page-rule: #24272b; color-scheme: dark; }
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--font-sans); }
+.board { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 48px; max-width: 2900px; display: flex; flex-direction: column; gap: 40px; }
+.intro { max-width: 68ch; display: flex; flex-direction: column; gap: 8px; }
+.intro h1 { margin: 0; font-size: 1.75rem; letter-spacing: -0.02em; text-wrap: balance; }
+.intro p { margin: 0; color: var(--page-muted); line-height: 1.55; }
+.intro ul { margin: 0; padding-left: 1.2em; color: var(--page-muted); line-height: 1.55; }
+.section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.section h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+.frames { display: flex; flex-wrap: wrap; gap: 24px; min-width: 0; }
+.frameWrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-width: 100%; }
+.frameLabel { font-size: 0.8125rem; color: var(--page-muted); font-family: ui-monospace, monospace; }
+.scroller { overflow-x: auto; max-width: 100%; border-radius: 14px; outline: 1px solid var(--page-rule); }
+.frame.dark { color-scheme: dark; }
+.frame.light { color-scheme: light; }
+
+.accountLink { color: inherit; text-decoration: none; }
+.accountLink::after { content: ' ›'; color: var(--color-muted); }
+.accountLink:hover { text-decoration: underline; }
+.page { color: var(--color-ink); background: var(--color-ground); }
+.pageTitle { margin: 0; font-size: var(--font-size-3xl); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-title); }
+.count { margin-left: var(--space-2); font-size: var(--font-size-heading); color: var(--color-muted); font-weight: var(--font-weight-medium); }
+.desktop { width: 1280px; padding: var(--space-6); }
+.desktop .layout { display: grid; grid-template-columns: minmax(0, 1fr) 30rem; gap: var(--space-4); margin-top: var(--space-4); align-items: start; }
+.desktop .details { background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-6); }
+.phonePage { width: 390px; padding: var(--space-4); position: relative; overflow: hidden; }
+.phonePage.tall { height: 844px; }
+.phonePage .panel { margin-top: var(--space-3); padding: var(--space-3) var(--space-3-5); }
+.backdrop { position: absolute; inset: 0; background: var(--color-backdrop); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--color-panel); border-radius: var(--radius-sheet) var(--radius-sheet) 0 0; padding: var(--space-2) var(--space-4) var(--space-6); }
+.handle { width: var(--size-sheet-handle); height: var(--size-sheet-handle-thickness); border-radius: var(--radius-full); background: var(--color-border); margin: 0 auto var(--space-3); }
+.phonePage .bigAmount { font-size: var(--font-size-3xl); }
+
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.struck { text-decoration: line-through; text-decoration-color: var(--color-muted); color: var(--color-muted); }
+</style>
+
+<main class="board">
+  <header class="intro">
+    <h1>Deleted accounts in transactions</h1>
+    <p>A deleted account's name is muted and struck through wherever a transaction shows it: in the rows of the Transactions feed and of the recent transactions of Home, in the title of the transaction details and in its postings. Screen readers hear “deleted” after the name.</p>
+    <ul>
+      <li>In the postings, an active money account is a link with ›, which opens that account; a deleted one is never a link.</li>
+      <li>Only active money accounts link: categories, income sources and Equity have no screen yet.</li>
+      <li>Home opens the account beside the transaction; the Transactions section leads to the account in Accounts.</li>
+    </ul>
+  </header>
+  <section class="section"><h2>Transactions · desktop</h2><div class="frames" data-screen="transactions-desktop"></div></section>
+  <section class="section"><h2>Transactions · phone</h2><div class="frames" data-screen="transactions-phone"></div></section>
+  <section class="section"><h2>Transaction details · phone</h2><div class="frames" data-screen="transaction-details-phone"></div></section>
+</main>
+<script>
+  const struck = (name) => `<span class="struck">${name}<span class="srOnly">, deleted</span></span>`;
+
+  function rowsFor() {
+    return {
+      today: [
+        { kind: 'adjustment', color: '#2bb07f', wide: `<span class="wide">Adjustment · ${struck('Savings')}</span>`, orig: '-₾41,571.52', amount: '-$16,507.00', rate: '2.5184' },
+        { kind: '', color: '#4b8fd6', title: 'Groceries', accounts: `<span class="accounts">${struck('Wallet 2')}</span>`, amount: '-$42.10' },
+        { kind: 'transfer', color: '#4b8fd6', wide: `<span class="wide">Transfer ${struck('Wallet 2')} → Wallet</span>`, amount: '$389.10', selected: true },
+        { kind: '', color: '#4b8fd6', title: 'Coffee', accounts: '<span class="accounts">Wallet</span>', amount: '-$4.50' },
+        { kind: 'income', color: '#6b6fe0', title: 'Salary', accounts: '<span class="accounts">Main card</span>', orig: '+€3,000.00', amount: '+$3,510.00', rate: '0.8547', income: true },
+      ],
+      yesterday: [
+        { kind: '', color: '#6b6fe0', title: 'Rent', accounts: '<span class="accounts">Main card</span>', orig: '-€900.00', amount: '-$1,053.00', rate: '0.8547' },
+        { kind: 'adjustment', color: '#2bb07f', wide: '<span class="wide">Adjustment · Crypto</span>', amount: '-$550.00' },
+      ],
+    };
+  }
+
+  function row(r) {
+    const titleCells = r.wide ?? `<span class="title">${r.title}</span>${r.accounts}`;
+    return `<div class="row ${r.kind} ${r.selected ? 'selected' : ''}"><span class="dot" style="color:${r.color}"></span>${titleCells}<span class="orig">${r.orig ?? ''}</span><span class="amount ${r.income ? 'in' : ''}">${r.amount}</span><span class="rate">${r.rate ?? ''}</span></div>`;
+  }
+
+  function list(isPhone) {
+    const rows = rowsFor();
+    return `<div class="list ${isPhone ? 'phone' : ''}">
+      <div class="columns"><span></span><span>Transaction</span><span>Account</span><span class="r">Original</span><span class="r">Amount</span><span class="r">${isPhone ? '' : 'Rate'}</span></div>
+      <div class="dayHeader"><b>Today</b><span>-$13,043.60</span></div>
+      ${rows.today.map(row).join('')}
+      <div class="dayHeader"><b>Sun, 08.11.2026</b><span>-$1,603.00</span></div>
+      ${rows.yesterday.map(row).join('')}
+    </div>`;
+  }
+
+  const details = `<div class="details">
+      <div class="dHeader">
+        <div>
+          <div class="meta">Transfer · Mon, 09.11.2026</div>
+          <h2 class="dTitle">Transfer ${struck('Wallet 2')} → Wallet</h2>
+        </div>
+        <span class="close">×</span>
+      </div>
+      <div><div class="bigAmount">$389.10</div></div>
+      <div class="postings">
+        <p class="postingsTitle">Postings</p>
+        <div class="posting"><span class="dot" style="color:#4b8fd6"></span><span class="account"><span><a class="accountLink" href="#">Wallet</a></span><span class="note">Asset · USD</span></span><span class="amounts">+$389.10</span></div>
+        <div class="posting"><span class="dot" style="color:#4b8fd6"></span><span class="account"><span>${struck('Wallet 2')}</span><span class="note">Asset · USD</span></span><span class="amounts">-$389.10</span></div>
+      </div>
+      <div class="deleteBtn">Delete transaction</div>
+    </div>`;
+
+  function screenHtml(screen) {
+    if (screen === 'transactions-desktop') {
+      return `<div class="page desktop"><h1 class="pageTitle">Transactions<span class="count">-$14,646.60</span></h1><div class="layout"><div class="panel">${list(false)}</div>${details}</div></div>`;
+    }
+    if (screen === 'transactions-phone') {
+      return `<div class="page phonePage"><h1 class="pageTitle">Transactions</h1><div class="panel">${list(true)}</div></div>`;
+    }
+    return `<div class="page phonePage tall"><h1 class="pageTitle">Transactions</h1><div class="panel">${list(true)}</div><div class="backdrop"></div><div class="sheet"><div class="handle"></div>${details}</div></div>`;
+  }
+  for (const frames of document.querySelectorAll('[data-screen]')) {
+    const screen = frames.dataset.screen;
+    frames.innerHTML = ['dark', 'light'].map((theme) =>
+      `<div class="frameWrap"><span class="frameLabel">${screen}-${theme}</span><div class="scroller"><div class="frame ${theme}">${screenHtml(screen)}</div></div></div>`).join('');
+  }
+</script>

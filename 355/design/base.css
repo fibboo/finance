@@ -1,0 +1,111 @@
+@font-face { font-family: 'Geist'; font-weight: 400; src: url('fonts/geist-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Geist'; font-weight: 500; src: url('fonts/geist-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Geist'; font-weight: 600; src: url('fonts/geist-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Geist'; font-weight: 700; src: url('fonts/geist-latin-700-normal.woff2') format('woff2'); }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-ground);
+  line-height: var(--line-height-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+.panel {
+  background: var(--color-panel);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+}
+.panelTitle { margin: 0; font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); }
+.panelHead { display: flex; justify-content: space-between; align-items: center; min-height: var(--size-panel-header-lg); }
+.all { font-size: var(--font-size-md); color: var(--color-muted); }
+
+/* list */
+.list {
+  display: grid;
+  grid-template-columns: var(--size-dot) minmax(0, 1.3fr) minmax(0, 1fr) max-content max-content max-content;
+  column-gap: var(--space-4);
+}
+.list.phone {
+  grid-template-columns: var(--size-dot) minmax(0, 1.2fr) minmax(0, 1fr) max-content max-content max-content;
+  column-gap: var(--space-1);
+}
+.columns, .dayHeader, .row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.columns { min-height: var(--size-columns-header-lg); font-size: var(--font-size-md); color: var(--color-muted); border-bottom: var(--size-border) solid var(--color-border); }
+.phone .columns { min-height: var(--size-columns-header); font-size: var(--font-size-2xs); }
+.columns .r { text-align: right; }
+.dayHeader {
+  min-height: var(--size-day-header-lg);
+  margin: var(--space-1) calc(var(--space-2) * -1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-badge);
+  background: var(--color-band);
+  font-size: var(--font-size-md);
+}
+.phone .dayHeader { min-height: var(--size-day-header); font-size: var(--font-size-xs); }
+.dayHeader b { grid-column: 1 / 5; font-weight: var(--font-weight-semibold); }
+.phone .dayHeader b { grid-column: 1 / 4; }
+.dayHeader span { grid-column: 5; justify-self: end; color: var(--color-muted); }
+.phone .dayHeader span { grid-column: 5; }
+
+.row {
+  --row-tint: var(--color-panel);
+  position: relative;
+  isolation: isolate;
+  min-height: var(--size-transaction-row-lg);
+  font-size: var(--font-size-base);
+}
+.phone .row { min-height: var(--size-transaction-row); font-size: var(--font-size-sm); }
+.row + .row { border-top: var(--size-border) solid var(--color-border); }
+.row::before {
+  content: '';
+  position: absolute;
+  inset: var(--space-1-5) calc(var(--space-2) * -1);
+  z-index: -1;
+  border-radius: var(--radius-segment);
+  background: var(--row-tint);
+}
+.row.transfer { --row-tint: var(--color-transfer-row); }
+.row.adjustment { --row-tint: var(--color-adjustment-row); }
+.row.income { --row-tint: var(--color-income-row); }
+.row.selected::before { background: color-mix(in oklab, var(--row-tint), var(--color-ink) var(--mix-selected-row)); }
+.dot { width: var(--size-dot); height: var(--size-dot); border-radius: var(--radius-full); background: currentColor; }
+.title, .wide, .accounts { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wide { grid-column: span 2; }
+.accounts { font-size: var(--font-size-md); color: var(--color-muted); }
+.phone .accounts { font-size: var(--font-size-xs); }
+.orig { font-size: var(--font-size-md); color: var(--color-muted); text-align: right; white-space: nowrap; }
+.phone .orig { font-size: var(--font-size-2xs); }
+.amount { font-weight: var(--font-weight-medium); text-align: right; white-space: nowrap; }
+.amount.in { color: var(--color-accent); }
+.rate { font-size: var(--font-size-md); color: var(--color-muted); text-align: right; white-space: nowrap; }
+.phone .rate { display: none; }
+
+/* details */
+.details { display: flex; flex-direction: column; gap: var(--space-4); }
+.dHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.meta { font-size: var(--font-size-sm); color: var(--color-muted); }
+.dTitle { margin: var(--space-1) 0 0; font-size: var(--font-size-heading); font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
+.close { font-size: var(--font-size-2xl); color: var(--color-muted); line-height: 1; }
+.bigAmount { font-size: var(--font-size-detail-amount); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); letter-spacing: var(--letter-spacing-display); }
+.baseAmount { font-size: var(--font-size-md); color: var(--color-muted); }
+.postings { padding: var(--space-1) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.postingsTitle { margin: 0; padding: var(--space-2-5) 0 var(--space-1); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-label); text-transform: uppercase; color: var(--color-muted); }
+.posting { min-height: var(--size-posting); display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-base); }
+.posting .dot { flex: none; }
+.dotSpace { flex: none; width: var(--size-dot); }
+.account { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.amounts { display: flex; flex-direction: column; align-items: flex-end; font-weight: var(--font-weight-medium); white-space: nowrap; }
+.note { font-size: var(--font-size-xs); font-weight: normal; color: var(--color-muted); }
+.deleteBtn {
+  min-height: var(--size-button-lg); border-radius: var(--radius-action); background: var(--color-ground);
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+  color: var(--color-danger); font-weight: var(--font-weight-semibold); font-size: var(--font-size-lg);
+}
+
+
+.panel, .postings, .details, .sheet { color: var(--color-ink); }
+.columns, .dayHeader, .row { min-width: 0; }
+.list { width: 100%; }
