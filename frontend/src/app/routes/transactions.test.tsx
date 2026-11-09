@@ -1327,3 +1327,39 @@ test('keeps the list on screen when the accounts of the filters fail to refetch'
   const accountFilter = screen.getByRole('dialog', { name: 'Accounts' });
   expect(await within(accountFilter).findByRole('checkbox', { name: /Cash/ })).toBeInTheDocument();
 });
+
+test('refetches the feed once the tab is shown again at the top of the list', async () => {
+  // arrange
+  onTestFinished(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+  });
+  let isAdded = false;
+  const addedExpense = {
+    ...expense,
+    id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+    postings: [walletPosting, { ...categoryPosting, account: cafes }],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: isAdded ? [addedExpense, expense] : [expense],
+        total: isAdded ? 2 : 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  expect(await screen.findByRole('link', { name: 'Groceries' })).toBeInTheDocument();
+  isAdded = true;
+
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+
+  // assert
+  expect(await screen.findByRole('link', { name: 'Cafes' })).toBeInTheDocument();
+});

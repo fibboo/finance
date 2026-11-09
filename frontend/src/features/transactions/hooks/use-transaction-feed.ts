@@ -1,4 +1,5 @@
 import {
+  hashKey,
   type InfiniteData,
   keepPreviousData,
   useInfiniteQuery,
@@ -23,6 +24,8 @@ export type TransactionFeedQuery = Readonly<{
   anchorDate: string | undefined;
   total: number | undefined;
   pageSize: number;
+  isScrolledDown: boolean;
+  setIsScrolledDown: (isScrolledDown: boolean) => void;
 }>;
 
 type TransactionFeedOptions = Readonly<{
@@ -52,12 +55,20 @@ export function useTransactionFeed({
   const lastDay = isOpeningDayKept && !hasStartDate ? openingDay : today;
   const firstNewerDay = anchorDate === undefined ? undefined : readNextDay(anchorDate);
   const hasNewerDays = firstNewerDay !== undefined && firstNewerDay <= lastDay;
+  const feedOptions = transactionQueries.feed({
+    ...filterQuery,
+    size: pageSize,
+    date_to: anchorDate ?? lastDay,
+  });
+  const listHash = hashKey(feedOptions.queryKey);
+  const [scrolledDownListHash, setScrolledDownListHash] = useState<string | undefined>();
+  const isScrolledDown = scrolledDownListHash === listHash;
+  const scrolledDownRefetch = isScrolledDown
+    ? ({ refetchInterval: false, refetchOnWindowFocus: false } as const)
+    : {};
   const query = useInfiniteQuery({
-    ...transactionQueries.feed({
-      ...filterQuery,
-      size: pageSize,
-      date_to: anchorDate ?? lastDay,
-    }),
+    ...feedOptions,
+    ...scrolledDownRefetch,
     enabled: filterQuery !== undefined,
     placeholderData: keepPreviousData,
     throwOnError: (error, failedQuery) =>
@@ -71,6 +82,7 @@ export function useTransactionFeed({
       date_to: lastDay,
       orders: [OLDEST_FIRST_ORDER],
     }),
+    ...scrolledDownRefetch,
     enabled: filterQuery !== undefined && hasNewerDays,
   });
   const olderTotal = query.isPlaceholderData ? undefined : query.data?.pages.at(-1)?.total;
@@ -83,5 +95,9 @@ export function useTransactionFeed({
     anchorDate: hasNewerDays ? anchorDate : undefined,
     total,
     pageSize,
+    isScrolledDown,
+    setIsScrolledDown: (isListScrolledDown) => {
+      setScrolledDownListHash(isListScrolledDown ? listHash : undefined);
+    },
   };
 }
