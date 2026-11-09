@@ -157,7 +157,7 @@ test('links every card to its account, marks the selected one and links All to t
   // act
   render(<AccountList baseCurrency="USD" />, {
     initialEntries: [
-      `/?transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40&account=7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03`,
+      `/?account=7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03&transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40`,
     ],
   });
 

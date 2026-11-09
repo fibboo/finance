@@ -10,12 +10,25 @@ const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
 const DETAILS_PANEL_SELECTOR = '[data-details-panel]';
 const DIALOG_SELECTOR = 'dialog, [role="dialog"]';
 
-function readIsLastShownPanel(panelId: string): boolean {
-  const shownPanels = [...document.querySelectorAll(DETAILS_PANEL_SELECTOR)].filter(
-    (panel) => panel.getClientRects().length > 0,
+function readIsShown(bounds: DOMRectReadOnly): boolean {
+  const isShown = bounds.height > 0;
+  return isShown;
+}
+
+function readIsLatestShownPanel(panelId: string): boolean {
+  const shownPanels = [...document.querySelectorAll<HTMLElement>(DETAILS_PANEL_SELECTOR)].filter(
+    (panel) => readIsShown(panel.getBoundingClientRect()),
   );
-  const isLastShownPanel = shownPanels.at(-1)?.id === panelId;
-  return isLastShownPanel;
+  const latestShownPanel = shownPanels.reduce<HTMLElement | undefined>(
+    (latest, panel) =>
+      latest === undefined ||
+      Number(panel.dataset['shownAt'] ?? 0) > Number(latest.dataset['shownAt'] ?? 0)
+        ? panel
+        : latest,
+    undefined,
+  );
+  const isLatestShownPanel = latestShownPanel?.id === panelId;
+  return isLatestShownPanel;
 }
 
 type DetailsPanelProps = Readonly<{
@@ -65,11 +78,15 @@ export function DetailsPanel({
     }
 
     function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
       const { target } = event;
       const dialog = target instanceof Element ? target.closest(DIALOG_SELECTOR) : null;
       const isForThisPanel =
-        dialog === null ? readIsLastShownPanel(panelId) : dialog.id === panelId;
-      if (event.key === 'Escape' && isForThisPanel) {
+        dialog === null ? readIsLatestShownPanel(panelId) : dialog.id === panelId;
+      if (isForThisPanel) {
         closePanel();
       }
     }
@@ -89,12 +106,20 @@ export function DetailsPanel({
       return undefined;
     }
 
-    let isShown = panel.getClientRects().length > 0;
+    let isShown = readIsShown(panel.getBoundingClientRect());
+    if (isShown) {
+      panel.dataset['shownAt'] = String(performance.now());
+    }
+
     const observer = new IntersectionObserver(([entry]) => {
-      const isNowShown = entry !== undefined && entry.boundingClientRect.height > 0;
-      const isFocusInDialog = document.activeElement?.closest(DIALOG_SELECTOR) != null;
-      if (isNowShown && !isShown && !isFocusInDialog) {
-        panel.focus({ preventScroll: true });
+      const isNowShown = entry !== undefined && readIsShown(entry.boundingClientRect);
+      if (isNowShown && !isShown) {
+        panel.dataset['shownAt'] = String(performance.now());
+        const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
+        const isSheet = getComputedStyle(panel).position === 'fixed';
+        if (isSheet && !isFocusInDialog) {
+          panel.focus({ preventScroll: true });
+        }
       }
 
       isShown = isNowShown;
