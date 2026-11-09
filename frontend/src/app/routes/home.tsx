@@ -46,7 +46,11 @@ export function Component() {
   const baseCurrency = useBaseCurrency();
   const [searchParams] = useSearchParams();
   const { data: accountPage } = useQuery(
-    accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...MONEY_ACCOUNT_KINDS] }),
+    accountQueries.list({
+      size: ACCOUNT_PAGE_SIZE,
+      kinds: [...MONEY_ACCOUNT_KINDS],
+      order: 'recent_use',
+    }),
   );
   const isAccountOpenedLast = readIsAccountOpenedLast(searchParams);
   return (

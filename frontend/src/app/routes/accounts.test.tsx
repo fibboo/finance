@@ -73,7 +73,8 @@ test('shows the number of money accounts next to the title and lists them by kin
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) =>
-      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET,LIABILITY'
+      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET,LIABILITY' &&
+      new URL(request.url).searchParams.get('order') === 'recent_use'
         ? HttpResponse.json({
             items: [wallet, creditCard],
             total: 2,
@@ -159,10 +160,12 @@ test('narrows the groups to the accounts matching a term of at least 3 character
   // arrange
   const user = userEvent.setup();
   const searchTerms: (string | null)[] = [];
+  const orders: (string | null)[] = [];
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const searchTerm = new URL(request.url).searchParams.get('search_term');
       searchTerms.push(searchTerm);
+      orders.push(new URL(request.url).searchParams.get('order'));
       const items = searchTerm === 'cre' ? [creditCard] : [wallet, creditCard];
       return HttpResponse.json({
         items,
@@ -189,6 +192,7 @@ test('narrows the groups to the accounts matching a term of at least 3 character
     screen.getByRole('heading', { level: 1, name: 'Accounts, 2 accounts' }),
   ).toBeInTheDocument();
   expect(searchTerms).toEqual([null, 'cre']);
+  expect(orders).toEqual(['recent_use', 'recent_use']);
 });
 
 test('reads the term from the URL and clears it into a focused field when nothing matches', async () => {

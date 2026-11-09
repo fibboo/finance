@@ -89,14 +89,16 @@ beforeEach(() => {
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
-    http.get('http://localhost/api/accounting/accounts', () =>
-      HttpResponse.json({
-        items: [wallet],
-        total: 1,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Account_']),
+    http.get('http://localhost/api/accounting/accounts', ({ request }) =>
+      new URL(request.url).searchParams.get('order') === 'recent_use'
+        ? HttpResponse.json({
+            items: [wallet],
+            total: 1,
+            page: 1,
+            size: 100,
+            pages: 1,
+          } satisfies components['schemas']['Page_Account_'])
+        : HttpResponse.json(null, { status: 400 }),
     ),
     http.get('http://localhost/api/accounting/summary', () =>
       HttpResponse.json({

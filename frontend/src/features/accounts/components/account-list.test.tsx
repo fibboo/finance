@@ -50,14 +50,16 @@ const accounts = [
   },
 ] satisfies components['schemas']['Account'][];
 
-test('shows every account, the largest first, in the base currency over its own', async () => {
+test('shows every account in the order of their recent use, in the base currency over its own', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) =>
       new URL(request.url).searchParams.get('size') === '100' &&
-      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET,LIABILITY'
+      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET,LIABILITY' &&
+      new URL(request.url).searchParams.get('order') === 'recent_use'
         ? HttpResponse.json({
-            items: accounts,
+            // neither by balance nor by name
+            items: accounts.toReversed(),
             total: 3,
             page: 1,
             size: 100,
@@ -74,12 +76,12 @@ test('shows every account, the largest first, in the base currency over its own'
   expect(await screen.findByText('Main card')).toBeInTheDocument();
   const items = screen.getAllByRole('listitem');
   expect(items).toHaveLength(3);
-  expect(items[0]).toHaveTextContent('Main card');
-  expect(items[0]).toHaveTextContent('$3,471.20€3,180.00');
-  expect(items[1]).toHaveTextContent('Freelance');
-  expect(items[1]).toHaveTextContent('$1,940.00');
-  expect(items[1]).not.toHaveTextContent('€');
-  expect(items[2]).toHaveTextContent('Wallet');
+  expect(items[0]).toHaveTextContent('Wallet');
+  expect(items[1]).toHaveTextContent('Main card');
+  expect(items[1]).toHaveTextContent('$3,471.20€3,180.00');
+  expect(items[2]).toHaveTextContent('Freelance');
+  expect(items[2]).toHaveTextContent('$1,940.00');
+  expect(items[2]).not.toHaveTextContent('€');
   // every account fits the wide jsdom strip, so neither arrow shows
   expect(screen.queryByRole('button', { name: 'Next accounts' })).not.toBeInTheDocument();
 });

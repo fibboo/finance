@@ -31,9 +31,9 @@ const mainCard = {
   base_currency_balance: '3471.20',
 } satisfies components['schemas']['Account'];
 
-const creditCard = {
+const visaCredit = {
   ...wallet,
-  name: 'Credit card',
+  name: 'Visa credit',
   id: '8c1a7f0c-2f4e-4b9e-9d1f-0e6a3c2b1a04',
   kind: 'LIABILITY',
   balance: '-318.40',
@@ -53,10 +53,11 @@ const intesaCredit = {
   base_currency_balance: '-1451.20',
 } satisfies components['schemas']['Account'];
 
-test('groups assets before liabilities, each with its total and the largest amount first', () => {
+test('groups assets before liabilities, each with its total and its accounts in the order given', () => {
   // act
   render(
-    <AccountGroups accounts={[wallet, creditCard, mainCard, intesaCredit]} baseCurrency="USD" />,
+    // in each group neither by balance nor by name
+    <AccountGroups accounts={[wallet, visaCredit, mainCard, intesaCredit]} baseCurrency="USD" />,
   );
 
   // assert
@@ -69,14 +70,14 @@ test('groups assets before liabilities, each with its total and the largest amou
   expect(within(assets).getByRole('heading', { name: 'Assets' })).toBeInTheDocument();
   expect(assets).toHaveTextContent('$3,883.70');
   const assetRows = within(assets).getAllByRole('listitem');
-  expect(assetRows[0]).toHaveTextContent('Main cardEUR$3,471.20€3,180.00');
-  expect(assetRows[1]).toHaveTextContent('WalletUSD$412.50');
-  expect(assetRows[1]).not.toHaveTextContent('$412.50$412.50');
+  expect(assetRows[0]).toHaveTextContent('WalletUSD$412.50');
+  expect(assetRows[0]).not.toHaveTextContent('$412.50$412.50');
+  expect(assetRows[1]).toHaveTextContent('Main cardEUR$3,471.20€3,180.00');
   expect(within(liabilities).getByRole('heading', { name: 'Liabilities' })).toBeInTheDocument();
   expect(liabilities).toHaveTextContent('-$1,769.60');
   const liabilityRows = within(liabilities).getAllByRole('listitem');
-  expect(liabilityRows[0]).toHaveTextContent('Intesa credit');
-  expect(liabilityRows[1]).toHaveTextContent('Credit card');
+  expect(liabilityRows[0]).toHaveTextContent('Visa credit');
+  expect(liabilityRows[1]).toHaveTextContent('Intesa credit');
 });
 
 test('leaves out a group without accounts', () => {

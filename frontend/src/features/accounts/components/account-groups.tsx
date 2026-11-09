@@ -33,17 +33,11 @@ function readGroupAccounts({
   accounts,
   kind,
 }: Readonly<{ accounts: readonly Account[]; kind: MoneyAccountKind }>) {
-  const groupAccounts = accounts
-    .flatMap((account) =>
-      account.kind === kind && account.currency !== null
-        ? [{ ...account, currency: account.currency }]
-        : [],
-    )
-    .toSorted(
-      (first, second) =>
-        Math.abs(Number(second.base_currency_balance)) -
-        Math.abs(Number(first.base_currency_balance)),
-    );
+  const groupAccounts = accounts.flatMap((account) =>
+    account.kind === kind && account.currency !== null
+      ? [{ ...account, currency: account.currency }]
+      : [],
+  );
   return groupAccounts;
 }
 

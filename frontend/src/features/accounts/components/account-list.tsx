@@ -24,7 +24,11 @@ type AccountListProps = Readonly<{ baseCurrency: string; header?: ReactNode }>;
 
 export function AccountList({ baseCurrency, header }: AccountListProps) {
   const { data: accountPage, isPending } = useQuery(
-    accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...MONEY_ACCOUNT_KINDS] }),
+    accountQueries.list({
+      size: ACCOUNT_PAGE_SIZE,
+      kinds: [...MONEY_ACCOUNT_KINDS],
+      order: 'recent_use',
+    }),
   );
   const [searchParams] = useSearchParams();
   const selectedAccountId = readSelectedAccountId(searchParams);
@@ -40,13 +44,9 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
     strip?.scrollBy({ left: direction * strip.clientWidth * STRIP_PAGE_SHARE, behavior: 'smooth' });
   }
 
-  const accounts = (accountPage?.items ?? [])
-    .flatMap((account) =>
-      account.currency === null ? [] : [{ ...account, currency: account.currency }],
-    )
-    .toSorted(
-      (first, second) => Number(second.base_currency_balance) - Number(first.base_currency_balance),
-    );
+  const accounts = (accountPage?.items ?? []).flatMap((account) =>
+    account.currency === null ? [] : [{ ...account, currency: account.currency }],
+  );
   return (
     <section className={styles['accountList']} aria-label="Accounts" aria-busy={isPending}>
       <div className={styles['header']}>
