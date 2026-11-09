@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 
+import { ACCOUNT_SEARCH_FIELD_ID } from '../api/account-search';
 import styles from './account-search.module.css';
 
 const SEARCH_ICON_PATH = 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14m9 16-3.5-3.5';
@@ -26,6 +27,7 @@ export function AccountSearch({ term, isFocusedOnMount, onSearch }: AccountSearc
             input.focus();
           }
         }}
+        id={ACCOUNT_SEARCH_FIELD_ID}
         type="search"
         className={styles['input']}
         placeholder="Search accounts"

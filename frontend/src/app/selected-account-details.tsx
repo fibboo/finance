@@ -59,9 +59,10 @@ function SelectedAccount({
     setIsEditing(false);
   }
 
-  function dropSelectedAccount() {
+  function dropSelectedAccount({ isReplaced }: Readonly<{ isReplaced: boolean }>) {
     setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
       preventScrollReset: true,
+      replace: isReplaced,
     });
   }
 
@@ -88,8 +89,12 @@ function SelectedAccount({
         onEdit={() => {
           setIsEditing(true);
         }}
-        onDeleted={dropSelectedAccount}
-        onClose={dropSelectedAccount}
+        onDeleted={() => {
+          dropSelectedAccount({ isReplaced: true });
+        }}
+        onClose={() => {
+          dropSelectedAccount({ isReplaced: false });
+        }}
       />
       {isEditing && account !== undefined && (
         <Sheet label="Edit account" onClose={closeEditForm}>

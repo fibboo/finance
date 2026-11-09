@@ -447,50 +447,68 @@ test('drops the account param of an account that is not a money account', async 
   expect(screen.queryByRole('heading', { name: 'Groceries' })).not.toBeInTheDocument();
 });
 
-test('deletes an account after the confirmation and moves focus to the next account', async () => {
-  // arrange
-  const user = userEvent.setup();
-  let isDeleted = false;
-  let deletePath = '';
-  server.use(
-    http.get('http://localhost/api/accounting/accounts', () => {
-      const items = isDeleted ? [wallet, creditCard] : [wallet, travelCard, creditCard];
-      return HttpResponse.json({
-        items,
-        total: items.length,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Account_']);
-    }),
-    http.get(`http://localhost/api/accounting/accounts/${travelCard.id}`, () =>
-      HttpResponse.json(travelCard),
-    ),
-    http.delete('http://localhost/api/accounting/accounts/:accountId', ({ request }) => {
-      deletePath = new URL(request.url).pathname;
-      isDeleted = true;
-      return HttpResponse.json({ ...travelCard, status: 'DELETED' });
-    }),
-  );
-  render(<Component />, { initialEntries: [`/?account=${travelCard.id}`] });
-  const details = await screen.findByRole('dialog', { name: 'Account details' });
-  await user.click(await within(details).findByRole('button', { name: 'Delete account' }));
-  const confirmation = screen.getByRole('alertdialog', { name: 'Delete this account?' });
-  expect(confirmation).toHaveAccessibleDescription(
-    'Travel card, $0.00. It leaves your accounts and the pickers, and its past transactions keep showing it.',
-  );
+test.each([
+  { case: 'the next account', search: '', focusedName: 'Credit card' },
+  { case: 'the search when no account is left listed', search: 'trav', focusedName: undefined },
+])(
+  'deletes an account after the confirmation and moves focus to $case',
+  async ({ search, focusedName }) => {
+    // arrange
+    const user = userEvent.setup();
+    let isDeleted = false;
+    let deletePath = '';
+    server.use(
+      http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+        const isSearched = new URL(request.url).searchParams.has('search_term');
+        const remainingAccounts = isDeleted
+          ? [wallet, creditCard]
+          : [wallet, travelCard, creditCard];
+        const items = isSearched
+          ? remainingAccounts.filter((account) => account.id === travelCard.id)
+          : remainingAccounts;
+        return HttpResponse.json({
+          items,
+          total: items.length,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Account_']);
+      }),
+      http.get(`http://localhost/api/accounting/accounts/${travelCard.id}`, () =>
+        HttpResponse.json(travelCard),
+      ),
+      http.delete('http://localhost/api/accounting/accounts/:accountId', ({ request }) => {
+        deletePath = new URL(request.url).pathname;
+        isDeleted = true;
+        return HttpResponse.json({ ...travelCard, status: 'DELETED' });
+      }),
+    );
+    render(<Component />, {
+      initialEntries: [`/?search=${search}&account=${travelCard.id}`],
+    });
+    const details = await screen.findByRole('dialog', { name: 'Account details' });
+    await user.click(await within(details).findByRole('button', { name: 'Delete account' }));
+    const confirmation = screen.getByRole('alertdialog', { name: 'Delete this account?' });
+    expect(confirmation).toHaveAccessibleDescription(
+      'Travel card, $0.00. It leaves your accounts and the pickers, and its past transactions keep showing it.',
+    );
 
-  // act
-  await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
+    // act
+    await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
 
-  // assert
-  await waitFor(() => {
-    expect(screen.queryByRole('link', { name: 'Travel card' })).not.toBeInTheDocument();
-  });
-  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Credit card' })).toHaveFocus();
-  expect(deletePath).toBe(`/api/accounting/accounts/${travelCard.id}`);
-});
+    // assert
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: 'Travel card' })).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+    expect(
+      focusedName === undefined
+        ? screen.getByRole('searchbox', { name: 'Search accounts' })
+        : screen.getByRole('link', { name: focusedName }),
+    ).toHaveFocus();
+    expect(deletePath).toBe(`/api/accounting/accounts/${travelCard.id}`);
+  },
+);
 
 test.each([
   {
@@ -529,7 +547,7 @@ test.each([
   const details = await screen.findByRole('dialog', { name: 'Account details' });
   await screen.findByRole('link', { name: account.name });
   const deleteButton = await within(details).findByRole('button', { name: 'Delete account' });
-  expect(deleteButton).toBeDisabled();
+  expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
   expect(deleteButton).toHaveAccessibleDescription(hint);
 });
 
@@ -572,6 +590,8 @@ test('refetches the account when the deletion is refused', async () => {
   expect(
     await within(details).findByText('Bring the balance to zero to delete the account.'),
   ).toBeInTheDocument();
-  expect(within(details).getByRole('button', { name: 'Delete account' })).toBeDisabled();
+  const deleteButton = within(details).getByRole('button', { name: 'Delete account' });
+  expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+  expect(deleteButton).toHaveFocus();
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 });
