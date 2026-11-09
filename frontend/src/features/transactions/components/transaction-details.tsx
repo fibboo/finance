@@ -1,4 +1,5 @@
 import { type QueryKey, useQuery } from '@tanstack/react-query';
+import type { To } from 'react-router';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
 import type { components } from '@/lib/api-schema';
@@ -15,6 +16,7 @@ type TransactionDetailsProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
+  readAccountLink: (accountId: string) => To;
   relatedQueryKeys: readonly QueryKey[];
   onClose: () => void;
 }>;
@@ -24,6 +26,7 @@ export function TransactionDetails({
   baseCurrency,
   transactionTypes,
   accountKinds,
+  readAccountLink,
   relatedQueryKeys,
   onClose,
 }: TransactionDetailsProps) {
@@ -52,6 +55,7 @@ export function TransactionDetails({
             baseCurrency={baseCurrency}
             transactionTypes={transactionTypes}
             accountKinds={accountKinds}
+            readAccountLink={readAccountLink}
             closeButton={closeButton}
             deleteAction={
               <DeleteTransaction

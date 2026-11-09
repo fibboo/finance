@@ -1,10 +1,12 @@
 import { type ReactNode, useId } from 'react';
+import type { To } from 'react-router';
 
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import styles from './transaction-overview.module.css';
 import { TransactionPostings } from './transaction-postings';
+import { TransactionTextParts } from './transaction-text-parts';
 import { readTransactionView, readWeekdayDateText } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
@@ -42,6 +44,7 @@ type TransactionOverviewProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
+  readAccountLink: (accountId: string) => To;
   closeButton: ReactNode;
   deleteAction: ReactNode;
 }>;
@@ -51,6 +54,7 @@ export function TransactionOverview({
   baseCurrency,
   transactionTypes,
   accountKinds,
+  readAccountLink,
   closeButton,
   deleteAction,
 }: TransactionOverviewProps) {
@@ -66,7 +70,7 @@ export function TransactionOverview({
             {readWeekdayDateText(transaction.transaction_date)}
           </span>
           <h2 id={titleId} className={styles['title']}>
-            {view.title}
+            <TransactionTextParts text={view.title} />
           </h2>
         </div>
         {closeButton}
@@ -89,6 +93,7 @@ export function TransactionOverview({
         postings={transaction.postings}
         baseCurrency={baseCurrency}
         accountKinds={accountKinds}
+        readAccountLink={readAccountLink}
       />
       {(transaction.location !== null || transaction.comment !== null) && (
         <dl className={styles['facts']}>

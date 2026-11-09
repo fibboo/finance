@@ -5,9 +5,11 @@ import { LOCALE } from '@/lib/format-money';
 type Transaction = components['schemas']['Transaction'];
 type Account = components['schemas']['Account'];
 
+export type TransactionText = readonly (string | Readonly<Account>)[];
+
 type TransactionView = Readonly<{
-  title: string;
-  accountNames: string | null;
+  title: TransactionText;
+  accountNames: TransactionText | null;
   markedAccount: Account;
   amount: number;
   baseAmount: number | null;
@@ -21,6 +23,16 @@ const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZ
 export function readWeekdayDateText(isoDate: string): string {
   const weekdayDateText = `${WEEKDAY_FORMAT.format(new Date(`${isoDate}T00:00:00Z`))}, ${toDateText(isoDate)}`;
   return weekdayDateText;
+}
+
+export function isDeletedAccount(account: Readonly<Account>): boolean {
+  const isDeleted = account.status === 'DELETED';
+  return isDeleted;
+}
+
+export function readPlainText(text: TransactionText): string {
+  const plainText = text.map((part) => (typeof part === 'string' ? part : part.name)).join('');
+  return plainText;
 }
 
 function requireField<Field>({
@@ -40,8 +52,8 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
   switch (transaction.transaction_type) {
     case 'EXPENSE': {
       const view = {
-        title: credit.account.name,
-        accountNames: debit.account.name,
+        title: [credit.account],
+        accountNames: [debit.account],
         markedAccount: debit.account,
         amount: Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : Number(debit.base_amount),
@@ -53,8 +65,8 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
     }
     case 'INCOME': {
       const view = {
-        title: debit.account.name,
-        accountNames: credit.account.name,
+        title: [debit.account],
+        accountNames: [credit.account],
         markedAccount: credit.account,
         amount: Number(credit.amount),
         baseAmount: credit.base_amount === null ? null : Number(credit.base_amount),
@@ -66,7 +78,7 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
     }
     case 'TRANSFER': {
       const view = {
-        title: `Transfer ${debit.account.name} → ${credit.account.name}`,
+        title: ['Transfer ', debit.account, ' → ', credit.account],
         accountNames: null,
         markedAccount: credit.account,
         amount: -Number(debit.amount),
@@ -80,7 +92,7 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
     case 'ADJUSTMENT': {
       const posting = credit.account.kind === 'EQUITY' ? debit : credit;
       const view = {
-        title: `Adjustment · ${posting.account.name}`,
+        title: ['Adjustment · ', posting.account],
         accountNames: null,
         markedAccount: posting.account,
         amount: Number(posting.amount),

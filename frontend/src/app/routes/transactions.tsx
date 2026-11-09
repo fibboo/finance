@@ -1,10 +1,11 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { type To, useSearchParams } from 'react-router';
 
 import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
+import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
@@ -55,6 +56,14 @@ function readJumpDate({
   const jumpDate =
     filters.date_from !== undefined && date < filters.date_from ? filters.date_from : date;
   return jumpDate;
+}
+
+function readAccountLink(accountId: string): To {
+  const accountLink = {
+    pathname: '/accounts',
+    search: writeSelectedAccount({ searchParams: new URLSearchParams(), accountId }).toString(),
+  };
+  return accountLink;
 }
 
 export function Component() {
@@ -147,7 +156,12 @@ export function Component() {
               })}
           />
         )}
-        {baseCurrency !== undefined && <SelectedTransactionDetails baseCurrency={baseCurrency} />}
+        {baseCurrency !== undefined && (
+          <SelectedTransactionDetails
+            baseCurrency={baseCurrency}
+            readAccountLink={readAccountLink}
+          />
+        )}
       </div>
     </Page>
   );

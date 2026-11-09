@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { type To, useSearchParams } from 'react-router';
 
 import { SelectedAccountDetails } from '@/app/selected-account-details';
 import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
@@ -9,6 +9,7 @@ import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/accou
 import {
   readSelectedAccountId,
   SELECTED_ACCOUNT_PARAM,
+  writeSelectedAccount,
 } from '@/features/accounts/api/selected-account';
 import { AccountList } from '@/features/accounts/components/account-list';
 import { MonthSummary } from '@/features/summary/components/month-summary';
@@ -31,6 +32,19 @@ function readIsAccountOpenedLast(searchParams: URLSearchParams): boolean {
     (readSelectedTransactionId(searchParams) === undefined ||
       keys.indexOf(SELECTED_ACCOUNT_PARAM) > keys.indexOf(SELECTED_TRANSACTION_PARAM));
   return isAccountOpenedLast;
+}
+
+function readAccountLink({
+  searchParams,
+  accountId,
+}: Readonly<{ searchParams: URLSearchParams; accountId: string }>): To {
+  const accountLink = {
+    search: writeSelectedAccount({
+      searchParams: writeSelectedAccount({ searchParams, accountId: undefined }),
+      accountId,
+    }).toString(),
+  };
+  return accountLink;
 }
 
 export function Component() {
@@ -62,7 +76,10 @@ export function Component() {
           <div className={styles['transactions']}>
             <RecentTransactions baseCurrency={baseCurrency} />
             <div className={isAccountOpenedLast ? styles['earlierSelection'] : styles['selection']}>
-              <SelectedTransactionDetails baseCurrency={baseCurrency} />
+              <SelectedTransactionDetails
+                baseCurrency={baseCurrency}
+                readAccountLink={(accountId) => readAccountLink({ searchParams, accountId })}
+              />
             </div>
           </div>
         </>

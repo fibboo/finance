@@ -1023,6 +1023,12 @@ test('shows the selected transaction with its postings, location and comment', a
   const postings = within(details).getAllByRole('listitem');
   expect(postings[0]).toHaveTextContent('WalletAsset · USD-€42.80≈ -$46.70');
   expect(postings[1]).toHaveTextContent('GroceriesExpense+€42.80≈ +$46.70');
+  // the money account leads to the Accounts section, the category leads nowhere
+  expect(within(details).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
+    'href',
+    `/accounts?account=${walletPosting.account.id}`,
+  );
+  expect(within(details).queryByRole('link', { name: 'Groceries' })).not.toBeInTheDocument();
   expect(within(details).getByText('Tbilisi')).toBeInTheDocument();
   expect(within(details).getByText('Weekly shop')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Groceries' })).toHaveAttribute('aria-current', 'true');

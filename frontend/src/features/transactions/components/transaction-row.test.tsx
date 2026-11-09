@@ -179,6 +179,78 @@ test.each([
     },
     cells: ['Adjustment · Savings', '', '+$25.00'],
   },
+  {
+    kind: 'an expense of a deleted category from a deleted account',
+    row: {
+      ...transaction,
+      postings: [
+        {
+          ...posting,
+          amount: '-42.80',
+          base_amount: '-42.80',
+          account: { ...wallet, status: 'DELETED' },
+        },
+        {
+          ...posting,
+          amount: '42.80',
+          base_amount: '42.80',
+          account: { ...category, status: 'DELETED' },
+        },
+      ],
+    },
+    cells: ['Groceries, deleted', 'Wallet, deleted', '', '-$42.80'],
+  },
+  {
+    kind: 'an income of a deleted source',
+    row: {
+      ...transaction,
+      transaction_type: 'INCOME',
+      postings: [
+        {
+          ...posting,
+          amount: '-100.00',
+          base_amount: '-100.00',
+          account: { ...incomeSource, status: 'DELETED' },
+        },
+        { ...posting, amount: '100.00', base_amount: '100.00', account: wallet },
+      ],
+    },
+    cells: ['Salary, deleted', 'Wallet', '', '+$100.00'],
+  },
+  {
+    kind: 'a transfer from a deleted account',
+    row: {
+      ...transaction,
+      transaction_type: 'TRANSFER',
+      postings: [
+        {
+          ...posting,
+          amount: '-300.00',
+          base_amount: '-300.00',
+          account: { ...wallet, status: 'DELETED' },
+        },
+        { ...posting, amount: '300.00', base_amount: '300.00', account: savings },
+      ],
+    },
+    cells: ['Transfer Wallet, deleted → Savings', '', '$300.00'],
+  },
+  {
+    kind: 'an adjustment of a deleted account',
+    row: {
+      ...transaction,
+      transaction_type: 'ADJUSTMENT',
+      postings: [
+        { ...posting, amount: '-25.00', base_amount: '-25.00', account: equity },
+        {
+          ...posting,
+          amount: '25.00',
+          base_amount: '25.00',
+          account: { ...savings, status: 'DELETED' },
+        },
+      ],
+    },
+    cells: ['Adjustment · Savings, deleted', '', '+$25.00'],
+  },
 ] satisfies {
   kind: string;
   row: components['schemas']['Transaction'];

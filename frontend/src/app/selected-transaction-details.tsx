@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Navigate, useSearchParams } from 'react-router';
+import { Navigate, type To, useSearchParams } from 'react-router';
 
 import { accountQueries } from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
@@ -15,13 +15,17 @@ import type { components } from '@/lib/api-schema';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
-type SelectedTransactionDetailsProps = Readonly<{ baseCurrency: string }>;
+type SelectedTransactionDetailsProps = Readonly<{
+  baseCurrency: string;
+  readAccountLink: (accountId: string) => To;
+}>;
 
 type SelectedTransactionProps = Readonly<{
   transactionId: string;
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
+  readAccountLink: (accountId: string) => To;
 }>;
 
 function SelectedTransaction({
@@ -29,6 +33,7 @@ function SelectedTransaction({
   baseCurrency,
   transactionTypes,
   accountKinds,
+  readAccountLink,
 }: SelectedTransactionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { error } = useQuery(transactionQueries.detail(transactionId));
@@ -50,6 +55,7 @@ function SelectedTransaction({
       baseCurrency={baseCurrency}
       transactionTypes={transactionTypes}
       accountKinds={accountKinds}
+      readAccountLink={readAccountLink}
       relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
       onClose={() => {
         setSearchParams(writeSelectedTransaction({ searchParams, transactionId: undefined }), {
@@ -60,7 +66,10 @@ function SelectedTransaction({
   );
 }
 
-export function SelectedTransactionDetails({ baseCurrency }: SelectedTransactionDetailsProps) {
+export function SelectedTransactionDetails({
+  baseCurrency,
+  readAccountLink,
+}: SelectedTransactionDetailsProps) {
   const [searchParams] = useSearchParams();
   const selectedTransactionId = readSelectedTransactionId(searchParams);
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
@@ -75,6 +84,7 @@ export function SelectedTransactionDetails({ baseCurrency }: SelectedTransaction
       baseCurrency={baseCurrency}
       transactionTypes={dictionaries.transaction_types}
       accountKinds={dictionaries.account_kinds}
+      readAccountLink={readAccountLink}
     />
   );
 }
