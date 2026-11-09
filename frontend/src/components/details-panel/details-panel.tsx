@@ -15,20 +15,12 @@ function readIsShown(bounds: DOMRectReadOnly): boolean {
   return isShown;
 }
 
-function readIsLatestShownPanel(panelId: string): boolean {
-  const shownPanels = [...document.querySelectorAll<HTMLElement>(DETAILS_PANEL_SELECTOR)].filter(
-    (panel) => readIsShown(panel.getBoundingClientRect()),
+function readIsOnlyShownPanel(panelId: string): boolean {
+  const shownPanels = [...document.querySelectorAll(DETAILS_PANEL_SELECTOR)].filter((panel) =>
+    readIsShown(panel.getBoundingClientRect()),
   );
-  const latestShownPanel = shownPanels.reduce<HTMLElement | undefined>(
-    (latest, panel) =>
-      latest === undefined ||
-      Number(panel.dataset['shownAt'] ?? 0) > Number(latest.dataset['shownAt'] ?? 0)
-        ? panel
-        : latest,
-    undefined,
-  );
-  const isLatestShownPanel = latestShownPanel?.id === panelId;
-  return isLatestShownPanel;
+  const isOnlyShownPanel = shownPanels.length === 1 && shownPanels[0]?.id === panelId;
+  return isOnlyShownPanel;
 }
 
 type DetailsPanelProps = Readonly<{
@@ -85,7 +77,7 @@ export function DetailsPanel({
       const { target } = event;
       const dialog = target instanceof Element ? target.closest(DIALOG_SELECTOR) : null;
       const isForThisPanel =
-        dialog === null ? readIsLatestShownPanel(panelId) : dialog.id === panelId;
+        dialog === null ? readIsOnlyShownPanel(panelId) : dialog.id === panelId;
       if (isForThisPanel) {
         closePanel();
       }
@@ -107,19 +99,13 @@ export function DetailsPanel({
     }
 
     let isShown = readIsShown(panel.getBoundingClientRect());
-    if (isShown) {
-      panel.dataset['shownAt'] = String(performance.now());
-    }
-
     const observer = new IntersectionObserver(([entry]) => {
       const isNowShown = entry !== undefined && readIsShown(entry.boundingClientRect);
-      if (isNowShown && !isShown) {
-        panel.dataset['shownAt'] = String(performance.now());
-        const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
-        const isSheet = getComputedStyle(panel).position === 'fixed';
-        if (isSheet && !isFocusInDialog) {
-          panel.focus({ preventScroll: true });
-        }
+      const backdrop = document.getElementById(backdropId);
+      const isSheet = backdrop !== null && readIsShown(backdrop.getBoundingClientRect());
+      const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
+      if (isNowShown && !isShown && isSheet && !isFocusInDialog) {
+        panel.focus({ preventScroll: true });
       }
 
       isShown = isNowShown;
@@ -129,7 +115,7 @@ export function DetailsPanel({
     return () => {
       observer.disconnect();
     };
-  }, [panelId]);
+  }, [panelId, backdropId]);
 
   const closeButton = (
     <button type="button" className={styles['close']} aria-label="Close details" onClick={close}>
