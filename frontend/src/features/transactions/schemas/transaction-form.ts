@@ -97,7 +97,9 @@ export function createAdjustmentFormSchema({
   today,
 }: Readonly<{ account: Readonly<Account> | undefined; baseCurrency: string; today: string }>) {
   const adjustmentFormSchema = z.object({
-    account_id: z.string().min(1, 'Choose the account to adjust'),
+    account_id: z.string().refine(() => account !== undefined, {
+      error: 'Choose the account to adjust',
+    }),
     new_balance: z
       .string()
       .transform((text) => readAmountText(text))

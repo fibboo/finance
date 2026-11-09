@@ -41,6 +41,7 @@ export const accountQueries = {
     return queryOptions({
       queryKey: [...ACCOUNTS_KEY, 'detail', accountId],
       queryFn: () => fetchAccount(accountId),
+      meta: { isNotFoundExpected: true },
     });
   },
 };

@@ -503,3 +503,28 @@ test('starts with the preset account chosen and adjusts its balance', async () =
   expect(screen.getByRole('button', { name: /^Account/ })).toHaveTextContent('Euro card');
   expect(requestPath).toBe(`/api/accounting/accounts/${euroCard.id}/adjustment`);
 });
+
+test('asks for the account when the preset account is not a money account', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[wallet]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.type(screen.getByLabelText('New balance'), '15');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+
+  // assert
+  expect(await screen.findByText('Choose the account to adjust')).toBeInTheDocument();
+});

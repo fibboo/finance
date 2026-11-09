@@ -363,4 +363,5 @@ test('drops the account param of an account that does not exist', async () => {
     expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
   });
   expect(accountLink).not.toHaveAttribute('aria-current');
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });

@@ -1,14 +1,11 @@
 import { type QueryKey, useQuery } from '@tanstack/react-query';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
-import { LoadError } from '@/components/load-error/load-error';
-import { Skeleton } from '@/components/skeleton/skeleton';
 import type { components } from '@/lib/api-schema';
 
 import { readTransactionLinkId } from '../api/selected-transaction';
 import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
-import styles from './transaction-details.module.css';
 import { TransactionOverview } from './transaction-overview';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -30,19 +27,19 @@ export function TransactionDetails({
   relatedQueryKeys,
   onClose,
 }: TransactionDetailsProps) {
-  const {
-    data: transaction,
-    isError,
-    refetch,
-  } = useQuery(transactionQueries.detail(transactionId));
+  const { data: transaction, status, refetch } = useQuery(transactionQueries.detail(transactionId));
   return (
     <DetailsPanel
       label="Transaction details"
-      isBusy={transaction === undefined && !isError}
+      status={status}
+      errorMessage="Couldn't load the transaction"
       returnFocusId={readTransactionLinkId(transactionId)}
+      onRetry={() => {
+        void refetch();
+      }}
       onClose={onClose}
       renderContent={(closeButton) =>
-        transaction !== undefined ? (
+        transaction !== undefined && (
           <TransactionOverview
             transaction={transaction}
             baseCurrency={baseCurrency}
@@ -57,24 +54,6 @@ export function TransactionDetails({
               />
             }
           />
-        ) : (
-          <div className={styles['placeholder']}>
-            {isError ? (
-              <LoadError
-                message="Couldn't load the transaction"
-                onRetry={() => {
-                  void refetch();
-                }}
-              />
-            ) : (
-              <div className={styles['skeleton']}>
-                <Skeleton className={styles['metaSkeleton']} />
-                <Skeleton className={styles['titleSkeleton']} />
-                <Skeleton className={styles['amountSkeleton']} />
-              </div>
-            )}
-            {closeButton}
-          </div>
         )
       }
     />

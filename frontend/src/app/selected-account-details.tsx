@@ -10,9 +10,7 @@ import { AccountDetails } from '@/features/accounts/components/account-details';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { writeNewAdjustment } from '@/features/transactions/api/new-transaction';
 import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
-import { ApiError } from '@/lib/api-error';
-
-const NOT_FOUND_STATUS = 404;
+import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 
 type SelectedAccountDetailsProps = Readonly<{ baseCurrency: string }>;
 

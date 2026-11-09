@@ -1,5 +1,7 @@
 import { type ReactNode, useEffect, useId, useRef } from 'react';
 
+import { LoadError } from '@/components/load-error/load-error';
+import { Skeleton } from '@/components/skeleton/skeleton';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './details-panel.module.css';
@@ -8,16 +10,20 @@ const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
 
 type DetailsPanelProps = Readonly<{
   label: string;
-  isBusy: boolean;
+  status: 'pending' | 'error' | 'success';
+  errorMessage: string;
   returnFocusId: string;
+  onRetry: () => void;
   onClose: () => void;
   renderContent: (closeButton: ReactNode) => ReactNode;
 }>;
 
 export function DetailsPanel({
   label,
-  isBusy,
+  status,
+  errorMessage,
   returnFocusId,
+  onRetry,
   onClose,
   renderContent,
 }: DetailsPanelProps) {
@@ -46,7 +52,7 @@ export function DetailsPanel({
 
     function handleKeyDown(event: KeyboardEvent) {
       const { target } = event;
-      const dialog = target instanceof Element ? target.closest('[role="dialog"]') : null;
+      const dialog = target instanceof Element ? target.closest('dialog, [role="dialog"]') : null;
       const isInOtherDialog = dialog !== null && dialog.id !== panelId;
       if (event.key === 'Escape' && !isInOtherDialog) {
         closePanel();
@@ -80,7 +86,7 @@ export function DetailsPanel({
         }}
         role="dialog"
         aria-label={label}
-        aria-busy={isBusy}
+        aria-busy={status === 'pending'}
         tabIndex={-1}
         className={styles['detailsPanel']}
         {...dragHandlers}
@@ -91,7 +97,22 @@ export function DetailsPanel({
           aria-hidden="true"
           data-sheet-drag-area
         />
-        {renderContent(closeButton)}
+        {status === 'success' ? (
+          renderContent(closeButton)
+        ) : (
+          <div className={styles['placeholder']}>
+            {status === 'error' ? (
+              <LoadError message={errorMessage} onRetry={onRetry} />
+            ) : (
+              <div className={styles['skeleton']}>
+                <Skeleton className={styles['metaSkeleton']} />
+                <Skeleton className={styles['titleSkeleton']} />
+                <Skeleton className={styles['amountSkeleton']} />
+              </div>
+            )}
+            {closeButton}
+          </div>
+        )}
       </section>
     </>
   );

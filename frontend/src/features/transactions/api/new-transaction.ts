@@ -40,9 +40,9 @@ export function writeNewTransactionType({
   transactionType: EntryTransactionType | undefined;
 }>): URLSearchParams {
   const nextSearchParams = new URLSearchParams(searchParams);
+  nextSearchParams.delete(NEW_TRANSACTION_ACCOUNT_PARAM);
   if (transactionType === undefined) {
     nextSearchParams.delete(NEW_TRANSACTION_PARAM);
-    nextSearchParams.delete(NEW_TRANSACTION_ACCOUNT_PARAM);
   } else {
     nextSearchParams.set(NEW_TRANSACTION_PARAM, transactionType);
   }
