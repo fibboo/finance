@@ -66,6 +66,11 @@ beforeEach(() => {
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
+    http.get('http://localhost/api/accounting/currencies', () =>
+      HttpResponse.json([
+        { key: 'USD', label: 'US Dollar' },
+      ] satisfies components['schemas']['DictionaryItem'][]),
+    ),
   );
 });
 
@@ -128,6 +133,44 @@ test('creates an account from New account and lists it', async () => {
   // assert
   expect(await screen.findByText('Travel card')).toBeInTheDocument();
   expect(screen.queryByRole('form', { name: 'New account' })).not.toBeInTheDocument();
+});
+
+test('lists the currencies of New account in the order of their recent use', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/currencies', () =>
+      HttpResponse.json([
+        { key: 'EUR', label: 'Euro' },
+        { key: 'USD', label: 'US Dollar' },
+      ] satisfies components['schemas']['DictionaryItem'][]),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<Component />);
+  const newAccountButton = await screen.findByRole('button', { name: 'New account' });
+  await waitFor(() => {
+    expect(newAccountButton).toBeEnabled();
+  });
+
+  // act
+  await user.click(newAccountButton);
+
+  // assert
+  const form = await screen.findByRole('form', { name: 'New account' });
+  expect(
+    within(within(form).getByRole('combobox', { name: 'Currency' }))
+      .getAllByRole('option')
+      .map((option) => option.textContent),
+  ).toEqual(['EUR · Euro', 'USD · US Dollar']);
 });
 
 test('keeps the accounts listed and New account disabled when the dictionary fails', async () => {

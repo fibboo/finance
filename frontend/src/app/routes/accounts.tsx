@@ -18,6 +18,7 @@ import { AccountGroups } from '@/features/accounts/components/account-groups';
 import { AccountSearch } from '@/features/accounts/components/account-search';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
+import { currencyQueries } from '@/features/currencies/api/currency-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import { isThrownWithoutData } from '@/lib/query-meta';
@@ -79,6 +80,7 @@ export function Component() {
   });
   const isNothingMatched = searchTerm !== undefined && accountPage?.items.length === 0;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
+  const { data: currencies } = useQuery(currencyQueries.recentUse());
 
   function closeForm() {
     setIsCreating(false);
@@ -101,7 +103,9 @@ export function Component() {
         <button
           type="button"
           className={styles['newAccount']}
-          disabled={dictionaries === undefined || baseCurrency === undefined}
+          disabled={
+            dictionaries === undefined || currencies === undefined || baseCurrency === undefined
+          }
           onClick={() => {
             setIsCreating(true);
           }}
@@ -132,17 +136,20 @@ export function Component() {
           />
         </div>
       )}
-      {isCreating && dictionaries !== undefined && baseCurrency !== undefined && (
-        <Sheet label="New account" onClose={closeForm}>
-          <MoneyAccountForm
-            mode={{ kind: 'create', name: '', onCreated: closeForm }}
-            accountKinds={dictionaries.account_kinds}
-            currencies={dictionaries.currencies}
-            baseCurrency={baseCurrency}
-            onBack={closeForm}
-          />
-        </Sheet>
-      )}
+      {isCreating &&
+        dictionaries !== undefined &&
+        currencies !== undefined &&
+        baseCurrency !== undefined && (
+          <Sheet label="New account" onClose={closeForm}>
+            <MoneyAccountForm
+              mode={{ kind: 'create', name: '', onCreated: closeForm }}
+              accountKinds={dictionaries.account_kinds}
+              currencies={currencies}
+              baseCurrency={baseCurrency}
+              onBack={closeForm}
+            />
+          </Sheet>
+        )}
     </Page>
   );
 }
