@@ -80,8 +80,8 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
                   <Skeleton className={styles['markSkeleton']} />
                   <span className={styles['identity']}>
                     <Skeleton className={styles['nameSkeleton']} />
-                    <Skeleton className={styles['detailSkeleton']} />
                   </span>
+                  <Skeleton className={styles['detailSkeleton']} />
                   <span className={styles['amounts']}>
                     <Skeleton className={styles['balanceSkeleton']} />
                     <Skeleton className={styles['detailSkeleton']} />
@@ -115,11 +115,11 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
                   <AccountMark account={account} />
                   <span className={styles['identity']}>
                     <span className={styles['name']}>{account.name}</span>
-                    <span className={styles['detail']}>
-                      {account.currency}
-                      <span className={styles['rate']}>
-                        {readAccountRateText({ account, baseCurrency })}
-                      </span>
+                  </span>
+                  <span className={styles['detail']}>
+                    {account.currency}
+                    <span className={styles['rate']}>
+                      {readAccountRateText({ account, baseCurrency })}
                     </span>
                   </span>
                   <span

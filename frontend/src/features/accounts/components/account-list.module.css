@@ -69,7 +69,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-content: start;
   align-items: center;
-  gap: var(--space-1-5) var(--space-2);
+  gap: 0 var(--space-2);
   color: inherit;
   text-decoration: none;
   background: var(--color-ground);
@@ -120,13 +120,16 @@ a.account:focus-visible {
 }
 
 .detail {
+  grid-column: 1 / -1;
   font-size: var(--font-size-2xs);
   color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .amounts,
 .debtAmounts {
   grid-column: 1 / -1;
+  margin-top: var(--space-1-5);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -201,6 +204,7 @@ a.account:focus-visible {
 }
 
 .detailSkeleton {
+  grid-column: 1 / -1;
   width: var(--size-skeleton-word);
   height: var(--size-skeleton-text-sm);
 }
@@ -210,7 +214,6 @@ a.account:focus-visible {
   height: var(--size-skeleton-text);
 }
 
-.identity:has(.nameSkeleton),
 .amounts:has(.balanceSkeleton) {
   gap: var(--space-1-5);
 }
@@ -236,7 +239,12 @@ a.account:focus-visible {
   .account {
     padding: var(--space-2-5) var(--space-3-5);
     border-radius: var(--radius-track);
-    gap: var(--space-2) var(--space-2-5);
+    gap: 0 var(--space-2-5);
+  }
+
+  .amounts,
+  .debtAmounts {
+    margin-top: var(--space-2);
   }
 
   .markSkeleton,
