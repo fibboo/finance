@@ -1,6 +1,8 @@
 @import '@/styles/media.css';
 
 .accountGroups {
+  --group-header-top: var(--sticky-top, 0);
+
   isolation: isolate;
   display: flex;
   flex-direction: column;
@@ -21,7 +23,7 @@
 
 .groupHeader {
   position: sticky;
-  top: var(--sticky-top, 0);
+  top: var(--group-header-top);
   z-index: 1;
   min-height: var(--size-panel-header-lg);
   border-bottom: var(--size-border) solid var(--color-border);
@@ -86,7 +88,7 @@
   white-space: nowrap;
   color: inherit;
   text-decoration: none;
-  scroll-margin-top: calc(var(--sticky-top, 0) + var(--size-panel-header-lg));
+  scroll-margin-top: calc(var(--group-header-top) + var(--size-panel-header-lg) + var(--space-2-5));
 }
 
 .name::after {
@@ -170,6 +172,10 @@
 
 @media (--desktop) {
   .accountGroups {
+    --group-header-top: calc(
+      var(--sticky-top, 0) + var(--size-columns-header-lg) + var(--space-1-5)
+    );
+
     flex: 1 1 auto;
     min-width: 0;
     align-self: flex-start;
@@ -209,7 +215,6 @@
   }
 
   .groupHeader {
-    top: calc(var(--sticky-top, 0) + var(--size-columns-header-lg) + var(--space-1-5));
     min-height: var(--size-panel-header-lg);
     margin: var(--space-1-5) calc(-1 * var(--space-2)) 0;
     padding: 0 var(--space-2);
@@ -222,15 +227,13 @@
   .groupHeader::before {
     content: '';
     position: absolute;
-    inset: calc(var(--space-1-5) * -1) 0 auto;
-    height: var(--space-1-5);
+    inset: calc(var(--space-1-5) * -1) 0 100%;
     background: var(--color-panel);
   }
 
   .name {
     scroll-margin-top: calc(
-      var(--sticky-top, 0) + var(--size-columns-header-lg) + var(--space-1-5) +
-        var(--size-panel-header-lg)
+      var(--group-header-top) + var(--size-panel-header-lg) + (var(--size-option-lg) - 1lh) / 2
     );
   }
 
