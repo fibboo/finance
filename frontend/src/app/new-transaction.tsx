@@ -9,6 +9,7 @@ import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/accou
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
+import { currencyQueries } from '@/features/currencies/api/currency-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
 import { LocationForm } from '@/features/locations/components/location-form';
@@ -33,6 +34,11 @@ export function NewTransaction() {
   const baseCurrency = useBaseCurrency();
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
+    enabled: isOpen,
+    throwOnError: isThrownWithoutData,
+  });
+  const { data: currencies } = useQuery({
+    ...currencyQueries.recentUse(),
     enabled: isOpen,
     throwOnError: isThrownWithoutData,
   });
@@ -80,8 +86,10 @@ export function NewTransaction() {
 
   const relatedQueryKeys = [accountQueries.all().queryKey, summaryQueries.current().queryKey];
   function renderMoneyAccountForm(props: CreateFormProps) {
-    if (dictionaries === undefined || baseCurrency === undefined) {
-      throw new Error('A money account form needs the dictionaries and the base currency.');
+    if (dictionaries === undefined || currencies === undefined || baseCurrency === undefined) {
+      throw new Error(
+        'A money account form needs the dictionaries, the currencies and the base currency.',
+      );
     }
 
     return (
@@ -89,7 +97,7 @@ export function NewTransaction() {
         mode={{ kind: 'create', name: props.name, onCreated: props.onCreated }}
         onBack={props.onBack}
         accountKinds={dictionaries.account_kinds}
-        currencies={dictionaries.currencies}
+        currencies={currencies}
         baseCurrency={baseCurrency}
       />
     );
@@ -97,7 +105,7 @@ export function NewTransaction() {
 
   return (
     <Sheet label="New transaction" onClose={close}>
-      {dictionaries === undefined || baseCurrency === undefined ? (
+      {dictionaries === undefined || currencies === undefined || baseCurrency === undefined ? (
         <div className={styles['skeleton']} aria-busy="true">
           <Skeleton className={styles['titleSkeleton']} />
           <Skeleton className={styles['amountSkeleton']} />
@@ -121,7 +129,7 @@ export function NewTransaction() {
           transactionType={transactionType}
           transactionTypes={dictionaries.transaction_types}
           categoryTypes={dictionaries.category_types}
-          currencies={dictionaries.currencies}
+          currencies={currencies}
           moneyAccounts={moneyAccounts?.items}
           categories={categories?.items}
           incomeSources={incomeSources?.items}
