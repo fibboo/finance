@@ -44,6 +44,7 @@
 @media (--desktop) {
   .rows,
   .staleRows {
+    container-type: inline-size;
     border-radius: calc(var(--radius-bar) - var(--space-2)) calc(var(--radius-bar) - var(--space-2))
       0 0;
   }
