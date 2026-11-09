@@ -4,9 +4,9 @@
 }
 
 .button {
-  width: 100%;
   min-height: var(--size-field-lg);
-  padding: 0;
+  margin: 0 calc(var(--rows-inset) * -1);
+  padding: 0 var(--rows-inset);
   border: 0;
   border-radius: var(--radius-control);
   display: flex;

@@ -9,7 +9,8 @@
 }
 
 .rows {
-  padding: 0 var(--space-3-5);
+  --rows-inset: var(--space-3-5);
+  padding: 0 var(--rows-inset);
   border-radius: var(--radius-action);
   display: flex;
   flex-direction: column;
