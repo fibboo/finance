@@ -61,7 +61,11 @@ export function Component() {
     }
   }
   const searchTerm = readAccountSearchTerm(search);
-  const accountQuery = { size: ACCOUNT_PAGE_SIZE, kinds: [...MONEY_ACCOUNT_KINDS] };
+  const accountQuery = {
+    size: ACCOUNT_PAGE_SIZE,
+    kinds: [...MONEY_ACCOUNT_KINDS],
+    order: 'recent_use' as const,
+  };
   const { data: allAccountPage } = useQuery({
     ...accountQueries.list(accountQuery),
     throwOnError: isThrownWithoutData,

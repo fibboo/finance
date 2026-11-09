@@ -31,9 +31,18 @@ const mainCard = {
   base_currency_balance: '3471.20',
 } satisfies components['schemas']['Account'];
 
-const creditCard = {
+const savings = {
   ...wallet,
-  name: 'Credit card',
+  name: 'Savings',
+  id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a06',
+  balance: '1000.00',
+  color: '#A15CB8',
+  base_currency_balance: '1000.00',
+} satisfies components['schemas']['Account'];
+
+const visaCredit = {
+  ...wallet,
+  name: 'Visa credit',
   id: '8c1a7f0c-2f4e-4b9e-9d1f-0e6a3c2b1a04',
   kind: 'LIABILITY',
   balance: '-318.40',
@@ -53,10 +62,23 @@ const intesaCredit = {
   base_currency_balance: '-1451.20',
 } satisfies components['schemas']['Account'];
 
-test('groups assets before liabilities, each with its total and the largest amount first', () => {
+const amexCredit = {
+  ...visaCredit,
+  name: 'Amex credit',
+  id: '8c1a7f0c-2f4e-4b9e-9d1f-0e6a3c2b1a07',
+  balance: '-700.00',
+  color: '#3F9C8A',
+  base_currency_balance: '-700.00',
+} satisfies components['schemas']['Account'];
+
+test('groups assets before liabilities, each with its total and its accounts in the order given', () => {
   // act
   render(
-    <AccountGroups accounts={[wallet, creditCard, mainCard, intesaCredit]} baseCurrency="USD" />,
+    // in each group neither by balance nor by name, in either direction
+    <AccountGroups
+      accounts={[wallet, intesaCredit, mainCard, visaCredit, savings, amexCredit]}
+      baseCurrency="USD"
+    />,
   );
 
   // assert
@@ -67,16 +89,20 @@ test('groups assets before liabilities, each with its total and the largest amou
     throw new Error('Both groups must be shown.');
   }
   expect(within(assets).getByRole('heading', { name: 'Assets' })).toBeInTheDocument();
-  expect(assets).toHaveTextContent('$3,883.70');
+  expect(assets).toHaveTextContent('$4,883.70');
   const assetRows = within(assets).getAllByRole('listitem');
-  expect(assetRows[0]).toHaveTextContent('Main cardEUR$3,471.20€3,180.00');
-  expect(assetRows[1]).toHaveTextContent('WalletUSD$412.50');
-  expect(assetRows[1]).not.toHaveTextContent('$412.50$412.50');
+  expect(assetRows).toHaveLength(3);
+  expect(assetRows[0]).toHaveTextContent('WalletUSD$412.50');
+  expect(assetRows[0]).not.toHaveTextContent('$412.50$412.50');
+  expect(assetRows[1]).toHaveTextContent('Main cardEUR$3,471.20€3,180.00');
+  expect(assetRows[2]).toHaveTextContent('Savings');
   expect(within(liabilities).getByRole('heading', { name: 'Liabilities' })).toBeInTheDocument();
-  expect(liabilities).toHaveTextContent('-$1,769.60');
+  expect(liabilities).toHaveTextContent('-$2,469.60');
   const liabilityRows = within(liabilities).getAllByRole('listitem');
+  expect(liabilityRows).toHaveLength(3);
   expect(liabilityRows[0]).toHaveTextContent('Intesa credit');
-  expect(liabilityRows[1]).toHaveTextContent('Credit card');
+  expect(liabilityRows[1]).toHaveTextContent('Visa credit');
+  expect(liabilityRows[2]).toHaveTextContent('Amex credit');
 });
 
 test('leaves out a group without accounts', () => {

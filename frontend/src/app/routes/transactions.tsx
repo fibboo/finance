@@ -43,7 +43,7 @@ function readTransactionCount(
 
 function readAccountsQuery(kinds: readonly AccountKind[]) {
   const accountsQuery = queryOptions({
-    ...accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...kinds] }),
+    ...accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...kinds], order: 'recent_use' }),
     throwOnError: isThrownWithoutData,
   });
   return accountsQuery;

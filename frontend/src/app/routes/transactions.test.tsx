@@ -110,19 +110,22 @@ beforeEach(() => {
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
-      const kinds = new URL(request.url).searchParams.getAll('kinds');
+      const searchParams = new URL(request.url).searchParams;
+      const kinds = searchParams.getAll('kinds');
       const items = kinds.includes('ASSET')
         ? [wallet]
         : kinds.includes('EXPENSE')
           ? [category, cafes]
           : [];
-      return HttpResponse.json({
-        items,
-        total: items.length,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Account_']);
+      return searchParams.get('order') === 'recent_use'
+        ? HttpResponse.json({
+            items,
+            total: items.length,
+            page: 1,
+            size: 100,
+            pages: 1,
+          } satisfies components['schemas']['Page_Account_'])
+        : HttpResponse.json(null, { status: 400 });
     }),
   );
 });
@@ -394,6 +397,35 @@ test('requests the checked accounts of every kind and counts them on their chips
   await waitFor(() => {
     expect(requestedAccountIds).toEqual([[], [wallet.id], [wallet.id, cafes.id]]);
   });
+});
+
+test('lists the accounts of a filter panel in the order of their recent use', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+
+  // act
+  await user.click(await screen.findByRole('button', { name: 'Categories' }));
+
+  // assert
+  const checkboxes = within(screen.getByRole('dialog', { name: 'Categories' })).getAllByRole(
+    'checkbox',
+  );
+  // Groceries before Cafes, as the list answers, not by name
+  expect(checkboxes).toHaveLength(2);
+  expect(checkboxes[0]).toHaveAccessibleName('Groceries');
+  expect(checkboxes[1]).toHaveAccessibleName('Cafes');
 });
 
 test('clears the income sources when categories are applied', async () => {
