@@ -27,11 +27,18 @@ export function TransactionDetails({
   relatedQueryKeys,
   onClose,
 }: TransactionDetailsProps) {
-  const { data: transaction, status, refetch } = useQuery(transactionQueries.detail(transactionId));
+  const {
+    data: transaction,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery(transactionQueries.detail(transactionId));
   return (
     <DetailsPanel
       label="Transaction details"
-      status={status}
+      isLoaded={transaction !== undefined}
+      isError={isError}
+      isFetching={isFetching}
       errorMessage="Couldn't load the transaction"
       returnFocusId={readTransactionLinkId(transactionId)}
       onRetry={() => {

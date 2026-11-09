@@ -27,11 +27,18 @@ export function AccountDetails({
   transactionsLink,
   onClose,
 }: AccountDetailsProps) {
-  const { data: account, status, refetch } = useQuery(accountQueries.detail(accountId));
+  const {
+    data: account,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery(accountQueries.detail(accountId));
   return (
     <DetailsPanel
       label="Account details"
-      status={status}
+      isLoaded={account !== undefined}
+      isError={isError}
+      isFetching={isFetching}
       errorMessage="Couldn't load the account"
       returnFocusId={readAccountLinkId(accountId)}
       onRetry={() => {

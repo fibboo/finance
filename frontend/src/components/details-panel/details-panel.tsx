@@ -10,7 +10,9 @@ const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
 
 type DetailsPanelProps = Readonly<{
   label: string;
-  status: 'pending' | 'error' | 'success';
+  isLoaded: boolean;
+  isError: boolean;
+  isFetching: boolean;
   errorMessage: string;
   returnFocusId: string;
   onRetry: () => void;
@@ -20,7 +22,9 @@ type DetailsPanelProps = Readonly<{
 
 export function DetailsPanel({
   label,
-  status,
+  isLoaded,
+  isError,
+  isFetching,
   errorMessage,
   returnFocusId,
   onRetry,
@@ -86,7 +90,7 @@ export function DetailsPanel({
         }}
         role="dialog"
         aria-label={label}
-        aria-busy={status === 'pending'}
+        aria-busy={!isLoaded && isFetching}
         tabIndex={-1}
         className={styles['detailsPanel']}
         {...dragHandlers}
@@ -97,11 +101,11 @@ export function DetailsPanel({
           aria-hidden="true"
           data-sheet-drag-area
         />
-        {status === 'success' ? (
+        {isLoaded ? (
           renderContent(closeButton)
         ) : (
           <div className={styles['placeholder']}>
-            {status === 'error' ? (
+            {isError && !isFetching ? (
               <LoadError message={errorMessage} onRetry={onRetry} />
             ) : (
               <div className={styles['skeleton']}>

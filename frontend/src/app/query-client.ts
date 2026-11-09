@@ -2,6 +2,7 @@ import { MutationCache, type Query, QueryCache, QueryClient } from '@tanstack/re
 
 import { showErrorNotification } from '@/components/error-notification/error-notification-store';
 import { ApiError, NOT_FOUND_STATUS, UNAUTHORIZED_STATUS } from '@/lib/api-error';
+import { isNotFoundExpected } from '@/lib/query-meta';
 
 const STALE_TIME_MS = 60_000;
 const MAX_RETRIES = 3;
@@ -22,7 +23,7 @@ function notifyError(error: Error): void {
 
 function notifyQueryError(error: Error, query: Query<unknown, unknown, unknown>): void {
   const isExpectedNotFound =
-    query.meta?.['isNotFoundExpected'] === true &&
+    isNotFoundExpected(query.meta) &&
     error instanceof ApiError &&
     error.status === NOT_FOUND_STATUS;
   if (!isExpectedNotFound) {

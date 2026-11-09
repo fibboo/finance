@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
 import type { components, operations } from '@/lib/api-schema';
+import { NOT_FOUND_EXPECTED_META } from '@/lib/query-meta';
 
 type Account = components['schemas']['Account'];
 type AccountPage = components['schemas']['Page_Account_'];
@@ -41,7 +42,7 @@ export const accountQueries = {
     return queryOptions({
       queryKey: [...ACCOUNTS_KEY, 'detail', accountId],
       queryFn: () => fetchAccount(accountId),
-      meta: { isNotFoundExpected: true },
+      meta: NOT_FOUND_EXPECTED_META,
     });
   },
 };

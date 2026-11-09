@@ -100,6 +100,7 @@ export function TransactionForm({
     zodResolver(
       createAdjustmentFormSchema({
         account: moneyAccounts?.find((account) => account.id === values.account_id),
+        areMoneyAccountsLoaded: moneyAccounts !== undefined,
         baseCurrency,
         today,
       }),
