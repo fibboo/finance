@@ -244,23 +244,15 @@ a.account:focus-visible {
     padding: var(--space-2-5) var(--space-3-5);
     border-radius: var(--radius-track);
     gap: 0 var(--space-2-5);
-    line-height: var(--line-height-base);
   }
 
   .amounts,
   .debtAmounts {
-    gap: 0;
-  }
-
-  .detail,
-  .detailSkeleton {
-    grid-column: 1 / -1;
-    margin-top: 0;
+    margin-top: var(--space-2-5);
   }
 
   .markSkeleton,
   .account > :first-child {
-    grid-row: 1;
     width: var(--size-account-mark-sm);
     height: var(--size-account-mark-sm);
     border-radius: var(--radius-segment);
