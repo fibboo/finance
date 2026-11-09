@@ -16,48 +16,47 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
   return shouldRetryError;
 }
 
-function notifyError(error: Error): void {
-  const hasEndedSession = error instanceof ApiError && error.status === UNAUTHORIZED_STATUS;
-  if (!hasEndedSession) {
-    showErrorNotification();
-  }
+function hasEndedSession(error: Error): boolean {
+  const isUnauthorized = error instanceof ApiError && error.status === UNAUTHORIZED_STATUS;
+  return isUnauthorized;
 }
 
-function notifyQueryError(error: Error, query: Query<unknown, unknown, unknown>): void {
+function isQueryErrorNotified(error: Error, query: Query<unknown, unknown, unknown>): boolean {
   const isExpectedNotFound =
     isNotFoundExpected(query.meta) &&
     error instanceof ApiError &&
     error.status === NOT_FOUND_STATUS;
-  if (!isExpectedNotFound) {
-    notifyError(error);
-  }
+  const isNotified = !isExpectedNotFound && !hasEndedSession(error);
+  return isNotified;
 }
 
 function notifyMutationError(error: Error): void {
   const isFieldError = error instanceof ApiError && error.fieldErrors.length > 0;
-  if (!isFieldError) {
-    notifyError(error);
+  if (!isFieldError && !hasEndedSession(error)) {
+    showErrorNotification();
   }
 }
 
 export function createQueryClient(): QueryClient {
-  const failingQueries = new WeakSet<Query<unknown, unknown, unknown>>();
+  let notifiedQueries = new WeakSet<Query<unknown, unknown, unknown>>();
   const queryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: (error, query) => {
-        const isFailureRepeated = failingQueries.has(query);
-        failingQueries.add(query);
-        if (!isFailureRepeated) {
-          notifyQueryError(error, query);
+        if (!notifiedQueries.has(query) && isQueryErrorNotified(error, query)) {
+          notifiedQueries.add(query);
+          showErrorNotification();
         }
       },
       onSuccess: (_data, query) => {
-        failingQueries.delete(query);
+        notifiedQueries.delete(query);
       },
     }),
     mutationCache: new MutationCache({
       onError: notifyMutationError,
-      onSuccess: announceDataChange,
+      onSuccess: () => {
+        notifiedQueries = new WeakSet();
+        announceDataChange();
+      },
     }),
     defaultOptions: {
       queries: {

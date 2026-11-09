@@ -1,5 +1,5 @@
 import { MutationObserver } from '@tanstack/react-query';
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router';
@@ -11,6 +11,7 @@ import { RequireSession } from '@/features/auth/components/require-session';
 import { UserSummary } from '@/features/user/components/user-summary';
 import { apiClient } from '@/lib/api-client';
 import type { components } from '@/lib/api-schema';
+import { NOT_FOUND_EXPECTED_META } from '@/lib/query-meta';
 import { render } from '@/test/render';
 import { server } from '@/test/setup';
 
@@ -212,11 +213,68 @@ test('notifies once while a query keeps failing and again once it failed after a
   await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
 
   // assert
+  // the flush lets React render a notification the repeated failure might have shown
+  await act(() => Promise.resolve());
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
   // a success ends the failures, so the next failure notifies again
   meResponse = 'ok';
   await queryClient.query(meQuery);
   meResponse = 'failing';
   await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+});
+
+test('notifies the first failure that follows an expected not found answer', async () => {
+  // arrange
+  let meStatus = 404;
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({ message: 'User not found' }, { status: meStatus }),
+    ),
+  );
+  render(<main />);
+  const queryClient = createQueryClient();
+  const meQuery = {
+    queryKey: ['user', 'me'],
+    queryFn: () => apiClient.GET('/user/me'),
+    staleTime: 0,
+    meta: NOT_FOUND_EXPECTED_META,
+  };
+  await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
+  meStatus = 400;
+
+  // act
+  await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
+
+  // assert
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+});
+
+test('notifies a query that keeps failing again after a mutation succeeds', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({ message: 'User not found' }, { status: 404 }),
+    ),
+  );
+  render(<main />);
+  const queryClient = createQueryClient();
+  const meQuery = {
+    queryKey: ['user', 'me'],
+    queryFn: () => apiClient.GET('/user/me'),
+    staleTime: 0,
+  };
+  await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
+  await user.click(await screen.findByRole('button', { name: 'Dismiss' }));
+  const observer = new MutationObserver(queryClient, {
+    mutationFn: () => Promise.resolve('saved'),
+  });
+  await observer.mutate();
+
+  // act
+  await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
+
+  // assert
   expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
 });
