@@ -56,20 +56,20 @@
 
 .accountItem {
   flex: none;
-  min-width: var(--size-account-tile);
+  min-width: var(--size-account-tile-sm);
   display: flex;
   scroll-snap-align: start;
 }
 
 .account {
   flex: none;
-  padding: var(--space-2-5) var(--space-3-5);
-  border-radius: var(--radius-track);
+  padding: var(--space-2) var(--space-2-5);
+  border-radius: var(--radius-segment);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-content: start;
   align-items: center;
-  gap: var(--space-2) var(--space-2-5);
+  gap: var(--space-1-5) var(--space-2);
   color: inherit;
   text-decoration: none;
   background: var(--color-ground);
@@ -97,10 +97,10 @@ a.account:focus-visible {
   grid-column: 2;
   grid-row: 1;
   align-self: start;
-  width: var(--size-account-mark-sm);
-  height: var(--size-account-mark-sm);
-  border-radius: var(--radius-segment);
-  font-size: var(--font-size-sm);
+  width: var(--size-account-mark-xs);
+  height: var(--size-account-mark-xs);
+  border-radius: var(--radius-badge);
+  font-size: var(--font-size-2xs);
 }
 
 .identity {
@@ -113,14 +113,14 @@ a.account:focus-visible {
 
 .name {
   overflow: hidden;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .detail {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   color: var(--color-muted);
 }
 
@@ -133,7 +133,7 @@ a.account:focus-visible {
 }
 
 .accountBalance {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   color: var(--color-muted);
 }
 
@@ -186,7 +186,7 @@ a.account:focus-visible {
 }
 
 .balance {
-  font-size: var(--font-size-tile-amount);
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-amount);
 }
@@ -207,7 +207,7 @@ a.account:focus-visible {
 
 .balanceSkeleton {
   width: var(--size-skeleton-amount);
-  height: var(--size-skeleton-text-lg);
+  height: var(--size-skeleton-text);
 }
 
 .identity:has(.nameSkeleton),
@@ -227,5 +227,40 @@ a.account:focus-visible {
   .accounts {
     padding: 0;
     scroll-padding-inline: 0;
+  }
+
+  .accountItem {
+    min-width: var(--size-account-tile);
+  }
+
+  .account {
+    padding: var(--space-2-5) var(--space-3-5);
+    border-radius: var(--radius-track);
+    gap: var(--space-2) var(--space-2-5);
+  }
+
+  .markSkeleton,
+  .account > :first-child {
+    width: var(--size-account-mark-sm);
+    height: var(--size-account-mark-sm);
+    border-radius: var(--radius-segment);
+    font-size: var(--font-size-sm);
+  }
+
+  .name {
+    font-size: var(--font-size-base);
+  }
+
+  .detail,
+  .accountBalance {
+    font-size: var(--font-size-xs);
+  }
+
+  .balance {
+    font-size: var(--font-size-tile-amount);
+  }
+
+  .balanceSkeleton {
+    height: var(--size-skeleton-text-lg);
   }
 }
