@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const ACCOUNT_PARAM = 'account';
+const ACCOUNT_LINK_ID_PREFIX = 'account-link-';
 
 export function readSelectedAccountId(searchParams: URLSearchParams): string | undefined {
   const parsedId = z.uuid().safeParse(searchParams.get(ACCOUNT_PARAM));
@@ -26,6 +27,16 @@ export function writeSelectedAccount({
 }
 
 export function readAccountLinkId(accountId: string): string {
-  const linkId = `account-link-${accountId}`;
+  const linkId = `${ACCOUNT_LINK_ID_PREFIX}${accountId}`;
   return linkId;
+}
+
+export function readNeighbourAccountLinkId(accountId: string): string | undefined {
+  const linkIds = Array.from(
+    document.querySelectorAll(`[id^="${ACCOUNT_LINK_ID_PREFIX}"]`),
+    (link) => link.id,
+  );
+  const index = linkIds.indexOf(readAccountLinkId(accountId));
+  const neighbourLinkId = index === -1 ? undefined : (linkIds[index + 1] ?? linkIds[index - 1]);
+  return neighbourLinkId;
 }

@@ -1,20 +1,18 @@
 import { type QueryKey, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 
+import { DeleteButton } from '@/components/delete-button/delete-button';
+import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import { transactionMutations } from '../api/transaction-mutations';
 import { transactionQueries } from '../api/transaction-queries';
-import { DeleteConfirmation } from './delete-confirmation';
-import styles from './delete-transaction.module.css';
 import { readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 
-const DELETE_ICON_PATH =
-  'M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3';
 const ACCOUNT_LIST_FORMAT = new Intl.ListFormat(LOCALE, { type: 'conjunction' });
 
 function readConfirmationText(transaction: Readonly<Transaction>): string {
@@ -62,21 +60,17 @@ export function DeleteTransaction({
 
   return (
     <>
-      <button
+      <DeleteButton
         id={buttonId}
-        type="button"
-        className={styles['deleteButton']}
+        label="Delete transaction"
+        blockingHint={undefined}
         onClick={() => {
           setIsConfirming(true);
         }}
-      >
-        <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-          <path d={DELETE_ICON_PATH} />
-        </svg>
-        Delete transaction
-      </button>
+      />
       {isConfirming && (
         <DeleteConfirmation
+          title="Delete this transaction?"
           text={readConfirmationText(transaction)}
           isPending={isPending}
           onCancel={cancel}

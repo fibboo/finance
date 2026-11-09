@@ -12,6 +12,7 @@ import {
 import { AccountDetails } from '@/features/accounts/components/account-details';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { summaryQueries } from '@/features/summary/api/summary-queries';
 import { writeNewAdjustment } from '@/features/transactions/api/new-transaction';
 import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
@@ -21,11 +22,15 @@ import type { components } from '@/lib/api-schema';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
-type SelectedAccountDetailsProps = Readonly<{ baseCurrency: string }>;
+type SelectedAccountDetailsProps = Readonly<{
+  baseCurrency: string;
+  accountCount: number | undefined;
+}>;
 
 type SelectedAccountProps = Readonly<{
   accountId: string;
   baseCurrency: string;
+  isOnlyAccount: boolean;
   accountKinds: readonly DictionaryItem[];
   currencies: readonly DictionaryItem[];
 }>;
@@ -33,6 +38,7 @@ type SelectedAccountProps = Readonly<{
 function SelectedAccount({
   accountId,
   baseCurrency,
+  isOnlyAccount,
   accountKinds,
   currencies,
 }: SelectedAccountProps) {
@@ -53,6 +59,13 @@ function SelectedAccount({
     setIsEditing(false);
   }
 
+  function dropSelectedAccount({ isReplaced }: Readonly<{ isReplaced: boolean }>) {
+    setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
+      preventScrollReset: true,
+      replace: isReplaced,
+    });
+  }
+
   return (
     <>
       <AccountDetails
@@ -71,13 +84,16 @@ function SelectedAccount({
             income_source_ids: [],
           }).toString(),
         }}
+        isOnlyAccount={isOnlyAccount}
+        relatedQueryKeys={[summaryQueries.current().queryKey, transactionQueries.feeds().queryKey]}
         onEdit={() => {
           setIsEditing(true);
         }}
+        onDeleted={() => {
+          dropSelectedAccount({ isReplaced: true });
+        }}
         onClose={() => {
-          setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
-            preventScrollReset: true,
-          });
+          dropSelectedAccount({ isReplaced: false });
         }}
       />
       {isEditing && account !== undefined && (
@@ -103,7 +119,10 @@ function SelectedAccount({
   );
 }
 
-export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsProps) {
+export function SelectedAccountDetails({
+  baseCurrency,
+  accountCount,
+}: SelectedAccountDetailsProps) {
   const [searchParams] = useSearchParams();
   const selectedAccountId = readSelectedAccountId(searchParams);
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
@@ -116,6 +135,7 @@ export function SelectedAccountDetails({ baseCurrency }: SelectedAccountDetailsP
       key={selectedAccountId}
       accountId={selectedAccountId}
       baseCurrency={baseCurrency}
+      isOnlyAccount={accountCount === 1}
       accountKinds={dictionaries.account_kinds}
       currencies={dictionaries.currencies}
     />

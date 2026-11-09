@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { type QueryKey, useQuery } from '@tanstack/react-query';
 import type { To } from 'react-router';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
@@ -7,6 +7,7 @@ import type { components } from '@/lib/api-schema';
 import { accountQueries } from '../api/account-queries';
 import { readAccountLinkId } from '../api/selected-account';
 import { AccountOverview } from './account-overview';
+import { DeleteAccount } from './delete-account';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
@@ -16,7 +17,10 @@ type AccountDetailsProps = Readonly<{
   accountKinds: readonly DictionaryItem[];
   adjustBalanceLink: To;
   transactionsLink: To;
+  isOnlyAccount: boolean;
+  relatedQueryKeys: readonly QueryKey[];
   onEdit: () => void;
+  onDeleted: () => void;
   onClose: () => void;
 }>;
 
@@ -26,7 +30,10 @@ export function AccountDetails({
   accountKinds,
   adjustBalanceLink,
   transactionsLink,
+  isOnlyAccount,
+  relatedQueryKeys,
   onEdit,
+  onDeleted,
   onClose,
 }: AccountDetailsProps) {
   const {
@@ -56,6 +63,15 @@ export function AccountDetails({
             adjustBalanceLink={adjustBalanceLink}
             transactionsLink={transactionsLink}
             closeButton={closeButton}
+            deleteAction={
+              <DeleteAccount
+                account={account}
+                currency={account.currency ?? baseCurrency}
+                isOnlyAccount={isOnlyAccount}
+                relatedQueryKeys={relatedQueryKeys}
+                onDeleted={onDeleted}
+              />
+            }
             onEdit={onEdit}
           />
         )

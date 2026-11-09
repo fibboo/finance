@@ -3,6 +3,8 @@ import { z } from 'zod';
 const SEARCH_PARAM = 'search';
 const SEARCH_TERM_MIN_LENGTH = 3;
 
+export const ACCOUNT_SEARCH_FIELD_ID = 'account-search';
+
 const typedSearchStateSchema = z.object({ isAccountSearchTyped: z.literal(true) });
 
 export const TYPED_SEARCH_STATE = {
