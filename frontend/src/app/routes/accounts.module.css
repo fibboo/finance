@@ -1,9 +1,15 @@
 @import '@/styles/media.css';
 
 .actions {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   flex: none;
+  margin-bottom: calc(var(--space-2) * -1);
+  padding-bottom: var(--space-2);
   display: flex;
   gap: var(--space-2);
+  background: var(--color-ground);
 }
 
 .newAccount {
@@ -46,13 +52,22 @@
 }
 
 .accounts {
+  --account-list-top: calc(var(--size-touch) + var(--space-2));
+
   flex: none;
   display: flex;
   flex-direction: column;
 }
 
 @media (--desktop) {
+  .actions {
+    margin-bottom: calc(var(--space-4) * -1);
+    padding-bottom: var(--space-4);
+  }
+
   .accounts {
+    --account-list-top: calc(var(--size-touch) + var(--space-4));
+
     flex-direction: row;
     gap: var(--space-4);
   }

@@ -122,6 +122,7 @@
 
   .detailsPanel {
     position: static;
+    z-index: auto;
     flex: none;
     align-self: flex-start;
     width: var(--size-details);
