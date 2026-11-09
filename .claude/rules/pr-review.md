@@ -15,6 +15,13 @@ If the diff touches a `.py` file, a `requirements/` file, a Dockerfile, `pytest.
 - The size of a pull request. `.claude/rules/common.md` sets the 500-line limit as a rule for planning and authoring. A review does not count a diff's lines against it and never asks for a split to shrink a PR. The one-kind-of-work rule below is about what the diff contains rather than how big it is, and it still applies.
 - A violation in a file the diff does not touch. Existing code is brought in line by dedicated issues, and a review never asks a pull request to migrate code it did not change. A file the diff moves or rewrites counts as touched and is held to the rules in full.
 
+## Skills
+
+A skill under `.claude/skills/` and its entrypoint under `.agents/skills/` are instructions an agent follows at run time, and a finding in them is graded by what shows it rather than by what could happen. `.claude/rules/` and `CLAUDE.md` are not covered here: a rule a reviewer or author applies has no gate behind it, and keeps the ordinary grading.
+
+- A finding in such a file is P1 or P2, graded by **Severity**, only when the text contradicts itself, a sibling file or step, or the code it describes (a wrong file, function, field, command or route), or when a real example (the output of a past run, a linked issue or pull request) shows the instruction producing a wrong result.
+- A finding that rests only on a constructed scenario, such as how an agent reading the text literally could go wrong or an input no run has shown, is P3 and never blocks. A skill sends what it cannot settle to a developer gate, so an imprecise sentence costs a question there rather than a lost defect, while every fix written for a hypothetical finding adds text in which the next round finds new scenarios.
+
 ## Mixed Scope
 
 A pull request carries one kind of work (`.claude/rules/common.md`: one issue is one kind of work). Read the linked issue and compare its scope with the diff:
