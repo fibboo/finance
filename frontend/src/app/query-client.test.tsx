@@ -1,5 +1,6 @@
 import { MutationObserver } from '@tanstack/react-query';
 import { screen } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router';
 import { afterEach, beforeEach, expect, onTestFinished, test, vi } from 'vitest';
@@ -177,4 +178,45 @@ test('tells the other tabs that the data changed after a mutation succeeds', asy
 
   // assert
   await expect.poll(() => receivedMessages).toHaveLength(1);
+});
+
+test('notifies once while a query keeps failing and again once it failed after a success', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let meResponse = 'failing';
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      meResponse === 'failing'
+        ? HttpResponse.json({ message: 'User not found' }, { status: 404 })
+        : HttpResponse.json({
+            id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+            username: 'nikita',
+            avatar: null,
+            registration_provider: 'TELEGRAM',
+            base_currency: 'EUR',
+            external_users: [],
+          } satisfies components['schemas']['User']),
+    ),
+  );
+  render(<main />);
+  const queryClient = createQueryClient();
+  const meQuery = {
+    queryKey: ['user', 'me'],
+    queryFn: () => apiClient.GET('/user/me'),
+    staleTime: 0,
+  };
+  await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
+  await user.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+  // act
+  await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
+
+  // assert
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+  // a success ends the failures, so the next failure notifies again
+  meResponse = 'ok';
+  await queryClient.query(meQuery);
+  meResponse = 'failing';
+  await expect(queryClient.query(meQuery)).rejects.toThrow('User not found');
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
 });

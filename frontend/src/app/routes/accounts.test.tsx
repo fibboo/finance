@@ -596,22 +596,22 @@ test('refetches the account when the deletion is refused', async () => {
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 });
 
-test('keeps the accounts on screen without an error when their refetch fails', async () => {
+test('keeps the accounts on screen and notifies once when their refetch fails', async () => {
   // arrange
+  const user = userEvent.setup();
   const otherTab = new BroadcastChannel('finance-data-change');
   onTestFinished(() => {
     otherTab.close();
   });
-  let isFailing = false;
-  let failedRequestCount = 0;
+  let accountsResponse = 'ok';
   server.use(
     http.get('http://localhost/api/accounting/accounts', () => {
-      if (isFailing) {
-        failedRequestCount += 1;
+      if (accountsResponse === 'failing') {
         return HttpResponse.json({ message: 'Server error' }, { status: 500 });
       }
+      const account = accountsResponse === 'ok' ? mainCard : { ...mainCard, name: 'Daily card' };
       return HttpResponse.json({
-        items: [mainCard],
+        items: [account],
         total: 1,
         page: 1,
         size: 100,
@@ -621,15 +621,17 @@ test('keeps the accounts on screen without an error when their refetch fails', a
   );
   render(<Component />);
   expect(await screen.findByRole('link', { name: 'Main card' })).toBeInTheDocument();
-  isFailing = true;
+  accountsResponse = 'failing';
 
   // act
   otherTab.postMessage(null);
 
   // assert
-  await waitFor(() => {
-    expect(failedRequestCount).toBeGreaterThan(0);
-  });
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Main card' })).toBeInTheDocument();
-  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+  // a renamed account after the next announcement shows that the page stayed and kept refetching
+  await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+  accountsResponse = 'renamed';
+  otherTab.postMessage(null);
+  expect(await screen.findByRole('link', { name: 'Daily card' })).toBeInTheDocument();
 });

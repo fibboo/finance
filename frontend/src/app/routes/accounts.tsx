@@ -20,6 +20,7 @@ import { MoneyAccountForm } from '@/features/accounts/components/money-account-f
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import { isThrownWithoutData } from '@/lib/query-meta';
 
 import styles from './accounts.module.css';
 
@@ -63,14 +64,14 @@ export function Component() {
   const accountQuery = { size: ACCOUNT_PAGE_SIZE, kinds: [...MONEY_ACCOUNT_KINDS] };
   const { data: allAccountPage } = useQuery({
     ...accountQueries.list(accountQuery),
-    throwOnError: (_error, query) => query.state.data === undefined,
+    throwOnError: isThrownWithoutData,
   });
   const { data: accountPage } = useQuery({
     ...accountQueries.list(
       searchTerm === undefined ? accountQuery : { ...accountQuery, search_term: searchTerm },
     ),
     placeholderData: keepPreviousData,
-    throwOnError: (_error, query) => query.state.data === undefined,
+    throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && accountPage?.items.length === 0;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());

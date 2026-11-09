@@ -1271,3 +1271,53 @@ test('closes the details of a transaction that another tab deleted', async () =>
   });
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
+
+test('keeps the list on screen when the accounts of the filters fail to refetch', async () => {
+  // arrange
+  const otherTab = new BroadcastChannel('finance-data-change');
+  onTestFinished(() => {
+    otherTab.close();
+  });
+  let isFailing = false;
+  let isRenamed = false;
+  const renamedExpense = {
+    ...expense,
+    postings: [walletPosting, { ...categoryPosting, account: { ...category, name: 'Food' } }],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      isFailing
+        ? HttpResponse.json({ message: 'Server error' }, { status: 500 })
+        : HttpResponse.json({
+            items: [wallet],
+            total: 1,
+            page: 1,
+            size: 100,
+            pages: 1,
+          } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [isRenamed ? renamedExpense : expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  expect(await screen.findByRole('link', { name: 'Groceries' })).toBeInTheDocument();
+  isFailing = true;
+
+  // act
+  otherTab.postMessage(null);
+
+  // assert
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+  // a renamed category after the next announcement shows that the page stayed and kept refetching
+  isFailing = false;
+  isRenamed = true;
+  otherTab.postMessage(null);
+  expect(await screen.findByRole('link', { name: 'Food' })).toBeInTheDocument();
+});

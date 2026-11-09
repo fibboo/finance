@@ -22,6 +22,7 @@ import {
 import { MovementForm } from '@/features/transactions/components/movement-form';
 import { TransactionForm } from '@/features/transactions/components/transaction-form';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import { isThrownWithoutData } from '@/lib/query-meta';
 
 import styles from './new-transaction.module.css';
 
@@ -33,7 +34,7 @@ export function NewTransaction() {
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
     enabled: isOpen,
-    throwOnError: (_error, query) => query.state.data === undefined,
+    throwOnError: isThrownWithoutData,
   });
   const { data: moneyAccounts } = useQuery({
     ...accountQueries.list({
@@ -42,23 +43,23 @@ export function NewTransaction() {
       order: 'recent_use',
     }),
     enabled: isOpen,
-    throwOnError: (_error, query) => query.state.data === undefined,
+    throwOnError: isThrownWithoutData,
   });
   const isExpense = transactionType === 'EXPENSE';
   const { data: categories } = useQuery({
     ...accountQueries.list({ kinds: ['EXPENSE'], size: ACCOUNT_PAGE_SIZE, order: 'recent_use' }),
     enabled: isExpense,
-    throwOnError: (_error, query) => query.state.data === undefined,
+    throwOnError: isThrownWithoutData,
   });
   const { data: locations } = useQuery({
     ...locationQueries.list({ size: LOCATION_PAGE_SIZE, order: 'recent_use' }),
     enabled: isExpense,
-    throwOnError: (_error, query) => query.state.data === undefined,
+    throwOnError: isThrownWithoutData,
   });
   const { data: incomeSources } = useQuery({
     ...accountQueries.list({ kinds: ['INCOME'], size: ACCOUNT_PAGE_SIZE, order: 'recent_use' }),
     enabled: transactionType === 'INCOME',
-    throwOnError: (_error, query) => query.state.data === undefined,
+    throwOnError: isThrownWithoutData,
   });
   if (transactionType === undefined) {
     return null;

@@ -28,8 +28,7 @@ function notifyQueryError(error: Error, query: Query<unknown, unknown, unknown>)
     isNotFoundExpected(query.meta) &&
     error instanceof ApiError &&
     error.status === NOT_FOUND_STATUS;
-  const isDataShown = query.state.data !== undefined;
-  if (!isExpectedNotFound && !isDataShown) {
+  if (!isExpectedNotFound) {
     notifyError(error);
   }
 }
@@ -42,8 +41,20 @@ function notifyMutationError(error: Error): void {
 }
 
 export function createQueryClient(): QueryClient {
+  const failingQueries = new WeakSet<Query<unknown, unknown, unknown>>();
   const queryClient = new QueryClient({
-    queryCache: new QueryCache({ onError: notifyQueryError }),
+    queryCache: new QueryCache({
+      onError: (error, query) => {
+        const isFailureRepeated = failingQueries.has(query);
+        failingQueries.add(query);
+        if (!isFailureRepeated) {
+          notifyQueryError(error, query);
+        }
+      },
+      onSuccess: (_data, query) => {
+        failingQueries.delete(query);
+      },
+    }),
     mutationCache: new MutationCache({
       onError: notifyMutationError,
       onSuccess: announceDataChange,

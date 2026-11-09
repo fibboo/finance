@@ -24,6 +24,7 @@ import { useTransactionFeed } from '@/features/transactions/hooks/use-transactio
 import { useToday } from '@/hooks/use-today';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
+import { isThrownWithoutData } from '@/lib/query-meta';
 
 import styles from './transactions.module.css';
 
@@ -42,7 +43,7 @@ function readTransactionCount(
 function readAccountsQuery(kinds: readonly AccountKind[]) {
   const accountsQuery = queryOptions({
     ...accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: [...kinds] }),
-    throwOnError: (_error, query) => query.state.data === undefined,
+    throwOnError: isThrownWithoutData,
   });
   return accountsQuery;
 }

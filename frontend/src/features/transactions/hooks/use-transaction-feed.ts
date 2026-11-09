@@ -12,6 +12,7 @@ import { OLDEST_FIRST_ORDER, type TransactionFilterQuery } from '../api/transact
 import { transactionQueries } from '../api/transaction-queries';
 import { usePageSize } from './use-page-size';
 import { useToday } from '@/hooks/use-today';
+import { isThrownWithoutData } from '@/lib/query-meta';
 
 type TransactionPage = components['schemas']['Page_Transaction_'];
 type TransactionPagesQuery = UseInfiniteQueryResult<InfiniteData<TransactionPage>>;
@@ -59,8 +60,8 @@ export function useTransactionFeed({
     }),
     enabled: filterQuery !== undefined,
     placeholderData: keepPreviousData,
-    throwOnError: (_error, failedQuery) =>
-      isFirstPageErrorThrown && failedQuery.state.data === undefined,
+    throwOnError: (error, failedQuery) =>
+      isFirstPageErrorThrown && isThrownWithoutData(error, failedQuery),
   });
   const newerQuery = useInfiniteQuery({
     ...transactionQueries.feed({
