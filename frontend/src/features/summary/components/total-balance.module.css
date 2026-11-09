@@ -46,15 +46,6 @@
   }
 
   .amount {
-    font-size: var(--font-size-display);
-    letter-spacing: var(--letter-spacing-balance-lg);
-    line-height: 1;
-  }
-
-  .amountSkeleton {
-    width: var(--size-skeleton-total-lg);
-    max-width: 100%;
-    height: var(--size-skeleton-balance-lg);
-    border-radius: var(--radius-track);
+    font-size: var(--font-size-3xl);
   }
 }
