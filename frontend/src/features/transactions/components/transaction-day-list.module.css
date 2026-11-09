@@ -98,21 +98,19 @@
 
 @media (--desktop) {
   .transactionDayList {
+    --rate-column-display: none;
+
     grid-template-columns:
       var(--size-dot) minmax(var(--size-title-column-min-lg), 1fr)
       minmax(0, var(--size-account-column-lg)) var(--size-amount-column-lg)
-      var(--size-amount-column-lg) var(--size-rate-column-lg);
+      var(--size-amount-column-lg) var(--rate-column-track,);
     column-gap: var(--space-4);
   }
 
-  @container (width < 51rem) {
+  @container (width >= 51rem) {
     .transactionDayList {
-      --rate-column-display: none;
-
-      grid-template-columns:
-        var(--size-dot) minmax(var(--size-title-column-min-lg), 1fr)
-        minmax(0, var(--size-account-column-lg)) var(--size-amount-column-lg)
-        var(--size-amount-column-lg);
+      --rate-column-display: block;
+      --rate-column-track: var(--size-rate-column-lg);
     }
   }
 

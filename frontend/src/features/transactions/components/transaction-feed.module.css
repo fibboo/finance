@@ -16,7 +16,6 @@
 .staleRows {
   flex: 1 1 auto;
   min-height: 0;
-  container-type: inline-size;
   padding-inline: var(--space-2);
   border-radius: calc(var(--radius-panel) - var(--space-1-5))
     calc(var(--radius-panel) - var(--space-1-5)) 0 0;
@@ -45,6 +44,7 @@
 @media (--desktop) {
   .rows,
   .staleRows {
+    container-type: inline-size;
     border-radius: calc(var(--radius-bar) - var(--space-2)) calc(var(--radius-bar) - var(--space-2))
       0 0;
   }
