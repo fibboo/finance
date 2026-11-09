@@ -38,12 +38,7 @@ function readAccountLink({
   searchParams,
   accountId,
 }: Readonly<{ searchParams: URLSearchParams; accountId: string }>): To {
-  const accountLink = {
-    search: writeSelectedAccount({
-      searchParams: writeSelectedAccount({ searchParams, accountId: undefined }),
-      accountId,
-    }).toString(),
-  };
+  const accountLink = { search: writeSelectedAccount({ searchParams, accountId }).toString() };
   return accountLink;
 }
 
