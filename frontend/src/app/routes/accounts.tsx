@@ -121,7 +121,10 @@ export function Component() {
           ) : (
             <AccountGroups accounts={accountPage?.items} baseCurrency={baseCurrency} />
           )}
-          <SelectedAccountDetails baseCurrency={baseCurrency} />
+          <SelectedAccountDetails
+            baseCurrency={baseCurrency}
+            accountCount={allAccountPage?.total}
+          />
         </div>
       )}
       {isCreating && dictionaries !== undefined && baseCurrency !== undefined && (

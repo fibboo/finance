@@ -1,13 +1,13 @@
 import { type QueryKey, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 
+import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney, LOCALE } from '@/lib/format-money';
 
 import { transactionMutations } from '../api/transaction-mutations';
 import { transactionQueries } from '../api/transaction-queries';
-import { DeleteConfirmation } from './delete-confirmation';
 import styles from './delete-transaction.module.css';
 import { readTransactionView } from './transaction-view';
 
@@ -77,6 +77,7 @@ export function DeleteTransaction({
       </button>
       {isConfirming && (
         <DeleteConfirmation
+          title="Delete this transaction?"
           text={readConfirmationText(transaction)}
           isPending={isPending}
           onCancel={cancel}

@@ -3,6 +3,7 @@ import { useEffect, useId } from 'react';
 import styles from './delete-confirmation.module.css';
 
 type DeleteConfirmationProps = Readonly<{
+  title: string;
   text: string;
   isPending: boolean;
   onCancel: () => void;
@@ -10,6 +11,7 @@ type DeleteConfirmationProps = Readonly<{
 }>;
 
 export function DeleteConfirmation({
+  title,
   text,
   isPending,
   onCancel,
@@ -47,7 +49,7 @@ export function DeleteConfirmation({
         className={styles['deleteConfirmation']}
       >
         <h2 id={titleId} className={styles['title']}>
-          Delete this transaction?
+          {title}
         </h2>
         <p id={textId} className={styles['text']}>
           {text}

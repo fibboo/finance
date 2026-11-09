@@ -1,4 +1,4 @@
-import { mutationOptions, type QueryKey } from '@tanstack/react-query';
+import { hashKey, mutationOptions, type QueryKey } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
 import { ApiError } from '@/lib/api-error';
@@ -49,6 +49,15 @@ async function putAccount({
   }
 }
 
+async function deleteAccount(accountId: string): Promise<Account> {
+  const deletedAccount = readData(
+    await apiClient.DELETE('/accounting/accounts/{account_id}', {
+      params: { path: { account_id: accountId } },
+    }),
+  );
+  return deletedAccount;
+}
+
 export const accountMutations = {
   create() {
     return mutationOptions({
@@ -66,6 +75,23 @@ export const accountMutations = {
             client.invalidateQueries({ queryKey }),
           ),
         ),
+    });
+  },
+  delete(relatedQueryKeys: readonly QueryKey[]) {
+    return mutationOptions({
+      mutationFn: deleteAccount,
+      onSuccess: (_deletedAccount, accountId, _onMutateResult, { client }) => {
+        const deletedDetailHash = hashKey(accountQueries.detail(accountId).queryKey);
+        return Promise.all([
+          client.invalidateQueries({
+            queryKey: accountQueries.all().queryKey,
+            predicate: (query) => query.queryHash !== deletedDetailHash,
+          }),
+          ...relatedQueryKeys.map((queryKey) => client.invalidateQueries({ queryKey })),
+        ]);
+      },
+      onError: (_error, _accountId, _onMutateResult, { client }) =>
+        client.invalidateQueries({ queryKey: accountQueries.all().queryKey }),
     });
   },
 };

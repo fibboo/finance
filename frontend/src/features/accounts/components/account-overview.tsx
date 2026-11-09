@@ -37,6 +37,7 @@ type AccountOverviewProps = Readonly<{
   adjustBalanceLink: To;
   transactionsLink: To;
   closeButton: ReactNode;
+  deleteAction: ReactNode;
   onEdit: () => void;
 }>;
 
@@ -47,6 +48,7 @@ export function AccountOverview({
   adjustBalanceLink,
   transactionsLink,
   closeButton,
+  deleteAction,
   onEdit,
 }: AccountOverviewProps) {
   const titleId = useId();
@@ -101,6 +103,7 @@ export function AccountOverview({
           Transactions
         </Link>
       </div>
+      {deleteAction}
     </article>
   );
 }
