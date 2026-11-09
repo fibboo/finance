@@ -92,50 +92,52 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
               </span>
             </div>
             <ul className={styles['accounts']}>
-              {group.accounts.map((account) => (
-                <li
-                  key={account.id}
-                  className={`${styles['account'] ?? ''} ${Number(account.balance) < 0 ? (styles['debtAccount'] ?? '') : ''} ${account.id === selectedAccountId ? (styles['selected'] ?? '') : ''}`}
-                >
-                  <AccountMark account={account} />
-                  <span className={styles['identity']}>
-                    <Link
-                      id={readAccountLinkId(account.id)}
-                      to={{
-                        search: writeSelectedAccount({
-                          searchParams,
-                          accountId: account.id,
-                        }).toString(),
-                      }}
-                      preventScrollReset
-                      aria-current={account.id === selectedAccountId ? 'true' : undefined}
-                      className={styles['name']}
-                    >
-                      {account.name}
-                    </Link>
-                    <span className={styles['currency']}>
-                      {account.currency}
-                      <span className={styles['inlineRate']}>
-                        {readAccountRateText({ account, baseCurrency })}
+              {group.accounts.map((account) => {
+                const rateText = readAccountRateText({ account, baseCurrency });
+                return (
+                  <li
+                    key={account.id}
+                    className={`${styles['account'] ?? ''} ${Number(account.balance) < 0 ? (styles['debtAccount'] ?? '') : ''} ${account.id === selectedAccountId ? (styles['selected'] ?? '') : ''}`}
+                  >
+                    <AccountMark account={account} />
+                    <span className={styles['identity']}>
+                      <Link
+                        id={readAccountLinkId(account.id)}
+                        to={{
+                          search: writeSelectedAccount({
+                            searchParams,
+                            accountId: account.id,
+                          }).toString(),
+                        }}
+                        preventScrollReset
+                        aria-current={account.id === selectedAccountId ? 'true' : undefined}
+                        className={styles['name']}
+                      >
+                        {account.name}
+                      </Link>
+                      <span className={styles['currency']}>
+                        {account.currency}
+                        <span className={styles['inlineRate']}>{rateText}</span>
                       </span>
                     </span>
-                  </span>
-                  <span className={styles['balance']}>
-                    {formatMoney({
-                      amount: Number(account.base_currency_balance),
-                      currency: baseCurrency,
-                    })}
-                  </span>
-                  {account.currency !== baseCurrency && (
-                    <span className={styles['accountBalance']}>
-                      {formatMoney({ amount: Number(account.balance), currency: account.currency })}
+                    <span className={styles['balance']}>
+                      {formatMoney({
+                        amount: Number(account.base_currency_balance),
+                        currency: baseCurrency,
+                      })}
                     </span>
-                  )}
-                  <span className={styles['rate']}>
-                    {readAccountRateText({ account, baseCurrency })}
-                  </span>
-                </li>
-              ))}
+                    {account.currency !== baseCurrency && (
+                      <span className={styles['accountBalance']}>
+                        {formatMoney({
+                          amount: Number(account.balance),
+                          currency: account.currency,
+                        })}
+                      </span>
+                    )}
+                    <span className={styles['rate']}>{rateText}</span>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         );
