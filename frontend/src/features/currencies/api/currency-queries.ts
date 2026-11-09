@@ -15,6 +15,7 @@ export const currencyQueries = {
     return queryOptions({
       queryKey: ['currencies', 'recent_use'],
       queryFn: fetchCurrencies,
+      refetchInterval: false,
     });
   },
 };

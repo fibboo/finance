@@ -84,11 +84,7 @@ export function NewTransaction() {
     });
   }
 
-  const relatedQueryKeys = [
-    accountQueries.all().queryKey,
-    summaryQueries.current().queryKey,
-    currencyQueries.recentUse().queryKey,
-  ];
+  const relatedQueryKeys = [accountQueries.all().queryKey, summaryQueries.current().queryKey];
   function renderMoneyAccountForm(props: CreateFormProps) {
     if (dictionaries === undefined || currencies === undefined || baseCurrency === undefined) {
       throw new Error(
