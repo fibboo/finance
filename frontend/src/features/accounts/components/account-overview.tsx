@@ -2,10 +2,11 @@ import { type ReactNode, useId } from 'react';
 import { Link, type To } from 'react-router';
 
 import type { components } from '@/lib/api-schema';
-import { formatMoney, formatRate } from '@/lib/format-money';
+import { formatMoney } from '@/lib/format-money';
 
 import { AccountMark } from './account-mark';
 import styles from './account-overview.module.css';
+import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -22,11 +23,9 @@ function readBaseBalanceText({
     amount: Number(account.base_currency_balance),
     currency: baseCurrency,
   });
-  const rate = Number(account.base_currency_rate);
+  const rateText = readAccountRateText({ account, baseCurrency });
   const baseBalanceText =
-    account.currency === baseCurrency || rate === 0
-      ? baseBalance
-      : `${baseBalance} · rate ${formatRate(rate)}`;
+    rateText === undefined ? baseBalance : `${baseBalance} · rate ${rateText}`;
   return baseBalanceText;
 }
 
@@ -84,23 +83,37 @@ export function AccountOverview({
           <p className={styles['description']}>{account.description}</p>
         )}
       <div className={styles['actions']}>
-        <Link to={adjustBalanceLink} preventScrollReset className={styles['action']}>
+        <Link
+          to={adjustBalanceLink}
+          preventScrollReset
+          aria-label="Adjust balance"
+          title="Adjust balance"
+          className={styles['action']}
+        >
           <svg className={styles['actionIcon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={ADJUST_ICON_PATH} />
           </svg>
-          Adjust balance
         </Link>
-        <button type="button" className={styles['action']} onClick={onEdit}>
+        <button
+          type="button"
+          aria-label="Edit"
+          title="Edit"
+          className={styles['action']}
+          onClick={onEdit}
+        >
           <svg className={styles['actionIcon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={EDIT_ICON_PATH} />
           </svg>
-          Edit
         </button>
-        <Link to={transactionsLink} className={styles['action']}>
+        <Link
+          to={transactionsLink}
+          aria-label="Transactions"
+          title="Transactions"
+          className={styles['action']}
+        >
           <svg className={styles['actionIcon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={TRANSACTIONS_ICON_PATH} />
           </svg>
-          Transactions
         </Link>
       </div>
       {deleteAction}

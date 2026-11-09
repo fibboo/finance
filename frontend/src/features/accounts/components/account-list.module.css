@@ -47,29 +47,37 @@
   margin: 0;
   padding: 0 var(--space-3-5);
   display: flex;
-  gap: var(--space-1-5);
+  gap: var(--space-2);
   overflow-x: auto;
   list-style: none;
+  scroll-padding-inline: var(--space-3-5);
+  scroll-snap-type: x proximity;
 }
 
 .accountItem {
   flex: none;
+  min-width: var(--size-account-tile-sm);
   display: flex;
+  scroll-snap-align: start;
 }
 
 .account {
   flex: none;
-  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
-  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-2-5);
+  border-radius: var(--radius-segment);
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-content: start;
   align-items: center;
   gap: 0 var(--space-2);
+  line-height: var(--line-height-tight);
   color: inherit;
   text-decoration: none;
   background: var(--color-ground);
-  white-space: nowrap;
+}
+
+a.account {
+  flex: 1 1 auto;
 }
 
 a.account:hover {
@@ -85,30 +93,53 @@ a.account:focus-visible {
   background: var(--color-selected);
 }
 
+.markSkeleton,
+.account > :first-child {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: start;
+  width: var(--size-account-mark-xs);
+  height: var(--size-account-mark-xs);
+  border-radius: var(--radius-badge);
+  font-size: var(--font-size-2xs);
+}
+
 .identity {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
+  contain: inline-size;
 }
 
 .name {
-  font-size: var(--font-size-xs);
-  color: var(--color-muted);
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.detail,
-.detailSkeleton {
-  display: none;
+.detail {
+  grid-column: 1;
+  margin-top: var(--space-0-5);
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .amounts,
 .debtAmounts {
   grid-column: 1 / -1;
+  margin-top: var(--space-2);
   display: flex;
+  gap: var(--space-0-5);
   flex-direction: column;
+  align-items: flex-start;
 }
 
 .accountBalance {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   color: var(--color-muted);
 }
 
@@ -119,6 +150,10 @@ a.account:focus-visible {
 .previous,
 .next {
   display: none;
+}
+
+.rate:not(:empty)::before {
+  content: ' · ';
 }
 
 @media (pointer: fine) {
@@ -157,22 +192,22 @@ a.account:focus-visible {
 }
 
 .balance {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
-}
-
-.markSkeleton {
-  width: var(--size-account-mark-xs);
-  height: var(--size-account-mark-xs);
-  border-radius: var(--radius-full);
+  letter-spacing: var(--letter-spacing-amount);
 }
 
 .nameSkeleton {
-  width: var(--size-skeleton-word);
-  height: var(--size-skeleton-text-sm);
+  width: 55%;
+  height: var(--size-skeleton-text);
+}
+
+.account:nth-child(even) .nameSkeleton {
+  width: 70%;
 }
 
 .detailSkeleton {
+  grid-column: 1;
   width: var(--size-skeleton-word);
   height: var(--size-skeleton-text-sm);
 }
@@ -182,7 +217,6 @@ a.account:focus-visible {
   height: var(--size-skeleton-text);
 }
 
-.identity:has(.nameSkeleton),
 .amounts:has(.balanceSkeleton) {
   gap: var(--space-1-5);
 }
@@ -199,73 +233,43 @@ a.account:focus-visible {
   .accounts {
     padding: 0;
     gap: var(--space-2-5);
-    scroll-snap-type: x proximity;
+    scroll-padding-inline: 0;
   }
 
   .accountItem {
     min-width: var(--size-account-tile);
-    scroll-snap-align: start;
-  }
-
-  a.account {
-    flex: 1 1 auto;
   }
 
   .account {
-    min-height: 0;
     padding: var(--space-2-5) var(--space-3-5);
     border-radius: var(--radius-track);
-    gap: var(--space-2) var(--space-2-5);
-    white-space: normal;
-  }
-
-  .identity {
-    contain: inline-size;
-  }
-
-  .name {
-    overflow: hidden;
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
-    color: inherit;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .detail {
-    display: inline;
-    font-size: var(--font-size-xs);
-    color: var(--color-muted);
+    gap: 0 var(--space-2-5);
   }
 
   .amounts,
   .debtAmounts {
-    align-items: flex-start;
+    margin-top: var(--space-2-5);
+  }
+
+  .markSkeleton,
+  .account > :first-child {
+    width: var(--size-account-mark-sm);
+    height: var(--size-account-mark-sm);
+    border-radius: var(--radius-segment);
+    font-size: var(--font-size-sm);
+  }
+
+  .name {
+    font-size: var(--font-size-base);
+  }
+
+  .detail,
+  .accountBalance {
+    font-size: var(--font-size-xs);
   }
 
   .balance {
     font-size: var(--font-size-tile-amount);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: var(--letter-spacing-amount);
-  }
-
-  .markSkeleton {
-    width: var(--size-account-mark-sm);
-    height: var(--size-account-mark-sm);
-    border-radius: var(--radius-segment);
-  }
-
-  .nameSkeleton {
-    width: 55%;
-    height: var(--size-skeleton-text);
-  }
-
-  .account:nth-child(even) .nameSkeleton {
-    width: 70%;
-  }
-
-  .detailSkeleton {
-    display: block;
   }
 
   .balanceSkeleton {

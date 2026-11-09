@@ -142,6 +142,16 @@
 .currency {
   font-size: var(--font-size-sm);
   color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.inlineRate:not(:empty)::before {
+  content: ' · ';
+}
+
+.rate,
+.rateColumn {
+  display: none;
 }
 
 .balance {
@@ -197,6 +207,7 @@
     flex: 1 1 auto;
     min-width: 0;
     align-self: flex-start;
+    container-type: inline-size;
     padding: var(--space-2) var(--space-5) var(--space-3);
     border-radius: var(--radius-panel);
     gap: 0;
@@ -302,6 +313,39 @@
 
   .accountBalance {
     font-size: var(--font-size-md);
+  }
+
+  @container (width >= 42rem) {
+    .columns {
+      grid-template-columns:
+        minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg)
+        var(--size-rate-column-lg);
+    }
+
+    .rateColumn {
+      display: block;
+      text-align: right;
+    }
+
+    .account {
+      grid-template-columns:
+        auto minmax(0, 1fr) var(--size-amount-column-lg)
+        var(--size-amount-column-lg) var(--size-rate-column-lg);
+      grid-template-areas: 'mark identity accountBalance balance rate';
+    }
+
+    .inlineRate {
+      display: none;
+    }
+
+    .rate {
+      grid-area: rate;
+      display: block;
+      justify-self: end;
+      font-size: var(--font-size-md);
+      color: var(--color-muted);
+      white-space: nowrap;
+    }
   }
 
   .account:not(:has(.accountBalance)) .balance {

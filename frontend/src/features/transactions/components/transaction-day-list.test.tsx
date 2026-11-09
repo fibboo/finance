@@ -192,7 +192,17 @@ test('groups the transactions by day with each day total in the base currency', 
   ] satisfies components['schemas']['Transaction'][];
 
   // act
-  render(<TransactionDayList transactions={transactions} baseCurrency="USD" isGroupedByDay />);
+  render(
+    <TransactionDayList
+      transactions={transactions}
+      baseCurrency="USD"
+      transactionTypes={[
+        { key: 'TRANSFER', label: 'Transfer' },
+        { key: 'ADJUSTMENT', label: 'Adjustment' },
+      ]}
+      isGroupedByDay
+    />,
+  );
 
   // assert
   const headings = await screen.findAllByRole('heading');
@@ -226,7 +236,17 @@ test('names the day again after midnight', () => {
       ],
     },
   ] satisfies components['schemas']['Transaction'][];
-  render(<TransactionDayList transactions={transactions} baseCurrency="USD" isGroupedByDay />);
+  render(
+    <TransactionDayList
+      transactions={transactions}
+      baseCurrency="USD"
+      transactionTypes={[
+        { key: 'TRANSFER', label: 'Transfer' },
+        { key: 'ADJUSTMENT', label: 'Adjustment' },
+      ]}
+      isGroupedByDay
+    />,
+  );
   expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
 
   // act

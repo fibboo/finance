@@ -1261,35 +1261,35 @@ test('leaves the adjustment account out of the balances the deletion recalculate
   expect(
     screen.getByRole('alertdialog', { name: 'Delete this transaction?' }),
   ).toHaveAccessibleDescription(
-    "Adjustment · Wallet, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
+    "Adjustment, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
   );
 });
 
 test('marks the deleted account in the title of the details but not in the deletion text', async () => {
   // arrange
   const user = userEvent.setup();
-  const adjustment = {
+  const transfer = {
     ...expense,
-    transaction_type: 'ADJUSTMENT',
+    transaction_type: 'TRANSFER',
     postings: [
       {
-        ...categoryPosting,
+        ...walletPosting,
         amount: '-12.00',
         base_amount: '-12.00',
-        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+        account: { ...wallet, status: 'DELETED' },
       },
       {
-        ...walletPosting,
+        ...categoryPosting,
         amount: '12.00',
         base_amount: '12.00',
-        account: { ...wallet, status: 'DELETED' },
+        account: { ...wallet, name: 'Savings', id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a04' },
       },
     ],
   } satisfies components['schemas']['Transaction'];
   server.use(
     http.get('http://localhost/api/accounting/transactions', () =>
       HttpResponse.json({
-        items: [adjustment],
+        items: [transfer],
         total: 1,
         page: 1,
         size: 15,
@@ -1297,7 +1297,7 @@ test('marks the deleted account in the title of the details but not in the delet
       } satisfies components['schemas']['Page_Transaction_']),
     ),
     http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
-      HttpResponse.json(adjustment),
+      HttpResponse.json(transfer),
     ),
   );
   render(<Component />, {
@@ -1310,13 +1310,16 @@ test('marks the deleted account in the title of the details but not in the delet
 
   // assert
   expect(
-    within(details).getByRole('heading', { level: 2, name: 'Adjustment · Wallet, deleted' }),
+    within(details).getByRole('heading', {
+      level: 2,
+      name: 'Transfer Wallet, deleted → Savings',
+    }),
   ).toBeInTheDocument();
   expect(within(details).queryByRole('link', { name: /Wallet/ })).not.toBeInTheDocument();
   expect(
     screen.getByRole('alertdialog', { name: 'Delete this transaction?' }),
   ).toHaveAccessibleDescription(
-    "Adjustment · Wallet, +$12.00 on 20.10.2026. The balance of Wallet is recalculated. This can't be undone.",
+    "Transfer Wallet → Savings, $12.00 on 20.10.2026. The balances of Wallet and Savings are recalculated. This can't be undone.",
   );
 });
 

@@ -58,7 +58,6 @@
   --letter-spacing-display: -0.03em;
   --letter-spacing-label: 0.04em;
   --letter-spacing-display-lg: -0.035em;
-  --letter-spacing-balance-lg: -0.035em;
 
   --space-0-5: 0.125rem;
   --space-1: 0.25rem;
@@ -150,17 +149,16 @@
   --size-skeleton-label: 8rem;
   --size-skeleton-label-lg: 9.375rem;
   --size-button-wide: 13.75rem;
-  --size-skeleton-total-lg: 20rem;
   --size-amount-column-lg: 8.75rem;
   --size-account-column-lg: 13.75rem;
   --size-title-column-min-lg: 8rem;
   --size-rate-column-lg: 6.25rem;
   --size-row-label: 5.75rem;
   --size-stat-tile: 6.5rem;
-  --size-action-tile: 4rem;
   --size-empty-state: 8.25rem;
   --size-empty-state-lg: 10rem;
-  --size-account-tile: 11.875rem;
+  --size-account-tile-sm: 9rem;
+  --size-account-tile: 13.125rem;
   --size-sidebar: 14.5rem;
   --size-popover: 18.75rem;
   --size-search: 20rem;

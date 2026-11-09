@@ -8,19 +8,20 @@
   gap: var(--space-0-5);
 }
 
-.totalBalanceSkeleton {
-  gap: var(--space-2);
-}
-
 .labelSkeleton {
   width: var(--size-skeleton-label);
   height: var(--size-skeleton-text-sm);
+  margin-block: calc((1lh - var(--size-skeleton-text-sm)) / 2);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-base);
 }
 
 .amountSkeleton {
   width: var(--size-skeleton-label-lg);
-  height: var(--size-skeleton-balance);
+  height: 1lh;
   border-radius: var(--radius-segment);
+  font-size: var(--font-size-heading);
+  line-height: var(--line-height-tight);
 }
 
 .label {
@@ -29,7 +30,7 @@
 }
 
 .amount {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-heading);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-display);
   line-height: var(--line-height-tight);
@@ -37,8 +38,17 @@
 }
 
 @media (--desktop) {
-  .totalBalance {
+  .totalBalance,
+  .totalBalanceSkeleton {
     gap: var(--space-1);
+  }
+
+  .labelSkeleton {
+    font-size: var(--font-size-md);
+  }
+
+  .amountSkeleton {
+    font-size: var(--font-size-3xl);
   }
 
   .label {
@@ -46,15 +56,6 @@
   }
 
   .amount {
-    font-size: var(--font-size-display);
-    letter-spacing: var(--letter-spacing-balance-lg);
-    line-height: 1;
-  }
-
-  .amountSkeleton {
-    width: var(--size-skeleton-total-lg);
-    max-width: 100%;
-    height: var(--size-skeleton-balance-lg);
-    border-radius: var(--radius-track);
+    font-size: var(--font-size-3xl);
   }
 }

@@ -14,16 +14,23 @@ import { TransactionTextParts } from './transaction-text-parts';
 import { readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
+type DictionaryItem = components['schemas']['DictionaryItem'];
 
 type TransactionRowProps = Readonly<{
   transaction: Readonly<Transaction>;
   baseCurrency: string;
+  transactionTypes: readonly DictionaryItem[];
   dateLabel?: string | undefined;
 }>;
 
-export function TransactionRow({ transaction, baseCurrency, dateLabel }: TransactionRowProps) {
+export function TransactionRow({
+  transaction,
+  baseCurrency,
+  transactionTypes,
+  dateLabel,
+}: TransactionRowProps) {
   const [searchParams] = useSearchParams();
-  const view = readTransactionView(transaction);
+  const view = readTransactionView({ transaction, transactionTypes });
   const isSelected = readSelectedTransactionId(searchParams) === transaction.id;
   const titleLink = (
     <Link

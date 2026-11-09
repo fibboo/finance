@@ -95,7 +95,12 @@ test('shows the latest transactions of the whole history up to the local today',
   );
 
   // act
-  render(<RecentTransactions baseCurrency="USD" />);
+  render(
+    <RecentTransactions
+      baseCurrency="USD"
+      transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+    />,
+  );
 
   // assert
   const row = await screen.findByRole('listitem');
@@ -141,7 +146,12 @@ test('loads the next page when the end of Recent comes into view', async () => {
   );
 
   // act
-  render(<RecentTransactions baseCurrency="USD" />);
+  render(
+    <RecentTransactions
+      baseCurrency="USD"
+      transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+    />,
+  );
 
   // assert
   const recent = screen.getByRole('region', { name: 'Recent transactions' });
@@ -164,7 +174,12 @@ test('shows the empty state without transactions', async () => {
   );
 
   // act
-  render(<RecentTransactions baseCurrency="USD" />);
+  render(
+    <RecentTransactions
+      baseCurrency="USD"
+      transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+    />,
+  );
 
   // assert
   expect(await screen.findByText('Nothing here yet')).toBeInTheDocument();
@@ -181,7 +196,12 @@ test('hides Recent when its transactions fail to load', async () => {
   );
 
   // act
-  render(<RecentTransactions baseCurrency="USD" />);
+  render(
+    <RecentTransactions
+      baseCurrency="USD"
+      transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+    />,
+  );
 
   // assert
   await vi.waitFor(() => {
@@ -199,7 +219,12 @@ test('shows a busy recent panel while the transactions load', () => {
   );
 
   // act
-  render(<RecentTransactions baseCurrency="USD" />);
+  render(
+    <RecentTransactions
+      baseCurrency="USD"
+      transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+    />,
+  );
 
   // assert
   expect(screen.getByRole('region', { name: 'Recent transactions' })).toHaveAttribute(
@@ -237,7 +262,12 @@ test('shows a transaction added elsewhere once the tab is shown again at the top
       } satisfies components['schemas']['Page_Transaction_']),
     ),
   );
-  render(<RecentTransactions baseCurrency="USD" />);
+  render(
+    <RecentTransactions
+      baseCurrency="USD"
+      transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+    />,
+  );
   expect(await screen.findByText('Design project')).toBeInTheDocument();
   isAdded = true;
 

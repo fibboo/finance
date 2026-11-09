@@ -4,6 +4,7 @@ import { LOCALE } from '@/lib/format-money';
 
 type Transaction = components['schemas']['Transaction'];
 type Account = components['schemas']['Account'];
+type DictionaryItem = components['schemas']['DictionaryItem'];
 
 export type TransactionText = readonly (string | Readonly<Account>)[];
 
@@ -46,7 +47,30 @@ function requireField<Field>({
   return value;
 }
 
-export function readTransactionView(transaction: Readonly<Transaction>): TransactionView {
+export function readTypeLabel({
+  transaction,
+  transactionTypes,
+}: Readonly<{
+  transaction: Readonly<Transaction>;
+  transactionTypes: readonly DictionaryItem[];
+}>): string {
+  const type = transactionTypes.find(
+    (transactionType) => transactionType.key === transaction.transaction_type,
+  );
+  if (type === undefined) {
+    throw new Error(`The transaction type ${transaction.transaction_type} has no label.`);
+  }
+
+  return type.label;
+}
+
+export function readTransactionView({
+  transaction,
+  transactionTypes,
+}: Readonly<{
+  transaction: Readonly<Transaction>;
+  transactionTypes: readonly DictionaryItem[];
+}>): TransactionView {
   const debit = requireField({ value: transaction.postings[0], name: 'debit' });
   const credit = requireField({ value: transaction.postings[1], name: 'credit' });
   switch (transaction.transaction_type) {
@@ -78,7 +102,12 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
     }
     case 'TRANSFER': {
       const view = {
-        title: ['Transfer ', debit.account, ' → ', credit.account],
+        title: [
+          `${readTypeLabel({ transaction, transactionTypes })} `,
+          debit.account,
+          ' → ',
+          credit.account,
+        ],
         accountNames: null,
         markedAccount: credit.account,
         amount: -Number(debit.amount),
@@ -92,8 +121,8 @@ export function readTransactionView(transaction: Readonly<Transaction>): Transac
     case 'ADJUSTMENT': {
       const posting = credit.account.kind === 'EQUITY' ? debit : credit;
       const view = {
-        title: ['Adjustment · ', posting.account],
-        accountNames: null,
+        title: [readTypeLabel({ transaction, transactionTypes })],
+        accountNames: [posting.account],
         markedAccount: posting.account,
         amount: Number(posting.amount),
         baseAmount: posting.base_amount === null ? null : Number(posting.base_amount),

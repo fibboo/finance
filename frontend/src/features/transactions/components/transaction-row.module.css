@@ -104,6 +104,10 @@
   color: var(--color-muted);
 }
 
+.accounts {
+  padding-inline-start: var(--account-column-gap);
+}
+
 .accounts,
 .originalAmount {
   font-size: var(--font-size-xs);

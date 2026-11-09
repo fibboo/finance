@@ -12,6 +12,7 @@ import {
   writeSelectedAccount,
 } from '@/features/accounts/api/selected-account';
 import { AccountList } from '@/features/accounts/components/account-list';
+import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { MonthSummary } from '@/features/summary/components/month-summary';
 import { TotalBalance } from '@/features/summary/components/total-balance';
 import {
@@ -52,6 +53,9 @@ export function Component() {
       order: 'recent_use',
     }),
   );
+  const { data: dictionaries, isError: isDictionaryFailed } = useQuery(
+    dictionaryQueries.accounting(),
+  );
   const isAccountOpenedLast = readIsAccountOpenedLast(searchParams);
   return (
     <Page title="Home">
@@ -73,7 +77,12 @@ export function Component() {
             </div>
           </div>
           <div className={styles['transactions']}>
-            <RecentTransactions baseCurrency={baseCurrency} />
+            {!(isDictionaryFailed && dictionaries === undefined) && (
+              <RecentTransactions
+                baseCurrency={baseCurrency}
+                transactionTypes={dictionaries?.transaction_types}
+              />
+            )}
             <div className={isAccountOpenedLast ? styles['earlierSelection'] : styles['selection']}>
               <SelectedTransactionDetails
                 baseCurrency={baseCurrency}

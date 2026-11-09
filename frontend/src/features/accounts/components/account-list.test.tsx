@@ -76,7 +76,7 @@ test('shows every account in the order of their recent use, in the base currency
   expect(await screen.findByText('Main card')).toBeInTheDocument();
   const items = screen.getAllByRole('listitem');
   expect(items).toHaveLength(3);
-  expect(items[0]).toHaveTextContent('Main card');
+  expect(items[0]).toHaveTextContent('Main cardEUR0.9161');
   expect(items[0]).toHaveTextContent('$3,471.20€3,180.00');
   expect(items[1]).toHaveTextContent('Wallet');
   expect(items[2]).toHaveTextContent('Freelance');

@@ -7,6 +7,7 @@ import { TransactionRow } from './transaction-row';
 import { readTransactionView, readWeekdayDateText } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
+type DictionaryItem = components['schemas']['DictionaryItem'];
 
 type TransactionDay = Readonly<{
   transactionDate: string;
@@ -41,12 +42,18 @@ function readDayLabel({
   return dayLabel;
 }
 
-function readDayTotal(transactions: readonly Transaction[]): number {
+function readDayTotal({
+  transactions,
+  transactionTypes,
+}: Readonly<{
+  transactions: readonly Transaction[];
+  transactionTypes: readonly DictionaryItem[];
+}>): number {
   const dayTotal = transactions.reduce(
     (total, transaction) =>
       transaction.transaction_type === 'TRANSFER'
         ? total
-        : total + (readTransactionView(transaction).baseAmount ?? 0),
+        : total + (readTransactionView({ transaction, transactionTypes }).baseAmount ?? 0),
     0,
   );
   return dayTotal;
@@ -55,12 +62,14 @@ function readDayTotal(transactions: readonly Transaction[]): number {
 type TransactionDayListProps = Readonly<{
   transactions: readonly Transaction[];
   baseCurrency: string;
+  transactionTypes: readonly DictionaryItem[];
   isGroupedByDay: boolean;
 }>;
 
 export function TransactionDayList({
   transactions,
   baseCurrency,
+  transactionTypes,
   isGroupedByDay,
 }: TransactionDayListProps) {
   const today = useToday();
@@ -69,7 +78,7 @@ export function TransactionDayList({
       <div className={styles['columns']} aria-hidden="true">
         <span />
         <span>Transaction</span>
-        <span>Account</span>
+        <span className={styles['accountColumn']}>Account</span>
         <span className={styles['amountColumn']}>Original</span>
         <span className={styles['amountColumn']}>Amount</span>
         <span className={styles['rateColumn']}>Rate</span>
@@ -90,7 +99,7 @@ export function TransactionDayList({
               ) && (
                 <span className={styles['dayTotal']}>
                   {formatMoney({
-                    amount: readDayTotal(day.transactions),
+                    amount: readDayTotal({ transactions: day.transactions, transactionTypes }),
                     currency: baseCurrency,
                     signDisplay: 'exceptZero',
                   })}
@@ -103,6 +112,7 @@ export function TransactionDayList({
                   key={transaction.id}
                   transaction={transaction}
                   baseCurrency={baseCurrency}
+                  transactionTypes={transactionTypes}
                 />
               ))}
             </ul>
@@ -115,6 +125,7 @@ export function TransactionDayList({
               key={transaction.id}
               transaction={transaction}
               baseCurrency={baseCurrency}
+              transactionTypes={transactionTypes}
               dateLabel={readDayLabel({ transactionDate: transaction.transaction_date, today })}
             />
           ))}

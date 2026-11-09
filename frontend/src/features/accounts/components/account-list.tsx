@@ -16,6 +16,7 @@ import {
 import { useStripEdges } from '../hooks/use-strip-edges';
 import { AccountMark } from './account-mark';
 import styles from './account-list.module.css';
+import { readAccountRateText } from './account-rate';
 
 const ACCOUNT_SKELETON_COUNT = 3;
 const STRIP_PAGE_SHARE = 0.8;
@@ -79,8 +80,8 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
                   <Skeleton className={styles['markSkeleton']} />
                   <span className={styles['identity']}>
                     <Skeleton className={styles['nameSkeleton']} />
-                    <Skeleton className={styles['detailSkeleton']} />
                   </span>
+                  <Skeleton className={styles['detailSkeleton']} />
                   <span className={styles['amounts']}>
                     <Skeleton className={styles['balanceSkeleton']} />
                     <Skeleton className={styles['detailSkeleton']} />
@@ -114,7 +115,12 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
                   <AccountMark account={account} />
                   <span className={styles['identity']}>
                     <span className={styles['name']}>{account.name}</span>
-                    <span className={styles['detail']}>{account.currency}</span>
+                  </span>
+                  <span className={styles['detail']}>
+                    {account.currency}
+                    <span className={styles['rate']}>
+                      {readAccountRateText({ account, baseCurrency })}
+                    </span>
                   </span>
                   <span
                     className={

@@ -13,6 +13,7 @@ import { TransactionSkeletonRows } from './transaction-skeleton-rows';
 
 type TransactionPage = components['schemas']['Page_Transaction_'];
 type Transaction = components['schemas']['Transaction'];
+type DictionaryItem = components['schemas']['DictionaryItem'];
 
 const LOADING_MORE_ROW_COUNT = 2;
 const NEXT_PAGE_MARGIN = '0% 0% 50% 0%';
@@ -64,6 +65,7 @@ function observeEdge({
 type TransactionFeedProps = Readonly<{
   feed: TransactionFeedQuery;
   baseCurrency: string;
+  transactionTypes: readonly DictionaryItem[] | undefined;
   label: string;
   header?: ReactNode;
   isGroupedByDay?: boolean;
@@ -74,6 +76,7 @@ type TransactionFeedProps = Readonly<{
 export function TransactionFeed({
   feed,
   baseCurrency,
+  transactionTypes,
   label,
   header,
   isGroupedByDay = true,
@@ -112,7 +115,9 @@ export function TransactionFeed({
   return (
     <section
       aria-label={label}
-      aria-busy={isPending || isFetchingNextPage || isPlaceholderData}
+      aria-busy={
+        isPending || isFetchingNextPage || isPlaceholderData || transactionTypes === undefined
+      }
       className={styles['transactions']}
     >
       {header}
@@ -123,7 +128,7 @@ export function TransactionFeed({
           setIsScrolledDown(event.currentTarget.scrollTop > 0);
         }}
       >
-        {data === undefined ? (
+        {data === undefined || transactionTypes === undefined ? (
           <TransactionSkeletonRows count={pageSize} />
         ) : transactions.length > 0 ? (
           <>
@@ -153,6 +158,7 @@ export function TransactionFeed({
             <TransactionDayList
               transactions={transactions}
               baseCurrency={baseCurrency}
+              transactionTypes={transactionTypes}
               isGroupedByDay={isGroupedByDay}
             />
             {isFetchingNextPage && <TransactionSkeletonRows count={LOADING_MORE_ROW_COUNT} />}
