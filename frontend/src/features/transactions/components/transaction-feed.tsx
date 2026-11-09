@@ -115,7 +115,9 @@ export function TransactionFeed({
   return (
     <section
       aria-label={label}
-      aria-busy={isPending || isFetchingNextPage || isPlaceholderData}
+      aria-busy={
+        isPending || isFetchingNextPage || isPlaceholderData || transactionTypes === undefined
+      }
       className={styles['transactions']}
     >
       {header}
