@@ -1,10 +1,12 @@
 import { MutationCache, type Query, QueryCache, QueryClient } from '@tanstack/react-query';
 
+import { announceDataChange } from '@/app/data-change-channel';
 import { showErrorNotification } from '@/components/error-notification/error-notification-store';
 import { ApiError, NOT_FOUND_STATUS, UNAUTHORIZED_STATUS } from '@/lib/api-error';
 import { isNotFoundExpected } from '@/lib/query-meta';
 
 const STALE_TIME_MS = 60_000;
+const POLLING_INTERVAL_MS = 30_000;
 const MAX_RETRIES = 3;
 
 function shouldRetry(failureCount: number, error: unknown): boolean {
@@ -41,9 +43,17 @@ function notifyMutationError(error: Error): void {
 export function createQueryClient(): QueryClient {
   const queryClient = new QueryClient({
     queryCache: new QueryCache({ onError: notifyQueryError }),
-    mutationCache: new MutationCache({ onError: notifyMutationError }),
+    mutationCache: new MutationCache({
+      onError: notifyMutationError,
+      onSuccess: announceDataChange,
+    }),
     defaultOptions: {
-      queries: { staleTime: STALE_TIME_MS, retry: shouldRetry },
+      queries: {
+        staleTime: STALE_TIME_MS,
+        retry: shouldRetry,
+        refetchInterval: POLLING_INTERVAL_MS,
+        refetchOnWindowFocus: 'always',
+      },
       mutations: { retry: false },
     },
   });

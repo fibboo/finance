@@ -39,6 +39,7 @@ export const transactionQueries = {
       initialPageParam: 1,
       getNextPageParam: (lastPage) =>
         lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined,
+      refetchInterval: false,
     });
   },
   details() {

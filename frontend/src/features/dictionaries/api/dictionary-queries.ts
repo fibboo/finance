@@ -21,14 +21,16 @@ export const dictionaryQueries = {
     return queryOptions({
       queryKey: ['dictionaries', 'accounting'],
       queryFn: fetchAccountingDictionaries,
-      staleTime: Infinity,
+      staleTime: 'static',
+      refetchInterval: false,
     });
   },
   user() {
     return queryOptions({
       queryKey: ['dictionaries', 'user'],
       queryFn: fetchUserDictionaries,
-      staleTime: Infinity,
+      staleTime: 'static',
+      refetchInterval: false,
     });
   },
 };
