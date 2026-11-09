@@ -17,9 +17,9 @@ If the diff touches a `.py` file, a `requirements/` file, a Dockerfile, `pytest.
 
 ## Skills
 
-A skill under `.claude/skills/` and its entrypoint under `.agents/skills/` are instructions an agent follows at run time, and a finding in them is graded by what shows it rather than by what could happen. `.claude/rules/` and `CLAUDE.md` are not covered here: a rule a reviewer or author applies has no gate behind it, and keeps the ordinary grading.
+The text of a skill, its `SKILL.md` under `.claude/skills/` and the other prose files beside it, and its entrypoint under `.agents/skills/` are instructions an agent follows at run time, and a finding in them is graded by what shows it rather than by what could happen. A code file a skill ships keeps the ordinary grading, and so do `.claude/rules/` and `CLAUDE.md`: a rule a reviewer or author applies has no gate behind it.
 
-- A finding in such a file is P1 or P2, graded by **Severity**, only when the text contradicts itself, a sibling file or step, or the code it describes (a wrong file, function, field, command or route), or when a real example (the output of a past run, a linked issue or pull request) shows the instruction producing a wrong result.
+- A finding in such a file is P1 or P2, graded by **Severity**, only when the text contradicts itself, a sibling file or step (its `.agents/skills/` entrypoint among them), a rule of `CLAUDE.md` or `.claude/rules/`, or the code it describes (a wrong file, function, field, command or route), or when a real example (the output of a past run, a linked issue or pull request) shows the instruction producing a wrong result.
 - A finding that rests only on a constructed scenario, such as how an agent reading the text literally could go wrong or an input no run has shown, is P3 and never blocks. A skill sends what it cannot settle to a developer gate, so an imprecise sentence costs a question there rather than a lost defect, while every fix written for a hypothetical finding adds text in which the next round finds new scenarios.
 
 ## Mixed Scope
