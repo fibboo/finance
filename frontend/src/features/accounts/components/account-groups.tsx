@@ -2,6 +2,7 @@ import { Link, useSearchParams } from 'react-router';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
+import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import type { MoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
@@ -54,6 +55,7 @@ function readAccountClassName({
 
 export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountGroupsProps) {
   const [searchParams] = useSearchParams();
+  const arrowKeySelection = useArrowKeySelection({ list: 'accounts', orientation: 'vertical' });
   const selectedAccountId = readSelectedAccountId(searchParams);
   const groups = readAccountGroups(accounts ?? []);
   return (
@@ -107,6 +109,7 @@ export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountG
                     <AccountMark account={account} />
                     <span className={styles['identity']}>
                       <Link
+                        {...arrowKeySelection}
                         id={readAccountLinkId(account.id)}
                         to={{
                           search: writeSelectedAccount({

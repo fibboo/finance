@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from 'react-router';
 
+import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { formatMoney, formatRate } from '@/lib/format-money';
@@ -43,6 +44,7 @@ export function TransactionRow({
   dateLabel,
 }: TransactionRowProps) {
   const [searchParams] = useSearchParams();
+  const arrowKeySelection = useArrowKeySelection({ list: 'transactions', orientation: 'vertical' });
   const view = readTransactionView({ transaction, transactionTypes });
   const selectedTransactionId = readSelectedTransactionId(searchParams);
   const isSelected = selectedTransactionId === transaction.id;
@@ -63,6 +65,7 @@ export function TransactionRow({
       <span className={styles['text']}>
         <span className={styles['title']}>
           <Link
+            {...arrowKeySelection}
             id={readTransactionLinkId(transaction.id)}
             to={{
               search: writeSelectedTransaction({

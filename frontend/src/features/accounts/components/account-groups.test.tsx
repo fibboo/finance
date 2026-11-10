@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { expect, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -122,4 +123,44 @@ test('shows the groups as loading while the accounts are pending', () => {
   // assert
   expect(screen.queryByRole('region')).not.toBeInTheDocument();
   expect(screen.getAllByRole('listitem')).toHaveLength(3);
+});
+
+test('moves the selection through the rows of both groups with the arrow keys', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <AccountGroups
+      accounts={[wallet, savings, intesaCredit]}
+      topAccountId={undefined}
+      baseCurrency="USD"
+    />,
+  );
+  await user.tab();
+
+  // act
+  // past the last row the selection stays, so Up from there returns to the last asset
+  await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowUp}');
+
+  // assert
+  const savingsLink = screen.getByRole('link', { name: 'Savings' });
+  expect(savingsLink).toHaveFocus();
+  expect(savingsLink).toHaveAttribute('aria-current', 'true');
+  expect(screen.getByRole('link', { name: 'Wallet' })).not.toHaveAttribute('aria-current');
+  expect(screen.getByRole('link', { name: 'Intesa credit' })).not.toHaveAttribute('aria-current');
+});
+
+test('keeps the selection on Up at the first row and on an arrow with a modifier', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <AccountGroups accounts={[wallet, savings]} topAccountId={undefined} baseCurrency="USD" />,
+  );
+  await user.tab();
+
+  // act
+  await user.keyboard('{ArrowUp}{Shift>}{ArrowDown}{/Shift}');
+
+  // assert
+  expect(screen.getByRole('link', { name: 'Wallet' })).toHaveFocus();
+  expect(screen.queryByRole('link', { current: true })).not.toBeInTheDocument();
 });
