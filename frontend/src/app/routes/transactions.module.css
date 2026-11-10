@@ -7,9 +7,22 @@
   flex-direction: column;
 }
 
+.details {
+  display: contents;
+}
+
 @media (--desktop) {
   .transactions {
+    container: transactions / inline-size;
     flex-direction: row;
     gap: var(--space-4);
+  }
+}
+
+@container transactions (width >= 81rem) {
+  .details {
+    --details-column-direction: row;
+    --details-panel-align: stretch;
+    --details-column-align: flex-start;
   }
 }

@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/skeleton/skeleton';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './details-panel.module.css';
+import { focusReturnTarget } from './focus-return';
 
 const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
 const DETAILS_PANEL_SELECTOR = '[data-details-panel]';
@@ -23,15 +24,33 @@ function readIsOnlyShownPanel(panelId: string): boolean {
   return isOnlyShownPanel;
 }
 
+function readPanelClassName({
+  isShownByDefault,
+  isKeptOpenOnDesktop,
+}: Readonly<{ isShownByDefault: boolean; isKeptOpenOnDesktop: boolean }>): string {
+  const panelClassName = [
+    styles['detailsPanel'],
+    isShownByDefault ? styles['shownByDefault'] : undefined,
+    isKeptOpenOnDesktop ? styles['keptOpenOnDesktop'] : undefined,
+  ]
+    .filter((className) => className !== undefined)
+    .join(' ');
+  return panelClassName;
+}
+
 type DetailsPanelProps = Readonly<{
   label: string;
   isLoaded: boolean;
   isError: boolean;
   isFetching: boolean;
+  isReplacing: boolean;
+  isShownByDefault: boolean;
+  isKeptOpenOnDesktop: boolean;
   errorMessage: string;
   returnFocusId: string;
   onRetry: () => void;
   onClose: () => void;
+  onChoose: () => void;
   renderContent: (closeButton: ReactNode) => ReactNode;
 }>;
 
@@ -40,10 +59,14 @@ export function DetailsPanel({
   isLoaded,
   isError,
   isFetching,
+  isReplacing,
+  isShownByDefault,
+  isKeptOpenOnDesktop,
   errorMessage,
   returnFocusId,
   onRetry,
   onClose,
+  onChoose,
   renderContent,
 }: DetailsPanelProps) {
   const backdropId = useId();
@@ -52,15 +75,19 @@ export function DetailsPanel({
 
   function close() {
     onClose();
-    document.getElementById(returnFocusId)?.focus();
+    focusReturnTarget(returnFocusId);
   }
 
   const dragHandlers = useSheetDrag({ handleRef, onClose: close });
 
   useEffect(() => {
+    if (isShownByDefault) {
+      return undefined;
+    }
+
     function closePanel() {
       onClose();
-      document.getElementById(returnFocusId)?.focus();
+      focusReturnTarget(returnFocusId);
     }
 
     function handlePointerDown(event: PointerEvent) {
@@ -90,11 +117,20 @@ export function DetailsPanel({
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, returnFocusId, backdropId, panelId]);
+  }, [isShownByDefault, onClose, returnFocusId, backdropId, panelId]);
 
   useEffect(() => {
     const panel = document.getElementById(panelId);
-    if (panel === null) {
+    const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
+    if (panel !== null && !isShownByDefault && !isFocusInDialog) {
+      panel.focus({ preventScroll: true });
+      panel.scrollIntoView({ block: 'nearest' });
+    }
+  }, [panelId, returnFocusId, isShownByDefault]);
+
+  useEffect(() => {
+    const panel = document.getElementById(panelId);
+    if (panel === null || isShownByDefault) {
       return undefined;
     }
 
@@ -115,7 +151,7 @@ export function DetailsPanel({
     return () => {
       observer.disconnect();
     };
-  }, [panelId, backdropId]);
+  }, [isShownByDefault, panelId, backdropId]);
 
   const closeButton = (
     <button type="button" className={styles['close']} aria-label="Close details" onClick={close}>
@@ -126,19 +162,28 @@ export function DetailsPanel({
   );
   return (
     <>
-      <div id={backdropId} className={styles['backdrop']} aria-hidden="true" />
+      {!isShownByDefault && (
+        <div id={backdropId} className={styles['backdrop']} aria-hidden="true" />
+      )}
       <section
         id={panelId}
-        ref={(panel) => {
-          panel?.focus({ preventScroll: true });
-          panel?.scrollIntoView({ block: 'nearest' });
+        onFocusCapture={() => {
+          if (isShownByDefault) {
+            onChoose();
+          }
+        }}
+        onPointerDownCapture={() => {
+          if (isShownByDefault) {
+            onChoose();
+          }
         }}
         role="dialog"
         aria-label={label}
-        data-details-panel
-        aria-busy={!isLoaded && isFetching}
+        data-details-panel={isShownByDefault ? undefined : true}
+        data-details
+        aria-busy={(!isLoaded && isFetching) || isReplacing}
         tabIndex={-1}
-        className={styles['detailsPanel']}
+        className={readPanelClassName({ isShownByDefault, isKeptOpenOnDesktop })}
         {...dragHandlers}
       >
         <span
@@ -148,7 +193,17 @@ export function DetailsPanel({
           data-sheet-drag-area
         />
         {isLoaded ? (
-          renderContent(closeButton)
+          <div className={styles['content']} inert={isReplacing}>
+            {renderContent(closeButton)}
+            {isReplacing && (
+              <div className={styles['replacingSkeleton']}>
+                <Skeleton className={styles['metaSkeleton']} />
+                <Skeleton className={styles['titleSkeleton']} />
+                <Skeleton className={styles['amountSkeleton']} />
+                <Skeleton className={styles['bodySkeleton']} />
+              </div>
+            )}
+          </div>
         ) : (
           <div className={styles['placeholder']}>
             {isError && !isFetching ? (

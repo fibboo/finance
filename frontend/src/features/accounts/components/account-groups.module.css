@@ -126,13 +126,18 @@
   border-radius: var(--radius-segment);
 }
 
-.selected::before {
+.selected::before,
+.shownByDefault::before {
   content: '';
   position: absolute;
   inset: 0 calc(var(--space-2) * -1);
   z-index: -1;
   border-radius: var(--radius-segment);
   background: var(--color-selected);
+}
+
+.shownByDefault::before {
+  display: none;
 }
 
 .account:has(.name:hover) {
@@ -143,15 +148,6 @@
   font-size: var(--font-size-sm);
   color: var(--color-muted);
   white-space: nowrap;
-}
-
-.inlineRate:not(:empty)::before {
-  content: ' · ';
-}
-
-.rate,
-.rateColumn {
-  display: none;
 }
 
 .balance {
@@ -207,7 +203,6 @@
     flex: 1 1 auto;
     min-width: 0;
     align-self: flex-start;
-    container-type: inline-size;
     padding: var(--space-2) var(--space-5) var(--space-3);
     border-radius: var(--radius-panel);
     gap: 0;
@@ -222,7 +217,7 @@
     padding-left: calc(var(--size-account-mark-sm) + var(--space-3));
     border-bottom: var(--size-border) solid var(--color-border);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg);
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0 var(--space-3);
     font-size: var(--font-size-sm);
@@ -288,77 +283,17 @@
     );
   }
 
-  .account {
-    min-height: var(--size-option-lg);
-    padding: 0;
-    grid-template-columns:
-      auto minmax(0, 1fr) var(--size-amount-column-lg)
-      var(--size-amount-column-lg);
-    grid-template-areas: 'mark identity accountBalance balance';
-  }
-
   .account + .account {
     border-top: 0;
   }
 
-  .identity {
-    flex-direction: row;
-    align-items: baseline;
-    gap: var(--space-1);
-  }
-
-  .currency::before {
-    content: '· ';
-  }
-
-  .accountBalance {
-    font-size: var(--font-size-md);
-  }
-
-  @container (width >= 42rem) {
-    .columns {
-      grid-template-columns:
-        minmax(0, 1fr) var(--size-amount-column-lg) var(--size-amount-column-lg)
-        var(--size-rate-column-lg);
-    }
-
-    .rateColumn {
-      display: block;
-      text-align: right;
-    }
-
-    .account {
-      grid-template-columns:
-        auto minmax(0, 1fr) var(--size-amount-column-lg)
-        var(--size-amount-column-lg) var(--size-rate-column-lg);
-      grid-template-areas: 'mark identity accountBalance balance rate';
-    }
-
-    .inlineRate {
-      display: none;
-    }
-
-    .rate {
-      grid-area: rate;
-      display: block;
-      justify-self: end;
-      font-size: var(--font-size-md);
-      color: var(--color-muted);
-      white-space: nowrap;
-    }
-  }
-
-  .account:not(:has(.accountBalance)) .balance {
-    grid-row: auto;
+  .shownByDefault::before {
+    display: block;
   }
 
   .markSkeleton {
     width: var(--size-account-mark-sm);
     height: var(--size-account-mark-sm);
     border-radius: var(--radius-segment);
-  }
-
-  .balanceSkeleton {
-    grid-row: auto;
   }
 }

@@ -54,6 +54,12 @@
   scroll-snap-type: x proximity;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .accounts {
+    scroll-behavior: smooth;
+  }
+}
+
 .accountItem {
   flex: none;
   min-width: var(--size-account-tile-sm);
@@ -157,6 +163,11 @@ a.account:focus-visible {
 }
 
 @media (pointer: fine) {
+  .accountItem,
+  .account {
+    scroll-margin-inline: calc(var(--size-touch) + var(--space-2));
+  }
+
   .previous,
   .next {
     position: absolute;
@@ -222,6 +233,10 @@ a.account:focus-visible {
 }
 
 @media (--desktop) {
+  .shownByDefault {
+    background: var(--color-selected);
+  }
+
   .accountList {
     padding: var(--space-4);
   }

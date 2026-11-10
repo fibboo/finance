@@ -71,6 +71,18 @@ beforeEach(() => {
         { key: 'USD', label: 'US Dollar' },
       ] satisfies components['schemas']['DictionaryItem'][]),
     ),
+    // the details of the top account, which show while no account is chosen
+    http.get('http://localhost/api/accounting/accounts/:accountId', ({ params }) => {
+      const account = [wallet, creditCard, travelCard].find(
+        (item) => item.id === params['accountId'],
+      );
+      return account === undefined
+        ? HttpResponse.json(
+            { error_code: 'NOT_FOUND', message: 'Account not found' },
+            { status: 404 },
+          )
+        : HttpResponse.json(account);
+    }),
   );
 });
 
@@ -353,14 +365,14 @@ test.each([
   },
 );
 
-test('closes the account with Escape and returns focus to its row', async () => {
+test('closes the account with Escape, returns focus to its row and shows the top account', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json({
-        items: [mainCard],
-        total: 1,
+        items: [wallet, mainCard],
+        total: 2,
         page: 1,
         size: 100,
         pages: 1,
@@ -372,16 +384,50 @@ test('closes the account with Escape and returns focus to its row', async () => 
   );
   render(<Component />);
   await user.click(await screen.findByRole('link', { name: 'Main card' }));
-  await screen.findByRole('dialog', { name: 'Account details' });
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Main card' }),
+  ).toBeInTheDocument();
 
   // act
   await user.keyboard('{Escape}');
 
   // assert
-  await waitFor(() => {
-    expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
-  });
+  const topDetails = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(
+    await within(topDetails).findByRole('heading', { level: 2, name: 'Wallet' }),
+  ).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Main card' })).toHaveFocus();
+});
+
+test('shows the details of the top account while no account is chosen', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [creditCard, mainCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${mainCard.id}`, () =>
+      HttpResponse.json(mainCard),
+    ),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  // the assets group comes first, so its first account is the top one
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Main card' }),
+  ).toBeInTheDocument();
+  expect(details).not.toHaveFocus();
+  expect(screen.getByRole('link', { name: 'Main card' })).not.toHaveAttribute('aria-current');
 });
 
 test('drops the account param of an account that does not exist', async () => {
@@ -409,7 +455,9 @@ test('drops the account param of an account that does not exist', async () => {
   await waitFor(() => {
     expect(accountLink).not.toHaveAttribute('aria-current');
   });
-  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  });
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
 
@@ -545,7 +593,7 @@ test.each([
 
     // assert
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Travel card' })).not.toBeInTheDocument();
     });
     expect(screen.queryByRole('link', { name: 'Travel card' })).not.toBeInTheDocument();
     expect(

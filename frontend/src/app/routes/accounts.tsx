@@ -14,6 +14,7 @@ import {
   TYPED_SEARCH_STATE,
   writeAccountSearch,
 } from '@/features/accounts/api/account-search';
+import { readTopAccountId } from '@/features/accounts/components/account-grouping';
 import { AccountGroups } from '@/features/accounts/components/account-groups';
 import { AccountSearch } from '@/features/accounts/components/account-search';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
@@ -79,6 +80,7 @@ export function Component() {
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && accountPage?.items.length === 0;
+  const topAccountId = isNothingMatched ? undefined : readTopAccountId(accountPage?.items ?? []);
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
   const { data: currencies } = useQuery(currencyQueries.recentUse());
 
@@ -128,11 +130,18 @@ export function Component() {
               }}
             />
           ) : (
-            <AccountGroups accounts={accountPage?.items} baseCurrency={baseCurrency} />
+            <AccountGroups
+              accounts={accountPage?.items}
+              topAccountId={topAccountId}
+              baseCurrency={baseCurrency}
+            />
           )}
           <SelectedAccountDetails
             baseCurrency={baseCurrency}
             accountCount={allAccountPage?.total}
+            defaultAccountId={topAccountId}
+            isKeptOpenOnDesktop
+            isParamIgnored={false}
           />
         </div>
       )}

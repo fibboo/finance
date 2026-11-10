@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 
 import { Sheet } from '@/components/sheet/sheet';
 
 import { accountQueries } from '@/features/accounts/api/account-queries';
 import {
+  readAccountLinkId,
   readSelectedAccountId,
   writeSelectedAccount,
 } from '@/features/accounts/api/selected-account';
@@ -18,6 +19,7 @@ import { writeTransactionFilters } from '@/features/transactions/api/transaction
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
+import { revealHorizontally } from '@/lib/reveal-horizontally';
 import type { components } from '@/lib/api-schema';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -25,10 +27,15 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 type SelectedAccountDetailsProps = Readonly<{
   baseCurrency: string;
   accountCount: number | undefined;
+  defaultAccountId: string | undefined;
+  isKeptOpenOnDesktop: boolean;
+  isParamIgnored: boolean;
 }>;
 
 type SelectedAccountProps = Readonly<{
   accountId: string;
+  isShownByDefault: boolean;
+  isKeptOpenOnDesktop: boolean;
   baseCurrency: string;
   isOnlyAccount: boolean;
   accountKinds: readonly DictionaryItem[];
@@ -37,6 +44,8 @@ type SelectedAccountProps = Readonly<{
 
 function SelectedAccount({
   accountId,
+  isShownByDefault,
+  isKeptOpenOnDesktop,
   baseCurrency,
   isOnlyAccount,
   accountKinds,
@@ -45,8 +54,16 @@ function SelectedAccount({
   const [searchParams, setSearchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const { data: account, error } = useQuery(accountQueries.detail(accountId));
+  useEffect(() => {
+    revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
+  }, [accountId]);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
-  if (isNotFound || (account !== undefined && !isMoneyAccountKind(account.kind))) {
+  const isUnavailable = isNotFound || (account !== undefined && !isMoneyAccountKind(account.kind));
+  if (isUnavailable && isShownByDefault) {
+    return null;
+  }
+
+  if (isUnavailable) {
     return (
       <Navigate
         to={{ search: writeSelectedAccount({ searchParams, accountId: undefined }).toString() }}
@@ -86,6 +103,8 @@ function SelectedAccount({
         }}
         isOnlyAccount={isOnlyAccount}
         relatedQueryKeys={[summaryQueries.current().queryKey, transactionQueries.feeds().queryKey]}
+        isShownByDefault={isShownByDefault}
+        isKeptOpenOnDesktop={isKeptOpenOnDesktop}
         onEdit={() => {
           setIsEditing(true);
         }}
@@ -94,6 +113,12 @@ function SelectedAccount({
         }}
         onClose={() => {
           dropSelectedAccount({ isReplaced: false });
+        }}
+        onChoose={() => {
+          setSearchParams(writeSelectedAccount({ searchParams, accountId }), {
+            preventScrollReset: true,
+            replace: true,
+          });
         }}
       />
       {isEditing && account !== undefined && (
@@ -122,18 +147,24 @@ function SelectedAccount({
 export function SelectedAccountDetails({
   baseCurrency,
   accountCount,
+  defaultAccountId,
+  isKeptOpenOnDesktop,
+  isParamIgnored,
 }: SelectedAccountDetailsProps) {
   const [searchParams] = useSearchParams();
-  const selectedAccountId = readSelectedAccountId(searchParams);
+  const selectedAccountId = isParamIgnored ? undefined : readSelectedAccountId(searchParams);
+  const accountId = selectedAccountId ?? defaultAccountId;
+  const isShownByDefault = selectedAccountId === undefined;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
-  if (selectedAccountId === undefined || dictionaries === undefined) {
+  if (accountId === undefined || dictionaries === undefined) {
     return null;
   }
 
   return (
     <SelectedAccount
-      key={selectedAccountId}
-      accountId={selectedAccountId}
+      accountId={accountId}
+      isShownByDefault={isShownByDefault}
+      isKeptOpenOnDesktop={isKeptOpenOnDesktop}
       baseCurrency={baseCurrency}
       isOnlyAccount={accountCount === 1}
       accountKinds={dictionaries.account_kinds}

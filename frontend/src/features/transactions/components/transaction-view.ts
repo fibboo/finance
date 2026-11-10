@@ -1,3 +1,4 @@
+import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { LOCALE } from '@/lib/format-money';
@@ -10,8 +11,10 @@ export type TransactionText = readonly (string | Readonly<Account>)[];
 
 type TransactionView = Readonly<{
   title: TransactionText;
-  accountNames: TransactionText | null;
+  rowTitle: TransactionText;
+  accountNames: TransactionText;
   markedAccount: Account;
+  titleMarkedAccount: Account | null;
   amount: number;
   baseAmount: number | null;
   currency: string;
@@ -24,6 +27,13 @@ const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZ
 export function readWeekdayDateText(isoDate: string): string {
   const weekdayDateText = `${WEEKDAY_FORMAT.format(new Date(`${isoDate}T00:00:00Z`))}, ${toDateText(isoDate)}`;
   return weekdayDateText;
+}
+
+export function readFirstMoneyAccountId(transaction: Readonly<Transaction>): string | undefined {
+  const firstMoneyAccountId = transaction.postings.find(
+    (posting) => isMoneyAccountKind(posting.account.kind) && !isDeletedAccount(posting.account),
+  )?.account.id;
+  return firstMoneyAccountId;
 }
 
 export function isDeletedAccount(account: Readonly<Account>): boolean {
@@ -77,8 +87,10 @@ export function readTransactionView({
     case 'EXPENSE': {
       const view = {
         title: [credit.account],
+        rowTitle: [credit.account],
         accountNames: [debit.account],
         markedAccount: debit.account,
+        titleMarkedAccount: null,
         amount: Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : Number(debit.base_amount),
         currency: debit.currency,
@@ -90,8 +102,10 @@ export function readTransactionView({
     case 'INCOME': {
       const view = {
         title: [debit.account],
+        rowTitle: [debit.account],
         accountNames: [credit.account],
         markedAccount: credit.account,
+        titleMarkedAccount: null,
         amount: Number(credit.amount),
         baseAmount: credit.base_amount === null ? null : Number(credit.base_amount),
         currency: credit.currency,
@@ -101,15 +115,13 @@ export function readTransactionView({
       return view;
     }
     case 'TRANSFER': {
+      const typeLabel = readTypeLabel({ transaction, transactionTypes });
       const view = {
-        title: [
-          `${readTypeLabel({ transaction, transactionTypes })} `,
-          debit.account,
-          ' → ',
-          credit.account,
-        ],
-        accountNames: null,
-        markedAccount: credit.account,
+        title: [`${typeLabel} `, debit.account, ' → ', credit.account],
+        rowTitle: [debit.account, ' → '],
+        accountNames: [],
+        markedAccount: debit.account,
+        titleMarkedAccount: credit.account,
         amount: -Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : -Number(debit.base_amount),
         currency: debit.currency,
@@ -120,10 +132,13 @@ export function readTransactionView({
     }
     case 'ADJUSTMENT': {
       const posting = credit.account.kind === 'EQUITY' ? debit : credit;
+      const typeLabel = readTypeLabel({ transaction, transactionTypes });
       const view = {
-        title: [readTypeLabel({ transaction, transactionTypes })],
+        title: [typeLabel],
+        rowTitle: [typeLabel],
         accountNames: [posting.account],
         markedAccount: posting.account,
+        titleMarkedAccount: null,
         amount: Number(posting.amount),
         baseAmount: posting.base_amount === null ? null : Number(posting.base_amount),
         currency: posting.currency,

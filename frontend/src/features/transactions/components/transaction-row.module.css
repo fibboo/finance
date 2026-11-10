@@ -6,8 +6,11 @@
   position: relative;
   grid-column: 1 / -1;
   min-height: var(--size-transaction-row);
+  padding-block: var(--space-1);
   display: grid;
   grid-template-columns: subgrid;
+  grid-template-rows: auto auto;
+  align-content: center;
   align-items: center;
   font-size: var(--font-size-sm);
 }
@@ -15,17 +18,19 @@
 .income,
 .transfer,
 .adjustment,
-.selected {
+.selected,
+.shownByDefault {
   isolation: isolate;
 }
 
 .income::before,
 .transfer::before,
 .adjustment::before,
-.selected::before {
+.selected::before,
+.shownByDefault::before {
   content: '';
   position: absolute;
-  inset: var(--space-1-5) calc(var(--space-2) * -1);
+  inset: var(--space-1) calc(var(--space-2) * -1);
   z-index: -1;
   border-radius: var(--radius-badge);
   background: var(--row-tint);
@@ -72,65 +77,71 @@
   border-top: var(--size-border) solid var(--color-border);
 }
 
-.dot {
+.dot,
+.titleDot {
   width: var(--size-dot);
   height: var(--size-dot);
   border-radius: var(--radius-full);
   background: currentColor;
 }
 
-.wideTitle {
-  grid-column: span 2;
+.titleDot {
+  display: inline-block;
+  margin-inline-end: var(--space-1);
+  vertical-align: middle;
+}
+
+.dot {
+  grid-area: 1 / 1;
+}
+
+.text,
+.amounts {
+  display: contents;
+}
+
+.title {
+  grid-area: 1 / 2;
+}
+
+.details {
+  grid-area: 2 / 2;
 }
 
 .title,
-.wideTitle,
-.accounts {
+.details {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.transactionRow:has(.date) {
-  padding-block: var(--space-2-5);
-}
-
-.date {
-  display: block;
-  margin-top: var(--space-0-5);
-  font-size: var(--font-size-2xs);
-  line-height: var(--line-height-tight);
-  color: var(--color-muted);
-}
-
-.accounts {
-  padding-inline-start: var(--account-column-gap);
-}
-
-.accounts,
+.details,
 .originalAmount {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-note);
   color: var(--color-muted);
 }
 
 .amount,
 .incomeAmount,
 .originalAmount {
-  text-align: right;
+  grid-column: 3;
+  justify-self: end;
   white-space: nowrap;
 }
 
 .originalAmount {
-  font-size: var(--font-size-2xs);
+  grid-row: 2;
 }
 
-.rate {
-  display: none;
+.amounts > :only-child {
+  grid-row: 1 / -1;
 }
 
 .amount,
 .incomeAmount {
+  grid-row: 1;
   font-weight: var(--font-weight-medium);
 }
 
@@ -138,26 +149,17 @@
   color: var(--color-accent);
 }
 
-@media (--landscape), (--desktop) {
-  .rate {
-    display: var(--rate-column-display, block);
-    font-size: var(--font-size-2xs);
-    color: var(--color-muted);
-    text-align: right;
-    white-space: nowrap;
-  }
-}
-
 @media (--desktop) {
-  .rate {
-    font-size: var(--font-size-md);
-  }
-
   .income::before,
   .transfer::before,
   .adjustment::before,
-  .selected::before {
+  .selected::before,
+  .shownByDefault::before {
     border-radius: var(--radius-segment);
+  }
+
+  .shownByDefault::before {
+    background: color-mix(in oklab, var(--row-tint), var(--color-ink) var(--mix-selected-row));
   }
 
   .transactionRow {
@@ -165,12 +167,8 @@
     font-size: var(--font-size-base);
   }
 
-  .accounts,
+  .details,
   .originalAmount {
-    font-size: var(--font-size-md);
-  }
-
-  .date {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
   }
 }

@@ -10,7 +10,7 @@
   height: var(--size-transaction-row);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-2-5);
 }
 
 .dotSkeleton {
@@ -19,34 +19,40 @@
   height: var(--size-dot);
 }
 
+.textSkeleton {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
 .titleSkeleton {
-  width: 30%;
+  width: 40%;
   height: var(--size-skeleton-text);
 }
 
 .skeletonRow:nth-child(even) .titleSkeleton {
-  width: 22%;
+  width: 30%;
 }
 
-.accountsSkeleton {
-  width: 22%;
+.detailsSkeleton {
+  width: 50%;
   height: var(--size-skeleton-text-sm);
 }
 
 .amountSkeleton {
+  flex: none;
   width: var(--size-skeleton-amount);
   height: var(--size-skeleton-text);
-  margin-left: auto;
 }
 
 @media (--desktop) {
   .skeletonRow {
     height: var(--size-transaction-row-lg);
-    padding: 0 var(--space-3);
     gap: var(--space-4);
   }
 
-  .accountsSkeleton {
+  .detailsSkeleton {
     height: var(--size-skeleton-text);
   }
 }

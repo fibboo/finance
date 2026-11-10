@@ -11,8 +11,10 @@ export function TransactionSkeletonRows({ count }: TransactionSkeletonRowsProps)
       {listSkeletonKeys(count).map((key) => (
         <li key={key} className={styles['skeletonRow']}>
           <Skeleton className={styles['dotSkeleton']} />
-          <Skeleton className={styles['titleSkeleton']} />
-          <Skeleton className={styles['accountsSkeleton']} />
+          <span className={styles['textSkeleton']}>
+            <Skeleton className={styles['titleSkeleton']} />
+            <Skeleton className={styles['detailsSkeleton']} />
+          </span>
           <Skeleton className={styles['amountSkeleton']} />
         </li>
       ))}

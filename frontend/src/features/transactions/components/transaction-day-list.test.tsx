@@ -200,6 +200,7 @@ test('groups the transactions by day with each day total in the base currency', 
         { key: 'TRANSFER', label: 'Transfer' },
         { key: 'ADJUSTMENT', label: 'Adjustment' },
       ]}
+      topTransactionId={undefined}
       isGroupedByDay
     />,
   );
@@ -244,6 +245,7 @@ test('names the day again after midnight', () => {
         { key: 'TRANSFER', label: 'Transfer' },
         { key: 'ADJUSTMENT', label: 'Adjustment' },
       ]}
+      topTransactionId={undefined}
       isGroupedByDay
     />,
   );

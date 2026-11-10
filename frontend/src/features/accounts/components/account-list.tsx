@@ -8,11 +8,7 @@ import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import { formatMoney } from '@/lib/format-money';
 
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '../api/account-queries';
-import {
-  readAccountLinkId,
-  readSelectedAccountId,
-  writeSelectedAccount,
-} from '../api/selected-account';
+import { readAccountLinkId, writeSelectedAccount } from '../api/selected-account';
 import { useStripEdges } from '../hooks/use-strip-edges';
 import { AccountMark } from './account-mark';
 import styles from './account-list.module.css';
@@ -21,9 +17,19 @@ import { readAccountRateText } from './account-rate';
 const ACCOUNT_SKELETON_COUNT = 3;
 const STRIP_PAGE_SHARE = 0.8;
 
-type AccountListProps = Readonly<{ baseCurrency: string; header?: ReactNode }>;
+type AccountListProps = Readonly<{
+  baseCurrency: string;
+  chosenAccountId: string | undefined;
+  defaultAccountId: string | undefined;
+  header?: ReactNode;
+}>;
 
-export function AccountList({ baseCurrency, header }: AccountListProps) {
+export function AccountList({
+  baseCurrency,
+  chosenAccountId,
+  defaultAccountId,
+  header,
+}: AccountListProps) {
   const { data: accountPage, isPending } = useQuery(
     accountQueries.list({
       size: ACCOUNT_PAGE_SIZE,
@@ -32,7 +38,6 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
     }),
   );
   const [searchParams] = useSearchParams();
-  const selectedAccountId = readSelectedAccountId(searchParams);
   const accountsRef = useRef<HTMLUListElement>(null);
   const { observeFirst, observeLast, isFirstInView, isLastInView } = useStripEdges();
   const isFailed = !isPending && accountPage === undefined;
@@ -109,8 +114,8 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
                     }).toString(),
                   }}
                   preventScrollReset
-                  aria-current={account.id === selectedAccountId ? 'true' : undefined}
-                  className={`${styles['account'] ?? ''} ${account.id === selectedAccountId ? (styles['selected'] ?? '') : ''}`}
+                  aria-current={account.id === chosenAccountId ? 'true' : undefined}
+                  className={`${styles['account'] ?? ''} ${account.id === chosenAccountId ? (styles['selected'] ?? '') : ''} ${chosenAccountId === undefined && account.id === defaultAccountId ? (styles['shownByDefault'] ?? '') : ''}`}
                 >
                   <AccountMark account={account} />
                   <span className={styles['identity']}>

@@ -1,0 +1,32 @@
+@import '@/styles/media.css';
+
+.detailsColumn,
+.selection {
+  display: contents;
+}
+
+.earlierSelection {
+  display: none;
+}
+
+@media (--desktop) {
+  .detailsColumn {
+    flex: none;
+    min-height: 0;
+    display: flex;
+    flex-direction: var(--details-column-direction, column);
+    align-self: var(--details-column-align, stretch);
+    max-height: 100%;
+    gap: var(--space-4);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .detailsColumn:not(:has([data-details])) {
+    display: none;
+  }
+
+  .earlierSelection {
+    display: contents;
+  }
+}

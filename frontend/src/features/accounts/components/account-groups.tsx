@@ -2,7 +2,7 @@ import { Link, useSearchParams } from 'react-router';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
-import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import type { MoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -11,12 +11,12 @@ import {
   readSelectedAccountId,
   writeSelectedAccount,
 } from '../api/selected-account';
+import { readAccountGroups } from './account-grouping';
 import { AccountMark } from './account-mark';
 import styles from './account-groups.module.css';
 import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
-type MoneyAccountKind = (typeof MONEY_ACCOUNT_KINDS)[number];
 
 const ACCOUNT_SKELETON_COUNT = 3;
 
@@ -27,40 +27,40 @@ const GROUP_HEADINGS = {
 
 type AccountGroupsProps = Readonly<{
   accounts: readonly Account[] | undefined;
+  topAccountId: string | undefined;
   baseCurrency: string;
 }>;
-
-function readGroupAccounts({
-  accounts,
-  kind,
-}: Readonly<{ accounts: readonly Account[]; kind: MoneyAccountKind }>) {
-  const groupAccounts = accounts.flatMap((account) =>
-    account.kind === kind && account.currency !== null
-      ? [{ ...account, currency: account.currency }]
-      : [],
-  );
-  return groupAccounts;
-}
 
 function sumBaseCurrencyBalances(accounts: readonly Account[]): number {
   const total = accounts.reduce((sum, account) => sum + Number(account.base_currency_balance), 0);
   return total;
 }
 
-export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
+function readAccountClassName({
+  account,
+  isSelected,
+  isShownByDefault,
+}: Readonly<{ account: Account; isSelected: boolean; isShownByDefault: boolean }>): string {
+  const accountClassName = [
+    styles['account'],
+    Number(account.balance) < 0 ? styles['debtAccount'] : undefined,
+    isSelected ? styles['selected'] : undefined,
+    isShownByDefault ? styles['shownByDefault'] : undefined,
+  ]
+    .filter((className) => className !== undefined)
+    .join(' ');
+  return accountClassName;
+}
+
+export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountGroupsProps) {
   const [searchParams] = useSearchParams();
   const selectedAccountId = readSelectedAccountId(searchParams);
-  const groups = MONEY_ACCOUNT_KINDS.map((kind) => ({
-    kind,
-    accounts: accounts === undefined ? [] : readGroupAccounts({ accounts, kind }),
-  })).filter((group) => group.accounts.length > 0);
+  const groups = readAccountGroups(accounts ?? []);
   return (
     <div className={styles['accountGroups']} aria-busy={accounts === undefined}>
       <div className={styles['columns']} aria-hidden="true">
-        <span className={styles['accountColumn']}>Account</span>
-        <span className={styles['amountColumn']}>Balance</span>
+        <span>Account</span>
         <span className={styles['amountColumn']}>In {baseCurrency}</span>
-        <span className={styles['rateColumn']}>Rate</span>
       </div>
       {accounts === undefined && (
         <ul className={styles['group']}>
@@ -97,7 +97,12 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
                 return (
                   <li
                     key={account.id}
-                    className={`${styles['account'] ?? ''} ${Number(account.balance) < 0 ? (styles['debtAccount'] ?? '') : ''} ${account.id === selectedAccountId ? (styles['selected'] ?? '') : ''}`}
+                    className={readAccountClassName({
+                      account,
+                      isSelected: account.id === selectedAccountId,
+                      isShownByDefault:
+                        selectedAccountId === undefined && account.id === topAccountId,
+                    })}
                   >
                     <AccountMark account={account} />
                     <span className={styles['identity']}>
@@ -117,7 +122,7 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
                       </Link>
                       <span className={styles['currency']}>
                         {account.currency}
-                        <span className={styles['inlineRate']}>{rateText}</span>
+                        {rateText !== undefined && ` · ${rateText}`}
                       </span>
                     </span>
                     <span className={styles['balance']}>
@@ -134,7 +139,6 @@ export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
                         })}
                       </span>
                     )}
-                    <span className={styles['rate']}>{rateText}</span>
                   </li>
                 );
               })}
