@@ -1,4 +1,4 @@
-import { type QueryKey, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
 import type { To } from 'react-router';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
@@ -38,14 +38,16 @@ export function TransactionDetails({
     data: transaction,
     isError,
     isFetching,
+    isPlaceholderData,
     refetch,
-  } = useQuery(transactionQueries.detail(transactionId));
+  } = useQuery({ ...transactionQueries.detail(transactionId), placeholderData: keepPreviousData });
   return (
     <DetailsPanel
       label="Transaction details"
       isLoaded={transaction !== undefined}
       isError={isError}
       isFetching={isFetching}
+      isReplacing={isPlaceholderData}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop
       errorMessage="Couldn't load the transaction"

@@ -70,7 +70,9 @@ test('shows every account in the order of their recent use, in the base currency
   );
 
   // act
-  render(<AccountList baseCurrency="USD" topAccountId={undefined} />);
+  render(
+    <AccountList baseCurrency="USD" chosenAccountId={undefined} defaultAccountId={undefined} />,
+  );
 
   // assert
   expect(await screen.findByText('Main card')).toBeInTheDocument();
@@ -101,7 +103,9 @@ test('shows an account without a color in the first palette color', async () => 
   );
 
   // act
-  render(<AccountList baseCurrency="USD" topAccountId={undefined} />);
+  render(
+    <AccountList baseCurrency="USD" chosenAccountId={undefined} defaultAccountId={undefined} />,
+  );
 
   // assert
   expect(await screen.findByText('W')).toHaveStyle({ color: 'rgb(77, 143, 191)' });
@@ -117,7 +121,9 @@ test('shows a busy accounts panel while the accounts load', () => {
   );
 
   // act
-  render(<AccountList baseCurrency="USD" topAccountId={undefined} />);
+  render(
+    <AccountList baseCurrency="USD" chosenAccountId={undefined} defaultAccountId={undefined} />,
+  );
 
   // assert
   expect(screen.getByRole('region', { name: 'Accounts' })).toHaveAttribute('aria-busy', 'true');
@@ -133,7 +139,12 @@ test('keeps the header when the accounts fail to load', async () => {
 
   // act
   render(
-    <AccountList baseCurrency="USD" topAccountId={undefined} header={<p>Total balance · USD</p>} />,
+    <AccountList
+      baseCurrency="USD"
+      chosenAccountId={undefined}
+      defaultAccountId={undefined}
+      header={<p>Total balance · USD</p>}
+    />,
   );
 
   // assert
@@ -159,11 +170,18 @@ test('links every card to its account, marks the selected one and links All to t
   );
 
   // act
-  render(<AccountList baseCurrency="USD" topAccountId={undefined} />, {
-    initialEntries: [
-      `/?account=7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03&transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40`,
-    ],
-  });
+  render(
+    <AccountList
+      baseCurrency="USD"
+      chosenAccountId="7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03"
+      defaultAccountId={undefined}
+    />,
+    {
+      initialEntries: [
+        `/?account=7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03&transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40`,
+      ],
+    },
+  );
 
   // assert
   const freelance = await screen.findByRole('link', { name: /^Freelance/ });

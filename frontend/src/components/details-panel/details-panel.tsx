@@ -42,6 +42,7 @@ type DetailsPanelProps = Readonly<{
   isLoaded: boolean;
   isError: boolean;
   isFetching: boolean;
+  isReplacing: boolean;
   isShownByDefault: boolean;
   isKeptOpenOnDesktop: boolean;
   errorMessage: string;
@@ -57,6 +58,7 @@ export function DetailsPanel({
   isLoaded,
   isError,
   isFetching,
+  isReplacing,
   isShownByDefault,
   isKeptOpenOnDesktop,
   errorMessage,
@@ -69,7 +71,6 @@ export function DetailsPanel({
   const backdropId = useId();
   const panelId = useId();
   const handleRef = useRef<HTMLSpanElement>(null);
-  const isMountedByDefaultRef = useRef(isShownByDefault);
 
   function close() {
     onClose();
@@ -119,6 +120,15 @@ export function DetailsPanel({
 
   useEffect(() => {
     const panel = document.getElementById(panelId);
+    const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
+    if (panel !== null && !isShownByDefault && !isFocusInDialog) {
+      panel.focus({ preventScroll: true });
+      panel.scrollIntoView({ block: 'nearest' });
+    }
+  }, [panelId, returnFocusId, isShownByDefault]);
+
+  useEffect(() => {
+    const panel = document.getElementById(panelId);
     if (panel === null || isShownByDefault) {
       return undefined;
     }
@@ -156,12 +166,6 @@ export function DetailsPanel({
       )}
       <section
         id={panelId}
-        ref={(panel) => {
-          if (!isMountedByDefaultRef.current) {
-            panel?.focus({ preventScroll: true });
-            panel?.scrollIntoView({ block: 'nearest' });
-          }
-        }}
         onFocusCapture={() => {
           if (isShownByDefault) {
             onChoose();
@@ -175,7 +179,7 @@ export function DetailsPanel({
         role="dialog"
         aria-label={label}
         data-details-panel={isShownByDefault ? undefined : true}
-        aria-busy={!isLoaded && isFetching}
+        aria-busy={(!isLoaded && isFetching) || isReplacing}
         tabIndex={-1}
         className={readPanelClassName({ isShownByDefault, isKeptOpenOnDesktop })}
         {...dragHandlers}
@@ -187,7 +191,17 @@ export function DetailsPanel({
           data-sheet-drag-area
         />
         {isLoaded ? (
-          renderContent(closeButton)
+          <div className={styles['content']} inert={isReplacing}>
+            {renderContent(closeButton)}
+            {isReplacing && (
+              <div className={styles['replacingSkeleton']}>
+                <Skeleton className={styles['metaSkeleton']} />
+                <Skeleton className={styles['titleSkeleton']} />
+                <Skeleton className={styles['amountSkeleton']} />
+                <Skeleton className={styles['bodySkeleton']} />
+              </div>
+            )}
+          </div>
         ) : (
           <div className={styles['placeholder']}>
             {isError && !isFetching ? (

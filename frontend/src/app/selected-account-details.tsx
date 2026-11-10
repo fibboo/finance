@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 
 import { Sheet } from '@/components/sheet/sheet';
 
 import { accountQueries } from '@/features/accounts/api/account-queries';
 import {
+  readAccountLinkId,
   readSelectedAccountId,
   writeSelectedAccount,
 } from '@/features/accounts/api/selected-account';
@@ -18,6 +19,7 @@ import { writeTransactionFilters } from '@/features/transactions/api/transaction
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
+import { revealHorizontally } from '@/lib/reveal-horizontally';
 import type { components } from '@/lib/api-schema';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -27,6 +29,7 @@ type SelectedAccountDetailsProps = Readonly<{
   accountCount: number | undefined;
   defaultAccountId: string | undefined;
   isKeptOpenOnDesktop: boolean;
+  isParamIgnored: boolean;
 }>;
 
 type SelectedAccountProps = Readonly<{
@@ -51,6 +54,9 @@ function SelectedAccount({
   const [searchParams, setSearchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const { data: account, error } = useQuery(accountQueries.detail(accountId));
+  useEffect(() => {
+    revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
+  }, [accountId]);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   const isUnavailable = isNotFound || (account !== undefined && !isMoneyAccountKind(account.kind));
   if (isUnavailable && isShownByDefault) {
@@ -143,9 +149,10 @@ export function SelectedAccountDetails({
   accountCount,
   defaultAccountId,
   isKeptOpenOnDesktop,
+  isParamIgnored,
 }: SelectedAccountDetailsProps) {
   const [searchParams] = useSearchParams();
-  const selectedAccountId = readSelectedAccountId(searchParams);
+  const selectedAccountId = isParamIgnored ? undefined : readSelectedAccountId(searchParams);
   const accountId = selectedAccountId ?? defaultAccountId;
   const isShownByDefault = selectedAccountId === undefined;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
@@ -155,7 +162,6 @@ export function SelectedAccountDetails({
 
   return (
     <SelectedAccount
-      key={accountId}
       accountId={accountId}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}

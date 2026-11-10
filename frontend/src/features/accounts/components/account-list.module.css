@@ -54,6 +54,12 @@
   scroll-snap-type: x proximity;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .accounts {
+    scroll-behavior: smooth;
+  }
+}
+
 .accountItem {
   flex: none;
   min-width: var(--size-account-tile-sm);
@@ -157,7 +163,8 @@ a.account:focus-visible {
 }
 
 @media (pointer: fine) {
-  .accountItem {
+  .accountItem,
+  .account {
     scroll-margin-inline: calc(var(--size-touch) + var(--space-2));
   }
 

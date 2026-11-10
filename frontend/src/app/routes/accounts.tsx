@@ -141,6 +141,7 @@ export function Component() {
             accountCount={allAccountPage?.total}
             defaultAccountId={topAccountId}
             isKeptOpenOnDesktop
+            isParamIgnored={false}
           />
         </div>
       )}

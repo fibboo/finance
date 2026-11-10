@@ -1,4 +1,4 @@
-import { type QueryKey, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
 import type { To } from 'react-router';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
@@ -46,14 +46,16 @@ export function AccountDetails({
     data: account,
     isError,
     isFetching,
+    isPlaceholderData,
     refetch,
-  } = useQuery(accountQueries.detail(accountId));
+  } = useQuery({ ...accountQueries.detail(accountId), placeholderData: keepPreviousData });
   return (
     <DetailsPanel
       label="Account details"
       isLoaded={account !== undefined}
       isError={isError}
       isFetching={isFetching}
+      isReplacing={isPlaceholderData}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}
       errorMessage="Couldn't load the account"

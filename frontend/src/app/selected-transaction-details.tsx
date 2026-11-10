@@ -96,7 +96,6 @@ export function SelectedTransactionDetails({
 
   return (
     <SelectedTransaction
-      key={transactionId}
       transactionId={transactionId}
       isShownByDefault={isShownByDefault}
       baseCurrency={baseCurrency}

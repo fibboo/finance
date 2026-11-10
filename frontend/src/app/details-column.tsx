@@ -1,45 +1,29 @@
 import { useSearchParams } from 'react-router';
 
-import {
-  readSelectedAccountId,
-  SELECTED_ACCOUNT_PARAM,
-  writeSelectedAccount,
-} from '@/features/accounts/api/selected-account';
-import {
-  readSelectedTransactionId,
-  SELECTED_TRANSACTION_PARAM,
-} from '@/features/transactions/api/selected-transaction';
+import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 
 import styles from './details-column.module.css';
 import { SelectedAccountDetails } from './selected-account-details';
 import { SelectedTransactionDetails } from './selected-transaction-details';
+import type { ShownAccount } from './use-shown-account';
 
 type DetailsColumnProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
-  defaultAccountId: string | undefined;
+  shownAccount: ShownAccount;
   accountCount: number | undefined;
   isAccountFirst: boolean;
 }>;
 
-function readIsAccountOpenedLast(searchParams: URLSearchParams): boolean {
-  const keys = [...searchParams.keys()];
-  const isAccountOpenedLast =
-    readSelectedAccountId(searchParams) !== undefined &&
-    (readSelectedTransactionId(searchParams) === undefined ||
-      keys.indexOf(SELECTED_ACCOUNT_PARAM) > keys.indexOf(SELECTED_TRANSACTION_PARAM));
-  return isAccountOpenedLast;
-}
-
 export function DetailsColumn({
   baseCurrency,
   defaultTransactionId,
-  defaultAccountId,
+  shownAccount,
   accountCount,
   isAccountFirst,
 }: DetailsColumnProps) {
   const [searchParams] = useSearchParams();
-  const isAccountOpenedLast = readIsAccountOpenedLast(searchParams);
+  const { isAccountOpenedLast } = shownAccount;
   const transactionDetails = (
     <div className={isAccountOpenedLast ? styles['earlierSelection'] : styles['selection']}>
       <SelectedTransactionDetails
@@ -56,8 +40,9 @@ export function DetailsColumn({
       <SelectedAccountDetails
         baseCurrency={baseCurrency}
         accountCount={accountCount}
-        defaultAccountId={defaultAccountId}
+        defaultAccountId={shownAccount.defaultAccountId}
         isKeptOpenOnDesktop
+        isParamIgnored={shownAccount.isAccountParamStale}
       />
     </div>
   );
