@@ -103,19 +103,22 @@ async def update_transaction(
     """
     Replaces an expense, an income or a transfer with the movement sent, keeping its id. The body is the one of
     `POST /accounting/transactions`, with the same rules by type:
-    - **Expenses:** `location_id` is required, `income_period` and `base_currency_amount` are refused.
-    - **Income:** `income_period` is required and `location_id` refused. `base_currency_amount` is required when
-    neither currency is the base currency, and refused otherwise.
-    - **Transfers:** `destination_amount` may be omitted when both currencies are the same, and must not be sent when
-    only `destination_currency` is the base currency, since it is derived. `location_id`, `income_period` and
-    `base_currency_amount` are refused.
+    - **Expenses:** `location_id` and `destination_amount` are required, `income_period` and `base_currency_amount`
+    are refused.
+    - **Income:** `income_period` and `destination_amount` are required and `location_id` refused.
+    `base_currency_amount` is required when neither currency is the base currency, and refused otherwise.
+    - **Transfers:** when both currencies are the same, `destination_amount` may be omitted and otherwise must equal
+    `source_amount`. When only `destination_currency` is the base currency, it is derived and must not be sent.
+    `location_id`, `income_period` and `base_currency_amount` are refused.
 
-    The two accounts are checked first: an unknown one answers `ENTITY_NOT_FOUND` and a pair that is no movement
-    `MOVEMENT_NOT_ALLOWED`. Then the transaction: a missing or deleted one, or a balance adjustment, which is not
-    edited, answers `ENTITY_NOT_FOUND`, accounts that give another type than the transaction's own answer
-    `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED`, and a transaction on a deleted money account answers
-    `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. Every money account of the old and the new postings is recalculated from
-    the earlier of its dates.
+    The two accounts are checked before the transaction: an unknown one answers `ENTITY_NOT_FOUND` and a pair that is
+    no movement `MOVEMENT_NOT_ALLOWED`, even for a transaction that would answer `ENTITY_NOT_FOUND` itself, as a
+    missing or deleted one and a balance adjustment, which is not edited, do. Accounts that give another type than
+    the transaction's own answer `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED`, and a transaction on a deleted money account
+    `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. The new postings then pass the checks of creation. The debit is valued at
+    the transaction's place on its new date, after the transactions of that day entered before it, so a transfer from
+    an account without a rate at that place answers `NO_ACCOUNT_BASE_CURRENCY_RATE`. Every money account of the old
+    and the new postings is recalculated from the earlier of its dates.
     """
     transaction: Transaction = await transaction_service.update_transaction(
         db=db, transaction_id=transaction_id, update_data=update_data, user_id=user_id

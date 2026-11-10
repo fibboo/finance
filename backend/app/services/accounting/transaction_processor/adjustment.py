@@ -31,10 +31,7 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
         self, *, data: AdjustmentCreate, account_db: AccountModel, amount: Decimal
     ) -> Decimal:
         balance, base_balance = await ledger_service.get_balances_at_date(
-            db=self.db,
-            account_db=account_db,
-            transaction_date=data.transaction_date,
-            transaction_id=self.transaction_id,
+            db=self.db, account_db=account_db, transaction_date=data.transaction_date, transaction_id=None
         )
         has_rate: bool = ledger_service.has_base_currency_rate(
             currency=account_db.currency, balance=balance, base_balance=base_balance, base_currency=self.base_currency
