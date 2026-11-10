@@ -58,9 +58,16 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1-5);
+  min-width: 0;
   font-size: var(--font-size-sm);
-  text-align: center;
   color: var(--color-muted);
+}
+
+.hintText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hintIcon {

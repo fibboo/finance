@@ -19,6 +19,7 @@ type ActionButtonProps = Readonly<{
 
 export function ActionButton({ id, label, iconPath, isDanger, action }: ActionButtonProps) {
   const hintId = useId();
+  const isBlocked = action.kind === 'button' && action.blockingHint !== undefined;
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isTapped, setIsTapped] = useState(false);
@@ -39,10 +40,7 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
     };
   }, [isTapped]);
 
-  const isTipShown =
-    action.kind === 'button' &&
-    action.blockingHint !== undefined &&
-    (isHovered || isFocused || isTapped);
+  const isTipShown = isBlocked && (isHovered || isFocused || isTapped);
   useEffect(() => {
     if (!isTipShown) {
       return;
@@ -85,7 +83,6 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
   }
 
   const { blockingHint, onClick } = action;
-  const isBlocked = blockingHint !== undefined;
   return (
     <>
       {isBlocked && (
@@ -93,7 +90,7 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
           <svg className={styles['hintIcon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={iconPath} />
           </svg>
-          {blockingHint}
+          <span className={styles['hintText']}>{blockingHint}</span>
         </span>
       )}
       <button
@@ -115,14 +112,18 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
         onPointerEnter={(event) => {
           setIsHovered(event.pointerType === 'mouse');
         }}
-        onPointerLeave={() => {
+        onPointerLeave={(event) => {
           setIsHovered(false);
+          if (event.pointerType === 'mouse') {
+            setIsTapped(false);
+          }
         }}
         onFocus={(event) => {
           setIsFocused(event.currentTarget.matches(':focus-visible'));
         }}
         onBlur={() => {
           setIsFocused(false);
+          setIsTapped(false);
         }}
       >
         {icon}

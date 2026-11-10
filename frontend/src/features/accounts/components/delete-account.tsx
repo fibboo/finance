@@ -21,7 +21,7 @@ function readBlockingHint({
 }: Readonly<{ account: Readonly<Account>; isOnlyAccount: boolean }>): string | undefined {
   const blockingHint =
     Number(account.balance) !== 0
-      ? 'Bring the balance to zero to delete the account.'
+      ? 'Bring the balance to zero to delete.'
       : isOnlyAccount
         ? "Your only money account can't be deleted."
         : undefined;

@@ -48,19 +48,19 @@ function readConfirmationText({
 
 function readBlockingHint(transaction: Readonly<Transaction>): string | undefined {
   const deletedAccountNames = [
-    ...new Set(
+    ...new Map(
       transaction.postings
         .filter(
           (posting) =>
             isMoneyAccountKind(posting.account.kind) && posting.account.status === 'DELETED',
         )
-        .map((posting) => posting.account.name),
-    ),
+        .map((posting) => [posting.account.id, posting.account.name]),
+    ).values(),
   ];
   const blockingHint =
     deletedAccountNames.length === 0
       ? undefined
-      : `${ACCOUNT_LIST_FORMAT.format(deletedAccountNames)} ${deletedAccountNames.length === 1 ? 'is' : 'are'} deleted, so this transaction can't be deleted.`;
+      : `${ACCOUNT_LIST_FORMAT.format(deletedAccountNames)} ${deletedAccountNames.length === 1 ? 'is' : 'are'} deleted.`;
   return blockingHint;
 }
 

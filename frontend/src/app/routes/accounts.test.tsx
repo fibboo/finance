@@ -703,7 +703,7 @@ test.each([
     case: 'its balance is not zero',
     account: wallet,
     items: [wallet, travelCard],
-    hint: 'Bring the balance to zero to delete the account.',
+    hint: 'Bring the balance to zero to delete.',
   },
   {
     case: 'it is the only money account',
@@ -777,7 +777,7 @@ test('refetches the account when the deletion is refused', async () => {
   // assert
   const deleteButton = await within(details).findByRole('button', {
     name: 'Delete account',
-    description: 'Bring the balance to zero to delete the account.',
+    description: 'Bring the balance to zero to delete.',
   });
   expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
   expect(deleteButton).toHaveFocus();

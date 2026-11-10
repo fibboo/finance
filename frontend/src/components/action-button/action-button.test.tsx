@@ -6,7 +6,7 @@ import { ActionButton } from '@/components/action-button/action-button';
 import { DELETE_ICON_PATH } from '@/components/action-button/action-icons';
 import { render } from '@/test/render';
 
-const HINT = 'Bring the balance to zero to delete the account.';
+const HINT = 'Bring the balance to zero to delete.';
 
 test('runs its action when it is not blocked', async () => {
   // arrange
@@ -81,11 +81,6 @@ test('closes the reason on the next tap elsewhere', async () => {
 
 test('closes the reason a few seconds after a tap', async () => {
   // arrange
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
-  onTestFinished(() => {
-    vi.useRealTimers();
-  });
-  const user = userEvent.setup();
   render(
     <ActionButton
       label="Delete account"
@@ -94,17 +89,24 @@ test('closes the reason a few seconds after a tap', async () => {
       action={{ kind: 'button', blockingHint: HINT, onClick: vi.fn() }}
     />,
   );
-  await user.pointer({
-    keys: '[TouchA]',
-    target: screen.getByRole('button', { name: 'Delete account' }),
+  const button = screen.getByRole('button', { name: 'Delete account' });
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+  onTestFinished(() => {
+    vi.useRealTimers();
   });
+  const user = userEvent.setup();
+  await user.pointer({ keys: '[TouchA]', target: button });
 
   // act
   act(() => {
-    vi.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(3800);
   });
 
   // assert
+  expect(screen.getByRole('tooltip')).toHaveTextContent(HINT);
+  act(() => {
+    vi.advanceTimersByTime(200);
+  });
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
