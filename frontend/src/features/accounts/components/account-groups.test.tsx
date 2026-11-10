@@ -149,18 +149,21 @@ test('moves the selection through the rows of both groups with the arrow keys', 
   expect(screen.getByRole('link', { name: 'Intesa credit' })).not.toHaveAttribute('aria-current');
 });
 
-test('keeps the selection on Up at the first row and on an arrow with a modifier', async () => {
-  // arrange
-  const user = userEvent.setup();
-  render(
-    <AccountGroups accounts={[wallet, savings]} topAccountId={undefined} baseCurrency="USD" />,
-  );
-  await user.tab();
+test.each(['Shift', 'Control', 'Alt', 'Meta'])(
+  'keeps the selection on Up at the first row and on Down with %s held',
+  async (modifier) => {
+    // arrange
+    const user = userEvent.setup();
+    render(
+      <AccountGroups accounts={[wallet, savings]} topAccountId={undefined} baseCurrency="USD" />,
+    );
+    await user.tab();
 
-  // act
-  await user.keyboard('{ArrowUp}{Shift>}{ArrowDown}{/Shift}');
+    // act
+    await user.keyboard(`{ArrowUp}{${modifier}>}{ArrowDown}{/${modifier}}`);
 
-  // assert
-  expect(screen.getByRole('link', { name: 'Wallet' })).toHaveFocus();
-  expect(screen.queryByRole('link', { current: true })).not.toBeInTheDocument();
-});
+    // assert
+    expect(screen.getByRole('link', { name: 'Wallet' })).toHaveFocus();
+    expect(screen.queryByRole('link', { current: true })).not.toBeInTheDocument();
+  },
+);

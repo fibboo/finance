@@ -400,6 +400,38 @@ test('closes the account with Escape, returns focus to its row and shows the top
   expect(screen.getByRole('link', { name: 'Main card' })).toHaveFocus();
 });
 
+test('keeps the focus on the rows while the arrow keys move through them and shows each account', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, travelCard, creditCard],
+        total: 3,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  render(<Component />);
+  await screen.findByRole('link', { name: 'Wallet' });
+  await user.tab();
+  await user.tab();
+  await user.tab();
+  expect(screen.getByRole('link', { name: 'Wallet' })).toHaveFocus();
+
+  // act
+  await user.keyboard('{ArrowDown}{ArrowDown}');
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Credit card' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Credit card' })).toHaveFocus();
+});
+
 test('shows the details of the top account while no account is chosen', async () => {
   // arrange
   server.use(

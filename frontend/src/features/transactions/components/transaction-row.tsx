@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router';
 
-import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
+import type { ArrowKeySelectionProps } from '@/hooks/use-arrow-key-selection';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { formatMoney, formatRate } from '@/lib/format-money';
@@ -24,6 +24,7 @@ type TransactionRowProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   isTop: boolean;
+  arrowKeySelection: ArrowKeySelectionProps;
   dateLabel?: string | undefined;
 }>;
 
@@ -41,10 +42,10 @@ export function TransactionRow({
   baseCurrency,
   transactionTypes,
   isTop,
+  arrowKeySelection,
   dateLabel,
 }: TransactionRowProps) {
   const [searchParams] = useSearchParams();
-  const arrowKeySelection = useArrowKeySelection({ list: 'transactions', orientation: 'vertical' });
   const view = readTransactionView({ transaction, transactionTypes });
   const selectedTransactionId = readSelectedTransactionId(searchParams);
   const isSelected = selectedTransactionId === transaction.id;

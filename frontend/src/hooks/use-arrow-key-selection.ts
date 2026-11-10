@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { z } from 'zod';
 
 type Orientation = 'vertical' | 'horizontal';
 
@@ -8,7 +9,9 @@ const STEP_KEYS = {
   horizontal: { ArrowRight: 1, ArrowLeft: -1 },
 } satisfies Readonly<Record<Orientation, Readonly<Record<string, number>>>>;
 
-type ArrowKeySelectionProps = Readonly<{
+const arrowKeySelectionStateSchema = z.object({ isArrowKeySelection: z.literal(true) });
+
+export type ArrowKeySelectionProps = Readonly<{
   'data-arrow-key-list': string;
   onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => void;
 }>;
@@ -48,20 +51,28 @@ export function useArrowKeySelection({
       return;
     }
 
-    event.preventDefault();
     const nextRow = readNextRow({ row: event.currentTarget, list, step });
     if (nextRow === undefined) {
       return;
     }
 
+    event.preventDefault();
     void navigate(
       { search: new URL(nextRow.href).search },
-      { replace: true, preventScrollReset: true },
+      {
+        replace: true,
+        preventScrollReset: true,
+        state: { isArrowKeySelection: true } satisfies z.infer<typeof arrowKeySelectionStateSchema>,
+      },
     );
-    nextRow.focus({ preventScroll: true });
-    nextRow.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    nextRow.focus();
   }
 
   const selectionProps = { 'data-arrow-key-list': list, onKeyDown: handleKeyDown };
   return selectionProps;
+}
+
+export function readIsArrowKeySelection(locationState: unknown): boolean {
+  const isArrowKeySelection = arrowKeySelectionStateSchema.safeParse(locationState).success;
+  return isArrowKeySelection;
 }

@@ -1,7 +1,9 @@
 import { type ReactNode, useEffect, useId, useRef } from 'react';
+import { useLocation } from 'react-router';
 
 import { LoadError } from '@/components/load-error/load-error';
 import { Skeleton } from '@/components/skeleton/skeleton';
+import { readIsArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './details-panel.module.css';
@@ -71,6 +73,7 @@ export function DetailsPanel({
 }: DetailsPanelProps) {
   const backdropId = useId();
   const panelId = useId();
+  const isArrowKeySelection = readIsArrowKeySelection(useLocation().state);
   const handleRef = useRef<HTMLSpanElement>(null);
 
   function close() {
@@ -122,11 +125,11 @@ export function DetailsPanel({
   useEffect(() => {
     const panel = document.getElementById(panelId);
     const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
-    if (panel !== null && !isShownByDefault && !isFocusInDialog) {
+    if (panel !== null && !isShownByDefault && !isFocusInDialog && !isArrowKeySelection) {
       panel.focus({ preventScroll: true });
       panel.scrollIntoView({ block: 'nearest' });
     }
-  }, [panelId, returnFocusId, isShownByDefault]);
+  }, [panelId, returnFocusId, isShownByDefault, isArrowKeySelection]);
 
   useEffect(() => {
     const panel = document.getElementById(panelId);

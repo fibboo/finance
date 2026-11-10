@@ -2,6 +2,7 @@ import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import styles from './transaction-day-list.module.css';
+import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import { useToday } from '@/hooks/use-today';
 import { TransactionRow } from './transaction-row';
 import { readTransactionView, readWeekdayDateText } from './transaction-view';
@@ -75,6 +76,7 @@ export function TransactionDayList({
   isGroupedByDay,
 }: TransactionDayListProps) {
   const today = useToday();
+  const arrowKeySelection = useArrowKeySelection({ list: 'transactions', orientation: 'vertical' });
   return (
     <div className={styles['transactionDayList']}>
       {isGroupedByDay ? (
@@ -108,6 +110,7 @@ export function TransactionDayList({
                   baseCurrency={baseCurrency}
                   transactionTypes={transactionTypes}
                   isTop={transaction.id === topTransactionId}
+                  arrowKeySelection={arrowKeySelection}
                 />
               ))}
             </ul>
@@ -122,6 +125,7 @@ export function TransactionDayList({
               baseCurrency={baseCurrency}
               transactionTypes={transactionTypes}
               isTop={transaction.id === topTransactionId}
+              arrowKeySelection={arrowKeySelection}
               dateLabel={readDayLabel({ transactionDate: transaction.transaction_date, today })}
             />
           ))}
