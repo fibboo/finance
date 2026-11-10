@@ -1,7 +1,8 @@
 import { type QueryKey, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 
-import { DeleteButton } from '@/components/delete-button/delete-button';
+import { ActionButton } from '@/components/action-button/action-button';
+import { DELETE_ICON_PATH } from '@/components/action-button/action-icons';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { focusReturnTarget } from '@/components/details-panel/focus-return';
 import type { components } from '@/lib/api-schema';
@@ -20,7 +21,7 @@ function readBlockingHint({
 }: Readonly<{ account: Readonly<Account>; isOnlyAccount: boolean }>): string | undefined {
   const blockingHint =
     Number(account.balance) !== 0
-      ? 'Bring the balance to zero to delete the account.'
+      ? 'Bring the balance to zero to delete.'
       : isOnlyAccount
         ? "Your only money account can't be deleted."
         : undefined;
@@ -55,12 +56,17 @@ export function DeleteAccount({
 
   return (
     <>
-      <DeleteButton
+      <ActionButton
         id={buttonId}
         label="Delete account"
-        blockingHint={blockingHint}
-        onClick={() => {
-          setIsConfirming(true);
+        iconPath={DELETE_ICON_PATH}
+        isDanger
+        action={{
+          kind: 'button',
+          blockingHint,
+          onClick: () => {
+            setIsConfirming(true);
+          },
         }}
       />
       {isConfirming && (

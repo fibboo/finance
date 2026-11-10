@@ -1416,7 +1416,7 @@ test('leaves the adjustment account out of the balances the deletion recalculate
   );
 });
 
-test('marks the deleted account in the title of the details but not in the deletion text', async () => {
+test('marks the deleted account in the title and blocks Delete with its name', async () => {
   // arrange
   const user = userEvent.setup();
   const transfer = {
@@ -1467,11 +1467,88 @@ test('marks the deleted account in the title of the details but not in the delet
     }),
   ).toBeInTheDocument();
   expect(within(details).queryByRole('link', { name: /Wallet/ })).not.toBeInTheDocument();
-  expect(
-    screen.getByRole('alertdialog', { name: 'Delete this transaction?' }),
-  ).toHaveAccessibleDescription(
-    "Transfer Wallet → Savings, $12.00 on 20.10.2026. The balances of Wallet and Savings are recalculated. This can't be undone.",
+  const deleteButton = within(details).getByRole('button', { name: 'Delete transaction' });
+  expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+  expect(deleteButton).toHaveAccessibleDescription('Wallet is deleted.');
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+});
+
+test('keeps Delete open while only the category of the transaction is deleted', async () => {
+  // arrange
+  const transaction = {
+    ...expense,
+    postings: [walletPosting, { ...categoryPosting, account: { ...category, status: 'DELETED' } }],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [transaction],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(transaction),
+    ),
   );
+
+  // act
+  render(<Component />, {
+    initialEntries: [`/transactions?transaction=${expense.id}`],
+  });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  const deleteButton = await within(details).findByRole('button', { name: 'Delete transaction' });
+  expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+  expect(within(details).queryByText(/ deleted\./)).not.toBeInTheDocument();
+});
+
+test('names every deleted money account in the reason Delete is blocked', async () => {
+  // arrange
+  const transaction = {
+    ...expense,
+    transaction_type: 'TRANSFER',
+    postings: [
+      { ...walletPosting, account: { ...wallet, status: 'DELETED' } },
+      {
+        ...categoryPosting,
+        account: {
+          ...wallet,
+          name: 'Savings',
+          id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a04',
+          status: 'DELETED',
+        },
+      },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [transaction],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(transaction),
+    ),
+  );
+
+  // act
+  render(<Component />, {
+    initialEntries: [`/transactions?transaction=${expense.id}`],
+  });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  const deleteButton = await within(details).findByRole('button', { name: 'Delete transaction' });
+  expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+  expect(deleteButton).toHaveAccessibleDescription('Wallet and Savings are deleted.');
 });
 
 test('closes the details of a transaction deleted elsewhere once the tab is shown again', async () => {

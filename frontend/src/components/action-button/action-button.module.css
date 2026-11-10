@@ -1,0 +1,109 @@
+.actionButton {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--size-button-lg);
+  border: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-action);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.actionButton:hover {
+  opacity: var(--opacity-hover);
+}
+
+.actionButton[aria-disabled='true'] {
+  cursor: default;
+}
+
+.actionButton[aria-disabled='true'] > .icon {
+  opacity: var(--opacity-disabled);
+}
+
+.actionButton[aria-disabled='true']:hover {
+  opacity: 1;
+}
+
+.actionButton:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+}
+
+.icon,
+.hintIcon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hint {
+  order: -1;
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.hintText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hintIcon {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.tip {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 1;
+  width: max-content;
+  max-width: var(--size-tooltip);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-segment);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-note);
+  text-align: left;
+  background: var(--color-ink);
+  color: var(--color-panel);
+}
+
+.actionButton[data-tip-shown='true']::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + var(--space-2) - var(--space-1-5) * 2);
+  left: 50%;
+  translate: -50% 0;
+  border: var(--space-1-5) solid transparent;
+  border-top-color: var(--color-ink);
+}
+
+.actionButton:last-child > .tip {
+  right: 0;
+  left: auto;
+}
