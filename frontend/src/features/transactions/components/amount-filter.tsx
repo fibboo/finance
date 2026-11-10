@@ -2,9 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
+import { formatAmountText } from '@/lib/amount-input';
+
 import type { TransactionFilters } from '../api/transaction-filters';
 import { amountFilterFormSchema } from '../schemas/transaction-filter-forms';
 import styles from './amount-filter.module.css';
+import { readAmountInputProps } from './amount-input';
 import { FilterActions } from './filter-actions';
 import { FilterField } from './filter-field';
 
@@ -27,8 +30,8 @@ export function AmountFilter({ filters, baseCurrency, onApply }: AmountFilterPro
   >({
     resolver: zodResolver(amountFilterFormSchema),
     defaultValues: {
-      base_currency_amount_from: filters.base_currency_amount_from ?? '',
-      base_currency_amount_to: filters.base_currency_amount_to ?? '',
+      base_currency_amount_from: formatAmountText(filters.base_currency_amount_from ?? ''),
+      base_currency_amount_to: formatAmountText(filters.base_currency_amount_to ?? ''),
     },
   });
 
@@ -45,18 +48,22 @@ export function AmountFilter({ filters, baseCurrency, onApply }: AmountFilterPro
           label={`From, ${baseCurrency}`}
           error={formState.errors.base_currency_amount_from?.message}
           input={{
-            inputMode: 'decimal',
+            ...readAmountInputProps({
+              registration: register('base_currency_amount_from'),
+              isNegativeAllowed: false,
+            }),
             placeholder: '0',
-            ...register('base_currency_amount_from'),
           }}
         />
         <FilterField
           label={`To, ${baseCurrency}`}
           error={formState.errors.base_currency_amount_to?.message}
           input={{
-            inputMode: 'decimal',
+            ...readAmountInputProps({
+              registration: register('base_currency_amount_to'),
+              isNegativeAllowed: false,
+            }),
             placeholder: 'Any',
-            ...register('base_currency_amount_to'),
           }}
         />
       </div>

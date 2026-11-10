@@ -1,16 +1,15 @@
 import { z } from 'zod';
 
+import { PLAIN_AMOUNT_PATTERN, readSubmittedAmount } from '@/lib/amount-input';
 import { transactionTypeValues } from '@/lib/api-schema';
 import { DATE_TEXT_PLACEHOLDER, readIsoDate } from '@/lib/format-date';
-
-import { AMOUNT_PATTERN } from '../api/transaction-filters';
 
 const AMOUNT_ERROR = 'Enter an amount such as 100 or 99.50.';
 
 const optionalAmount = z
   .string()
-  .trim()
-  .regex(new RegExp(`^$|${AMOUNT_PATTERN.source}`), AMOUNT_ERROR)
+  .overwrite((amount) => readSubmittedAmount(amount))
+  .regex(new RegExp(`^$|${PLAIN_AMOUNT_PATTERN.source}`), AMOUNT_ERROR)
   .transform((amount) => (amount === '' ? undefined : amount))
   .refine((amount) => amount === undefined || Number(amount) > 0, 'Enter an amount over zero.');
 

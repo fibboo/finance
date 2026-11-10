@@ -263,6 +263,7 @@ export function MovementForm({
         <AmountField
           label={copy.amountLabel}
           registration={register(isIncome ? 'destination_amount' : 'source_amount')}
+          isNegativeAllowed={false}
           currency={amountAccount === undefined ? undefined : readAccountCurrency(amountAccount)}
           hint={
             isIncome && isPaidInAnotherCurrency

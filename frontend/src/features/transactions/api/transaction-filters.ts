@@ -1,12 +1,11 @@
 import { z } from 'zod';
 
+import { PLAIN_AMOUNT_PATTERN } from '@/lib/amount-input';
 import { type components, transactionTypeValues } from '@/lib/api-schema';
 
 import type { TransactionListQuery } from './transaction-queries';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
-
-export const AMOUNT_PATTERN = /^\d+(\.\d{1,2})?$/;
 
 export const DATE_ORDER_PREFIX = 'transaction_date:';
 export const DEFAULT_ORDER = `${DATE_ORDER_PREFIX}desc`;
@@ -29,13 +28,13 @@ const transactionFiltersSchema = z.object({
     .transform((types) => transactionTypeValues.filter((type) => types.includes(type))),
   base_currency_amount_from: z
     .string()
-    .regex(AMOUNT_PATTERN)
+    .regex(PLAIN_AMOUNT_PATTERN)
     .refine((amount) => Number(amount) > 0)
     .optional()
     .catch(undefined),
   base_currency_amount_to: z
     .string()
-    .regex(AMOUNT_PATTERN)
+    .regex(PLAIN_AMOUNT_PATTERN)
     .refine((amount) => Number(amount) > 0)
     .optional()
     .catch(undefined),

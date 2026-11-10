@@ -3,6 +3,7 @@ import { useFormContext } from 'react-hook-form';
 import type { components } from '@/lib/api-schema';
 
 import type { MovementFormValues } from '../schemas/transaction-form';
+import { readAmountInputProps } from './amount-input';
 import { InputRow } from './input-row';
 import styles from './transaction-form.module.css';
 
@@ -26,12 +27,10 @@ export function TransferExtraRows({
     <div className={[styles['rows'], styles['extraRows']].join(' ')}>
       <InputRow
         label="Amount received"
-        input={{
-          ...register('destination_amount'),
-          inputMode: 'decimal',
-          autoComplete: 'off',
-          placeholder: '0.00',
-        }}
+        input={readAmountInputProps({
+          registration: register('destination_amount'),
+          isNegativeAllowed: false,
+        })}
         suffix={destinationCurrency}
         error={formState.errors.destination_amount?.message}
       />

@@ -3,6 +3,7 @@ import type { UseFormRegisterReturn } from 'react-hook-form';
 
 import type { components } from '@/lib/api-schema';
 
+import { readAmountInputProps } from './amount-input';
 import styles from './foreign-amount-row.module.css';
 import { InputRow } from './input-row';
 
@@ -32,12 +33,10 @@ export function ForeignAmountRow({
     <div>
       <InputRow
         label={label}
-        input={{
-          ...amountRegistration,
-          inputMode: 'decimal',
-          autoComplete: 'off',
-          placeholder: '0.00',
-        }}
+        input={readAmountInputProps({
+          registration: amountRegistration,
+          isNegativeAllowed: false,
+        })}
         suffix={
           <select
             {...currencyRegistration}

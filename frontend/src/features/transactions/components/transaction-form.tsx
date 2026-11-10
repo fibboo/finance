@@ -22,6 +22,7 @@ import {
   readAmountText,
 } from '../schemas/transaction-form';
 import { AmountField } from './amount-field';
+import { readAmountInputProps } from './amount-input';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { FormHeader } from './form-header';
@@ -168,6 +169,7 @@ export function TransactionForm({
         <AmountField
           label="New balance"
           registration={register('new_balance')}
+          isNegativeAllowed
           currency={account === undefined ? undefined : readAccountCurrency(account)}
           hint={account === undefined ? undefined : readBalanceHint({ account, newBalanceText })}
           error={formState.errors.new_balance?.message}
@@ -207,12 +209,10 @@ export function TransactionForm({
           <div className={styles['rows']}>
             <InputRow
               label={`In ${baseCurrency}`}
-              input={{
-                ...register('base_currency_amount'),
-                inputMode: 'decimal',
-                autoComplete: 'off',
-                placeholder: '0.00',
-              }}
+              input={readAmountInputProps({
+                registration: register('base_currency_amount'),
+                isNegativeAllowed: false,
+              })}
               suffix={baseCurrency}
               error={formState.errors.base_currency_amount?.message}
             />

@@ -430,7 +430,7 @@ test.each([
   {
     paidWith: 'another currency',
     paidAmount: '9500',
-    source: { source_amount: '9500', source_currency: 'GEL' },
+    source: { source_amount: '9500.00', source_currency: 'GEL' },
   },
 ])(
   'sends an income paid in $paidWith with its base currency amount for the month before the date',
@@ -582,12 +582,12 @@ test('keeps the month of an income on the month before the date until a month is
 });
 
 test.each([
-  { account: euroSavings, receivedAmount: null },
-  { account: dollarCash, receivedAmount: null },
-  { account: gelSavings, receivedAmount: '1455' },
+  { account: euroSavings, receivedAmount: null, destinationAmount: null },
+  { account: dollarCash, receivedAmount: null, destinationAmount: null },
+  { account: gelSavings, receivedAmount: '1455', destinationAmount: '1455.00' },
 ])(
   'sends a transfer to a $account.currency account with the amount received only when it is asked',
-  async ({ account, receivedAmount }) => {
+  async ({ account, receivedAmount, destinationAmount }) => {
     // arrange
     let requestBody: unknown = null;
     server.use(
@@ -637,9 +637,9 @@ test.each([
     expect(requestBody).toEqual({
       from_account_id: euroCard.id,
       to_account_id: account.id,
-      source_amount: '500',
+      source_amount: '500.00',
       source_currency: 'EUR',
-      destination_amount: receivedAmount,
+      destination_amount: destinationAmount,
       destination_currency: account.currency,
       transaction_date: '2026-10-20',
       comment: null,
@@ -824,4 +824,141 @@ test('leaves out the base currency estimate of an income paid in another currenc
 
   // assert
   expect(screen.getByLabelText('Amount received')).toHaveAccessibleDescription('');
+});
+
+test.each([
+  { typed: '42a', shown: '42' },
+  { typed: '12345678901234', shown: '1,234,567,890,123' },
+  { typed: '1234567', shown: '1,234,567' },
+])('shows the typed amount $typed as $shown', async ({ typed, shown }) => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="EXPENSE"
+      transactionTypes={transactionTypes}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={[groceries]}
+      incomeSources={[]}
+      locations={[market]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // act
+  await user.type(screen.getByLabelText('Amount'), typed);
+
+  // assert
+  expect(screen.getByLabelText('Amount')).toHaveValue(shown);
+});
+
+test('pads a grouped amount to two decimals on leaving it and sends it as a plain amount', async () => {
+  // arrange
+  let requestBody: unknown = null;
+  server.use(
+    http.post('http://localhost/api/accounting/transactions', async ({ request }) => {
+      requestBody = await request.json();
+      return HttpResponse.json(expense);
+    }),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="EXPENSE"
+      transactionTypes={transactionTypes}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={[groceries]}
+      incomeSources={[]}
+      locations={[market]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={onClose}
+    />,
+  );
+  await user.type(screen.getByLabelText('Amount'), '1234567');
+  await user.click(screen.getByRole('button', { name: /^From/ }));
+  expect(screen.getByLabelText('Amount')).toHaveValue('1,234,567.00');
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  await user.click(screen.getByRole('button', { name: /^Category/ }));
+  await user.click(screen.getByRole('button', { name: /^Groceries/ }));
+  await user.click(screen.getByRole('button', { name: /^Location/ }));
+  await user.click(screen.getByRole('button', { name: /^Central market/ }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Add expense' }));
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(requestBody).toMatchObject({
+    source_amount: '1234567.00',
+    destination_amount: '1234567.00',
+  });
+});
+
+test('sends an amount ending in a point when Enter is pressed in its field', async () => {
+  // arrange
+  let requestBody: unknown = null;
+  server.use(
+    http.post('http://localhost/api/accounting/transactions', async ({ request }) => {
+      requestBody = await request.json();
+      return HttpResponse.json(expense);
+    }),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="EXPENSE"
+      transactionTypes={transactionTypes}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={[groceries]}
+      incomeSources={[]}
+      locations={[market]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={onClose}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /^From/ }));
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  await user.click(screen.getByRole('button', { name: /^Category/ }));
+  await user.click(screen.getByRole('button', { name: /^Groceries/ }));
+  await user.click(screen.getByRole('button', { name: /^Location/ }));
+  await user.click(screen.getByRole('button', { name: /^Central market/ }));
+  await user.type(screen.getByLabelText('Amount'), '250.');
+
+  // act
+  await user.keyboard('{Enter}');
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(requestBody).toMatchObject({ source_amount: '250.00', destination_amount: '250.00' });
 });
