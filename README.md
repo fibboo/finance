@@ -144,7 +144,7 @@ On the server the deploy runs, in order: `docker compose pull`; `up -d --wait --
 a stopped database and leaves changes to it for the last step; a `pg_dump -Fc` of the database into
 `~/backups/pre-deploy-<utc time>-<sha>.dump`, keeping the five newest; `alembic upgrade head` in a one-off container of
 the new backend image; `up -d --remove-orphans --wait --wait-timeout 300`, which returns once every service is healthy:
-postgres, the backend, the frontend's nginx answering `/api/openapi.json` through its proxy, and cloudflared connected
+postgres, the backend, the frontend's nginx answering `/api/health` through its proxy, and cloudflared connected
 to Cloudflare; the image cleanup. A failed dump or migration stops the deploy while the previous backend keeps serving.
 A service that turns unhealthy or exits fails the deploy at once, and one still starting after five minutes fails it
 then; either way the deploy stops before the cleanup, so the images of the previous SHA stay on the server for a re-run

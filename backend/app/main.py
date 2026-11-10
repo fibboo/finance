@@ -47,3 +47,8 @@ async def client_redirect_handler(_: Request, exc: ClientRedirect):
 @app.get("/")
 async def main():
     return "The entry for the API"
+
+
+@app.get("/health", include_in_schema=False)
+async def health():
+    return {"status": "ok"}
