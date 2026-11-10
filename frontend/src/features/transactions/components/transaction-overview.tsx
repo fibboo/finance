@@ -97,7 +97,7 @@ export function TransactionOverview({
           )}
         </dl>
       )}
-      {deleteAction}
+      <div className={styles['deleteAction']}>{deleteAction}</div>
     </article>
   );
 }

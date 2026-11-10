@@ -3,6 +3,7 @@ import { useId, useState } from 'react';
 
 import { DeleteButton } from '@/components/delete-button/delete-button';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
+import { focusReturnTarget } from '@/components/details-panel/focus-return';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -77,7 +78,7 @@ export function DeleteAccount({
                   queryKey: accountQueries.detail(account.id).queryKey,
                   exact: true,
                 });
-                document.getElementById(neighbourLinkId ?? ACCOUNT_SEARCH_FIELD_ID)?.focus();
+                focusReturnTarget(neighbourLinkId ?? ACCOUNT_SEARCH_FIELD_ID);
               },
               onError: closeConfirmation,
             });

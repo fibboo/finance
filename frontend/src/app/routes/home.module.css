@@ -31,6 +31,10 @@
     gap: var(--space-4);
   }
 
+  .home:not(:has([data-details])) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .details {
     grid-column: 2;
     grid-row: 1 / -1;

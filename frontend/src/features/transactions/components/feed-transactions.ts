@@ -46,6 +46,6 @@ export function readFeedTransactions(feed: TransactionFeedQuery): FeedTransactio
 }
 
 export function readTopTransactionId(feed: TransactionFeedQuery): string | undefined {
-  const topTransactionId = readFeedTransactions(feed).olderTransactions[0]?.id;
+  const topTransactionId = feed.query.data?.pages[0]?.items[0]?.id;
   return topTransactionId;
 }

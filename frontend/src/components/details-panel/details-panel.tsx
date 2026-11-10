@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/skeleton/skeleton';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './details-panel.module.css';
+import { focusReturnTarget } from './focus-return';
 
 const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
 const DETAILS_PANEL_SELECTOR = '[data-details-panel]';
@@ -74,7 +75,7 @@ export function DetailsPanel({
 
   function close() {
     onClose();
-    document.getElementById(returnFocusId)?.focus();
+    focusReturnTarget(returnFocusId);
   }
 
   const dragHandlers = useSheetDrag({ handleRef, onClose: close });
@@ -86,7 +87,7 @@ export function DetailsPanel({
 
     function closePanel() {
       onClose();
-      document.getElementById(returnFocusId)?.focus();
+      focusReturnTarget(returnFocusId);
     }
 
     function handlePointerDown(event: PointerEvent) {
@@ -179,6 +180,7 @@ export function DetailsPanel({
         role="dialog"
         aria-label={label}
         data-details-panel={isShownByDefault ? undefined : true}
+        data-details
         aria-busy={(!isLoaded && isFetching) || isReplacing}
         tabIndex={-1}
         className={readPanelClassName({ isShownByDefault, isKeptOpenOnDesktop })}
