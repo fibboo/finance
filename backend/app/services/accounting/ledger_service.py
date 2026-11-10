@@ -53,6 +53,15 @@ def get_valued_amount(*, base_amount: Decimal | None) -> Decimal:
     return valued_amount
 
 
+def get_money_account_dates(*, transaction_db: TransactionModel) -> dict[UUID, date]:
+    account_dates: dict[UUID, date] = {}
+    for posting_db in transaction_db.postings:
+        if posting_db.account.kind in MONEY_ACCOUNT_KINDS:
+            account_dates[posting_db.account_id] = transaction_db.transaction_date
+
+    return account_dates
+
+
 def get_exchange_difference(
     *,
     currency: CurrencyCode | None,
@@ -277,13 +286,9 @@ def _get_exchange_postings(
 
 
 async def recalculate_accounts(
-    *, db: AsyncSession, transaction_db: TransactionModel, base_currency: CurrencyCode
+    *, db: AsyncSession, account_dates: dict[UUID, date], base_currency: CurrencyCode
 ) -> None:
-    pending_dates: dict[UUID, date] = {}
-    for posting_db in transaction_db.postings:
-        if posting_db.account.kind in MONEY_ACCOUNT_KINDS:
-            pending_dates[posting_db.account_id] = transaction_db.transaction_date
-
+    pending_dates: dict[UUID, date] = dict(account_dates)
     equity_account_db: AccountModel | None = None
     changed_accounts_db: dict[UUID, AccountModel] = {}
     balance_changes: dict[UUID, tuple[Decimal, Decimal]] = {}

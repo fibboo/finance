@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.posting import posting_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.exceptions.conflict_409 import IntegrityException
 from app.exceptions.forbidden_403 import (
@@ -20,6 +21,7 @@ from app.exceptions.unprocessable_422 import (
     BaseCurrencyAmountNotAllowed,
     FieldNotAllowed,
     FieldRequired,
+    TransactionTypeChangeNotAllowed,
 )
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.posting import Posting as PostingModel
@@ -185,8 +187,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)
 
         await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("1"))
+        account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
         await ledger_service.recalculate_accounts(
-            db=self.db, transaction_db=transaction_db, base_currency=self.base_currency
+            db=self.db, account_dates=account_dates, base_currency=self.base_currency
         )
 
         transaction_db: TransactionModel = await transaction_crud.get_refreshed(
@@ -211,13 +214,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             )
 
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
-        account_ids: list[UUID] = [
-            posting_db.account_id
-            for posting_db in transaction_db.postings
-            if posting_db.account.kind in MONEY_ACCOUNT_KINDS
-        ]
+        account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
-            db=self.db, ids=account_ids, user_id=self.user_id
+            db=self.db, ids=list(account_dates), user_id=self.user_id
         )
         for account_db in accounts_db.values():
             self._validate_account_is_active(account_id=account_db.id, account_db=account_db)
@@ -228,7 +227,67 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         )
         await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("-1"))
         await ledger_service.recalculate_accounts(
-            db=self.db, transaction_db=transaction_db, base_currency=self.base_currency
+            db=self.db, account_dates=account_dates, base_currency=self.base_currency
+        )
+
+        transaction_db: TransactionModel = await transaction_crud.get_refreshed(
+            db=self.db, transaction_id=transaction_db.id
+        )
+        transaction: Transaction = Transaction.model_validate(transaction_db)
+        return transaction
+
+    async def update(self, *, transaction_id: UUID, data: T) -> Transaction:
+        await account_crud.lock_money_accounts(db=self.db, user_id=self.user_id)
+        transaction_db: TransactionModel | None = await transaction_crud.get_or_none(
+            db=self.db, id=transaction_id, user_id=self.user_id, status=EntityStatusType.ACTIVE, with_for_update=True
+        )
+        is_adjustment: bool = (
+            transaction_db is not None and transaction_db.transaction_type == TransactionType.ADJUSTMENT
+        )
+        if transaction_db is None or is_adjustment:
+            raise EntityNotFound(
+                entity=TransactionModel, search_params={"id": transaction_id, "user_id": self.user_id}, logger=logger
+            )
+
+        if transaction_db.transaction_type != self._transaction_type:
+            raise TransactionTypeChangeNotAllowed(
+                transaction_id=transaction_id,
+                transaction_type=transaction_db.transaction_type,
+                new_transaction_type=self._transaction_type,
+                logger=logger,
+            )
+
+        self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
+        account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
+        accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
+            db=self.db, ids=list(account_dates), user_id=self.user_id
+        )
+        for account_db in accounts_db.values():
+            self._validate_account_is_active(account_id=account_db.id, account_db=account_db)
+
+        currencies: list[CurrencyCode] = self._get_request_currencies(data=data)
+        for currency in currencies:
+            await currency_service.get_currency(db=self.db, code=currency)
+
+        await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("-1"))
+        await posting_crud.delete_by_ids(db=self.db, ids=[posting_db.id for posting_db in transaction_db.postings])
+        await ledger_service.recalculate_accounts(
+            db=self.db, account_dates=account_dates, base_currency=self.base_currency
+        )
+
+        transaction_data, postings_data = await self._prepare_transaction(data=data)
+        try:
+            transaction_db: TransactionModel = await transaction_crud.update_with_postings(
+                db=self.db, db_obj=transaction_db, obj_in=transaction_data, postings=postings_data
+            )
+
+        except IntegrityError as exc:
+            raise IntegrityException(entity=TransactionModel, exception=exc, logger=logger)
+
+        await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("1"))
+        new_account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
+        await ledger_service.recalculate_accounts(
+            db=self.db, account_dates=new_account_dates, base_currency=self.base_currency
         )
 
         transaction_db: TransactionModel = await transaction_crud.get_refreshed(

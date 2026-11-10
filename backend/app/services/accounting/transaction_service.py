@@ -73,23 +73,38 @@ async def get_transaction(*, db: AsyncSession, transaction_id: UUID, user_id: UU
     return transaction
 
 
-async def create_transaction(*, db: AsyncSession, create_data: MovementRequest, user_id: UUID) -> Transaction:
+async def _get_movement_processor(*, db: AsyncSession, data: MovementRequest, user_id: UUID) -> TransactionProcessor:
     from_account_db: AccountModel | None = await account_crud.get_or_none(
-        db=db, id=create_data.from_account_id, user_id=user_id
+        db=db, id=data.from_account_id, user_id=user_id
     )
     if from_account_db is None:
-        raise EntityNotFound(entity=AccountModel, search_params={"id": create_data.from_account_id}, logger=logger)
+        raise EntityNotFound(entity=AccountModel, search_params={"id": data.from_account_id}, logger=logger)
 
-    to_account_db: AccountModel | None = await account_crud.get_or_none(
-        db=db, id=create_data.to_account_id, user_id=user_id
-    )
+    to_account_db: AccountModel | None = await account_crud.get_or_none(db=db, id=data.to_account_id, user_id=user_id)
     if to_account_db is None:
-        raise EntityNotFound(entity=AccountModel, search_params={"id": create_data.to_account_id}, logger=logger)
+        raise EntityNotFound(entity=AccountModel, search_params={"id": data.to_account_id}, logger=logger)
 
     transaction_processor: TransactionProcessor = factory.get_movement_processor(
         db=db, user_id=user_id, from_kind=from_account_db.kind, to_kind=to_account_db.kind
     )
+    return transaction_processor
+
+
+async def create_transaction(*, db: AsyncSession, create_data: MovementRequest, user_id: UUID) -> Transaction:
+    transaction_processor: TransactionProcessor = await _get_movement_processor(
+        db=db, data=create_data, user_id=user_id
+    )
     transaction: Transaction = await transaction_processor.create(data=create_data)
+    return transaction
+
+
+async def update_transaction(
+    *, db: AsyncSession, transaction_id: UUID, update_data: MovementRequest, user_id: UUID
+) -> Transaction:
+    transaction_processor: TransactionProcessor = await _get_movement_processor(
+        db=db, data=update_data, user_id=user_id
+    )
+    transaction: Transaction = await transaction_processor.update(transaction_id=transaction_id, data=update_data)
     return transaction
 
 

@@ -73,6 +73,26 @@ class MovementNotAllowed(UnprocessableException):
         )
 
 
+class TransactionTypeChangeNotAllowed(UnprocessableException):
+    def __init__(
+        self,
+        *,
+        transaction_id: UUID,
+        transaction_type: TransactionType,
+        new_transaction_type: TransactionType,
+        logger: logging.Logger,
+    ):
+        super().__init__(
+            message="Transaction type change not allowed",
+            log_message=(
+                f"The {transaction_type.value} transaction `{transaction_id}` can not become "
+                f"a {new_transaction_type.value} transaction"
+            ),
+            logger=logger,
+            error_code=ErrorCodeType.TRANSACTION_TYPE_CHANGE_NOT_ALLOWED,
+        )
+
+
 class FieldRequired(UnprocessableException):
     def __init__(self, *, transaction_type: TransactionType, field: str, logger: logging.Logger):
         super().__init__(

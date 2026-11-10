@@ -1865,3 +1865,513 @@ async def test_delete_expense_revalues_later_expense(db: AsyncSession, db_transa
         (account_db.id, Decimal("-50"), Decimal("-100")),
         (category_db.id, Decimal("50"), Decimal("100")),
     ]
+
+
+async def test_update_expense_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    old_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Checking USD", "currency": "USD"},
+        commit=True,
+    )
+    new_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.LIABILITY, "user_id": user_id, "name": "Credit card", "currency": "USD"},
+        commit=True,
+    )
+    old_category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    new_category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Rent", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    old_location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
+    )
+    new_location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Landlord"), commit=True
+    )
+
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    transaction_before: Transaction = await transaction_processor.create(
+        data=MovementRequest(
+            transaction_date=date(2025, 2, 10),
+            source_amount=Decimal("10"),
+            source_currency="USD",
+            destination_amount=Decimal("10"),
+            destination_currency="USD",
+            from_account_id=old_account_db.id,
+            to_account_id=old_category_db.id,
+            location_id=old_location_db.id,
+        )
+    )
+    await db.commit()
+    await db.close()
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 5),
+        comment="Rent of February",
+        source_amount=Decimal("25"),
+        source_currency="USD",
+        destination_amount=Decimal("2900"),
+        destination_currency="RSD",
+        from_account_id=new_account_db.id,
+        to_account_id=new_category_db.id,
+        location_id=new_location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    transaction: Transaction = await transaction_processor.update(
+        transaction_id=transaction_before.id, data=update_data
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.id == transaction_before.id
+    assert transaction.created_at == transaction_before.created_at
+    assert transaction.transaction_type == TransactionType.EXPENSE
+    assert transaction.transaction_date == date(2025, 2, 5)
+    assert transaction.comment == "Rent of February"
+    assert transaction.base_currency_amount == Decimal("25")
+    assert transaction.location.id == new_location_db.id
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (new_account_db.id, Decimal("-25"), "USD", Decimal("-25")),
+        (new_category_db.id, Decimal("2900"), "RSD", Decimal("25")),
+    ]
+
+    postings: list[PostingModel] = (await db.scalars(select(PostingModel).order_by(PostingModel.amount))).all()
+    assert [(posting.transaction_id, posting.account_id, posting.amount) for posting in postings] == [
+        (transaction.id, new_account_db.id, Decimal("-25")),
+        (transaction.id, new_category_db.id, Decimal("2900")),
+    ]
+
+    old_account_db_after: AccountModel = await account_crud.get(db=db, id=old_account_db.id)
+    await db.refresh(old_account_db_after)
+    assert (old_account_db_after.balance, old_account_db_after.base_balance) == (Decimal("0"), Decimal("0"))
+    new_account_db_after: AccountModel = await account_crud.get(db=db, id=new_account_db.id)
+    await db.refresh(new_account_db_after)
+    assert (new_account_db_after.balance, new_account_db_after.base_balance) == (Decimal("-25"), Decimal("-25"))
+
+
+async def test_update_expense_revalues_later_expense(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    # Incomes of 100 + 100 EUR worth 100 + 300 USD, expenses of 50 EUR valued -50 and -350 * 50 / 150 USD
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Cash EUR",
+        "currency": "EUR",
+        "balance": Decimal("100"),
+        "base_balance": Decimal("233.33"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
+    )
+
+    for transaction_date, base_amount in [(date(2025, 1, 1), Decimal("100")), (date(2025, 1, 20), Decimal("300"))]:
+        await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.INCOME,
+                transaction_date=transaction_date,
+                base_currency_amount=base_amount,
+                income_period=date(2025, 1, 1),
+            ),
+            postings=[
+                PostingCreate(
+                    account_id=income_source_db.id, amount=Decimal("-100"), currency="EUR", base_amount=-base_amount
+                ),
+                PostingCreate(account_id=account_db.id, amount=Decimal("100"), currency="EUR", base_amount=base_amount),
+            ],
+        )
+        await db.commit()
+
+    expenses_db: list[TransactionModel] = []
+    for transaction_date, base_amount in [(date(2025, 1, 10), Decimal("50")), (date(2025, 1, 25), Decimal("116.67"))]:
+        expense_db: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=base_amount,
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(
+                    account_id=account_db.id, amount=Decimal("-50"), currency="EUR", base_amount=-base_amount
+                ),
+                PostingCreate(account_id=category_db.id, amount=Decimal("50"), currency="EUR", base_amount=base_amount),
+            ],
+        )
+        await db.commit()
+        expenses_db.append(expense_db)
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 1, 22),
+        source_amount=Decimal("50"),
+        source_currency="EUR",
+        destination_amount=Decimal("50"),
+        destination_currency="EUR",
+        from_account_id=account_db.id,
+        to_account_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    transaction: Transaction = await transaction_processor.update(transaction_id=expenses_db[0].id, data=update_data)
+    await db_transaction.commit()
+
+    # Assert
+    # Moved after the second income, the expense is valued at 400 / 200 and so is the later one, at 300 / 150
+    assert transaction.base_currency_amount == Decimal("100")
+    assert transaction.postings[0].account.balance == Decimal("100")
+    assert transaction.postings[0].account.base_currency_balance == Decimal("200")
+
+    later_expense_amount = (
+        await db.execute(select(TransactionModel.base_currency_amount).where(TransactionModel.id == expenses_db[1].id))
+    ).scalar_one()
+    assert later_expense_amount == Decimal("100")
+
+
+async def test_update_expense_after_income_drops_valued_date(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    # An expense of 10 EUR on an account without a rate, valued at 11 USD by the later income of 100 EUR worth 110 USD
+    account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Cash EUR",
+            "currency": "EUR",
+            "balance": Decimal("90"),
+            "base_balance": Decimal("99"),
+        },
+        commit=True,
+    )
+    income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
+    )
+    expense_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2025, 1, 10),
+            base_currency_amount=Decimal("11"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(account_id=account_db.id, amount=Decimal("-10"), currency="EUR", base_amount=Decimal("-11")),
+            PostingCreate(account_id=category_db.id, amount=Decimal("10"), currency="EUR", base_amount=Decimal("11")),
+        ],
+    )
+    await transaction_crud.update_valued_dates(db=db, valued_dates={expense_db.id: date(2025, 1, 15)})
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2025, 1, 15),
+            base_currency_amount=Decimal("110"),
+            income_period=date(2025, 1, 1),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=income_source_db.id, amount=Decimal("-100"), currency="EUR", base_amount=Decimal("-110")
+            ),
+            PostingCreate(account_id=account_db.id, amount=Decimal("100"), currency="EUR", base_amount=Decimal("110")),
+        ],
+    )
+    await db.commit()
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 1, 20),
+        source_amount=Decimal("20"),
+        source_currency="EUR",
+        destination_amount=Decimal("20"),
+        destination_currency="EUR",
+        from_account_id=account_db.id,
+        to_account_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    transaction: Transaction = await transaction_processor.update(transaction_id=expense_db.id, data=update_data)
+    await db_transaction.commit()
+
+    # Assert
+    # Moved after the income, the expense takes the rate of 1.1 on its own date
+    assert transaction.base_currency_amount == Decimal("22")
+    assert transaction.postings[0].account.balance == Decimal("80")
+    assert transaction.postings[0].account.base_currency_balance == Decimal("88")
+
+    valued_on: date | None = await db.scalar(
+        select(TransactionModel.valued_on).where(TransactionModel.id == expense_db.id)
+    )
+    assert valued_on is None
+
+
+async def test_update_expense_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    old_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Checking USD", "currency": "USD"},
+        commit=True,
+    )
+    new_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Cash USD", "currency": "USD"},
+        commit=True,
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
+    )
+
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    transaction_before: Transaction = await transaction_processor.create(
+        data=MovementRequest(
+            transaction_date=date(2025, 2, 10),
+            source_amount=Decimal("10"),
+            source_currency="USD",
+            destination_amount=Decimal("10"),
+            destination_currency="USD",
+            from_account_id=old_account_db.id,
+            to_account_id=category_db.id,
+            location_id=location_db.id,
+        )
+    )
+    await db.commit()
+
+    await account_crud.update_orm(
+        db=db, id=old_account_db.id, obj_in={"status": EntityStatusType.DELETED.value}, commit=True
+    )
+    await db.close()
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        source_amount=Decimal("10"),
+        source_currency="USD",
+        destination_amount=Decimal("10"),
+        destination_currency="USD",
+        from_account_id=new_account_db.id,
+        to_account_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act / Assert
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    with pytest.raises(DeletedAccountTransactionForbidden) as exc:
+        await transaction_processor.update(transaction_id=transaction_before.id, data=update_data)
+
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
+    assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
+
+    postings: list[PostingModel] = (await db.scalars(select(PostingModel).order_by(PostingModel.amount))).all()
+    assert [posting.account_id for posting in postings] == [old_account_db.id, category_db.id]
+
+
+async def test_update_expense_to_other_account_revalues_later_expense_of_old_account(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    # Incomes of 100 + 100 EUR worth 100 + 300 USD, expenses of 50 EUR valued -50 and -350 * 50 / 150 USD
+    old_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Cash EUR",
+            "currency": "EUR",
+            "balance": Decimal("100"),
+            "base_balance": Decimal("233.33"),
+        },
+        commit=True,
+    )
+    # An income of 100 EUR worth 120 USD
+    new_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Card EUR",
+            "currency": "EUR",
+            "balance": Decimal("100"),
+            "base_balance": Decimal("120"),
+        },
+        commit=True,
+    )
+    income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
+    )
+
+    for account_id, transaction_date, base_amount in [
+        (old_account_db.id, date(2025, 1, 1), Decimal("100")),
+        (new_account_db.id, date(2025, 1, 1), Decimal("120")),
+        (old_account_db.id, date(2025, 1, 20), Decimal("300")),
+    ]:
+        await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.INCOME,
+                transaction_date=transaction_date,
+                base_currency_amount=base_amount,
+                income_period=date(2025, 1, 1),
+            ),
+            postings=[
+                PostingCreate(
+                    account_id=income_source_db.id, amount=Decimal("-100"), currency="EUR", base_amount=-base_amount
+                ),
+                PostingCreate(account_id=account_id, amount=Decimal("100"), currency="EUR", base_amount=base_amount),
+            ],
+        )
+        await db.commit()
+
+    expenses_db: list[TransactionModel] = []
+    for transaction_date, base_amount in [(date(2025, 1, 10), Decimal("50")), (date(2025, 1, 25), Decimal("116.67"))]:
+        expense_db: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=base_amount,
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(
+                    account_id=old_account_db.id, amount=Decimal("-50"), currency="EUR", base_amount=-base_amount
+                ),
+                PostingCreate(account_id=category_db.id, amount=Decimal("50"), currency="EUR", base_amount=base_amount),
+            ],
+        )
+        await db.commit()
+        expenses_db.append(expense_db)
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 1, 10),
+        source_amount=Decimal("50"),
+        source_currency="EUR",
+        destination_amount=Decimal("50"),
+        destination_currency="EUR",
+        from_account_id=new_account_db.id,
+        to_account_id=category_db.id,
+        location_id=location_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    transaction: Transaction = await transaction_processor.update(transaction_id=expenses_db[0].id, data=update_data)
+    await db_transaction.commit()
+
+    # Assert
+    # The moved expense takes the new account's rate of 1.2, and the old account's later expense is valued at 400 / 200
+    assert transaction.base_currency_amount == Decimal("60")
+    later_expense_amount = (
+        await db.execute(select(TransactionModel.base_currency_amount).where(TransactionModel.id == expenses_db[1].id))
+    ).scalar_one()
+    assert later_expense_amount == Decimal("100")
+
+    old_account_db_after: AccountModel = await account_crud.get(db=db, id=old_account_db.id)
+    await db.refresh(old_account_db_after)
+    assert (old_account_db_after.balance, old_account_db_after.base_balance) == (Decimal("150"), Decimal("300"))
+    new_account_db_after: AccountModel = await account_crud.get(db=db, id=new_account_db.id)
+    await db.refresh(new_account_db_after)
+    assert (new_account_db_after.balance, new_account_db_after.base_balance) == (Decimal("50"), Decimal("60"))

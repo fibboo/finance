@@ -1197,3 +1197,93 @@ async def test_create_income_fields_by_type(
     assert len(transactions) == 0
     account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
     assert account_db_after.balance == Decimal("0")
+
+
+async def test_update_income_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    old_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(kind=AccountKind.ASSET, user_id=user_id, name="Checking USD", currency="USD"),
+        commit=True,
+    )
+    new_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(kind=AccountKind.ASSET, user_id=user_id, name="Cash EUR", currency="EUR"),
+        commit=True,
+    )
+    old_income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job"), commit=True
+    )
+    new_income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Side Job"), commit=True
+    )
+
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=TransactionType.INCOME
+    )
+    transaction_before: Transaction = await transaction_processor.create(
+        data=MovementRequest(
+            transaction_date=date(2025, 2, 10),
+            source_amount=Decimal("100"),
+            source_currency="USD",
+            destination_amount=Decimal("100"),
+            destination_currency="USD",
+            from_account_id=old_income_source_db.id,
+            to_account_id=old_account_db.id,
+            income_period=date(2025, 1, 1),
+        )
+    )
+    await db.commit()
+    await db.close()
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 3, 5),
+        source_amount=Decimal("90"),
+        source_currency="EUR",
+        destination_amount=Decimal("90"),
+        destination_currency="EUR",
+        base_currency_amount=Decimal("99"),
+        from_account_id=new_income_source_db.id,
+        to_account_id=new_account_db.id,
+        income_period=date(2025, 2, 20),
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.INCOME
+    )
+    transaction: Transaction = await transaction_processor.update(
+        transaction_id=transaction_before.id, data=update_data
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.id == transaction_before.id
+    assert transaction.transaction_type == TransactionType.INCOME
+    assert transaction.transaction_date == date(2025, 3, 5)
+    assert transaction.income_period == date(2025, 2, 1)
+    assert transaction.base_currency_amount == Decimal("99")
+    assert transaction.location is None
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (new_income_source_db.id, Decimal("-90"), "EUR", Decimal("-99")),
+        (new_account_db.id, Decimal("90"), "EUR", Decimal("99")),
+    ]
+
+    postings: list[PostingModel] = (await db.scalars(select(PostingModel).order_by(PostingModel.amount))).all()
+    assert [(posting.transaction_id, posting.account_id, posting.amount) for posting in postings] == [
+        (transaction.id, new_income_source_db.id, Decimal("-90")),
+        (transaction.id, new_account_db.id, Decimal("90")),
+    ]
+
+    old_account_db_after: AccountModel = await account_crud.get(db=db, id=old_account_db.id)
+    assert (old_account_db_after.balance, old_account_db_after.base_balance) == (Decimal("0"), Decimal("0"))
+    new_account_db_after: AccountModel = await account_crud.get(db=db, id=new_account_db.id)
+    assert (new_account_db_after.balance, new_account_db_after.base_balance) == (Decimal("90"), Decimal("99"))
