@@ -68,47 +68,6 @@
   overflow: hidden;
 }
 
-.actions {
-  margin-top: auto;
-  display: grid;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-  gap: var(--space-2);
-}
-
-.action {
-  min-height: var(--size-touch);
-  border: 0;
-  cursor: pointer;
-  padding: var(--space-2);
-  border-radius: var(--radius-action);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  background: var(--color-ground);
-  color: var(--color-ink);
-}
-
-.action:hover {
-  opacity: var(--opacity-hover);
-}
-
-.action:focus-visible {
-  outline: var(--size-focus) solid var(--color-ink);
-  outline-offset: calc(var(--size-focus) * -1);
-}
-
-.actionIcon {
-  width: var(--size-icon);
-  height: var(--size-icon);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 @media (--desktop) {
   .baseBalance {
     font-size: var(--font-size-md);

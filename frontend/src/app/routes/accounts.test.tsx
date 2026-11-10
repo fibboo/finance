@@ -775,10 +775,10 @@ test('refetches the account when the deletion is refused', async () => {
   await user.click(screen.getByRole('button', { name: 'Delete' }));
 
   // assert
-  expect(
-    await within(details).findByText('Bring the balance to zero to delete the account.'),
-  ).toBeInTheDocument();
-  const deleteButton = within(details).getByRole('button', { name: 'Delete account' });
+  const deleteButton = await within(details).findByRole('button', {
+    name: 'Delete account',
+    description: 'Bring the balance to zero to delete the account.',
+  });
   expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
   expect(deleteButton).toHaveFocus();
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();

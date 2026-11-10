@@ -1,7 +1,8 @@
 import { type QueryKey, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 
-import { DeleteButton } from '@/components/delete-button/delete-button';
+import { ActionButton } from '@/components/action-button/action-button';
+import { DELETE_ICON_PATH } from '@/components/action-button/action-icons';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
@@ -69,12 +70,17 @@ export function DeleteTransaction({
 
   return (
     <>
-      <DeleteButton
+      <ActionButton
         id={buttonId}
         label="Delete transaction"
-        blockingHint={undefined}
-        onClick={() => {
-          setIsConfirming(true);
+        iconPath={DELETE_ICON_PATH}
+        isDanger
+        action={{
+          kind: 'button',
+          blockingHint: undefined,
+          onClick: () => {
+            setIsConfirming(true);
+          },
         }}
       />
       {isConfirming && (

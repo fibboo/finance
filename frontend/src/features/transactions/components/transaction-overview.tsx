@@ -1,6 +1,7 @@
 import { type ReactNode, useId } from 'react';
 import type { To } from 'react-router';
 
+import { ActionBar } from '@/components/action-bar/action-bar';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -97,7 +98,7 @@ export function TransactionOverview({
           )}
         </dl>
       )}
-      <div className={styles['deleteAction']}>{deleteAction}</div>
+      <ActionBar>{deleteAction}</ActionBar>
     </article>
   );
 }
