@@ -4,28 +4,22 @@ import { useId, useState } from 'react';
 import { ActionButton } from '@/components/action-button/action-button';
 import { DELETE_ICON_PATH } from '@/components/action-button/action-icons';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
-import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
-import { formatMoney, LOCALE } from '@/lib/format-money';
+import { formatMoney } from '@/lib/format-money';
 
 import { transactionMutations } from '../api/transaction-mutations';
 import { transactionQueries } from '../api/transaction-queries';
-import { readPlainText, readTransactionView } from './transaction-view';
+import {
+  formatAccountList,
+  readAccountNames,
+  readDeletedMoneyAccountNames,
+  readPlainText,
+  readTransactionView,
+} from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
-
-type Posting = components['schemas']['Posting'];
-
-function readAccountNames(postings: readonly Posting[]): string[] {
-  const accountNames = [
-    ...new Map(postings.map((posting) => [posting.account.id, posting.account.name])).values(),
-  ];
-  return accountNames;
-}
-
-const ACCOUNT_LIST_FORMAT = new Intl.ListFormat(LOCALE, { type: 'conjunction' });
 
 function readConfirmationText({
   transaction,
@@ -45,22 +39,18 @@ function readConfirmationText({
   );
   const balances =
     accountNames.length === 1
-      ? `The balance of ${ACCOUNT_LIST_FORMAT.format(accountNames)} is`
-      : `The balances of ${ACCOUNT_LIST_FORMAT.format(accountNames)} are`;
+      ? `The balance of ${formatAccountList(accountNames)} is`
+      : `The balances of ${formatAccountList(accountNames)} are`;
   const confirmationText = `${readPlainText(view.title)}, ${amount} on ${toDateText(transaction.transaction_date)}. ${balances} recalculated. This can't be undone.`;
   return confirmationText;
 }
 
 function readBlockingHint(transaction: Readonly<Transaction>): string | undefined {
-  const deletedAccountNames = readAccountNames(
-    transaction.postings.filter(
-      (posting) => isMoneyAccountKind(posting.account.kind) && posting.account.status === 'DELETED',
-    ),
-  );
+  const deletedAccountNames = readDeletedMoneyAccountNames(transaction);
   const blockingHint =
     deletedAccountNames.length === 0
       ? undefined
-      : `${ACCOUNT_LIST_FORMAT.format(deletedAccountNames)} ${deletedAccountNames.length === 1 ? 'is' : 'are'} deleted.`;
+      : `${formatAccountList(deletedAccountNames)} ${deletedAccountNames.length === 1 ? 'is' : 'are'} deleted.`;
   return blockingHint;
 }
 

@@ -1687,3 +1687,180 @@ test('refetches the feed once the tab is shown again at the top of the list', as
   // assert
   expect(await screen.findByRole('link', { name: 'Cafes' })).toBeInTheDocument();
 });
+
+test('saves the edited expense and refreshes the list and its details', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const market = {
+    name: 'Central market',
+    description: null,
+    user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+    id: '9e0f1a2b-2b4f-4e6a-8c7d-5a1d9c3e3c40',
+    status: 'ACTIVE',
+    created_at: '2026-10-01T09:00:00Z',
+    updated_at: '2026-10-01T09:00:00Z',
+  } satisfies components['schemas']['Location'];
+  const storedExpense = {
+    ...expense,
+    location: market,
+  } satisfies components['schemas']['Transaction'];
+  const editedExpense = {
+    ...storedExpense,
+    base_currency_amount: '50.00',
+    postings: [
+      { ...walletPosting, amount: '-50.00', base_amount: '-50.00' },
+      { ...categoryPosting, amount: '50.00', base_amount: '50.00' },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  let isEdited = false;
+  let requestBody: unknown = null;
+  let feedRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () => {
+      feedRequestCount += 1;
+      return HttpResponse.json({
+        items: [isEdited ? editedExpense : storedExpense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(isEdited ? editedExpense : storedExpense),
+    ),
+    http.put(`http://localhost/api/accounting/transactions/${expense.id}`, async ({ request }) => {
+      requestBody = await request.json();
+      isEdited = true;
+      return HttpResponse.json(editedExpense);
+    }),
+    http.get('http://localhost/api/accounting/currencies', () =>
+      HttpResponse.json([{ key: 'USD', label: 'US dollar' }]),
+    ),
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [market],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await user.click(await within(details).findByRole('button', { name: 'Edit transaction' }));
+  const editForm = await screen.findByRole('dialog', { name: 'Edit transaction' });
+  const amount = await within(editForm).findByLabelText('Amount');
+  await user.clear(amount);
+  await user.type(amount, '50');
+  const feedRequestsBeforeSave = feedRequestCount;
+
+  // act
+  await user.click(within(editForm).getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Edit transaction' })).not.toBeInTheDocument();
+  });
+  expect(await within(details).findAllByText('-$50.00')).not.toHaveLength(0);
+  expect(feedRequestCount).toBeGreaterThan(feedRequestsBeforeSave);
+  expect(requestBody).toEqual({
+    from_account_id: wallet.id,
+    to_account_id: category.id,
+    location_id: market.id,
+    source_amount: '50.00',
+    source_currency: 'USD',
+    destination_amount: '50.00',
+    destination_currency: 'USD',
+    transaction_date: '2026-10-20',
+    comment: null,
+  });
+});
+
+test('leaves Edit out of the details of an adjustment', async () => {
+  // arrange
+  const adjustment = {
+    ...expense,
+    transaction_type: 'ADJUSTMENT',
+    postings: [
+      {
+        ...categoryPosting,
+        amount: '-12.00',
+        base_amount: '-12.00',
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+      },
+      { ...walletPosting, amount: '12.00', base_amount: '12.00' },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [adjustment],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(adjustment),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(details).findByRole('button', { name: 'Delete transaction' }),
+  ).toBeInTheDocument();
+  expect(
+    within(details).queryByRole('button', { name: 'Edit transaction' }),
+  ).not.toBeInTheDocument();
+});
+
+test('blocks Edit with the name of the deleted location of the transaction', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const transaction = {
+    ...expense,
+    location: {
+      name: 'Central market',
+      description: null,
+      user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+      id: '9e0f1a2b-2b4f-4e6a-8c7d-5a1d9c3e3c40',
+      status: 'DELETED',
+      created_at: '2026-10-01T09:00:00Z',
+      updated_at: '2026-10-01T09:00:00Z',
+    },
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [transaction],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(transaction),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+
+  // act
+  await user.click(await within(details).findByRole('button', { name: 'Edit transaction' }));
+
+  // assert
+  const editButton = within(details).getByRole('button', { name: 'Edit transaction' });
+  expect(editButton).toHaveAttribute('aria-disabled', 'true');
+  expect(editButton).toHaveAccessibleDescription(
+    "Central market is deleted, so this transaction can't be edited.",
+  );
+  expect(screen.queryByRole('dialog', { name: 'Edit transaction' })).not.toBeInTheDocument();
+});

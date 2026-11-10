@@ -28,6 +28,7 @@ export function IncomeMonthRow() {
         value: month,
         onChange: (event) => {
           setValue('income_period', event.target.value, {
+            shouldDirty: true,
             shouldValidate: formState.isSubmitted,
           });
         },

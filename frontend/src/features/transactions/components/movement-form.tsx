@@ -14,7 +14,7 @@ import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 
-import type { EntryTransactionType, MovementTransactionType } from '../api/new-transaction';
+import type { MovementTransactionType } from '../api/new-transaction';
 import { transactionMutations } from '../api/transaction-mutations';
 import {
   COMMENT_MAX_LENGTH,
@@ -28,7 +28,7 @@ import { AmountField } from './amount-field';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { ExpenseExtraRows } from './expense-extra-rows';
-import { FormHeader } from './form-header';
+import { FormHeader, NEW_TRANSACTION_TITLE, type TypeChoice } from './form-header';
 import { IncomeExtraRows } from './income-extra-rows';
 import { IncomeMonthRow } from './income-month-row';
 import { InputRow } from './input-row';
@@ -43,6 +43,7 @@ import {
   readMovementCurrencies,
   readMovementPickers,
 } from './movement-config';
+import { addOwnChoices, readMovementValues, readOwnChoices } from './movement-values';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
@@ -54,9 +55,15 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 type MovementRequest = components['schemas']['MovementRequest'];
 type CreateFormRenderer = (props: CreateFormProps) => ReactNode;
 
+type Transaction = components['schemas']['Transaction'];
+
+type MovementFormMode =
+  | Readonly<{ kind: 'create'; typeChoice: TypeChoice }>
+  | Readonly<{ kind: 'edit'; transaction: Readonly<Transaction> }>;
+
 type MovementFormProps = Readonly<{
+  mode: MovementFormMode;
   transactionType: MovementTransactionType;
-  transactionTypes: readonly DictionaryItem[];
   categoryTypes: readonly DictionaryItem[];
   currencies: readonly DictionaryItem[];
   moneyAccounts: readonly Account[] | undefined;
@@ -69,13 +76,12 @@ type MovementFormProps = Readonly<{
   renderIncomeSourceForm: CreateFormRenderer;
   renderMoneyAccountForm: CreateFormRenderer;
   renderLocationForm: CreateFormRenderer;
-  onTypeChange: (transactionType: EntryTransactionType) => void;
   onClose: () => void;
 }>;
 
 export function MovementForm({
+  mode,
   transactionType,
-  transactionTypes,
   categoryTypes,
   currencies,
   moneyAccounts,
@@ -88,15 +94,23 @@ export function MovementForm({
   renderIncomeSourceForm,
   renderMoneyAccountForm,
   renderLocationForm,
-  onTypeChange,
   onClose,
 }: MovementFormProps) {
   const today = useToday();
   const [pickerField, setPickerField] = useState<MovementPickerField | undefined>(undefined);
   const rowIdPrefix = useId();
   const copy = MOVEMENT_COPY[transactionType];
-  const fromAccounts = transactionType === 'INCOME' ? incomeSources : moneyAccounts;
-  const toAccounts = transactionType === 'EXPENSE' ? categories : moneyAccounts;
+  const ownChoices = mode.kind === 'edit' ? readOwnChoices(mode.transaction) : undefined;
+  const isTransfer = transactionType === 'TRANSFER';
+  const fromAccounts = addOwnChoices({
+    choices: transactionType === 'INCOME' ? incomeSources : moneyAccounts,
+    ownChoices: [ownChoices?.fromAccount, isTransfer ? ownChoices?.toAccount : undefined],
+  });
+  const toAccounts = addOwnChoices({
+    choices: transactionType === 'EXPENSE' ? categories : moneyAccounts,
+    ownChoices: [ownChoices?.toAccount, isTransfer ? ownChoices?.fromAccount : undefined],
+  });
+  const places = addOwnChoices({ choices: locations, ownChoices: [ownChoices?.location] });
   const resolver: Resolver<MovementFormValues, unknown, MovementRequest> = (
     values,
     context,
@@ -139,20 +153,31 @@ export function MovementForm({
   };
   const form = useForm<MovementFormValues, unknown, MovementRequest>({
     resolver,
-    defaultValues: {
-      from_account_id: '',
-      to_account_id: '',
-      location_id: '',
-      source_amount: '',
-      source_currency: '',
-      is_paid_in_another_currency: false,
-      destination_amount: '',
-      destination_currency: '',
-      base_currency_amount: '',
-      income_period: '',
-      transaction_date: toDateText(today),
-      comment: '',
-    },
+    ...(mode.kind === 'edit'
+      ? {
+          values: readMovementValues({
+            transaction: mode.transaction,
+            transactionType,
+            baseCurrency,
+          }),
+          resetOptions: { keepDirtyValues: true },
+        }
+      : {
+          defaultValues: {
+            from_account_id: '',
+            to_account_id: '',
+            location_id: '',
+            source_amount: '',
+            source_currency: '',
+            is_paid_in_another_currency: false,
+            destination_amount: '',
+            destination_currency: '',
+            base_currency_amount: '',
+            income_period: '',
+            transaction_date: toDateText(today),
+            comment: '',
+          },
+        }),
   });
   const { control, register, handleSubmit, setError, setValue, formState } = form;
   const [
@@ -178,9 +203,10 @@ export function MovementForm({
     ],
   });
   const create = useMutation(transactionMutations.create(relatedQueryKeys));
+  const update = useMutation(transactionMutations.update(relatedQueryKeys));
   const fromAccount = fromAccounts?.find((account) => account.id === fromAccountId);
   const toAccount = toAccounts?.find((account) => account.id === toAccountId);
-  const location = locations?.find((place) => place.id === locationId);
+  const location = places?.find((place) => place.id === locationId);
   const { destination, isDestinationAmountAsked, isBaseCurrencyAmountAsked } =
     readMovementCurrencies({
       transactionType,
@@ -192,13 +218,12 @@ export function MovementForm({
     });
   const isIncome = transactionType === 'INCOME';
   const amountAccount = isIncome ? toAccount : fromAccount;
-  const isExtraAmountShown =
-    transactionType === 'TRANSFER' ? isDestinationAmountAsked : isPaidInAnotherCurrency;
+  const isExtraAmountShown = isTransfer ? isDestinationAmountAsked : isPaidInAnotherCurrency;
   const pickers = readMovementPickers({
     transactionType,
     fromAccounts,
     toAccounts,
-    locations,
+    locations: places,
     categoryTypes,
     fromAccountId,
     toAccountId,
@@ -233,9 +258,9 @@ export function MovementForm({
         noValidate
         onSubmit={(event) => {
           void handleSubmit((movement) => {
-            create.mutate(movement, {
+            const saveOptions = {
               onSuccess: onClose,
-              onError: (error) => {
+              onError: (error: Error) => {
                 const targets = HIDDEN_FIELD_TARGETS[transactionType];
                 readSaveErrors({
                   error,
@@ -250,14 +275,19 @@ export function MovementForm({
                   setError(target ?? field, { message });
                 });
               },
-            });
+            };
+            if (mode.kind === 'edit') {
+              update.mutate({ ...movement, transaction_id: mode.transaction.id }, saveOptions);
+            } else {
+              create.mutate(movement, saveOptions);
+            }
           })(event);
         }}
       >
         <FormHeader
+          title={mode.kind === 'edit' ? copy.editTitle : NEW_TRANSACTION_TITLE}
           transactionType={transactionType}
-          transactionTypes={transactionTypes}
-          onTypeChange={onTypeChange}
+          typeChoice={mode.kind === 'create' ? mode.typeChoice : undefined}
           onClose={onClose}
         />
         <AmountField
@@ -335,6 +365,7 @@ export function MovementForm({
                 max={today}
                 onPick={(dateText) => {
                   setValue('transaction_date', dateText, {
+                    shouldDirty: true,
                     shouldValidate: formState.isSubmitted,
                   });
                 }}
@@ -343,7 +374,7 @@ export function MovementForm({
             error={formState.errors.transaction_date?.message}
           />
         </div>
-        {transactionType !== 'TRANSFER' && (
+        {!isTransfer && (
           <label className={styles['anotherCurrency']}>
             <input
               {...register('is_paid_in_another_currency')}
@@ -361,7 +392,7 @@ export function MovementForm({
             isBaseCurrencyAmountAsked={isBaseCurrencyAmountAsked}
           />
         )}
-        {transactionType === 'TRANSFER' && (
+        {isTransfer && (
           <TransferExtraRows
             destinationCurrency={destination}
             isDestinationAmountAsked={isDestinationAmountAsked}
@@ -384,8 +415,12 @@ export function MovementForm({
             {requestError}
           </p>
         )}
-        <button type="submit" className={styles['submit']} disabled={create.isPending}>
-          {copy.submitLabel}
+        <button
+          type="submit"
+          className={styles['submit']}
+          disabled={create.isPending || update.isPending}
+        >
+          {mode.kind === 'edit' ? 'Save changes' : copy.submitLabel}
         </button>
       </form>
       {pickerField !== undefined && (
@@ -393,7 +428,10 @@ export function MovementForm({
           {...pickers[pickerField]}
           create={creates[pickerField]}
           onSelect={(selectedId) => {
-            setValue(pickerField, selectedId, { shouldValidate: formState.isSubmitted });
+            setValue(pickerField, selectedId, {
+              shouldDirty: true,
+              shouldValidate: formState.isSubmitted,
+            });
             closePicker(pickerField);
           }}
           onBack={() => {

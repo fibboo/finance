@@ -1,17 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
+import { useId, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Navigate, type To, useSearchParams } from 'react-router';
 
+import { Sheet } from '@/components/sheet/sheet';
 import { accountQueries } from '@/features/accounts/api/account-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { locationQueries } from '@/features/locations/api/location-queries';
 import { summaryQueries } from '@/features/summary/api/summary-queries';
 import {
   readSelectedTransactionId,
   writeSelectedTransaction,
 } from '@/features/transactions/api/selected-transaction';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
+import { MovementForm } from '@/features/transactions/components/movement-form';
 import { TransactionDetails } from '@/features/transactions/components/transaction-details';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
+
+import { TransactionFormSkeleton } from './transaction-form-skeleton';
+import { useMovementChoices } from './use-movement-choices';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
@@ -39,7 +47,19 @@ function SelectedTransaction({
   readAccountLink,
 }: SelectedTransactionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { error } = useQuery(transactionQueries.detail(transactionId));
+  const [editedTransactionId, setEditedTransactionId] = useState<string | undefined>(undefined);
+  const isEditing = editedTransactionId === transactionId;
+  if (editedTransactionId !== undefined && !isEditing) {
+    setEditedTransactionId(undefined);
+  }
+
+  const editButtonId = useId();
+  const { data: transaction, error } = useQuery(transactionQueries.detail(transactionId));
+  const movementType =
+    transaction === undefined || transaction.transaction_type === 'ADJUSTMENT'
+      ? undefined
+      : transaction.transaction_type;
+  const choices = useMovementChoices(isEditing ? movementType : undefined);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   if (isNotFound && isShownByDefault) {
     return null;
@@ -56,27 +76,75 @@ function SelectedTransaction({
     );
   }
 
+  function closeEditForm() {
+    flushSync(() => {
+      setEditedTransactionId(undefined);
+    });
+    document.getElementById(editButtonId)?.focus();
+  }
+
   return (
-    <TransactionDetails
-      transactionId={transactionId}
-      baseCurrency={baseCurrency}
-      transactionTypes={transactionTypes}
-      accountKinds={accountKinds}
-      readAccountLink={readAccountLink}
-      relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
-      isShownByDefault={isShownByDefault}
-      onClose={() => {
-        setSearchParams(writeSelectedTransaction({ searchParams, transactionId: undefined }), {
-          preventScrollReset: true,
-        });
-      }}
-      onChoose={() => {
-        setSearchParams(writeSelectedTransaction({ searchParams, transactionId }), {
-          preventScrollReset: true,
-          replace: true,
-        });
-      }}
-    />
+    <>
+      <TransactionDetails
+        transactionId={transactionId}
+        baseCurrency={baseCurrency}
+        transactionTypes={transactionTypes}
+        accountKinds={accountKinds}
+        readAccountLink={readAccountLink}
+        relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
+        isShownByDefault={isShownByDefault}
+        editButtonId={editButtonId}
+        onEdit={() => {
+          setEditedTransactionId(transactionId);
+          if (isShownByDefault) {
+            setSearchParams(writeSelectedTransaction({ searchParams, transactionId }), {
+              preventScrollReset: true,
+              replace: true,
+            });
+          }
+        }}
+        onClose={() => {
+          setSearchParams(writeSelectedTransaction({ searchParams, transactionId: undefined }), {
+            preventScrollReset: true,
+          });
+        }}
+        onChoose={() => {
+          setSearchParams(writeSelectedTransaction({ searchParams, transactionId }), {
+            preventScrollReset: true,
+            replace: true,
+          });
+        }}
+      />
+      {isEditing && transaction !== undefined && movementType !== undefined && (
+        <Sheet label="Edit transaction" onClose={closeEditForm}>
+          {choices.dictionaries === undefined ||
+          choices.currencies === undefined ||
+          choices.baseCurrency === undefined ||
+          !choices.isEveryListLoaded ? (
+            <TransactionFormSkeleton />
+          ) : (
+            <MovementForm
+              mode={{ kind: 'edit', transaction }}
+              transactionType={movementType}
+              categoryTypes={choices.dictionaries.category_types}
+              currencies={choices.currencies}
+              moneyAccounts={choices.moneyAccounts}
+              categories={choices.categories}
+              incomeSources={choices.incomeSources}
+              locations={choices.locations}
+              baseCurrency={choices.baseCurrency}
+              relatedQueryKeys={[
+                accountQueries.all().queryKey,
+                summaryQueries.current().queryKey,
+                locationQueries.all().queryKey,
+              ]}
+              {...choices.createForms}
+              onClose={closeEditForm}
+            />
+          )}
+        </Sheet>
+      )}
+    </>
   );
 }
 

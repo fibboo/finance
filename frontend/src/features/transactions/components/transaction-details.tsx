@@ -7,6 +7,7 @@ import type { components } from '@/lib/api-schema';
 import { readTransactionLinkId } from '../api/selected-transaction';
 import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
+import { EditTransaction } from './edit-transaction';
 import { TransactionOverview } from './transaction-overview';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -19,6 +20,8 @@ type TransactionDetailsProps = Readonly<{
   readAccountLink: (accountId: string) => To;
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;
+  editButtonId: string;
+  onEdit: () => void;
   onClose: () => void;
   onChoose: () => void;
 }>;
@@ -31,6 +34,8 @@ export function TransactionDetails({
   readAccountLink,
   relatedQueryKeys,
   isShownByDefault,
+  editButtonId,
+  onEdit,
   onClose,
   onChoose,
 }: TransactionDetailsProps) {
@@ -66,6 +71,11 @@ export function TransactionDetails({
             accountKinds={accountKinds}
             readAccountLink={readAccountLink}
             closeButton={closeButton}
+            editAction={
+              transaction.transaction_type !== 'ADJUSTMENT' && (
+                <EditTransaction id={editButtonId} transaction={transaction} onEdit={onEdit} />
+              )
+            }
             deleteAction={
               <DeleteTransaction
                 transaction={transaction}

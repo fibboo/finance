@@ -55,6 +55,19 @@ async function postMovement(movement: Readonly<MovementRequest>): Promise<Transa
   return transaction;
 }
 
+async function putMovement({
+  transaction_id,
+  ...movement
+}: Readonly<MovementRequest & { transaction_id: string }>): Promise<Transaction> {
+  const transaction = readData(
+    await apiClient.PUT('/accounting/transactions/{transaction_id}', {
+      params: { path: { transaction_id } },
+      body: movement,
+    }),
+  );
+  return transaction;
+}
+
 function invalidateFeeds({
   client,
   relatedQueryKeys,
@@ -103,6 +116,16 @@ export const transactionMutations = {
       mutationFn: postMovement,
       onSuccess: (_transaction, _movement, _onMutateResult, { client }) =>
         invalidateFeeds({ client, relatedQueryKeys }),
+    });
+  },
+  update(relatedQueryKeys: readonly QueryKey[]) {
+    return mutationOptions({
+      mutationFn: putMovement,
+      onSuccess: (_transaction, _movement, _onMutateResult, { client }) =>
+        invalidateFeeds({
+          client,
+          relatedQueryKeys: [transactionQueries.details().queryKey, ...relatedQueryKeys],
+        }),
     });
   },
   adjust(relatedQueryKeys: readonly QueryKey[]) {

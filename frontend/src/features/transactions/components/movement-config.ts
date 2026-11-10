@@ -58,6 +58,7 @@ export const LOCATION_COPY = {
 export const MOVEMENT_COPY = {
   EXPENSE: {
     amountLabel: 'Amount',
+    editTitle: 'Edit expense',
     submitLabel: 'Add expense',
     saveError: "Couldn't save the expense. Please try again.",
     from: { ...MONEY_ACCOUNT_COPY, title: 'From' },
@@ -70,6 +71,7 @@ export const MOVEMENT_COPY = {
   },
   INCOME: {
     amountLabel: 'Amount received',
+    editTitle: 'Edit income',
     submitLabel: 'Add income',
     saveError: "Couldn't save the income. Please try again.",
     from: {
@@ -82,6 +84,7 @@ export const MOVEMENT_COPY = {
   },
   TRANSFER: {
     amountLabel: 'Amount sent',
+    editTitle: 'Edit transfer',
     submitLabel: 'Add transfer',
     saveError: "Couldn't save the transfer. Please try again.",
     from: { ...MONEY_ACCOUNT_COPY, title: 'From' },
@@ -91,6 +94,7 @@ export const MOVEMENT_COPY = {
   MovementTransactionType,
   Readonly<{
     amountLabel: string;
+    editTitle: string;
     submitLabel: string;
     saveError: string;
     from: PickerCopy;
