@@ -1,6 +1,11 @@
 import { expect, test } from 'vitest';
 
-import { editAmountText, formatAmountText, readPlainAmount } from './amount-input';
+import {
+  editAmountText,
+  formatAmountText,
+  readPlainAmount,
+  readSubmittedAmount,
+} from './amount-input';
 
 test.each([
   { change: 'a letter', previousText: '12', text: '12a', caret: 3, isNegativeAllowed: false },
@@ -9,20 +14,6 @@ test.each([
     previousText: '1.5',
     text: '1.5.',
     caret: 4,
-    isNegativeAllowed: false,
-  },
-  {
-    change: 'a third decimal',
-    previousText: '1.25',
-    text: '1.255',
-    caret: 5,
-    isNegativeAllowed: false,
-  },
-  {
-    change: 'a 14th integer digit',
-    previousText: '1,234,567,890,123',
-    text: '1,234,567,890,1234',
-    caret: 18,
     isNegativeAllowed: false,
   },
   {
@@ -37,13 +28,6 @@ test.each([
     previousText: '5',
     text: '5-',
     caret: 2,
-    isNegativeAllowed: true,
-  },
-  {
-    change: 'a 14th integer digit of a balance',
-    previousText: '-1,234,567,890,123',
-    text: '-1,234,567,890,1234',
-    caret: 19,
     isNegativeAllowed: true,
   },
 ])('refuses $change', ({ previousText, text, caret, isNegativeAllowed }) => {
@@ -61,24 +45,6 @@ test.each([
 });
 
 test.each([
-  {
-    change: 'a 13th integer digit',
-    previousText: '123,456,789,012',
-    text: '123,456,789,0123',
-    caret: 16,
-    isForwardDelete: false,
-    isNegativeAllowed: false,
-    edited: { text: '1,234,567,890,123', caret: 17 },
-  },
-  {
-    change: 'a second decimal',
-    previousText: '1.2',
-    text: '1.25',
-    caret: 4,
-    isForwardDelete: false,
-    isNegativeAllowed: false,
-    edited: { text: '1.25', caret: 4 },
-  },
   {
     change: 'a typed comma',
     previousText: '1,234',
@@ -152,6 +118,33 @@ test.each([
     edited: { text: '134', caret: 1 },
   },
   {
+    change: 'a digit after a zero',
+    previousText: '0',
+    text: '05',
+    caret: 2,
+    isForwardDelete: false,
+    isNegativeAllowed: false,
+    edited: { text: '5', caret: 1 },
+  },
+  {
+    change: 'a digit after zeros of a balance',
+    previousText: '-00',
+    text: '-001',
+    caret: 4,
+    isForwardDelete: false,
+    isNegativeAllowed: true,
+    edited: { text: '-1', caret: 2 },
+  },
+  {
+    change: 'a point after a zero',
+    previousText: '0',
+    text: '0.',
+    caret: 2,
+    isForwardDelete: false,
+    isNegativeAllowed: false,
+    edited: { text: '0.', caret: 2 },
+  },
+  {
     change: 'a deleted digit',
     previousText: '1,234',
     text: '1,23',
@@ -201,4 +194,84 @@ test.each([
 
   // assert
   expect(amount).toBe(plainAmount);
+});
+
+test.each([
+  {
+    digits: '13 integer digits of an amount',
+    previousText: '123,456,789,012',
+    text: '123,456,789,0123',
+    caret: 16,
+    isNegativeAllowed: false,
+    edited: { text: '1,234,567,890,123', caret: 17 },
+  },
+  {
+    digits: '14 integer digits of an amount',
+    previousText: '1,234,567,890,123',
+    text: '1,234,567,890,1234',
+    caret: 18,
+    isNegativeAllowed: false,
+    edited: undefined,
+  },
+  {
+    digits: '13 integer digits of a balance',
+    previousText: '-123,456,789,012',
+    text: '-123,456,789,0123',
+    caret: 17,
+    isNegativeAllowed: true,
+    edited: { text: '-1,234,567,890,123', caret: 18 },
+  },
+  {
+    digits: '14 integer digits of a balance',
+    previousText: '-1,234,567,890,123',
+    text: '-1,234,567,890,1234',
+    caret: 19,
+    isNegativeAllowed: true,
+    edited: undefined,
+  },
+  {
+    digits: '2 decimals',
+    previousText: '1.2',
+    text: '1.25',
+    caret: 4,
+    isNegativeAllowed: false,
+    edited: { text: '1.25', caret: 4 },
+  },
+  {
+    digits: '3 decimals',
+    previousText: '1.25',
+    text: '1.255',
+    caret: 5,
+    isNegativeAllowed: false,
+    edited: undefined,
+  },
+])(
+  'gives $digits the result $edited',
+  ({ previousText, text, caret, isNegativeAllowed, edited }) => {
+    // act
+    const editedText = editAmountText({
+      previousText,
+      text,
+      caret,
+      isForwardDelete: false,
+      isNegativeAllowed,
+    });
+
+    // assert
+    expect(editedText).toEqual(edited);
+  },
+);
+
+test.each([
+  { text: '', submittedAmount: '' },
+  { text: '250.', submittedAmount: '250.00' },
+  { text: '.5', submittedAmount: '0.50' },
+  { text: '-12.', submittedAmount: '-12.00' },
+  { text: '1,234.5', submittedAmount: '1234.50' },
+])('submits $text as $submittedAmount', ({ text, submittedAmount }) => {
+  // act
+  const amount = readSubmittedAmount(text);
+
+  // assert
+  expect(amount).toBe(submittedAmount);
 });

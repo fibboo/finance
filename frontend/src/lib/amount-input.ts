@@ -1,6 +1,6 @@
 import { LOCALE } from './format-money';
 
-const AMOUNT_INTEGER_DIGITS = String(13);
+const AMOUNT_INTEGER_DIGITS = 13;
 const AMOUNT_DECIMAL_DIGITS = 2;
 const GROUP_SIZE = 3;
 const PLAIN_DECIMAL_SEPARATOR = '.';
@@ -8,6 +8,7 @@ const SEPARATOR_PARTS = new Intl.NumberFormat(LOCALE).formatToParts(1000.5);
 const REGEX_SPECIAL_CHARACTER_PATTERN = /[.*+?^${}()|[\]\\]/g;
 const TYPED_DECIMAL_SEPARATOR_PATTERN = /[.,]/g;
 const WHITESPACE_PATTERN = /\s/g;
+const LEADING_ZEROS_PATTERN = /^(0+)\d/;
 
 function readSeparator(type: 'group' | 'decimal'): string {
   const separator = SEPARATOR_PARTS.find((part) => part.type === type)?.value;
@@ -23,25 +24,28 @@ function escapeForPattern(text: string): string {
   return escapedText;
 }
 
+function createAmountPattern({
+  isSigned,
+  minimumDigits,
+}: Readonly<{ isSigned: boolean; minimumDigits: number }>): RegExp {
+  const sign = isSigned ? '-?' : '';
+  const integerDigits = `\\d{${String(minimumDigits)},${String(AMOUNT_INTEGER_DIGITS)}}`;
+  const decimalDigits = `\\d{${String(minimumDigits)},${String(AMOUNT_DECIMAL_DIGITS)}}`;
+  const amountPattern = new RegExp(`^${sign}${integerDigits}(\\.${decimalDigits})?$`);
+  return amountPattern;
+}
+
 const GROUP_SEPARATOR = readSeparator('group');
 const DECIMAL_SEPARATOR = readSeparator('decimal');
 
-const UNSIGNED_DRAFT_PATTERN = new RegExp(
-  `^\\d{0,${AMOUNT_INTEGER_DIGITS}}(\\.\\d{0,${String(AMOUNT_DECIMAL_DIGITS)}})?$`,
-);
-const SIGNED_DRAFT_PATTERN = new RegExp(
-  `^-?\\d{0,${AMOUNT_INTEGER_DIGITS}}(\\.\\d{0,${String(AMOUNT_DECIMAL_DIGITS)}})?$`,
-);
+const UNSIGNED_DRAFT_PATTERN = createAmountPattern({ isSigned: false, minimumDigits: 0 });
+const SIGNED_DRAFT_PATTERN = createAmountPattern({ isSigned: true, minimumDigits: 0 });
 const GROUPED_PASTE_PATTERN = new RegExp(
   `^-?\\d{1,3}(${escapeForPattern(GROUP_SEPARATOR)}\\d{3})+(${escapeForPattern(DECIMAL_SEPARATOR)}\\d*)?$`,
 );
 
-export const PLAIN_AMOUNT_PATTERN = new RegExp(
-  `^\\d{1,${AMOUNT_INTEGER_DIGITS}}(\\.\\d{1,${String(AMOUNT_DECIMAL_DIGITS)}})?$`,
-);
-export const PLAIN_BALANCE_PATTERN = new RegExp(
-  `^-?\\d{1,${AMOUNT_INTEGER_DIGITS}}(\\.\\d{1,${String(AMOUNT_DECIMAL_DIGITS)}})?$`,
-);
+export const PLAIN_AMOUNT_PATTERN = createAmountPattern({ isSigned: false, minimumDigits: 1 });
+export const PLAIN_BALANCE_PATTERN = createAmountPattern({ isSigned: true, minimumDigits: 1 });
 
 export type EditedAmountText = Readonly<{ text: string; caret: number }>;
 
@@ -125,6 +129,24 @@ function removeDigitBesideCaret({
   return editedText;
 }
 
+function dropLeadingZeros({
+  plainText,
+  plainCaret,
+}: Readonly<{ plainText: string; plainCaret: number }>): Readonly<{
+  plainText: string;
+  plainCaret: number;
+}> {
+  const sign = plainText.startsWith('-') ? '-' : '';
+  const unsignedText = plainText.slice(sign.length);
+  const leadingZeros = LEADING_ZEROS_PATTERN.exec(unsignedText)?.[1] ?? '';
+  const droppedBeforeCaret = Math.min(leadingZeros.length, Math.max(0, plainCaret - sign.length));
+  const editedText = {
+    plainText: `${sign}${unsignedText.slice(leadingZeros.length)}`,
+    plainCaret: plainCaret - droppedBeforeCaret,
+  };
+  return editedText;
+}
+
 export function editAmountText({
   previousText,
   text,
@@ -147,9 +169,9 @@ export function editAmountText({
   };
   const isOnlySeparatorDeleted =
     text.length < previousText.length && typedText.plainText === readPlainAmount(previousText);
-  const { plainText, plainCaret } = isOnlySeparatorDeleted
-    ? removeDigitBesideCaret({ ...typedText, isForwardDelete })
-    : typedText;
+  const { plainText, plainCaret } = dropLeadingZeros(
+    isOnlySeparatorDeleted ? removeDigitBesideCaret({ ...typedText, isForwardDelete }) : typedText,
+  );
   const draftPattern = isNegativeAllowed ? SIGNED_DRAFT_PATTERN : UNSIGNED_DRAFT_PATTERN;
   if (!draftPattern.test(plainText)) {
     return undefined;
@@ -175,4 +197,9 @@ export function formatAmountText(plainAmount: string): string {
     `${sign}${integerPart}.${fractionDigits.padEnd(AMOUNT_DECIMAL_DIGITS, '0')}`,
   );
   return paddedAmount;
+}
+
+export function readSubmittedAmount(amountText: string): string {
+  const submittedAmount = readPlainAmount(formatAmountText(readPlainAmount(amountText)));
+  return submittedAmount;
 }

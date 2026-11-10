@@ -15,7 +15,7 @@ export function readAmountInputProps({
   const amountInputProps = {
     ...registration,
     type: 'text',
-    inputMode: 'decimal',
+    inputMode: isNegativeAllowed ? 'text' : 'decimal',
     autoComplete: 'off',
     placeholder: '0.00',
     onFocus: (event: FocusEvent<HTMLInputElement>) => {

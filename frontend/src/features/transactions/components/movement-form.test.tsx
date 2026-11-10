@@ -913,3 +913,52 @@ test('pads a grouped amount to two decimals on leaving it and sends it as a plai
     destination_amount: '1234567.00',
   });
 });
+
+test('sends an amount ending in a point when Enter is pressed in its field', async () => {
+  // arrange
+  let requestBody: unknown = null;
+  server.use(
+    http.post('http://localhost/api/accounting/transactions', async ({ request }) => {
+      requestBody = await request.json();
+      return HttpResponse.json(expense);
+    }),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="EXPENSE"
+      transactionTypes={transactionTypes}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={[groceries]}
+      incomeSources={[]}
+      locations={[market]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={onClose}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /^From/ }));
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  await user.click(screen.getByRole('button', { name: /^Category/ }));
+  await user.click(screen.getByRole('button', { name: /^Groceries/ }));
+  await user.click(screen.getByRole('button', { name: /^Location/ }));
+  await user.click(screen.getByRole('button', { name: /^Central market/ }));
+  await user.type(screen.getByLabelText('Amount'), '250.');
+
+  // act
+  await user.keyboard('{Enter}');
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(requestBody).toMatchObject({ source_amount: '250.00', destination_amount: '250.00' });
+});

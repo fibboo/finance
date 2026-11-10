@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { PLAIN_AMOUNT_PATTERN, PLAIN_BALANCE_PATTERN, readPlainAmount } from '@/lib/amount-input';
+import {
+  PLAIN_AMOUNT_PATTERN,
+  PLAIN_BALANCE_PATTERN,
+  readSubmittedAmount,
+} from '@/lib/amount-input';
 import type { components } from '@/lib/api-schema';
 import { DATE_TEXT_PLACEHOLDER, readIsoDate } from '@/lib/format-date';
 
@@ -27,7 +31,7 @@ export function readAccountCurrency(account: Readonly<Account>): string {
 }
 
 export function readAmountText(amountText: string): string | undefined {
-  const plainAmount = readPlainAmount(amountText);
+  const plainAmount = readSubmittedAmount(amountText);
   const amount = PLAIN_BALANCE_PATTERN.test(plainAmount) ? plainAmount : undefined;
   return amount;
 }
@@ -52,7 +56,7 @@ const commentSchema = z
 function createAmountSchema(error: string) {
   const amountSchema = z
     .string()
-    .transform((text) => readPlainAmount(text))
+    .transform((text) => readSubmittedAmount(text))
     .refine((amount) => PLAIN_AMOUNT_PATTERN.test(amount) && Number(amount) > 0, { error });
   return amountSchema;
 }
@@ -111,7 +115,7 @@ export function createAdjustmentFormSchema({
       }),
     base_currency_amount: z
       .string()
-      .transform((text) => readPlainAmount(text))
+      .transform((text) => readSubmittedAmount(text))
       .transform((amount) => (amount === '' ? null : amount))
       .refine(
         (amount) => amount === null || (PLAIN_AMOUNT_PATTERN.test(amount) && Number(amount) > 0),
