@@ -18,6 +18,12 @@ function readIsShown(bounds: DOMRectReadOnly): boolean {
   return isShown;
 }
 
+function readIsSheet(backdropId: string): boolean {
+  const backdrop = document.getElementById(backdropId);
+  const isSheet = backdrop !== null && readIsShown(backdrop.getBoundingClientRect());
+  return isSheet;
+}
+
 function readIsOnlyShownPanel(panelId: string): boolean {
   const shownPanels = [...document.querySelectorAll(DETAILS_PANEL_SELECTOR)].filter((panel) =>
     readIsShown(panel.getBoundingClientRect()),
@@ -125,9 +131,7 @@ export function DetailsPanel({
   }, [isShownByDefault, onClose, returnFocusId, backdropId, panelId]);
 
   const readIsFocusKeptOnRow = useEffectEvent(() => {
-    const backdrop = document.getElementById(backdropId);
-    const isSheet = backdrop !== null && readIsShown(backdrop.getBoundingClientRect());
-    const isFocusKeptOnRow = isArrowKeySelection && !isSheet;
+    const isFocusKeptOnRow = isArrowKeySelection && !readIsSheet(backdropId);
     return isFocusKeptOnRow;
   });
 
@@ -149,8 +153,7 @@ export function DetailsPanel({
     let isShown = readIsShown(panel.getBoundingClientRect());
     const observer = new IntersectionObserver(([entry]) => {
       const isNowShown = entry !== undefined && readIsShown(entry.boundingClientRect);
-      const backdrop = document.getElementById(backdropId);
-      const isSheet = backdrop !== null && readIsShown(backdrop.getBoundingClientRect());
+      const isSheet = readIsSheet(backdropId);
       const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
       if (isNowShown && !isShown && isSheet && !isFocusInDialog) {
         panel.focus({ preventScroll: true });

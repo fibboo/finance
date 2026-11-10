@@ -96,20 +96,22 @@ export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountG
             <ul className={styles['accounts']}>
               {group.accounts.map((account) => {
                 const rateText = readAccountRateText({ account, baseCurrency });
+                const isShownByDefault =
+                  selectedAccountId === undefined && account.id === topAccountId;
                 return (
                   <li
                     key={account.id}
                     className={readAccountClassName({
                       account,
                       isSelected: account.id === selectedAccountId,
-                      isShownByDefault:
-                        selectedAccountId === undefined && account.id === topAccountId,
+                      isShownByDefault,
                     })}
                   >
                     <AccountMark account={account} />
                     <span className={styles['identity']}>
                       <Link
                         {...arrowKeySelection}
+                        data-shown-by-default={isShownByDefault ? '' : undefined}
                         id={readAccountLinkId(account.id)}
                         to={{
                           search: writeSelectedAccount({

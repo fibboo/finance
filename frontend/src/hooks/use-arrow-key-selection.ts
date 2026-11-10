@@ -49,7 +49,9 @@ function readNextRow({
   ];
   const focusedIndex = rows.findIndex((row) => row === target);
   const selectedIndex = rows.findIndex((row) => row.getAttribute('aria-current') === 'true');
-  const currentIndex = focusedIndex >= 0 ? focusedIndex : Math.max(selectedIndex, 0);
+  const shownIndex = rows.findIndex((row) => row.hasAttribute('data-shown-by-default'));
+  const currentIndex =
+    focusedIndex >= 0 ? focusedIndex : selectedIndex >= 0 ? selectedIndex : shownIndex;
   const nextRow = rows[currentIndex + step];
   return nextRow;
 }

@@ -120,10 +120,13 @@
   outline: none;
 }
 
-.name:focus-visible::after {
+.account:has(.name:focus-visible)::after {
+  content: '';
+  position: absolute;
   inset: 0 calc(var(--space-2) * -1);
   border-radius: var(--radius-segment);
   box-shadow: inset 0 0 0 var(--size-focus-row) var(--color-focus-row);
+  pointer-events: none;
 }
 
 .selected::before,

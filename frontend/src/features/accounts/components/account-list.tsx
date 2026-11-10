@@ -112,6 +112,11 @@ export function AccountList({
               >
                 <Link
                   {...arrowKeySelection}
+                  data-shown-by-default={
+                    chosenAccountId === undefined && account.id === defaultAccountId
+                      ? ''
+                      : undefined
+                  }
                   id={readAccountLinkId(account.id)}
                   to={{
                     search: writeSelectedAccount({

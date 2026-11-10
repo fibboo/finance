@@ -67,6 +67,7 @@ export function TransactionRow({
         <span className={styles['title']}>
           <Link
             {...arrowKeySelection}
+            data-shown-by-default={isShownByDefault ? '' : undefined}
             id={readTransactionLinkId(transaction.id)}
             to={{
               search: writeSelectedTransaction({
