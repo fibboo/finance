@@ -26,6 +26,7 @@ def upgrade() -> None:
         "FROM (SELECT id, row_number() OVER (ORDER BY id) AS entry_order FROM transactions) AS numbered "
         "WHERE transactions.id = numbered.id"
     )
+    op.execute("SET CONSTRAINTS ALL IMMEDIATE")
     op.execute(
         "SELECT setval('transactions_entry_order_seq', "
         "(SELECT COALESCE(max(entry_order), 0) + 1 FROM transactions), false)"
