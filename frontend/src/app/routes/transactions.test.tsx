@@ -1821,12 +1821,20 @@ test('leaves Edit out of the details of an adjustment', async () => {
   ).not.toBeInTheDocument();
 });
 
-test('blocks Edit with the name of the deleted category of the transaction', async () => {
+test('blocks Edit with the name of the deleted location of the transaction', async () => {
   // arrange
   const user = userEvent.setup();
   const transaction = {
     ...expense,
-    postings: [walletPosting, { ...categoryPosting, account: { ...category, status: 'DELETED' } }],
+    location: {
+      name: 'Central market',
+      description: null,
+      user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+      id: '9e0f1a2b-2b4f-4e6a-8c7d-5a1d9c3e3c40',
+      status: 'DELETED',
+      created_at: '2026-10-01T09:00:00Z',
+      updated_at: '2026-10-01T09:00:00Z',
+    },
   } satisfies components['schemas']['Transaction'];
   server.use(
     http.get('http://localhost/api/accounting/transactions', () =>
@@ -1852,7 +1860,7 @@ test('blocks Edit with the name of the deleted category of the transaction', asy
   const editButton = within(details).getByRole('button', { name: 'Edit transaction' });
   expect(editButton).toHaveAttribute('aria-disabled', 'true');
   expect(editButton).toHaveAccessibleDescription(
-    "Groceries is deleted, so this transaction can't be edited.",
+    "Central market is deleted, so this transaction can't be edited.",
   );
   expect(screen.queryByRole('dialog', { name: 'Edit transaction' })).not.toBeInTheDocument();
 });

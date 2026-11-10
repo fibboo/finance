@@ -43,7 +43,7 @@ import {
   readMovementCurrencies,
   readMovementPickers,
 } from './movement-config';
-import { readMovementValues } from './movement-values';
+import { addOwnChoice, readMovementValues, readOwnChoices } from './movement-values';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
@@ -100,8 +100,16 @@ export function MovementForm({
   const [pickerField, setPickerField] = useState<MovementPickerField | undefined>(undefined);
   const rowIdPrefix = useId();
   const copy = MOVEMENT_COPY[transactionType];
-  const fromAccounts = transactionType === 'INCOME' ? incomeSources : moneyAccounts;
-  const toAccounts = transactionType === 'EXPENSE' ? categories : moneyAccounts;
+  const ownChoices = mode.kind === 'edit' ? readOwnChoices(mode.transaction) : undefined;
+  const fromAccounts = addOwnChoice({
+    choices: transactionType === 'INCOME' ? incomeSources : moneyAccounts,
+    ownChoice: ownChoices?.fromAccount,
+  });
+  const toAccounts = addOwnChoice({
+    choices: transactionType === 'EXPENSE' ? categories : moneyAccounts,
+    ownChoice: ownChoices?.toAccount,
+  });
+  const places = addOwnChoice({ choices: locations, ownChoice: ownChoices?.location });
   const resolver: Resolver<MovementFormValues, unknown, MovementRequest> = (
     values,
     context,
@@ -197,7 +205,7 @@ export function MovementForm({
   const update = useMutation(transactionMutations.update(relatedQueryKeys));
   const fromAccount = fromAccounts?.find((account) => account.id === fromAccountId);
   const toAccount = toAccounts?.find((account) => account.id === toAccountId);
-  const location = locations?.find((place) => place.id === locationId);
+  const location = places?.find((place) => place.id === locationId);
   const { destination, isDestinationAmountAsked, isBaseCurrencyAmountAsked } =
     readMovementCurrencies({
       transactionType,
@@ -215,7 +223,7 @@ export function MovementForm({
     transactionType,
     fromAccounts,
     toAccounts,
-    locations,
+    locations: places,
     categoryTypes,
     fromAccountId,
     toAccountId,
@@ -278,6 +286,7 @@ export function MovementForm({
       >
         <FormHeader
           title={mode.kind === 'edit' ? copy.editTitle : NEW_TRANSACTION_TITLE}
+          transactionType={transactionType}
           typeChoice={mode.kind === 'create' ? mode.typeChoice : undefined}
           onClose={onClose}
         />
@@ -356,6 +365,7 @@ export function MovementForm({
                 max={today}
                 onPick={(dateText) => {
                   setValue('transaction_date', dateText, {
+                    shouldDirty: true,
                     shouldValidate: formState.isSubmitted,
                   });
                 }}
@@ -418,7 +428,10 @@ export function MovementForm({
           {...pickers[pickerField]}
           create={creates[pickerField]}
           onSelect={(selectedId) => {
-            setValue(pickerField, selectedId, { shouldValidate: formState.isSubmitted });
+            setValue(pickerField, selectedId, {
+              shouldDirty: true,
+              shouldValidate: formState.isSubmitted,
+            });
             closePicker(pickerField);
           }}
           onBack={() => {

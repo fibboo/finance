@@ -153,7 +153,7 @@ test.each([
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -210,7 +210,7 @@ test('shows the amount in the base currency at the account rate', async () => {
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -252,7 +252,7 @@ test('asks for the category, the location and the seller’s currency before sen
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -302,7 +302,7 @@ test('lists the categories with their category type', async () => {
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -343,7 +343,7 @@ test('shows a field error of the backend at its field', async () => {
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -398,7 +398,7 @@ test('shows a backend error of the seller’s amount at the amount when another 
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -463,7 +463,7 @@ test.each([
         transactionType="INCOME"
         mode={{
           kind: 'create',
-          typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+          typeChoice: { transactionTypes, onTypeChange: vi.fn() },
         }}
         categoryTypes={categoryTypes}
         currencies={currencies}
@@ -528,7 +528,7 @@ test.each([
         transactionType="INCOME"
         mode={{
           kind: 'create',
-          typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+          typeChoice: { transactionTypes, onTypeChange: vi.fn() },
         }}
         categoryTypes={categoryTypes}
         currencies={[...currencies, { key: 'USD', label: 'US dollar' }]}
@@ -570,7 +570,7 @@ test('keeps the month of an income on the month before the date until a month is
       transactionType="INCOME"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -622,7 +622,7 @@ test.each([
         transactionType="TRANSFER"
         mode={{
           kind: 'create',
-          typeChoice: { transactionType: 'TRANSFER', transactionTypes, onTypeChange: vi.fn() },
+          typeChoice: { transactionTypes, onTypeChange: vi.fn() },
         }}
         categoryTypes={categoryTypes}
         currencies={currencies}
@@ -676,7 +676,7 @@ test('lists the accounts to send to without the account sent from', async () => 
       transactionType="TRANSFER"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'TRANSFER', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -712,7 +712,7 @@ test('keeps a picked month of an income that matches the month before the date w
       transactionType="INCOME"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -776,7 +776,7 @@ test.each([
         transactionType={transactionType}
         mode={{
           kind: 'create',
-          typeChoice: { transactionType: transactionType, transactionTypes, onTypeChange: vi.fn() },
+          typeChoice: { transactionTypes, onTypeChange: vi.fn() },
         }}
         categoryTypes={categoryTypes}
         currencies={currencies}
@@ -826,7 +826,7 @@ test('leaves out the base currency estimate of an income paid in another currenc
       transactionType="INCOME"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -867,7 +867,7 @@ test.each([
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -908,7 +908,7 @@ test('pads a grouped amount to two decimals on leaving it and sends it as a plai
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -963,7 +963,7 @@ test('sends an amount ending in a point when Enter is pressed in its field', asy
       transactionType="EXPENSE"
       mode={{
         kind: 'create',
-        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
       categoryTypes={categoryTypes}
       currencies={currencies}
@@ -1178,3 +1178,190 @@ test.each([
     expect(requestBody).toEqual(movement);
   },
 );
+
+test('saves an edited expense whose account, category and location are not among the choices', async () => {
+  // arrange
+  let requestBody: unknown = null;
+  const transaction = {
+    ...expense,
+    postings: [
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+        amount: '-42.80',
+        currency: 'EUR',
+        base_amount: '-47.08',
+        account: euroCard,
+      },
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+        amount: '42.80',
+        currency: 'EUR',
+        base_amount: '47.08',
+        account: groceries,
+      },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.put(
+      `http://localhost/api/accounting/transactions/${transaction.id}`,
+      async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(transaction);
+      },
+    ),
+  );
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      mode={{ kind: 'edit', transaction }}
+      transactionType="EXPENSE"
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[gelSavings]}
+      categories={[]}
+      incomeSources={[]}
+      locations={[]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onClose={vi.fn()}
+    />,
+  );
+  expect(screen.getByRole('button', { name: /^From.*Euro card/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /^Category.*Groceries/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /^Location.*Central market/ })).toBeInTheDocument();
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await waitFor(() => {
+    expect(requestBody).toEqual({
+      from_account_id: euroCard.id,
+      to_account_id: groceries.id,
+      location_id: market.id,
+      source_amount: '42.80',
+      source_currency: 'EUR',
+      destination_amount: '42.80',
+      destination_currency: 'EUR',
+      transaction_date: '2026-10-20',
+      comment: null,
+    });
+  });
+});
+
+test('asks for a category before saving an edited expense whose category is deleted', async () => {
+  // arrange
+  let isRequestSent = false;
+  const transaction = {
+    ...expense,
+    postings: [
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+        amount: '-42.80',
+        currency: 'EUR',
+        base_amount: '-47.08',
+        account: euroCard,
+      },
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+        amount: '42.80',
+        currency: 'EUR',
+        base_amount: '47.08',
+        account: { ...groceries, status: 'DELETED' },
+      },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.put(`http://localhost/api/accounting/transactions/${transaction.id}`, () => {
+      isRequestSent = true;
+      return HttpResponse.json(transaction);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      mode={{ kind: 'edit', transaction }}
+      transactionType="EXPENSE"
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={[]}
+      incomeSources={[]}
+      locations={[market]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Category/ })).toHaveAccessibleDescription(
+    'Choose a category',
+  );
+  expect(isRequestSent).toBe(false);
+});
+
+test('leaves the amount received empty when an edited transfer into the base currency moves to another currency', async () => {
+  // arrange
+  const transaction = {
+    ...expense,
+    transaction_type: 'TRANSFER',
+    location: null,
+    postings: [
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+        amount: '-500.00',
+        currency: 'EUR',
+        base_amount: '-550.00',
+        account: euroCard,
+      },
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+        amount: '550.00',
+        currency: 'USD',
+        base_amount: '550.00',
+        account: dollarCash,
+      },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      mode={{ kind: 'edit', transaction }}
+      transactionType="TRANSFER"
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard, dollarCash, gelSavings]}
+      categories={undefined}
+      incomeSources={undefined}
+      locations={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onClose={vi.fn()}
+    />,
+  );
+  expect(screen.queryByLabelText('Amount received')).not.toBeInTheDocument();
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^To/ }));
+  await user.click(screen.getByRole('button', { name: /^Lari savings/ }));
+
+  // assert
+  expect(screen.getByLabelText('Amount received')).toHaveValue('');
+  expect(screen.getByLabelText('Amount sent')).toHaveValue('500.00');
+});

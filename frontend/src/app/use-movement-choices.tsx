@@ -79,6 +79,10 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
     return <CategoryForm {...props} categoryTypes={dictionaries.category_types} />;
   }
 
+  const isEveryListLoaded =
+    moneyAccounts !== undefined &&
+    (!isExpense || (categories !== undefined && locations !== undefined)) &&
+    (transactionType !== 'INCOME' || incomeSources !== undefined);
   const movementChoices = {
     dictionaries,
     currencies,
@@ -87,11 +91,16 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
     categories: categories?.items,
     incomeSources: incomeSources?.items,
     locations: locations?.items,
+    isEveryListLoaded,
     createForms: {
       renderCategoryForm,
-      renderIncomeSourceForm: (props: CreateFormProps) => <IncomeSourceForm {...props} />,
+      renderIncomeSourceForm(props: CreateFormProps) {
+        return <IncomeSourceForm {...props} />;
+      },
       renderMoneyAccountForm,
-      renderLocationForm: (props: CreateFormProps) => <LocationForm {...props} />,
+      renderLocationForm(props: CreateFormProps) {
+        return <LocationForm {...props} />;
+      },
     },
   };
   return movementChoices;

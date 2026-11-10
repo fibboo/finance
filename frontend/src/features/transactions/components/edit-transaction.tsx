@@ -2,18 +2,19 @@ import { ActionButton } from '@/components/action-button/action-button';
 import { EDIT_ICON_PATH } from '@/components/action-button/action-icons';
 import type { components } from '@/lib/api-schema';
 
-import { formatAccountList, isDeletedAccount, readAccountNames } from './transaction-view';
+import { formatAccountList, readDeletedMoneyAccountNames } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 
 function readBlockingHint(transaction: Readonly<Transaction>): string | undefined {
-  const deletedAccountNames = readAccountNames(
-    transaction.postings.filter((posting) => isDeletedAccount(posting.account)),
-  );
+  const deletedNames = [
+    ...readDeletedMoneyAccountNames(transaction),
+    ...(transaction.location?.status === 'DELETED' ? [transaction.location.name] : []),
+  ];
   const blockingHint =
-    deletedAccountNames.length === 0
+    deletedNames.length === 0
       ? undefined
-      : `${formatAccountList(deletedAccountNames)} ${deletedAccountNames.length === 1 ? 'is' : 'are'} deleted, so this transaction can't be edited.`;
+      : `${formatAccountList(deletedNames)} ${deletedNames.length === 1 ? 'is' : 'are'} deleted, so this transaction can't be edited.`;
   return blockingHint;
 }
 

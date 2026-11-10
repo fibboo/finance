@@ -162,7 +162,8 @@ export function TransactionForm({
       >
         <FormHeader
           title={NEW_TRANSACTION_TITLE}
-          typeChoice={{ transactionType, transactionTypes, onTypeChange }}
+          transactionType={transactionType}
+          typeChoice={{ transactionTypes, onTypeChange }}
           onClose={onClose}
         />
         <AmountField

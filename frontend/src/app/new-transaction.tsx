@@ -69,7 +69,6 @@ export function NewTransaction() {
           mode={{
             kind: 'create',
             typeChoice: {
-              transactionType,
               transactionTypes: dictionaries.transaction_types,
               onTypeChange: changeType,
             },

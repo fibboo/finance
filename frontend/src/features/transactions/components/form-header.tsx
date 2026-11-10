@@ -11,21 +11,18 @@ export const NEW_TRANSACTION_TITLE = 'New transaction';
 const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
 
 export type TypeChoice = Readonly<{
-  transactionType: EntryTransactionType;
   transactionTypes: readonly DictionaryItem[];
   onTypeChange: (transactionType: EntryTransactionType) => void;
 }>;
 
 type FormHeaderProps = Readonly<{
   title: string;
+  transactionType: EntryTransactionType;
   typeChoice: TypeChoice | undefined;
   onClose: () => void;
 }>;
 
-export function FormHeader({ title, typeChoice, onClose }: FormHeaderProps) {
-  const entryTypes = typeChoice?.transactionTypes.filter((type) =>
-    ENTRY_TRANSACTION_TYPES.some((entryType) => entryType === type.key),
-  );
+export function FormHeader({ title, transactionType, typeChoice, onClose }: FormHeaderProps) {
   return (
     <>
       <div className={styles['header']} data-sheet-drag-area>
@@ -36,10 +33,12 @@ export function FormHeader({ title, typeChoice, onClose }: FormHeaderProps) {
           </svg>
         </button>
       </div>
-      {typeChoice !== undefined && entryTypes !== undefined && (
+      {typeChoice !== undefined && (
         <TypeChips
-          types={entryTypes}
-          selectedType={typeChoice.transactionType}
+          types={typeChoice.transactionTypes.filter((type) =>
+            ENTRY_TRANSACTION_TYPES.some((entryType) => entryType === type.key),
+          )}
+          selectedType={transactionType}
           onChange={(typeKey) => {
             const nextType = ENTRY_TRANSACTION_TYPES.find((entryType) => entryType === typeKey);
             if (nextType !== undefined) {

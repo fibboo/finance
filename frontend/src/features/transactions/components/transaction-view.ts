@@ -56,6 +56,15 @@ export function isDeletedAccount(account: Readonly<Account>): boolean {
   return isDeleted;
 }
 
+export function readDeletedMoneyAccountNames(transaction: Readonly<Transaction>): string[] {
+  const deletedAccountNames = readAccountNames(
+    transaction.postings.filter(
+      (posting) => isMoneyAccountKind(posting.account.kind) && isDeletedAccount(posting.account),
+    ),
+  );
+  return deletedAccountNames;
+}
+
 export function readPlainText(text: TransactionText): string {
   const plainText = text.map((part) => (typeof part === 'string' ? part : part.name)).join('');
   return plainText;

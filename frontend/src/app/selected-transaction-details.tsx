@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useId, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Navigate, type To, useSearchParams } from 'react-router';
 
 import { Sheet } from '@/components/sheet/sheet';
@@ -34,7 +35,6 @@ type SelectedTransactionProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
 }>;
 
@@ -44,11 +44,11 @@ function SelectedTransaction({
   baseCurrency,
   transactionTypes,
   accountKinds,
-  categoryTypes,
   readAccountLink,
 }: SelectedTransactionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isEditing, setIsEditing] = useState(false);
+  const [editedTransactionId, setEditedTransactionId] = useState<string | undefined>(undefined);
+  const isEditing = editedTransactionId === transactionId;
   const editButtonId = useId();
   const { data: transaction, error } = useQuery(transactionQueries.detail(transactionId));
   const movementType =
@@ -73,7 +73,10 @@ function SelectedTransaction({
   }
 
   function closeEditForm() {
-    setIsEditing(false);
+    flushSync(() => {
+      setEditedTransactionId(undefined);
+    });
+    document.getElementById(editButtonId)?.focus();
   }
 
   return (
@@ -88,7 +91,7 @@ function SelectedTransaction({
         isShownByDefault={isShownByDefault}
         editButtonId={editButtonId}
         onEdit={() => {
-          setIsEditing(true);
+          setEditedTransactionId(transactionId);
         }}
         onClose={() => {
           setSearchParams(writeSelectedTransaction({ searchParams, transactionId: undefined }), {
@@ -104,19 +107,23 @@ function SelectedTransaction({
       />
       {isEditing && transaction !== undefined && movementType !== undefined && (
         <Sheet label="Edit transaction" onClose={closeEditForm}>
-          {choices.currencies === undefined ? (
+          {choices.dictionaries === undefined ||
+          choices.currencies === undefined ||
+          choices.baseCurrency === undefined ||
+          !choices.isEveryListLoaded ? (
             <TransactionFormSkeleton />
           ) : (
             <MovementForm
+              key={transaction.id}
               mode={{ kind: 'edit', transaction }}
               transactionType={movementType}
-              categoryTypes={categoryTypes}
+              categoryTypes={choices.dictionaries.category_types}
               currencies={choices.currencies}
               moneyAccounts={choices.moneyAccounts}
               categories={choices.categories}
               incomeSources={choices.incomeSources}
               locations={choices.locations}
-              baseCurrency={baseCurrency}
+              baseCurrency={choices.baseCurrency}
               relatedQueryKeys={[
                 accountQueries.all().queryKey,
                 summaryQueries.current().queryKey,
@@ -153,7 +160,6 @@ export function SelectedTransactionDetails({
       baseCurrency={baseCurrency}
       transactionTypes={dictionaries.transaction_types}
       accountKinds={dictionaries.account_kinds}
-      categoryTypes={dictionaries.category_types}
       readAccountLink={readAccountLink}
     />
   );
