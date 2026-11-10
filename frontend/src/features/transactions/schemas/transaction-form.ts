@@ -1,13 +1,12 @@
 import { z } from 'zod';
 
+import { PLAIN_AMOUNT_PATTERN, PLAIN_BALANCE_PATTERN, readPlainAmount } from '@/lib/amount-input';
 import type { components } from '@/lib/api-schema';
 import { DATE_TEXT_PLACEHOLDER, readIsoDate } from '@/lib/format-date';
 
 type Account = components['schemas']['Account'];
 type MovementRequest = components['schemas']['MovementRequest'];
 
-const BALANCE_PATTERN = /^-?\d+([.,]\d{1,2})?$/;
-const AMOUNT_PATTERN = /^\d+([.,]\d{1,2})?$/;
 const COMMENT_MIN_LENGTH = 3;
 export const COMMENT_MAX_LENGTH = 256;
 const ADJUSTMENT_ACCOUNT_ERROR = 'Choose the account to adjust';
@@ -28,8 +27,8 @@ export function readAccountCurrency(account: Readonly<Account>): string {
 }
 
 export function readAmountText(amountText: string): string | undefined {
-  const trimmedText = amountText.trim();
-  const amount = BALANCE_PATTERN.test(trimmedText) ? trimmedText.replace(',', '.') : undefined;
+  const plainAmount = readPlainAmount(amountText);
+  const amount = PLAIN_BALANCE_PATTERN.test(plainAmount) ? plainAmount : undefined;
   return amount;
 }
 
@@ -53,9 +52,8 @@ const commentSchema = z
 function createAmountSchema(error: string) {
   const amountSchema = z
     .string()
-    .trim()
-    .transform((text) => text.replace(',', '.'))
-    .refine((amount) => AMOUNT_PATTERN.test(amount) && Number(amount) > 0, { error });
+    .transform((text) => readPlainAmount(text))
+    .refine((amount) => PLAIN_AMOUNT_PATTERN.test(amount) && Number(amount) > 0, { error });
   return amountSchema;
 }
 
@@ -113,11 +111,14 @@ export function createAdjustmentFormSchema({
       }),
     base_currency_amount: z
       .string()
-      .trim()
-      .transform((text) => (text === '' ? null : text.replace(',', '.')))
-      .refine((amount) => amount === null || (AMOUNT_PATTERN.test(amount) && Number(amount) > 0), {
-        error: `Enter the amount in ${baseCurrency}, like 42.80`,
-      }),
+      .transform((text) => readPlainAmount(text))
+      .transform((amount) => (amount === '' ? null : amount))
+      .refine(
+        (amount) => amount === null || (PLAIN_AMOUNT_PATTERN.test(amount) && Number(amount) > 0),
+        {
+          error: `Enter the amount in ${baseCurrency}, like 42.80`,
+        },
+      ),
     transaction_date: createTransactionDateSchema(today),
     comment: commentSchema,
   });

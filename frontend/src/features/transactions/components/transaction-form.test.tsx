@@ -108,7 +108,7 @@ test('sends the new balance of the chosen account and closes', async () => {
   expect(requestBody).toEqual({
     transaction_date: '2026-10-20',
     comment: 'Cash count',
-    new_balance: '380',
+    new_balance: '380.00',
     base_currency_amount: null,
   });
 });
@@ -181,14 +181,14 @@ test('asks for the base currency amount of an account without a rate', async () 
   expect(requestBody).toEqual({
     transaction_date: '2026-10-20',
     comment: null,
-    new_balance: '100',
+    new_balance: '100.00',
     base_currency_amount: '108.40',
   });
 });
 
 test.each([
   { field: 'Account', typed: '', error: 'Choose the account to adjust' },
-  { field: 'New balance', typed: '12.345', error: 'Enter the new balance, like 1180.50' },
+  { field: 'New balance', typed: '-', error: 'Enter the new balance, like 1180.50' },
   { field: 'Comment', typed: 'ok', error: 'Write at least 3 characters' },
 ])('refuses to send when $field is not valid', async ({ field, typed, error }) => {
   // arrange
@@ -387,7 +387,7 @@ test('asks for the base currency amount when the account had no rate on the date
   expect(requestBodies.at(-1)).toEqual({
     transaction_date: '2026-10-20',
     comment: null,
-    new_balance: '100',
+    new_balance: '100.00',
     base_currency_amount: '54.30',
   });
 });
@@ -462,7 +462,7 @@ test('drops the base currency amount typed for another account', async () => {
   expect(requestBody).toEqual({
     transaction_date: '2026-10-20',
     comment: null,
-    new_balance: '380',
+    new_balance: '380.00',
     base_currency_amount: null,
   });
 });
@@ -547,4 +547,32 @@ test('keeps Adjust balance disabled until the money accounts have loaded', () =>
 
   // assert
   expect(screen.getByRole('button', { name: 'Adjust balance' })).toBeDisabled();
+});
+
+test.each([
+  { typed: '-1250.5', shown: '-1,250.5' },
+  { typed: '-12a', shown: '-12' },
+  { typed: '12-', shown: '12' },
+])('shows the typed new balance $typed as $shown', async ({ typed, shown }) => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[wallet]}
+      presetAccountId={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // act
+  await user.type(screen.getByLabelText('New balance'), typed);
+
+  // assert
+  expect(screen.getByLabelText('New balance')).toHaveValue(shown);
 });

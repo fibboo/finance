@@ -3,6 +3,7 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import type { components } from '@/lib/api-schema';
 
 import type { MovementFormValues } from '../schemas/transaction-form';
+import { readAmountInputProps } from './amount-input';
 import { ForeignAmountRow } from './foreign-amount-row';
 import { InputRow } from './input-row';
 import styles from './transaction-form.module.css';
@@ -47,12 +48,10 @@ export function IncomeExtraRows({
       {isBaseCurrencyAmountAsked && (
         <InputRow
           label={`In ${baseCurrency}`}
-          input={{
-            ...register('base_currency_amount'),
-            inputMode: 'decimal',
-            autoComplete: 'off',
-            placeholder: '0.00',
-          }}
+          input={readAmountInputProps({
+            registration: register('base_currency_amount'),
+            isNegativeAllowed: false,
+          })}
           suffix={baseCurrency}
           error={formState.errors.base_currency_amount?.message}
         />
