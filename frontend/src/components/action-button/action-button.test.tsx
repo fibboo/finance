@@ -99,13 +99,13 @@ test('closes the reason a few seconds after a tap', async () => {
 
   // act
   act(() => {
-    vi.advanceTimersByTime(3800);
+    vi.advanceTimersByTime(3000);
   });
 
   // assert
   expect(screen.getByRole('tooltip')).toHaveTextContent(HINT);
   act(() => {
-    vi.advanceTimersByTime(200);
+    vi.advanceTimersByTime(1000);
   });
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });

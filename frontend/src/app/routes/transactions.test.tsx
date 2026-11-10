@@ -1503,7 +1503,7 @@ test('keeps Delete open while only the category of the transaction is deleted', 
   const details = await screen.findByRole('dialog', { name: 'Transaction details' });
   const deleteButton = await within(details).findByRole('button', { name: 'Delete transaction' });
   expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
-  expect(within(details).queryByText(/ deleted./)).not.toBeInTheDocument();
+  expect(within(details).queryByText(/ deleted\./)).not.toBeInTheDocument();
 });
 
 test('names every deleted money account in the reason Delete is blocked', async () => {

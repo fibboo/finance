@@ -16,6 +16,15 @@ import { readPlainText, readTransactionView } from './transaction-view';
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
+type Posting = components['schemas']['Posting'];
+
+function readAccountNames(postings: readonly Posting[]): string[] {
+  const accountNames = [
+    ...new Map(postings.map((posting) => [posting.account.id, posting.account.name])).values(),
+  ];
+  return accountNames;
+}
+
 const ACCOUNT_LIST_FORMAT = new Intl.ListFormat(LOCALE, { type: 'conjunction' });
 
 function readConfirmationText({
@@ -31,13 +40,9 @@ function readConfirmationText({
     currency: view.currency,
     signDisplay: view.signDisplay,
   });
-  const accountNames = [
-    ...new Map(
-      transaction.postings
-        .filter((posting) => posting.account.kind !== 'EQUITY')
-        .map((posting) => [posting.account.id, posting.account.name]),
-    ).values(),
-  ];
+  const accountNames = readAccountNames(
+    transaction.postings.filter((posting) => posting.account.kind !== 'EQUITY'),
+  );
   const balances =
     accountNames.length === 1
       ? `The balance of ${ACCOUNT_LIST_FORMAT.format(accountNames)} is`
@@ -47,16 +52,11 @@ function readConfirmationText({
 }
 
 function readBlockingHint(transaction: Readonly<Transaction>): string | undefined {
-  const deletedAccountNames = [
-    ...new Map(
-      transaction.postings
-        .filter(
-          (posting) =>
-            isMoneyAccountKind(posting.account.kind) && posting.account.status === 'DELETED',
-        )
-        .map((posting) => [posting.account.id, posting.account.name]),
-    ).values(),
-  ];
+  const deletedAccountNames = readAccountNames(
+    transaction.postings.filter(
+      (posting) => isMoneyAccountKind(posting.account.kind) && posting.account.status === 'DELETED',
+    ),
+  );
   const blockingHint =
     deletedAccountNames.length === 0
       ? undefined

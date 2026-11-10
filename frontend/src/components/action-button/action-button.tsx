@@ -114,7 +114,7 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
         }}
         onPointerLeave={(event) => {
           setIsHovered(false);
-          if (event.pointerType === 'mouse') {
+          if (event.pointerType !== 'touch') {
             setIsTapped(false);
           }
         }}
