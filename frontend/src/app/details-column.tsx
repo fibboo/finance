@@ -17,6 +17,7 @@ import { SelectedTransactionDetails } from './selected-transaction-details';
 type DetailsColumnProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
+  defaultAccountId: string | undefined;
   accountCount: number | undefined;
   isAccountFirst: boolean;
 }>;
@@ -33,6 +34,7 @@ function readIsAccountOpenedLast(searchParams: URLSearchParams): boolean {
 export function DetailsColumn({
   baseCurrency,
   defaultTransactionId,
+  defaultAccountId,
   accountCount,
   isAccountFirst,
 }: DetailsColumnProps) {
@@ -54,8 +56,8 @@ export function DetailsColumn({
       <SelectedAccountDetails
         baseCurrency={baseCurrency}
         accountCount={accountCount}
-        defaultAccountId={undefined}
-        isKeptOpenOnDesktop={false}
+        defaultAccountId={defaultAccountId}
+        isKeptOpenOnDesktop
       />
     </div>
   );

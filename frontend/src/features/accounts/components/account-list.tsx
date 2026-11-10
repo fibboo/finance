@@ -21,9 +21,28 @@ import { readAccountRateText } from './account-rate';
 const ACCOUNT_SKELETON_COUNT = 3;
 const STRIP_PAGE_SHARE = 0.8;
 
-type AccountListProps = Readonly<{ baseCurrency: string; header?: ReactNode }>;
+function revealCard(card: HTMLElement | null): void {
+  const item = card?.closest('li');
+  const strip = card?.closest('ul');
+  if (item === null || item === undefined || strip === null || strip === undefined) {
+    return;
+  }
 
-export function AccountList({ baseCurrency, header }: AccountListProps) {
+  const itemBounds = item.getBoundingClientRect();
+  const stripBounds = strip.getBoundingClientRect();
+  const isFullyShown = itemBounds.left >= stripBounds.left && itemBounds.right <= stripBounds.right;
+  if (!isFullyShown) {
+    item.scrollIntoView({ block: 'nearest', inline: 'start', behavior: 'smooth' });
+  }
+}
+
+type AccountListProps = Readonly<{
+  baseCurrency: string;
+  topAccountId: string | undefined;
+  header?: ReactNode;
+}>;
+
+export function AccountList({ baseCurrency, topAccountId, header }: AccountListProps) {
   const { data: accountPage, isPending } = useQuery(
     accountQueries.list({
       size: ACCOUNT_PAGE_SIZE,
@@ -102,6 +121,7 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
               >
                 <Link
                   id={readAccountLinkId(account.id)}
+                  ref={account.id === selectedAccountId ? revealCard : undefined}
                   to={{
                     search: writeSelectedAccount({
                       searchParams,
@@ -110,7 +130,7 @@ export function AccountList({ baseCurrency, header }: AccountListProps) {
                   }}
                   preventScrollReset
                   aria-current={account.id === selectedAccountId ? 'true' : undefined}
-                  className={`${styles['account'] ?? ''} ${account.id === selectedAccountId ? (styles['selected'] ?? '') : ''}`}
+                  className={`${styles['account'] ?? ''} ${account.id === selectedAccountId ? (styles['selected'] ?? '') : ''} ${selectedAccountId === undefined && account.id === topAccountId ? (styles['shownByDefault'] ?? '') : ''}`}
                 >
                   <AccountMark account={account} />
                   <span className={styles['identity']}>

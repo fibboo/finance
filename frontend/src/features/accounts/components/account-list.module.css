@@ -157,6 +157,10 @@ a.account:focus-visible {
 }
 
 @media (pointer: fine) {
+  .accountItem {
+    scroll-margin-inline: calc(var(--size-touch) + var(--space-2));
+  }
+
   .previous,
   .next {
     position: absolute;
@@ -222,6 +226,10 @@ a.account:focus-visible {
 }
 
 @media (--desktop) {
+  .shownByDefault {
+    background: var(--color-selected);
+  }
+
   .accountList {
     padding: var(--space-4);
   }

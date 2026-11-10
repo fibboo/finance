@@ -34,6 +34,7 @@ export function Component() {
           <div className={styles['summaries']}>
             <AccountList
               baseCurrency={baseCurrency}
+              topAccountId={accountPage?.items[0]?.id}
               header={<TotalBalance baseCurrency={baseCurrency} />}
             />
             <MonthSummary baseCurrency={baseCurrency} />
@@ -47,6 +48,7 @@ export function Component() {
                   <DetailsColumn
                     baseCurrency={baseCurrency}
                     defaultTransactionId={topTransactionId}
+                    defaultAccountId={accountPage?.items[0]?.id}
                     accountCount={accountPage?.total}
                     isAccountFirst
                   />

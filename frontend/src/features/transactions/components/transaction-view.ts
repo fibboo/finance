@@ -1,3 +1,4 @@
+import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { LOCALE } from '@/lib/format-money';
@@ -26,6 +27,13 @@ const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZ
 export function readWeekdayDateText(isoDate: string): string {
   const weekdayDateText = `${WEEKDAY_FORMAT.format(new Date(`${isoDate}T00:00:00Z`))}, ${toDateText(isoDate)}`;
   return weekdayDateText;
+}
+
+export function readFirstMoneyAccountId(transaction: Readonly<Transaction>): string | undefined {
+  const firstMoneyAccountId = transaction.postings.find(
+    (posting) => isMoneyAccountKind(posting.account.kind) && !isDeletedAccount(posting.account),
+  )?.account.id;
+  return firstMoneyAccountId;
 }
 
 export function isDeletedAccount(account: Readonly<Account>): boolean {

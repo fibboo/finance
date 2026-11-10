@@ -7,7 +7,10 @@ import { Page } from '@/components/page/page';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
-import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
+import {
+  readSelectedTransactionId,
+  writeSelectedTransaction,
+} from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,
   hasNarrowingFilters,
@@ -21,6 +24,8 @@ import { FilterChips } from '@/features/transactions/components/filter-chips';
 import { readTopTransactionId } from '@/features/transactions/components/feed-transactions';
 import { NoMatchingTransactions } from '@/features/transactions/components/no-matching-transactions';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
+import { readFirstMoneyAccountId } from '@/features/transactions/components/transaction-view';
+import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useDateJump } from '@/features/transactions/hooks/use-date-jump';
 import { useTransactionFeed } from '@/features/transactions/hooks/use-transaction-feed';
 import { useToday } from '@/hooks/use-today';
@@ -99,6 +104,11 @@ export function Component() {
     anchorDate,
   });
   const topTransactionId = readTopTransactionId(feed);
+  const shownTransactionId = readSelectedTransactionId(searchParams) ?? topTransactionId;
+  const { data: shownTransaction } = useQuery({
+    ...transactionQueries.detail(shownTransactionId ?? ''),
+    enabled: shownTransactionId !== undefined,
+  });
   return (
     <Page title="Transactions" count={readTransactionCount(feed.total)}>
       {baseCurrency !== undefined &&
@@ -160,6 +170,11 @@ export function Component() {
             <DetailsColumn
               baseCurrency={baseCurrency}
               defaultTransactionId={topTransactionId}
+              defaultAccountId={
+                shownTransaction === undefined
+                  ? undefined
+                  : readFirstMoneyAccountId(shownTransaction)
+              }
               accountCount={moneyAccounts?.total}
               isAccountFirst={false}
             />

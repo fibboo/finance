@@ -150,7 +150,14 @@ test('hides Recent when the accounting dictionary fails to load', async () => {
   });
 });
 
-test('shows the details of the top recent transaction while none is chosen', async () => {
+test('shows the first account and the top recent transaction while none is chosen', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
+      HttpResponse.json(wallet),
+    ),
+  );
+
   // act
   render(<Component />);
 
@@ -160,7 +167,11 @@ test('shows the details of the top recent transaction while none is chosen', asy
     await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
   ).toBeInTheDocument();
   expect(details).not.toHaveFocus();
-  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  const accountDetails = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(
+    await within(accountDetails).findByRole('heading', { level: 2, name: 'Wallet' }),
+  ).toBeInTheDocument();
+  expect(accountDetails).not.toHaveFocus();
 });
 
 test('opens the details of a recent transaction on Home', async () => {

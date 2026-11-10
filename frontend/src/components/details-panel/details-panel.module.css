@@ -5,6 +5,7 @@
   inset: 0;
   z-index: 2;
   background: var(--color-backdrop);
+  animation: backdrop-in var(--duration-sheet) ease-out;
 }
 
 .detailsPanel {
@@ -23,6 +24,7 @@
   color: var(--color-ink);
   box-shadow: var(--shadow-popover);
   transition: transform var(--duration-sheet) ease-out;
+  animation: sheet-in var(--duration-sheet) ease-out;
 }
 
 .shownByDefault {
@@ -125,6 +127,7 @@
   }
 
   .detailsPanel {
+    animation-name: panel-in;
     position: static;
     z-index: auto;
     scroll-margin-top: var(--sticky-top, 0);
@@ -147,5 +150,24 @@
 
   .keptOpenOnDesktop .close {
     display: none;
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-3));
   }
 }
