@@ -1,0 +1,497 @@
+<title>Edit a transaction</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a board page of the app's own screens, phone boards side by side, desktop boards scaled to the page width. Tokens are the app's tokens.css. */
+:root {
+  --color-ground: #eeeeeb;
+  --color-panel: #ffffff;
+  --color-border: #e2e2de;
+  --color-ink: #17181a;
+  --color-muted: #5a5d64;
+  --color-placeholder: #9a9ea6;
+  --color-accent: #1f7a55;
+  --color-selected: #eaf3ee;
+  --color-bone: #e4e4e0;
+  --color-band: #f4f4f1;
+  --color-income-row: #e8f4ed;
+  --color-transfer-row: #e8eef9;
+  --color-adjustment-row: #f8efdf;
+  --color-danger: #b42318;
+  --color-backdrop: rgba(0, 0, 0, 0.35);
+  --mark-tint: 13%;
+
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-size-2xs: 0.6875rem;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.875rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  --font-size-heading: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.75rem;
+  --font-size-detail-amount: 2.25rem;
+
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius-badge: 0.5rem;
+  --radius-segment: 0.625rem;
+  --radius-action: 0.875rem;
+  --radius-panel: 1.25rem;
+  --radius-full: 999rem;
+
+  --size-dot: 0.5rem;
+  --size-border: 0.0625rem;
+  --size-touch: 2.75rem;
+  --size-icon: 1.25rem;
+  --size-sidebar: 14.5rem;
+  --size-details: 22.5rem;
+  --opacity-disabled: 0.5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+    --color-muted: #9a9ea6; --color-placeholder: #6b6f76; --color-accent: #4cc38a; --color-selected: #16241d; --color-bone: #24272b;
+    --color-band: #1e2125; --color-income-row: #14241c; --color-transfer-row: #172131;
+    --color-adjustment-row: #2a2216; --color-danger: #ff7a6b; --color-backdrop: rgba(0, 0, 0, 0.55); --mark-tint: 20%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+  --color-muted: #9a9ea6; --color-placeholder: #6b6f76; --color-accent: #4cc38a; --color-selected: #16241d; --color-bone: #24272b;
+  --color-band: #1e2125; --color-income-row: #14241c; --color-transfer-row: #172131;
+  --color-adjustment-row: #2a2216; --color-danger: #ff7a6b; --color-backdrop: rgba(0, 0, 0, 0.55); --mark-tint: 20%;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  color: var(--color-ink);
+  background: var(--color-ground);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+* { scrollbar-width: none; }
+
+.sheet {
+  max-width: 84rem;
+  margin: 0 auto;
+  padding-block: var(--space-6) var(--space-8);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.intro { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+.intro h1 { margin: 0; font-size: var(--font-size-3xl); letter-spacing: -0.02em; text-wrap: balance; }
+.intro p { margin: var(--space-2) 0 0; max-width: 46rem; color: var(--color-muted); }
+.themes { display: flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-panel); }
+.themes button {
+  font: inherit; font-size: var(--font-size-sm); border: 0; cursor: pointer;
+  padding: var(--space-1-5) var(--space-3); border-radius: var(--radius-full);
+  color: var(--color-muted); background: transparent;
+}
+.themes button[aria-pressed="true"] { color: var(--color-ink); background: var(--color-band); font-weight: 600; }
+.themes button:focus-visible { outline: 2px solid var(--color-ink); }
+
+section > h2 { margin: 0; font-size: var(--font-size-xl); }
+section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-muted); max-width: 52rem; }
+.boards { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start; }
+.variant { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; max-width: 100%; }
+.variant.wide { width: 100%; }
+.variantHead { display: flex; flex-direction: column; gap: var(--space-0-5); max-width: 24rem; }
+.variant.wide .variantHead { max-width: 40rem; }
+.variantHead b { font-size: var(--font-size-lg); }
+.variantHead span { font-size: var(--font-size-sm); color: var(--color-muted); }
+.frame { width: 100%; overflow: hidden; border-radius: var(--radius-panel); outline: var(--size-border) solid var(--color-border); }
+.board { background: var(--color-ground); transform-origin: 0 0; }
+
+/* phone */
+.phone { width: 390px; height: 844px; position: relative; overflow: hidden; padding: var(--space-4); }
+.pageTitle { margin: 0; font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.pageTitle small { margin-left: var(--space-2); font-size: var(--font-size-heading); color: var(--color-muted); font-weight: 500; letter-spacing: 0; }
+.chips { display: flex; gap: var(--space-1-5); margin-top: var(--space-3); overflow: hidden; }
+.chip { flex: none; padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); background: var(--color-panel); font-size: var(--font-size-sm); }
+.panel { background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-3) var(--space-3-5); margin-top: var(--space-3); }
+.backdrop { position: absolute; inset: 0; background: var(--color-backdrop); }
+.bottomSheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: var(--space-2) var(--space-5) var(--space-6);
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0; background: var(--color-panel);
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.handle { width: 2.5rem; height: 0.3125rem; margin: 0 auto; border-radius: var(--radius-full); background: var(--color-bone); }
+
+/* list */
+.list { display: grid; column-gap: var(--space-2-5); grid-template-columns: var(--size-dot) minmax(0, 1fr) max-content; }
+.dayHead, .row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.dayHead {
+  min-height: 1.5rem; margin: var(--space-1) calc(var(--space-2) * -1); padding: 0 var(--space-2);
+  border-radius: var(--radius-badge); background: var(--color-band); font-size: var(--font-size-xs);
+}
+.dayHead b { grid-column: 1 / -2; font-weight: 600; }
+.dayHead span { grid-column: -2; justify-self: end; color: var(--color-muted); }
+.row { --tint: transparent; position: relative; isolation: isolate; min-height: 2.75rem; padding-block: var(--space-1-5); font-size: var(--font-size-sm); }
+.row + .row { border-top: var(--size-border) solid var(--color-border); }
+.row::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-badge); background: var(--tint); }
+.row.income { --tint: var(--color-income-row); }
+.row.transfer { --tint: var(--color-transfer-row); }
+.row.selected::before { background: color-mix(in oklab, var(--tint, var(--color-panel)), var(--color-ink) 10%); }
+.row.selected:not(.income):not(.transfer)::before { background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
+.dot { width: var(--size-dot); height: var(--size-dot); border-radius: var(--radius-full); background: currentColor; align-self: center; flex: none; }
+.inlineDot { display: inline-block; width: var(--size-dot); height: var(--size-dot); margin-right: 0.3125rem; border-radius: var(--radius-full); background: currentColor; vertical-align: 0.0625rem; }
+.text { min-width: 0; display: flex; flex-direction: column; }
+.title, .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { font-size: var(--font-size-2xs); color: var(--color-muted); line-height: 1.35; }
+.amounts { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.amount { font-weight: 500; text-align: right; white-space: nowrap; }
+.amount.in { color: var(--color-accent); }
+.orig { font-size: var(--font-size-2xs); color: var(--color-muted); text-align: right; white-space: nowrap; line-height: 1.35; }
+.struck { text-decoration: line-through; color: var(--color-muted); }
+
+/* desktop */
+.desktop { width: 1280px; height: 800px; padding: var(--space-4); display: flex; gap: var(--space-6); overflow: hidden; position: relative; }
+.sidebar { flex: none; width: var(--size-sidebar); align-self: flex-start; padding: var(--space-5) var(--space-4); border-radius: var(--radius-panel); background: var(--color-panel); display: flex; flex-direction: column; gap: var(--space-2); }
+.logo { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-1) var(--space-3); font-size: var(--font-size-xl); font-weight: 700; }
+.logo i { width: 0.6rem; height: 0.6rem; border-radius: 0.15rem; background: var(--color-accent); }
+.addBtn { padding: var(--space-3); border-radius: var(--radius-action); background: var(--color-bone); text-align: center; font-weight: 600; margin-bottom: var(--space-3); }
+.nav { padding: var(--space-3); border-radius: var(--radius-action); color: var(--color-muted); }
+.nav.on { background: var(--color-ground); color: var(--color-ink); font-weight: 600; }
+.main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.topRow { display: flex; justify-content: space-between; align-items: center; min-height: 3rem; }
+.avatar { width: 3rem; height: 3rem; border-radius: var(--radius-full); background: var(--color-panel); display: grid; place-items: center; font-weight: 600; font-size: var(--font-size-md); }
+.desktop .chips { margin-top: var(--space-4); }
+.desktop .chip { font-size: var(--font-size-md); padding: var(--space-1-5) var(--space-3-5); }
+.content { display: flex; gap: var(--space-4); align-items: flex-start; margin-top: var(--space-4); min-height: 0; }
+.desktop .panel { margin-top: 0; padding: var(--space-2) var(--space-5) var(--space-4); flex: 1 1 auto; min-width: 0; }
+.desktop .list { column-gap: var(--space-4); }
+.desktop .dayHead { min-height: 1.875rem; border-radius: var(--radius-segment); font-size: var(--font-size-sm); }
+.desktop .row { min-height: 3.25rem; font-size: var(--font-size-base); }
+.desktop .row + .row { border-top: 0; }
+.desktop .row::before { border-radius: var(--radius-segment); }
+.desktop .sub, .desktop .orig { font-size: var(--font-size-sm); }
+
+/* details */
+.details { flex: 0 0 var(--size-details); background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+.bottomSheet.detailsSheet { gap: var(--space-4); }
+.dHead { display: flex; justify-content: space-between; gap: var(--space-3); }
+.meta { font-size: var(--font-size-sm); color: var(--color-muted); }
+.dTitle { margin: var(--space-1) 0 0; font-size: var(--font-size-heading); font-weight: 600; }
+.close { width: var(--size-touch); height: var(--size-touch); margin: calc(var(--space-2) * -1) calc(var(--space-3) * -1) 0 0; display: grid; place-items: center; color: var(--color-muted); flex: none; }
+.amountLine { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.big { font-size: var(--font-size-detail-amount); font-weight: 600; line-height: 1.1; letter-spacing: -0.03em; }
+.postings { padding: var(--space-1) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.postings h4 { margin: 0; padding: var(--space-2-5) 0 var(--space-1); font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); }
+.posting { min-height: 3.25rem; display: flex; align-items: center; gap: var(--space-3); }
+.posting .text { flex: 1 1 auto; }
+.facts { margin: 0; display: grid; grid-template-columns: 5.75rem minmax(0, 1fr); row-gap: var(--space-1-5); font-size: var(--font-size-md); }
+.facts dt { color: var(--color-muted); }
+.facts dd { margin: 0; }
+.del { min-height: 3.25rem; border-radius: var(--radius-action); background: var(--color-ground); display: grid; place-items: center; color: var(--color-danger); font-weight: 600; }
+.details > .del { margin-top: auto; }
+.action { min-height: var(--size-touch); border-radius: var(--radius-action); background: var(--color-ground); display: flex; align-items: center; justify-content: center; gap: var(--space-2); font-weight: 600; font-size: var(--font-size-md); }
+.action.square { width: var(--size-touch); flex: none; }
+.action.blocked { opacity: var(--opacity-disabled); }
+.action.grow { flex: 1 1 0; min-height: 3.25rem; }
+.action.danger { color: var(--color-danger); }
+.bottomRow { display: flex; gap: var(--space-2); }
+.action { position: relative; }
+.action.pressed { opacity: 1; }
+.action.pressed > .icon { opacity: var(--opacity-disabled); }
+.tip {
+  position: absolute; bottom: calc(100% + var(--space-2)); right: 0; z-index: 1; width: max-content; max-width: 15rem;
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-segment);
+  background: var(--color-ink); color: var(--color-panel); font-size: var(--font-size-sm); font-weight: 500; line-height: 1.35; text-align: left;
+}
+.tip::after { content: ''; position: absolute; top: 100%; right: 1.125rem; border: 0.375rem solid transparent; border-top-color: var(--color-ink); }
+.bottomRow > .action:first-child .tip { left: 0; right: auto; }
+.bottomRow > .action:first-child .tip::after { left: 1.125rem; right: auto; }
+.hint { display: flex; align-items: center; justify-content: center; gap: var(--space-1-5); }
+.hintIcon { display: inline-flex; }
+.hintIcon .icon { width: 1rem; height: 1rem; }
+.bottomRow .square { width: 3.25rem; min-height: 3.25rem; }
+.details > .bottomRow, .details > .hint:has(+ .bottomRow) { margin-top: auto; }
+.details > .hint + .bottomRow { margin-top: 0; }
+.icon { width: var(--size-icon); height: var(--size-icon); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hint { font-size: var(--font-size-sm); color: var(--color-muted); text-align: center; margin-bottom: calc(var(--space-2) * -1); }
+.accountsTiles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--space-2); }
+.mark { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-segment); display: grid; place-items: center; font-size: var(--font-size-lg); font-weight: 600; color: var(--c); background: color-mix(in oklab, var(--c) var(--mark-tint), var(--color-panel)); flex: none; }
+.aHead { display: flex; gap: var(--space-3); align-items: center; }
+.detailsColumn { flex: 0 0 var(--size-details); display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* form */
+.dialog {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 440px;
+  padding: var(--space-5) var(--space-6) var(--space-6); border-radius: var(--radius-panel);
+  display: flex; flex-direction: column; gap: var(--space-3-5); background: var(--color-panel);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+}
+.dialogOnly { width: 488px; height: 720px; padding: var(--space-6); position: relative; }
+.formHead { height: 2rem; display: flex; align-items: center; justify-content: space-between; }
+.formHead h2 { margin: 0; font-size: var(--font-size-xl); font-weight: 600; }
+.formHead .close { margin: 0 calc(var(--space-3) * -1) 0 0; }
+.amountField { display: flex; flex-direction: column; gap: var(--space-0-5); }
+.amountField label { font-size: var(--font-size-sm); color: var(--color-muted); }
+.amountValue { display: flex; align-items: baseline; gap: var(--space-2); }
+.amountValue b { flex: 1 1 auto; font-size: var(--font-size-detail-amount); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+.amountValue span { font-size: 1.0625rem; font-weight: 600; color: var(--color-muted); }
+.rows { padding: 0 var(--space-3-5); border-radius: var(--radius-action); display: flex; flex-direction: column; background: var(--color-ground); }
+.formRow { min-height: 3rem; display: flex; align-items: center; gap: var(--space-2-5); }
+.formRow + .formRow { border-top: var(--size-border) solid var(--color-border); }
+.formRow .label { width: 5.75rem; flex: none; font-size: var(--font-size-sm); color: var(--color-muted); }
+.formRow .value { flex: 1 1 auto; min-width: 0; font-size: var(--font-size-base); }
+.formRow .value.placeholder { color: var(--color-placeholder); }
+.formRow .note { font-size: var(--font-size-sm); color: var(--color-muted); }
+.formRow .chev { width: 1rem; height: 1rem; color: var(--color-muted); }
+.formRow .cur { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-muted); }
+.check { min-height: 2.75rem; display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-base); }
+.box { width: 1.125rem; height: 1.125rem; border-radius: 0.25rem; border: 0.125rem solid var(--color-muted); }
+.box.on { border-color: var(--color-accent); background: var(--color-accent); }
+.submit { min-height: 3rem; border-radius: var(--radius-action); display: grid; place-items: center; font-weight: 600; background: var(--color-ink); color: var(--color-panel); }
+.bottomSheet.formSheet { gap: var(--space-3-5); padding-top: var(--space-2); }
+
+.notes { margin: 0; padding-left: var(--space-5); color: var(--color-muted); font-size: var(--font-size-sm); display: flex; flex-direction: column; gap: var(--space-1); max-width: 52rem; }
+.notes b { color: var(--color-ink); font-weight: 600; }
+</style>
+
+<div class="sheet">
+  <header class="intro">
+    <div>
+      <h1>Edit a transaction</h1>
+      <p>Edit sits at the bottom of a transaction's details, beside Delete, and opens the form of its type, filled in, under the title Edit &lt;type&gt; and without the type chips. A balance adjustment has no Edit. Base currency USD in every board.</p>
+    </div>
+    <div class="themes" role="group" aria-label="Theme">
+      <button type="button" id="theme-system" data-theme-choice="">System</button>
+      <button type="button" id="theme-light" data-theme-choice="light">Light</button>
+      <button type="button" id="theme-dark" data-theme-choice="dark">Dark</button>
+    </div>
+  </header>
+
+  <section>
+    <h2>1 · Details on a phone</h2>
+    <p class="lead">Agreed: D2. Edit and Delete share the bottom row as two equal icon tiles, in the transaction's details and in the account's.</p>
+    <div class="boards" id="detailsVariants"></div>
+  </section>
+
+  <section>
+    <h2>2 · Transactions on desktop</h2>
+    <p class="lead">The same details in the column on the right.</p>
+    <div class="boards" id="desktopBoards"></div>
+  </section>
+
+  <section>
+    <h2>3 · The edit form</h2>
+    <p class="lead">The add form of the type, filled with the transaction's values. The title names the type, the type chips are gone, and the button reads Save changes. Pickers list only accounts of the same kind, so the type cannot change.</p>
+    <div class="boards" id="formBoards"></div>
+  </section>
+
+  <section>
+    <h2>What changes</h2>
+    <ul class="notes">
+      <li><b>Edit</b> shows in the details of an expense, an income and a transfer; an adjustment keeps only Delete, as a full-width trash tile.</li>
+      <li><b>Delete becomes a trash icon</b> in the danger color, in the transaction's and the account's details; a blocking hint stays above the row.</li>
+      <li><b>The account's Edit</b> moves from the top row to the bottom one, beside Delete.</li>
+      <li><b>Saving</b> closes the form, keeps the transaction's details open and refreshes the list, the summary and the account balances.</li>
+      <li><b>A refusal</b> shows at its field or above Save changes, as in the add form; the form stays open.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const C = { blue: '#4b8fd6', purple: '#6b6fe0', orange: '#e0793b', teal: '#2aa6a6', brown: '#a0784f', green: '#2bb07f' };
+  const EDIT = '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
+  const CLOSE = '<span class="close"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span>';
+  const CHEV = '<svg class="chev icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>';
+
+  const rows = [
+    { type: 'expense', title: 'Coffee', sub: 'Wallet · USD', color: C.blue, amount: '-$4.50', selected: true },
+    { type: 'expense', title: 'Groceries', sub: '<span class="struck">Wallet 2</span> · USD', color: C.orange, amount: '-$42.10' },
+    { type: 'income', title: 'Salary', sub: 'Main card · EUR · 0.8547', color: C.purple, amount: '$3,510.00', orig: '€3,000.00' },
+    { type: 'transfer', title: `<span class="struck">Wallet 2</span> → <span class="inlineDot" style="color:${C.blue}"></span>Wallet`, sub: 'USD', color: C.orange, amount: '$389.10' },
+    { type: 'expense', title: 'Rent', sub: 'Main card · EUR · 0.8547', color: C.purple, amount: '-$1,053.00', orig: '-€900.00' },
+  ];
+  const list = (selectedIndex) => `<div class="list"><div class="dayHead"><b>Today</b><span>-$1,600.60</span></div>${rows.map((row, index) =>
+    `<div class="row ${row.type}${index === selectedIndex ? ' selected' : ''}"><span class="dot" style="color:${row.color}"></span><span class="text"><span class="title">${row.title}</span><span class="sub">${row.sub}</span></span><span class="amounts"><span class="amount${row.type === 'income' ? ' in' : ''}">${row.amount}</span>${row.orig ? `<span class="orig">${row.orig}</span>` : ''}</span></div>`).join('')}</div>`;
+
+  const coffee = {
+    meta: 'Expense · Tue, 10.11.2026', title: 'Coffee', amount: '-$4.50',
+    postings: [
+      { dot: C.blue, name: 'Wallet ›', sub: 'Asset · USD', amount: '-$4.50' },
+      { dot: C.brown, name: 'Coffee', sub: 'Expense · USD', amount: '+$4.50' },
+    ],
+    facts: [['Location', 'Coffee Lab'], ['Comment', 'With Anna']],
+  };
+  const transfer = {
+    meta: 'Transfer · Tue, 10.11.2026', title: 'Transfer <span class="struck">Wallet 2</span> → Wallet', amount: '$389.10',
+    postings: [
+      { dot: C.blue, name: 'Wallet ›', sub: 'Asset · USD', amount: '+$389.10' },
+      { dot: C.orange, name: '<span class="struck">Wallet 2</span>', sub: 'Asset · USD', amount: '-$389.10' },
+    ],
+    facts: [],
+  };
+  const postings = (tx) => `<div class="postings"><h4>Postings</h4>${tx.postings.map((posting) =>
+    `<div class="posting"><span class="dot" style="color:${posting.dot}"></span><span class="text"><span>${posting.name}</span><span class="sub">${posting.sub}</span></span><span class="amount">${posting.amount}</span></div>`).join('')}</div>`;
+  const facts = (tx) => tx.facts.length === 0 ? '' : `<dl class="facts">${tx.facts.map(([term, value]) => `<dt>${term}</dt><dd>${value}</dd>`).join('')}</dl>`;
+
+  const editPlacements = {
+    A: { amount: (tx) => `<div class="big">${tx.amount}</div>`, under: (blocked) => `<div class="action${blocked ? ' blocked' : ''}" aria-label="Edit">${EDIT}</div>` },
+    B: { amount: (tx) => `<div class="big">${tx.amount}</div>`, under: (blocked) => `<div class="action${blocked ? ' blocked' : ''}">${EDIT}Edit</div>` },
+    C: { amount: (tx, blocked) => `<div class="amountLine"><div class="big">${tx.amount}</div><div class="action square${blocked ? ' blocked' : ''}" aria-label="Edit">${EDIT}</div></div>`, under: () => '' },
+  };
+  const TRASH = '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+  const bottomRows = {
+    D1: (blocked) => `<div class="bottomRow"><div class="action grow${blocked ? ' blocked' : ''}">${EDIT}Edit</div><div class="action square danger" aria-label="Delete transaction">${TRASH}</div></div>`,
+    D2: (blocked, tipShown) => `<div class="bottomRow"><div class="action grow${blocked ? ' blocked' : ''}${tipShown ? ' pressed' : ''}" aria-label="Edit">${EDIT}${tipShown ? `<span class="tip" role="tooltip">${BLOCKED_EDIT}</span>` : ''}</div><div class="action grow danger" aria-label="Delete transaction">${TRASH}</div></div>`,
+  };
+  const BLOCKED_EDIT = 'Wallet 2 is deleted, so this transaction can\'t be edited.';
+  const blockedHint = `<div class="hint"><span class="hintIcon">${EDIT}</span>${BLOCKED_EDIT}</div>`;
+  const detailsBody = ({ tx, placement, blocked, closeButton, tipShown }) => {
+    if (bottomRows[placement]) {
+      return `<div class="dHead"><div><div class="meta">${tx.meta}</div><h4 class="dTitle">${tx.title}</h4></div>${closeButton ? CLOSE : ''}</div>
+        <div class="big">${tx.amount}</div>${postings(tx)}${facts(tx)}${blocked ? blockedHint : ''}${bottomRows[placement](blocked, tipShown)}`;
+    }
+    const edit = editPlacements[placement];
+    const hint = blocked ? blockedHint : '';
+    const under = edit.under(blocked);
+    return `<div class="dHead"><div><div class="meta">${tx.meta}</div><h4 class="dTitle">${tx.title}</h4></div>${closeButton ? CLOSE : ''}</div>
+      ${placement === 'C' ? hint : ''}${edit.amount(tx, blocked)}${under ? hint + under : ''}${postings(tx)}${facts(tx)}<div class="del">Delete transaction</div>`;
+  };
+
+  const phoneList = (selectedIndex) => `<h3 class="pageTitle">Transactions<small>-$1,600.60</small></h3>
+    <div class="chips">${['Period', 'Type', 'Accounts', 'Categories', 'Income'].map((chip) => `<span class="chip">${chip}</span>`).join('')}</div>
+    <div class="panel">${list(selectedIndex)}</div>`;
+  const phoneDetails = ({ tx, placement, blocked, selectedIndex, tipShown }) => `
+    <div class="board phone">${phoneList(selectedIndex)}<div class="backdrop"></div>
+      <div class="bottomSheet detailsSheet"><div class="handle"></div>${detailsBody({ tx, placement, blocked, closeButton: true, tipShown })}</div>
+    </div>`;
+
+  const sidebar = `<aside class="sidebar"><div class="logo"><i></i>finance</div><div class="addBtn">+ Add transaction</div>${['Home', 'Transactions', 'Accounts'].map((item) => `<div class="nav${item === 'Transactions' ? ' on' : ''}">${item}</div>`).join('')}</aside>`;
+  const ADJUST = '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg>';
+  const LIST = '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></svg>';
+  const DELETE_HINT = 'Bring the balance to zero to delete the account.';
+  const hintFor = (icon, text) => `<div class="hint"><span class="hintIcon">${icon}</span>${text}</div>`;
+  const tip = (text) => `<span class="tip" role="tooltip">${text}</span>`;
+  const walletBody = (closeButton, tipShown) => `<div class="aHead"><span class="mark" style="--c:${C.blue}">W</span><div><div class="meta">Asset · USD</div><h4 class="dTitle">Wallet</h4></div>${closeButton ? CLOSE.replace('class="close"', 'class="close" style="margin-left:auto;align-self:flex-start"') : ''}</div>
+    <div class="big">$389.10</div>
+    <p class="meta" style="margin:0">Cash for the week</p>
+    ${hintFor(TRASH, DELETE_HINT)}
+    <div class="bottomRow"><span class="action grow" aria-label="Adjust balance">${ADJUST}</span><span class="action grow" aria-label="Transactions">${LIST}</span><span class="action grow" aria-label="Edit">${EDIT}</span><span class="action grow danger blocked${tipShown ? ' pressed' : ''}" aria-label="Delete account">${TRASH}${tipShown ? tip(DELETE_HINT) : ''}</span></div>`;
+  const walletDetails = `<aside class="details">${walletBody(false, true)}</aside>`;
+  const phoneAccount = (tipShown) => `
+    <div class="board phone">${phoneList(0)}<div class="backdrop"></div>
+      <div class="bottomSheet detailsSheet"><div class="handle"></div>${walletBody(true, tipShown)}</div>
+    </div>`;
+  const desktopBoard = ({ placement, overlay }) => `
+    <div class="board desktop">${sidebar}
+      <div class="main">
+        <div class="topRow"><h3 class="pageTitle">Transactions<small>-$1,600.60</small></h3><span class="avatar">FI</span></div>
+        <div class="chips">${['Period', 'Type', 'Accounts', 'Categories', 'Income', 'Amount', 'Sort'].map((chip) => `<span class="chip">${chip}</span>`).join('')}</div>
+        <div class="content"><div class="panel">${list(0)}</div><div class="detailsColumn"><aside class="details">${detailsBody({ tx: coffee, placement, blocked: false, closeButton: false })}</aside>${walletDetails}</div></div>
+      </div>
+      ${overlay ?? ''}
+    </div>`;
+
+  const forms = {
+    expense: { title: 'Edit expense', amountLabel: 'Amount', amount: '4.50', currency: 'USD', hint: '',
+      rows: [['From', 'Wallet', C.blue, '$389.10'], ['Category', 'Coffee', C.brown, ''], ['Location', 'Coffee Lab', '', ''], ['Date', '10.11.2026', '', '']],
+      check: 'Paid in another currency', checked: false, extra: [], comment: 'With Anna' },
+    income: { title: 'Edit income', amountLabel: 'Amount received', amount: '3,000.00', currency: 'EUR', hint: '≈ $3,510.00',
+      rows: [['Source', 'Salary', C.green, ''], ['To', 'Main card', C.purple, '€12,450.00'], ['For month', 'October 2026', '', ''], ['Date', '10.11.2026', '', '']],
+      check: 'Paid in another currency', checked: false, extra: [], comment: 'October' },
+    transfer: { title: 'Edit transfer', amountLabel: 'Amount sent', amount: '500.00', currency: 'EUR', hint: '',
+      rows: [['From', 'Main card', C.purple, '€12,450.00'], ['To', 'Deposit', C.teal, '₾1,145.70'], ['Date', '09.11.2026', '', '']],
+      check: '', checked: true, extra: [['Amount received', '1,455.00', 'GEL']], comment: '' },
+  };
+  const formBody = (form) => `
+    <div class="formHead"><h2>${form.title}</h2>${CLOSE}</div>
+    <div class="amountField"><label>${form.amountLabel}</label><div class="amountValue"><b>${form.amount}</b><span>${form.currency}</span></div>${form.hint ? `<span class="meta">${form.hint}</span>` : ''}</div>
+    <div class="rows">${form.rows.map(([label, value, dot, note]) => `<div class="formRow"><span class="label">${label}</span>${dot ? `<span class="dot" style="color:${dot}"></span>` : ''}<span class="value">${value}</span>${note ? `<span class="note">${note}</span>` : ''}${CHEV}</div>`).join('')}</div>
+    ${form.check ? `<div class="check"><span class="box${form.checked ? ' on' : ''}"></span>${form.check}</div>` : ''}
+    ${form.extra.length ? `<div class="rows">${form.extra.map(([label, value, currency]) => `<div class="formRow"><span class="label">${label}</span><span class="value">${value}</span><span class="cur">${currency}</span></div>`).join('')}</div>` : ''}
+    <div class="rows"><div class="formRow"><span class="label">Comment</span><span class="value${form.comment ? '' : ' placeholder'}">${form.comment || 'Optional'}</span></div></div>
+    <div class="submit">Save changes</div>`;
+  const dialogBoard = (form) => `<div class="board dialogOnly"><div class="dialog">${formBody(form)}</div></div>`;
+  const phoneFormBoard = (form) => `
+    <div class="board phone">${phoneList(0)}<div class="backdrop"></div>
+      <div class="bottomSheet formSheet"><div class="handle"></div>${formBody(form)}</div>
+    </div>`;
+
+  const variant = ({ id, name, note, board, width, wide }) =>
+    `<div class="variant${wide ? ' wide' : ''}" id="${id}"><div class="variantHead"><b>${name}</b><span>${note}</span></div><div class="frame" data-board-width="${width}">${board}</div></div>`;
+
+  document.getElementById('detailsVariants').innerHTML = [
+    variant({ id: 'transaction-details-phone', width: 390, name: 'Transaction details', note: 'At the bottom: the pencil and the trash, each half the width; both names are read out and shown on hover.', board: phoneDetails({ tx: coffee, placement: 'D2', selectedIndex: 0 }) }),
+    variant({ id: 'transaction-edit-blocked-phone', width: 390, name: 'An account is deleted', note: 'A transfer from the deleted Wallet 2: Edit is dimmed under the reason; Delete stays.', board: phoneDetails({ tx: transfer, placement: 'D2', blocked: true, selectedIndex: 3 }) }),
+    variant({ id: 'transaction-edit-tapped-phone', width: 390, name: 'Tapping the blocked Edit', note: 'A tap on a blocked button shows its reason in a bubble over it, which closes on the next tap anywhere or after a few seconds.', board: phoneDetails({ tx: transfer, placement: 'D2', blocked: true, selectedIndex: 3, tipShown: true }) }),
+    variant({ id: 'account-details-phone', width: 390, name: 'Account details', note: 'All four actions in one row: Adjust balance, Transactions, Edit, Delete. The balance is not zero, so Delete is dimmed and its hint above the row starts with the trash icon.', board: phoneAccount(false) }),
+    variant({ id: 'account-delete-tapped-phone', width: 390, name: 'Tapping the blocked Delete', note: 'The same bubble over the trash.', board: phoneAccount(true) }),
+  ].join('');
+
+  document.getElementById('desktopBoards').innerHTML =
+    variant({ id: 'transactions-desktop', width: 1280, wide: true, name: 'Transactions', note: 'The top transaction\'s details over its account. The pointer rests on the account\'s blocked Delete, which shows its reason in a tooltip.', board: desktopBoard({ placement: 'D2' }).replace('class="board desktop"', 'class="board desktop" style="height: 960px"') });
+
+  document.getElementById('formBoards').innerHTML = [
+    variant({ id: 'edit-expense-phone', width: 390, name: 'Edit expense on a phone', note: 'The form slides up as a sheet over the details.', board: phoneFormBoard(forms.expense) }),
+    variant({ id: 'edit-expense-desktop', width: 1280, wide: true, name: 'Edit expense on desktop', note: 'A centered dialog over the Transactions page.', board: desktopBoard({ placement: 'D2', overlay: `<div class="backdrop"></div><div class="dialog">${formBody(forms.expense)}</div>` }) }),
+    variant({ id: 'edit-income-desktop', width: 488, name: 'Edit income', note: 'Paid in another currency stays as the add form has it.', board: dialogBoard(forms.income) }),
+    variant({ id: 'edit-transfer-desktop', width: 488, name: 'Edit transfer', note: 'Amount received shows because the currencies differ.', board: dialogBoard(forms.transfer) }),
+  ].join('');
+
+  const params = new URLSearchParams(location.search);
+  const screen = params.get('screen');
+  if (screen) {
+    const board = document.querySelector(`#${screen} .board`);
+    document.documentElement.dataset.theme = params.get('theme') ?? 'dark';
+    document.body.replaceChildren(board);
+    document.body.style.width = 'max-content';
+    return;
+  }
+
+  const fitBoards = () => {
+    document.querySelectorAll('.frame').forEach((frame) => {
+      const board = frame.firstElementChild;
+      const width = Number(frame.dataset.boardWidth);
+      const available = frame.parentElement.parentElement.clientWidth;
+      const scale = Math.min(1, available / width);
+      board.style.transform = `scale(${scale})`;
+      frame.style.width = `${width * scale}px`;
+      frame.style.height = `${board.offsetHeight * scale}px`;
+    });
+  };
+  new ResizeObserver(fitBoards).observe(document.querySelector('.sheet'));
+  document.fonts?.ready.then(fitBoards);
+  fitBoards();
+
+  const buttons = document.querySelectorAll('[data-theme-choice]');
+  const applyTheme = (choice) => {
+    if (choice) document.documentElement.dataset.theme = choice;
+    else delete document.documentElement.dataset.theme;
+    buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === choice)));
+    try { localStorage.setItem('edit-transaction-theme', choice); } catch {}
+  };
+  buttons.forEach((button) => button.addEventListener('click', () => applyTheme(button.dataset.themeChoice)));
+  let saved = '';
+  try { saved = localStorage.getItem('edit-transaction-theme') ?? ''; } catch {}
+  applyTheme(saved);
+})();
+</script>
