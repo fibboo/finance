@@ -1,4 +1,5 @@
 import { act, screen, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -258,4 +259,65 @@ test('names the day again after midnight', () => {
 
   // assert
   expect(screen.getByRole('heading', { name: 'Yesterday' })).toBeInTheDocument();
+});
+
+test('moves the selection through the rows of every day with the arrow keys', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const transactions = [
+    {
+      ...transaction,
+      postings: [
+        { ...posting, amount: '-42.80', base_amount: '-42.80', account: wallet },
+        { ...posting, amount: '42.80', base_amount: '42.80', account: category },
+      ],
+    },
+    {
+      ...transaction,
+      id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+      transaction_date: '2026-10-19',
+      postings: [
+        { ...posting, amount: '-4.50', base_amount: '-4.50', account: wallet },
+        {
+          ...posting,
+          amount: '4.50',
+          base_amount: '4.50',
+          account: { ...category, name: 'Cafes' },
+        },
+      ],
+    },
+    {
+      ...transaction,
+      id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c42',
+      transaction_date: '2026-10-15',
+      postings: [
+        { ...posting, amount: '-9.00', base_amount: '-9.00', account: wallet },
+        { ...posting, amount: '9.00', base_amount: '9.00', account: { ...category, name: 'Taxi' } },
+      ],
+    },
+  ] satisfies components['schemas']['Transaction'][];
+  render(
+    <TransactionDayList
+      transactions={transactions}
+      baseCurrency="USD"
+      transactionTypes={[
+        { key: 'TRANSFER', label: 'Transfer' },
+        { key: 'ADJUSTMENT', label: 'Adjustment' },
+      ]}
+      topTransactionId={undefined}
+      isGroupedByDay
+    />,
+  );
+  await user.tab();
+
+  // act
+  // past the last row the selection stays, so Up from there returns to the row of yesterday
+  await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowUp}');
+
+  // assert
+  const cafes = screen.getByRole('link', { name: 'Cafes' });
+  expect(cafes).toHaveFocus();
+  expect(cafes).toHaveAttribute('aria-current', 'true');
+  expect(screen.getByRole('link', { name: 'Groceries' })).not.toHaveAttribute('aria-current');
+  expect(screen.getByRole('link', { name: 'Taxi' })).not.toHaveAttribute('aria-current');
 });

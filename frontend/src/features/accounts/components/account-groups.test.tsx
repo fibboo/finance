@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { expect, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -123,3 +124,95 @@ test('shows the groups as loading while the accounts are pending', () => {
   expect(screen.queryByRole('region')).not.toBeInTheDocument();
   expect(screen.getAllByRole('listitem')).toHaveLength(3);
 });
+
+test('moves the selection through the rows of both groups with the arrow keys', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <AccountGroups
+      accounts={[wallet, savings, intesaCredit]}
+      topAccountId={undefined}
+      baseCurrency="USD"
+    />,
+  );
+  await user.tab();
+
+  // act
+  // past the last row the selection stays, so Up from there returns to the last asset
+  await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowUp}');
+
+  // assert
+  const savingsLink = screen.getByRole('link', { name: 'Savings' });
+  expect(savingsLink).toHaveFocus();
+  expect(savingsLink).toHaveAttribute('aria-current', 'true');
+  expect(screen.getByRole('link', { name: 'Wallet' })).not.toHaveAttribute('aria-current');
+  expect(screen.getByRole('link', { name: 'Intesa credit' })).not.toHaveAttribute('aria-current');
+});
+
+test('moves the selection from the selected row with the arrow keys while the focus is outside the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <AccountGroups
+      accounts={[wallet, savings, intesaCredit]}
+      topAccountId={undefined}
+      baseCurrency="USD"
+    />,
+    { initialEntries: [`/?account=${savings.id}`] },
+  );
+
+  // act
+  await user.keyboard('{ArrowDown}');
+
+  // assert
+  const intesaLink = screen.getByRole('link', { name: 'Intesa credit' });
+  expect(intesaLink).toHaveFocus();
+  expect(intesaLink).toHaveAttribute('aria-current', 'true');
+});
+
+test.each([
+  // the top row shows its details by default, so Down goes on from it
+  { topAccountId: savings.id, nextAccountName: 'Intesa credit' },
+  // without a row shown by default Down starts at the first row
+  { topAccountId: undefined, nextAccountName: 'Wallet' },
+])(
+  'moves the selection on from the row shown by default ($topAccountId) while none is selected or focused',
+  async ({ topAccountId, nextAccountName }) => {
+    // arrange
+    const user = userEvent.setup();
+    render(
+      <AccountGroups
+        accounts={[wallet, savings, intesaCredit]}
+        topAccountId={topAccountId}
+        baseCurrency="USD"
+      />,
+    );
+
+    // act
+    await user.keyboard('{ArrowDown}');
+
+    // assert
+    const nextLink = screen.getByRole('link', { name: nextAccountName });
+    expect(nextLink).toHaveFocus();
+    expect(nextLink).toHaveAttribute('aria-current', 'true');
+  },
+);
+
+test.each(['Shift', 'Control', 'Alt', 'Meta'])(
+  'keeps the selection on Up at the first row and on Down with %s held',
+  async (modifier) => {
+    // arrange
+    const user = userEvent.setup();
+    render(
+      <AccountGroups accounts={[wallet, savings]} topAccountId={undefined} baseCurrency="USD" />,
+    );
+    await user.tab();
+
+    // act
+    await user.keyboard(`{ArrowUp}{${modifier}>}{ArrowDown}{/${modifier}}`);
+
+    // assert
+    expect(screen.getByRole('link', { name: 'Wallet' })).toHaveFocus();
+    expect(screen.queryByRole('link', { current: true })).not.toBeInTheDocument();
+  },
+);

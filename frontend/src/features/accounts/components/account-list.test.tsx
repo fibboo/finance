@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { expect, test, vi } from 'vitest';
 
@@ -192,4 +193,33 @@ test('links every card to its account, marks the selected one and links All to t
   expect(freelance).not.toHaveAttribute('aria-current');
   expect(screen.getByRole('link', { name: /^Wallet/ })).toHaveAttribute('aria-current', 'true');
   expect(screen.getByRole('link', { name: 'All' })).toHaveAttribute('href', '/accounts');
+});
+
+test('moves through the cards with the Left and Right arrow keys', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: accounts,
+        total: 3,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  render(
+    <AccountList baseCurrency="USD" chosenAccountId={undefined} defaultAccountId={undefined} />,
+  );
+  await screen.findByRole('link', { name: /^Main card/ });
+  await user.tab();
+  await user.tab();
+
+  // act
+  // past the last card the focus stays, so Left from there returns to the middle one
+  await user.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}{ArrowDown}{ArrowLeft}');
+
+  // assert
+  expect(screen.getByRole('link', { name: /^Wallet/ })).toHaveFocus();
 });

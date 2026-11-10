@@ -91,8 +91,8 @@ a.account:hover {
 }
 
 a.account:focus-visible {
-  outline: var(--size-focus) solid var(--color-ink);
-  outline-offset: calc(var(--size-focus) * -1);
+  outline: var(--size-focus-row) solid var(--color-focus-row);
+  outline-offset: calc(var(--size-focus-row) * -1);
 }
 
 .selected {

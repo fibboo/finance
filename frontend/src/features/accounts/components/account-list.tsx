@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
+import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import { formatMoney } from '@/lib/format-money';
 
@@ -38,6 +39,10 @@ export function AccountList({
     }),
   );
   const [searchParams] = useSearchParams();
+  const arrowKeySelection = useArrowKeySelection({
+    list: 'account-cards',
+    orientation: 'horizontal',
+  });
   const accountsRef = useRef<HTMLUListElement>(null);
   const { observeFirst, observeLast, isFirstInView, isLastInView } = useStripEdges();
   const isFailed = !isPending && accountPage === undefined;
@@ -106,6 +111,12 @@ export function AccountList({
                 className={styles['accountItem']}
               >
                 <Link
+                  {...arrowKeySelection}
+                  data-shown-by-default={
+                    chosenAccountId === undefined && account.id === defaultAccountId
+                      ? ''
+                      : undefined
+                  }
                   id={readAccountLinkId(account.id)}
                   to={{
                     search: writeSelectedAccount({

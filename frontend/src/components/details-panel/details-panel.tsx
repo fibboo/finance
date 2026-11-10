@@ -1,7 +1,9 @@
-import { type ReactNode, useEffect, useId, useRef } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useId, useRef } from 'react';
+import { NavigationType, useLocation, useNavigationType } from 'react-router';
 
 import { LoadError } from '@/components/load-error/load-error';
 import { Skeleton } from '@/components/skeleton/skeleton';
+import { readIsArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './details-panel.module.css';
@@ -14,6 +16,12 @@ const DIALOG_SELECTOR = 'dialog, [role="dialog"]';
 function readIsShown(bounds: DOMRectReadOnly): boolean {
   const isShown = bounds.height > 0;
   return isShown;
+}
+
+function readIsSheet(backdropId: string): boolean {
+  const backdrop = document.getElementById(backdropId);
+  const isSheet = backdrop !== null && readIsShown(backdrop.getBoundingClientRect());
+  return isSheet;
 }
 
 function readIsOnlyShownPanel(panelId: string): boolean {
@@ -71,6 +79,9 @@ export function DetailsPanel({
 }: DetailsPanelProps) {
   const backdropId = useId();
   const panelId = useId();
+  const location = useLocation();
+  const isArrowKeySelection =
+    useNavigationType() !== NavigationType.Pop && readIsArrowKeySelection(location.state);
   const handleRef = useRef<HTMLSpanElement>(null);
 
   function close() {
@@ -119,10 +130,15 @@ export function DetailsPanel({
     };
   }, [isShownByDefault, onClose, returnFocusId, backdropId, panelId]);
 
+  const readIsFocusKeptOnRow = useEffectEvent(() => {
+    const isFocusKeptOnRow = isArrowKeySelection && !readIsSheet(backdropId);
+    return isFocusKeptOnRow;
+  });
+
   useEffect(() => {
     const panel = document.getElementById(panelId);
     const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
-    if (panel !== null && !isShownByDefault && !isFocusInDialog) {
+    if (panel !== null && !isShownByDefault && !isFocusInDialog && !readIsFocusKeptOnRow()) {
       panel.focus({ preventScroll: true });
       panel.scrollIntoView({ block: 'nearest' });
     }
@@ -137,8 +153,7 @@ export function DetailsPanel({
     let isShown = readIsShown(panel.getBoundingClientRect());
     const observer = new IntersectionObserver(([entry]) => {
       const isNowShown = entry !== undefined && readIsShown(entry.boundingClientRect);
-      const backdrop = document.getElementById(backdropId);
-      const isSheet = backdrop !== null && readIsShown(backdrop.getBoundingClientRect());
+      const isSheet = readIsSheet(backdropId);
       const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
       if (isNowShown && !isShown && isSheet && !isFocusInDialog) {
         panel.focus({ preventScroll: true });
