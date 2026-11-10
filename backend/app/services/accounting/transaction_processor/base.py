@@ -47,7 +47,6 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         self.db: AsyncSession = db
         self.user_id: UUID = user_id
         self.base_currency: CurrencyCode | None = None
-        self.transaction_id: UUID | None = None
 
     @property
     @abstractmethod
@@ -123,7 +122,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         self, *, account_db: AccountModel, amount: Decimal, transaction_date: date
     ) -> Decimal | None:
         balance, base_balance = await ledger_service.get_balances_at_date(
-            db=self.db, account_db=account_db, transaction_date=transaction_date, transaction_id=self.transaction_id
+            db=self.db, account_db=account_db, transaction_date=transaction_date
         )
         has_rate: bool = ledger_service.has_base_currency_rate(
             currency=account_db.currency, balance=balance, base_balance=base_balance, base_currency=self.base_currency
@@ -259,7 +258,6 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
             )
 
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
-        self.transaction_id = transaction_id
         account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(
             db=self.db, ids=list(account_dates), user_id=self.user_id
@@ -273,6 +271,9 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
         await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("-1"))
         await posting_crud.delete_by_ids(db=self.db, ids=[posting_db.id for posting_db in transaction_db.postings])
+        await ledger_service.recalculate_accounts(
+            db=self.db, account_dates=account_dates, base_currency=self.base_currency
+        )
 
         transaction_data, postings_data = await self._prepare_transaction(data=data)
         try:
@@ -285,11 +286,8 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
         await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("1"))
         new_account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
-        for account_id, account_date in new_account_dates.items():
-            account_dates[account_id] = min(account_dates.get(account_id, account_date), account_date)
-
         await ledger_service.recalculate_accounts(
-            db=self.db, account_dates=account_dates, base_currency=self.base_currency
+            db=self.db, account_dates=new_account_dates, base_currency=self.base_currency
         )
 
         transaction_db: TransactionModel = await transaction_crud.get_refreshed(

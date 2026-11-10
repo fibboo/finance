@@ -87,11 +87,9 @@ def get_exchange_difference(
 
 
 async def get_balances_at_date(
-    *, db: AsyncSession, account_db: AccountModel, transaction_date: date, transaction_id: UUID | None
+    *, db: AsyncSession, account_db: AccountModel, transaction_date: date
 ) -> tuple[Decimal, Decimal]:
-    sums: Row = await posting_crud.get_sums_at_date(
-        db=db, account_id=account_db.id, transaction_date=transaction_date, transaction_id=transaction_id
-    )
+    sums: Row = await posting_crud.get_sums_at_date(db=db, account_id=account_db.id, transaction_date=transaction_date)
     balances: tuple[Decimal, Decimal] = (
         account_db.balance - sums.later_amount - sums.waiting_amount,
         account_db.base_balance - sums.later_base_amount - sums.waiting_base_amount,

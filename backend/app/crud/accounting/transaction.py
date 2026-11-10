@@ -12,7 +12,7 @@ from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase
 from app.models.accounting.account import Account
 from app.models.accounting.posting import Posting
-from app.models.accounting.transaction import Transaction
+from app.models.accounting.transaction import ENTRY_ORDER_SEQUENCE, Transaction
 from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import (
@@ -50,6 +50,8 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         for field, value in obj_in.model_dump().items():
             setattr(db_obj, field, value)
 
+        db_obj.entry_order = ENTRY_ORDER_SEQUENCE.next_value()
+
         postings_db: list[Posting] = [Posting(**posting.model_dump(), transaction_id=db_obj.id) for posting in postings]
         db.add_all(postings_db)
         await db.flush()
@@ -75,7 +77,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
                 self.model.status == EntityStatusType.ACTIVE,
                 self.model.transaction_date >= date_from,
             )
-            .order_by(self.model.transaction_date, self.model.id)
+            .order_by(self.model.transaction_date, self.model.entry_order)
             .execution_options(populate_existing=True)
         )
         transactions_db: list[Transaction] = (await db.scalars(query)).all()
@@ -157,7 +159,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             query = query.order_by(func_ordering(order_fields_map[order.field]).nulls_last())
 
         is_descending: bool = len(request.orders) > 0 and request.orders[0].ordering == OrderDirectionType.DESC
-        query = query.order_by(desc(Transaction.id) if is_descending else asc(Transaction.id))
+        query = query.order_by(desc(Transaction.entry_order) if is_descending else asc(Transaction.entry_order))
 
         paginated_expenses = await apaginate(db, query, request)
         return paginated_expenses

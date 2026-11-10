@@ -1708,7 +1708,7 @@ async def test_update_transfer_ok(db: AsyncSession, db_transaction: AsyncSession
     )
 
 
-async def test_update_transfer_onto_day_of_later_income_values_it_before_the_income(
+async def test_update_transfer_onto_day_of_later_income_values_it_after_the_income(
     db: AsyncSession, db_transaction: AsyncSession
 ):
     # Arrange
@@ -1829,24 +1829,40 @@ async def test_update_transfer_onto_day_of_later_income_values_it_before_the_inc
         to_account_id=to_account_db.id,
     )
 
-    # Act / Assert
-    # The transfer keeps its id, so on 2025-03-10 it comes before the later income, where the account is empty
+    # Act
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.TRANSFER
     )
-    with pytest.raises(NoAccountBaseCurrencyRate) as exc:
-        await transaction_processor.update(transaction_id=transfer_db.id, data=update_data)
+    transaction: Transaction = await transaction_processor.update(transaction_id=transfer_db.id, data=update_data)
+    await db_transaction.commit()
 
-    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
-    assert exc.value.error_code == ErrorCodeType.NO_ACCOUNT_BASE_CURRENCY_RATE
+    # Assert
+    # The edited transfer goes to the end of 2025-03-10, after the income that gives the emptied account a rate of 3
+    assert transaction.id == transfer_db.id
+    assert transaction.base_currency_amount == Decimal("150")
 
-    transfer_date: date = await db.scalar(
-        select(TransactionModel.transaction_date).where(TransactionModel.id == transfer_db.id)
+    entry_orders: list[tuple] = (
+        await db.execute(
+            select(TransactionModel.id)
+            .where(TransactionModel.transaction_date == date(2025, 3, 10))
+            .order_by(TransactionModel.entry_order)
+        )
+    ).all()
+    assert entry_orders[-1] == (transfer_db.id,)
+
+    balances: list[tuple] = (
+        await db.execute(
+            select(AccountModel.id, AccountModel.balance, AccountModel.base_balance).where(
+                AccountModel.id.in_([account_db.id, to_account_db.id])
+            )
+        )
+    ).all()
+    assert sorted(balances) == sorted(
+        [(account_db.id, Decimal("50"), Decimal("150")), (to_account_db.id, Decimal("50"), Decimal("150"))]
     )
-    assert transfer_date == date(2025, 2, 10)
 
 
-async def test_update_transfer_between_expense_and_income_that_values_it_keeps_expense_waiting(
+async def test_update_transfer_reversed_returns_expense_it_valued_to_waiting(
     db: AsyncSession, db_transaction: AsyncSession
 ):
     # Arrange
@@ -1856,23 +1872,22 @@ async def test_update_transfer_between_expense_and_income_that_values_it_keeps_e
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
-    # Entered in this order: an expense of 50 EUR on 2025-03-10, a transfer of 50 EUR on 2025-03-20 and
-    # an income of 100 EUR worth 300 USD on 2025-03-10, which values the waiting expense at 150 USD
+    # An expense of 50 EUR on an empty account, valued at 60 USD by a later transfer into it of 100 EUR worth 120 USD
     account_db: AccountModel = await account_crud.create(
-        db=db,
-        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Cash EUR", "currency": "EUR"},
-        commit=True,
-    )
-    to_account_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
             "kind": AccountKind.ASSET,
             "user_id": user_id,
-            "name": "Savings EUR",
+            "name": "Cash EUR",
             "currency": "EUR",
             "balance": Decimal("50"),
-            "base_balance": Decimal("150"),
+            "base_balance": Decimal("60"),
         },
+        commit=True,
+    )
+    other_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Savings EUR", "currency": "EUR"},
         commit=True,
     )
     income_source_db: AccountModel = await account_crud.create(
@@ -1888,18 +1903,36 @@ async def test_update_transfer_between_expense_and_income_that_values_it_keeps_e
     location_db: LocationModel = await location_crud.create(
         db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
     )
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2025, 2, 1),
+            base_currency_amount=Decimal("120"),
+            income_period=date(2025, 2, 1),
+        ),
+        postings=[
+            PostingCreate(
+                account_id=income_source_db.id, amount=Decimal("-100"), currency="EUR", base_amount=Decimal("-120")
+            ),
+            PostingCreate(
+                account_id=other_account_db.id, amount=Decimal("100"), currency="EUR", base_amount=Decimal("120")
+            ),
+        ],
+    )
     expense_db: TransactionModel = await transaction_crud.create_with_postings(
         db=db,
         obj_in=TransactionCreate(
             user_id=user_id,
             transaction_type=TransactionType.EXPENSE,
-            transaction_date=date(2025, 3, 10),
-            base_currency_amount=Decimal("150"),
+            transaction_date=date(2025, 3, 1),
+            base_currency_amount=Decimal("60"),
             location_id=location_db.id,
         ),
         postings=[
-            PostingCreate(account_id=account_db.id, amount=Decimal("-50"), currency="EUR", base_amount=Decimal("-150")),
-            PostingCreate(account_id=category_db.id, amount=Decimal("50"), currency="EUR", base_amount=Decimal("150")),
+            PostingCreate(account_id=account_db.id, amount=Decimal("-50"), currency="EUR", base_amount=Decimal("-60")),
+            PostingCreate(account_id=category_db.id, amount=Decimal("50"), currency="EUR", base_amount=Decimal("60")),
         ],
     )
     transfer_db: TransactionModel = await transaction_crud.create_with_postings(
@@ -1907,46 +1940,30 @@ async def test_update_transfer_between_expense_and_income_that_values_it_keeps_e
         obj_in=TransactionCreate(
             user_id=user_id,
             transaction_type=TransactionType.TRANSFER,
-            transaction_date=date(2025, 3, 20),
-            base_currency_amount=Decimal("150"),
-        ),
-        postings=[
-            PostingCreate(account_id=account_db.id, amount=Decimal("-50"), currency="EUR", base_amount=Decimal("-150")),
-            PostingCreate(
-                account_id=to_account_db.id, amount=Decimal("50"), currency="EUR", base_amount=Decimal("150")
-            ),
-        ],
-    )
-    await transaction_crud.create_with_postings(
-        db=db,
-        obj_in=TransactionCreate(
-            user_id=user_id,
-            transaction_type=TransactionType.INCOME,
-            transaction_date=date(2025, 3, 10),
-            base_currency_amount=Decimal("300"),
-            income_period=date(2025, 3, 1),
+            transaction_date=date(2025, 3, 5),
+            base_currency_amount=Decimal("120"),
         ),
         postings=[
             PostingCreate(
-                account_id=income_source_db.id, amount=Decimal("-100"), currency="EUR", base_amount=Decimal("-300")
+                account_id=other_account_db.id, amount=Decimal("-100"), currency="EUR", base_amount=Decimal("-120")
             ),
-            PostingCreate(account_id=account_db.id, amount=Decimal("100"), currency="EUR", base_amount=Decimal("300")),
+            PostingCreate(account_id=account_db.id, amount=Decimal("100"), currency="EUR", base_amount=Decimal("120")),
         ],
     )
-    await transaction_crud.update_valued_dates(db=db, valued_dates={expense_db.id: date(2025, 3, 10)})
+    await transaction_crud.update_valued_dates(db=db, valued_dates={expense_db.id: date(2025, 3, 5)})
     await db.commit()
 
     update_data: MovementRequest = MovementRequest(
-        transaction_date=date(2025, 3, 10),
+        transaction_date=date(2025, 3, 20),
         source_amount=Decimal("50"),
         source_currency="EUR",
         destination_currency="EUR",
         from_account_id=account_db.id,
-        to_account_id=to_account_db.id,
+        to_account_id=other_account_db.id,
     )
 
     # Act / Assert
-    # On 2025-03-10 the transfer comes after the expense and before the income, where the expense still waits
+    # Without the transfer into it the expense waits again, so the account has no rate left on 2025-03-20
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db_transaction, user_id=user_id, transaction_type=TransactionType.TRANSFER
     )
@@ -1959,4 +1976,4 @@ async def test_update_transfer_between_expense_and_income_that_values_it_keeps_e
     transfer_date: date = await db.scalar(
         select(TransactionModel.transaction_date).where(TransactionModel.id == transfer_db.id)
     )
-    assert transfer_date == date(2025, 3, 20)
+    assert transfer_date == date(2025, 3, 5)

@@ -2,49 +2,23 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import and_, case, ColumnElement, func, literal, not_, or_, Row, select, Select, update, Update
+from sqlalchemy import and_, case, ColumnElement, func, literal, or_, Row, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 
 from app.crud.base import CRUDBase
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
 from app.schemas.accounting.posting import PostingCreate
-from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import EntityStatusType
 
 
 class CRUDPosting(CRUDBase[Posting, PostingCreate, PostingCreate]):
-    async def get_sums_at_date(
-        self, *, db: AsyncSession, account_id: UUID, transaction_date: date, transaction_id: UUID | None
-    ) -> Row:
+    async def get_sums_at_date(self, *, db: AsyncSession, account_id: UUID, transaction_date: date) -> Row:
         is_later: ColumnElement = Transaction.transaction_date > transaction_date
-        is_valued_later: ColumnElement = Transaction.valued_on > transaction_date
-        if transaction_id is not None:
-            credit_posting: type[Posting] = aliased(self.model)
-            credit_transaction: type[Transaction] = aliased(Transaction)
-            has_credit_before: ColumnElement = (
-                select(credit_posting.id)
-                .join(credit_transaction, credit_transaction.id == credit_posting.transaction_id)
-                .where(
-                    credit_posting.account_id == account_id,
-                    credit_posting.amount > 0,
-                    credit_transaction.status == EntityStatusType.ACTIVE,
-                    credit_transaction.transaction_type != TransactionType.ADJUSTMENT,
-                    credit_transaction.transaction_date == transaction_date,
-                    credit_transaction.id < transaction_id,
-                    or_(Transaction.transaction_date < transaction_date, credit_transaction.id > Transaction.id),
-                )
-                .exists()
-            )
-            is_later = or_(
-                is_later, and_(Transaction.transaction_date == transaction_date, Transaction.id > transaction_id)
-            )
-            is_valued_later = or_(
-                is_valued_later, and_(Transaction.valued_on == transaction_date, not_(has_credit_before))
-            )
-
-        is_waiting: ColumnElement = and_(not_(is_later), or_(self.model.base_amount.is_(None), is_valued_later))
+        is_waiting: ColumnElement = and_(
+            Transaction.transaction_date <= transaction_date,
+            or_(self.model.base_amount.is_(None), Transaction.valued_on > transaction_date),
+        )
         query: Select = (
             select(
                 func.coalesce(func.sum(self.model.amount).filter(is_later), 0).label("later_amount"),

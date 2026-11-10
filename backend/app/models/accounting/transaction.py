@@ -2,7 +2,20 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, DateTime, DDL, Enum, event, ForeignKey, func, Numeric, String
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    Date,
+    DateTime,
+    DDL,
+    Enum,
+    event,
+    ForeignKey,
+    func,
+    Numeric,
+    Sequence,
+    String,
+)
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -11,6 +24,8 @@ from app.models.accounting.posting import Posting
 from app.models.base import Base
 from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import EntityStatusType
+
+ENTRY_ORDER_SEQUENCE = Sequence("transactions_entry_order_seq", metadata=Base.metadata)
 
 
 class Transaction(Base):
@@ -37,6 +52,9 @@ class Transaction(Base):
         index=True,
     )
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    entry_order: Mapped[int] = mapped_column(
+        BigInteger, ENTRY_ORDER_SEQUENCE, server_default=ENTRY_ORDER_SEQUENCE.next_value(), nullable=False
+    )
     base_currency_amount: Mapped[Decimal | None] = mapped_column(Numeric, nullable=True, index=True)
     valued_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
