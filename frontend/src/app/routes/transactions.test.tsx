@@ -660,7 +660,7 @@ test('keeps the amount filter open on an invalid amount', async () => {
   await user.click(await screen.findByRole('button', { name: 'Amount' }));
   const amountFilter = screen.getByRole('dialog', { name: 'Amount' });
   await user.type(within(amountFilter).getByLabelText('From, USD'), '500');
-  await user.type(within(amountFilter).getByLabelText('To, USD'), '1.234');
+  await user.type(within(amountFilter).getByLabelText('To, USD'), '.');
 
   // act
   await user.click(within(amountFilter).getByRole('button', { name: 'Apply' }));
