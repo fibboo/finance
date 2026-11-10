@@ -45,6 +45,7 @@ type TransactionFeedProps = Readonly<{
   feed: TransactionFeedQuery;
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[] | undefined;
+  topTransactionId: string | undefined;
   label: string;
   header?: ReactNode;
   isGroupedByDay?: boolean;
@@ -56,6 +57,7 @@ export function TransactionFeed({
   feed,
   baseCurrency,
   transactionTypes,
+  topTransactionId,
   label,
   header,
   isGroupedByDay = true,
@@ -136,6 +138,7 @@ export function TransactionFeed({
               transactions={transactions}
               baseCurrency={baseCurrency}
               transactionTypes={transactionTypes}
+              topTransactionId={topTransactionId}
               isGroupedByDay={isGroupedByDay}
             />
             {isFetchingNextPage && <TransactionSkeletonRows count={LOADING_MORE_ROW_COUNT} />}

@@ -108,6 +108,12 @@ function SelectedAccount({
         onClose={() => {
           dropSelectedAccount({ isReplaced: false });
         }}
+        onChoose={() => {
+          setSearchParams(writeSelectedAccount({ searchParams, accountId }), {
+            preventScrollReset: true,
+            replace: true,
+          });
+        }}
       />
       {isEditing && account !== undefined && (
         <Sheet label="Edit account" onClose={closeEditForm}>
@@ -149,7 +155,7 @@ export function SelectedAccountDetails({
 
   return (
     <SelectedAccount
-      key={`${accountId}:${String(isShownByDefault)}`}
+      key={accountId}
       accountId={accountId}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}

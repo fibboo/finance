@@ -75,17 +75,31 @@ export function TransactionRow({
             className={styles['link']}
           >
             <TransactionTextParts text={view.rowTitle} />
+            {view.titleMarkedAccount !== null && (
+              <>
+                <span
+                  className={styles['titleDot']}
+                  style={{ color: readAccountColor(view.titleMarkedAccount) }}
+                  aria-hidden="true"
+                />
+                <TransactionTextParts text={[view.titleMarkedAccount]} />
+              </>
+            )}
           </Link>
         </span>
         <span className={styles['details']}>
           {dateLabel !== undefined && (
             <>
-              <span className={styles['date']}>{dateLabel}</span>
+              <span>{dateLabel}</span>
               {DETAILS_SEPARATOR}
             </>
           )}
-          <TransactionTextParts text={view.accountNames} />
-          {DETAILS_SEPARATOR}
+          {view.accountNames.length > 0 && (
+            <>
+              <TransactionTextParts text={view.accountNames} />
+              {DETAILS_SEPARATOR}
+            </>
+          )}
           {view.currency}
           {rateText !== undefined && `${DETAILS_SEPARATOR}${rateText}`}
         </span>

@@ -1,8 +1,7 @@
-import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import { MONEY_ACCOUNT_KINDS, type MoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
 type Account = components['schemas']['Account'];
-type MoneyAccountKind = (typeof MONEY_ACCOUNT_KINDS)[number];
 type GroupAccount = Account & Readonly<{ currency: string }>;
 
 type AccountGroup = Readonly<{
@@ -20,4 +19,9 @@ export function readAccountGroups(accounts: readonly Account[]): readonly Accoun
     ),
   })).filter((group) => group.accounts.length > 0);
   return accountGroups;
+}
+
+export function readTopAccountId(accounts: readonly Account[]): string | undefined {
+  const topAccountId = readAccountGroups(accounts)[0]?.accounts[0]?.id;
+  return topAccountId;
 }

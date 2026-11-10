@@ -1062,15 +1062,50 @@ test('shows the selected transaction with its postings, location and comment', a
   const postings = within(details).getAllByRole('listitem');
   expect(postings[0]).toHaveTextContent('WalletAsset · USD-€42.80≈ -$46.70');
   expect(postings[1]).toHaveTextContent('GroceriesExpense+€42.80≈ +$46.70');
-  // the money account leads to the Accounts section, the category leads nowhere
+  // the money account opens beside the transaction, the category leads nowhere
   expect(within(details).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
     'href',
-    `/accounts?account=${walletPosting.account.id}`,
+    `/transactions?transaction=${expense.id}&account=${walletPosting.account.id}`,
   );
   expect(within(details).queryByRole('link', { name: 'Groceries' })).not.toBeInTheDocument();
   expect(within(details).getByText('Tbilisi')).toBeInTheDocument();
   expect(within(details).getByText('Weekly shop')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Groceries' })).toHaveAttribute('aria-current', 'true');
+});
+
+test('opens the account of a posting beside the transaction and keeps the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let feedRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () => {
+      feedRequestCount += 1;
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
+      HttpResponse.json(wallet),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+
+  // act
+  await user.click(await within(details).findByRole('link', { name: 'Wallet' }));
+
+  // assert
+  const accountDetails = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(
+    await within(accountDetails).findByRole('heading', { level: 2, name: 'Wallet' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Groceries' })).toHaveAttribute('aria-current', 'true');
+  expect(feedRequestCount).toBe(1);
 });
 
 test('shows the details of the top row while no transaction is chosen', async () => {

@@ -24,6 +24,7 @@ type AccountDetailsProps = Readonly<{
   onEdit: () => void;
   onDeleted: () => void;
   onClose: () => void;
+  onChoose: () => void;
 }>;
 
 export function AccountDetails({
@@ -39,6 +40,7 @@ export function AccountDetails({
   onEdit,
   onDeleted,
   onClose,
+  onChoose,
 }: AccountDetailsProps) {
   const {
     data: account,
@@ -60,6 +62,7 @@ export function AccountDetails({
         void refetch();
       }}
       onClose={onClose}
+      onChoose={onChoose}
       renderContent={(closeButton) =>
         account !== undefined && (
           <AccountOverview

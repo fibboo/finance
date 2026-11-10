@@ -44,3 +44,8 @@ export function readFeedTransactions(feed: TransactionFeedQuery): FeedTransactio
   };
   return feedTransactions;
 }
+
+export function readTopTransactionId(feed: TransactionFeedQuery): string | undefined {
+  const topTransactionId = readFeedTransactions(feed).olderTransactions[0]?.id;
+  return topTransactionId;
+}

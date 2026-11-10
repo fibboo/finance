@@ -13,6 +13,7 @@ type TransactionView = Readonly<{
   rowTitle: TransactionText;
   accountNames: TransactionText;
   markedAccount: Account;
+  titleMarkedAccount: Account | null;
   amount: number;
   baseAmount: number | null;
   currency: string;
@@ -81,6 +82,7 @@ export function readTransactionView({
         rowTitle: [credit.account],
         accountNames: [debit.account],
         markedAccount: debit.account,
+        titleMarkedAccount: null,
         amount: Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : Number(debit.base_amount),
         currency: debit.currency,
@@ -95,6 +97,7 @@ export function readTransactionView({
         rowTitle: [debit.account],
         accountNames: [credit.account],
         markedAccount: credit.account,
+        titleMarkedAccount: null,
         amount: Number(credit.amount),
         baseAmount: credit.base_amount === null ? null : Number(credit.base_amount),
         currency: credit.currency,
@@ -107,9 +110,10 @@ export function readTransactionView({
       const typeLabel = readTypeLabel({ transaction, transactionTypes });
       const view = {
         title: [`${typeLabel} `, debit.account, ' → ', credit.account],
-        rowTitle: [typeLabel],
-        accountNames: [debit.account, ' → ', credit.account],
-        markedAccount: credit.account,
+        rowTitle: [debit.account, ' → '],
+        accountNames: [],
+        markedAccount: debit.account,
+        titleMarkedAccount: credit.account,
         amount: -Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : -Number(debit.base_amount),
         currency: debit.currency,
@@ -126,6 +130,7 @@ export function readTransactionView({
         rowTitle: [typeLabel],
         accountNames: [posting.account],
         markedAccount: posting.account,
+        titleMarkedAccount: null,
         amount: Number(posting.amount),
         baseAmount: posting.base_amount === null ? null : Number(posting.base_amount),
         currency: posting.currency,

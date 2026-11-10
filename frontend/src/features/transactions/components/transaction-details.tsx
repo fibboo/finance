@@ -20,6 +20,7 @@ type TransactionDetailsProps = Readonly<{
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;
   onClose: () => void;
+  onChoose: () => void;
 }>;
 
 export function TransactionDetails({
@@ -31,6 +32,7 @@ export function TransactionDetails({
   relatedQueryKeys,
   isShownByDefault,
   onClose,
+  onChoose,
 }: TransactionDetailsProps) {
   const {
     data: transaction,
@@ -52,6 +54,7 @@ export function TransactionDetails({
         void refetch();
       }}
       onClose={onClose}
+      onChoose={onChoose}
       renderContent={(closeButton) =>
         transaction !== undefined && (
           <TransactionOverview

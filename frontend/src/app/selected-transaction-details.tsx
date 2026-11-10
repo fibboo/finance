@@ -70,6 +70,12 @@ function SelectedTransaction({
           preventScrollReset: true,
         });
       }}
+      onChoose={() => {
+        setSearchParams(writeSelectedTransaction({ searchParams, transactionId }), {
+          preventScrollReset: true,
+          replace: true,
+        });
+      }}
     />
   );
 }
@@ -90,7 +96,7 @@ export function SelectedTransactionDetails({
 
   return (
     <SelectedTransaction
-      key={`${transactionId}:${String(isShownByDefault)}`}
+      key={transactionId}
       transactionId={transactionId}
       isShownByDefault={isShownByDefault}
       baseCurrency={baseCurrency}

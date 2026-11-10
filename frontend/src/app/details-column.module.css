@@ -1,0 +1,30 @@
+@import '@/styles/media.css';
+
+.detailsColumn,
+.selection {
+  display: contents;
+}
+
+.earlierSelection {
+  display: none;
+}
+
+@media (--desktop) {
+  .detailsColumn {
+    flex: none;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .detailsColumn:not(:has([data-details-panel], [role='dialog'])) {
+    display: none;
+  }
+
+  .earlierSelection {
+    display: contents;
+  }
+}

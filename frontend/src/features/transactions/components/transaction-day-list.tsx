@@ -63,6 +63,7 @@ type TransactionDayListProps = Readonly<{
   transactions: readonly Transaction[];
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
+  topTransactionId: string | undefined;
   isGroupedByDay: boolean;
 }>;
 
@@ -70,10 +71,10 @@ export function TransactionDayList({
   transactions,
   baseCurrency,
   transactionTypes,
+  topTransactionId,
   isGroupedByDay,
 }: TransactionDayListProps) {
   const today = useToday();
-  const topTransactionId = transactions[0]?.id;
   return (
     <div className={styles['transactionDayList']}>
       {isGroupedByDay ? (

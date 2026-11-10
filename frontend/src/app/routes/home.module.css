@@ -1,61 +1,40 @@
 @import '@/styles/media.css';
 
-.overview,
+.home {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(var(--size-recent-min), 1fr);
+  gap: var(--space-2);
+}
+
 .summaries {
-  flex: none;
+  grid-area: 1 / 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.selection {
+.details {
   display: contents;
 }
 
-.earlierSelection {
-  display: none;
-}
-
-.transactions {
-  flex: 1 1 auto;
-  min-height: var(--size-recent-min);
-  display: flex;
-  flex-direction: column;
-}
-
 @media (--desktop) {
-  .earlierSelection {
-    display: contents;
-  }
-
-  .overview {
-    display: grid;
+  .home {
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0;
-  }
-
-  .overview > .selection,
-  .overview > .earlierSelection {
-    height: 0;
-    min-height: 100%;
-    padding-left: var(--space-4);
-    display: grid;
-  }
-
-  .overview > :empty {
-    display: none;
+    grid-template-rows: auto minmax(var(--size-recent-min-lg), 1fr);
+    gap: var(--space-4);
   }
 
   .summaries {
-    flex: 1 1 auto;
-    min-width: 0;
     gap: var(--space-4);
   }
 
-  .transactions {
-    flex-basis: 0;
-    min-height: var(--size-recent-min-lg);
-    flex-direction: row;
-    gap: var(--space-4);
+  .details {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    min-height: 0;
+    display: flex;
   }
 }

@@ -144,7 +144,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
-    cells: ['Transfer', 'Wallet → Savings · EUR · 0.9163', '$327.40', '€300.00'],
+    cells: ['Wallet → Savings', 'EUR · 0.9163', '$327.40', '€300.00'],
   },
   {
     kind: 'a transfer not valued yet',
@@ -157,7 +157,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: null, account: savings },
       ],
     },
-    cells: ['Transfer', 'Wallet → Savings · EUR', '—not valued yet', '€300.00'],
+    cells: ['Wallet → Savings', 'EUR', '—not valued yet', '€300.00'],
   },
   {
     kind: 'a decreasing adjustment',
@@ -237,7 +237,7 @@ test.each([
         { ...posting, amount: '300.00', base_amount: '300.00', account: savings },
       ],
     },
-    cells: ['Transfer', 'Wallet, deleted → Savings · USD', '$300.00'],
+    cells: ['Wallet, deleted → Savings', 'USD', '$300.00'],
   },
   {
     kind: 'an adjustment of a deleted account',

@@ -126,13 +126,18 @@
   border-radius: var(--radius-segment);
 }
 
-.selected::before {
+.selected::before,
+.shownByDefault::before {
   content: '';
   position: absolute;
   inset: 0 calc(var(--space-2) * -1);
   z-index: -1;
   border-radius: var(--radius-segment);
   background: var(--color-selected);
+}
+
+.shownByDefault::before {
+  display: none;
 }
 
 .account:has(.name:hover) {
@@ -195,7 +200,7 @@
     --columns-top: calc(var(--sticky-top, 0) + var(--space-2));
     --group-header-top: calc(var(--columns-top) + var(--size-columns-header-lg) + var(--space-1-5));
 
-    flex: 0 1 var(--size-list-lg);
+    flex: 1 1 auto;
     min-width: 0;
     align-self: flex-start;
     padding: var(--space-2) var(--space-5) var(--space-3);
@@ -283,12 +288,7 @@
   }
 
   .shownByDefault::before {
-    content: '';
-    position: absolute;
-    inset: 0 calc(var(--space-2) * -1);
-    z-index: -1;
-    border-radius: var(--radius-segment);
-    background: var(--color-selected);
+    display: block;
   }
 
   .markSkeleton {

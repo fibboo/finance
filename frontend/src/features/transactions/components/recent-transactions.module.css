@@ -47,7 +47,6 @@
 
 @media (--desktop) {
   .recentTransactions {
-    flex: 0 1 var(--size-list-lg);
     min-height: var(--size-recent-min-lg);
   }
 

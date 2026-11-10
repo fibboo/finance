@@ -48,6 +48,7 @@ type DetailsPanelProps = Readonly<{
   returnFocusId: string;
   onRetry: () => void;
   onClose: () => void;
+  onChoose: () => void;
   renderContent: (closeButton: ReactNode) => ReactNode;
 }>;
 
@@ -62,11 +63,13 @@ export function DetailsPanel({
   returnFocusId,
   onRetry,
   onClose,
+  onChoose,
   renderContent,
 }: DetailsPanelProps) {
   const backdropId = useId();
   const panelId = useId();
   const handleRef = useRef<HTMLSpanElement>(null);
+  const isMountedByDefaultRef = useRef(isShownByDefault);
 
   function close() {
     onClose();
@@ -154,9 +157,19 @@ export function DetailsPanel({
       <section
         id={panelId}
         ref={(panel) => {
-          if (!isShownByDefault) {
+          if (!isMountedByDefaultRef.current) {
             panel?.focus({ preventScroll: true });
             panel?.scrollIntoView({ block: 'nearest' });
+          }
+        }}
+        onFocusCapture={() => {
+          if (isShownByDefault) {
+            onChoose();
+          }
+        }}
+        onPointerDownCapture={() => {
+          if (isShownByDefault) {
+            onChoose();
           }
         }}
         role="dialog"

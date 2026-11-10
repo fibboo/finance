@@ -1,7 +1,7 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { type To, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 
-import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
+import { DetailsColumn } from '@/app/details-column';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { Page } from '@/components/page/page';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
@@ -18,7 +18,7 @@ import {
   writeTransactionFilters,
 } from '@/features/transactions/api/transaction-filters';
 import { FilterChips } from '@/features/transactions/components/filter-chips';
-import { readFeedTransactions } from '@/features/transactions/components/feed-transactions';
+import { readTopTransactionId } from '@/features/transactions/components/feed-transactions';
 import { NoMatchingTransactions } from '@/features/transactions/components/no-matching-transactions';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
 import { useDateJump } from '@/features/transactions/hooks/use-date-jump';
@@ -59,19 +59,14 @@ function readJumpDate({
   return jumpDate;
 }
 
-function readAccountLink(accountId: string): To {
-  const accountLink = {
-    pathname: '/accounts',
-    search: writeSelectedAccount({ searchParams: new URLSearchParams(), accountId }).toString(),
-  };
-  return accountLink;
-}
-
 export function Component() {
   const baseCurrency = useBaseCurrency();
   const today = useToday();
   const [searchParams, setSearchParams] = useSearchParams();
-  const listKey = writeSelectedTransaction({ searchParams, transactionId: undefined }).toString();
+  const listKey = writeSelectedAccount({
+    searchParams: writeSelectedTransaction({ searchParams, transactionId: undefined }),
+    accountId: undefined,
+  }).toString();
   const { anchorDate, jumpToDate, clearJump } = useDateJump(listKey);
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
@@ -103,6 +98,7 @@ export function Component() {
     filterQuery: filters === undefined ? undefined : readTransactionFilterQuery(filters),
     anchorDate,
   });
+  const topTransactionId = readTopTransactionId(feed);
   return (
     <Page title="Transactions" count={readTransactionCount(feed.total)}>
       {baseCurrency !== undefined &&
@@ -142,6 +138,7 @@ export function Component() {
             feed={feed}
             baseCurrency={baseCurrency}
             transactionTypes={dictionaries?.transaction_types}
+            topTransactionId={topTransactionId}
             label="Transactions"
             isGroupedByDay={filters === undefined || isSortedByDate(filters)}
             onReturnToToday={clearJump}
@@ -159,10 +156,11 @@ export function Component() {
           />
         )}
         {baseCurrency !== undefined && (
-          <SelectedTransactionDetails
+          <DetailsColumn
             baseCurrency={baseCurrency}
-            defaultTransactionId={readFeedTransactions(feed).transactions[0]?.id}
-            readAccountLink={readAccountLink}
+            defaultTransactionId={topTransactionId}
+            accountCount={moneyAccounts?.total}
+            isAccountFirst={false}
           />
         )}
       </div>

@@ -2,7 +2,7 @@ import { Link, useSearchParams } from 'react-router';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
-import type { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import type { MoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -11,13 +11,12 @@ import {
   readSelectedAccountId,
   writeSelectedAccount,
 } from '../api/selected-account';
-import { readAccountGroups } from './account-group-order';
+import { readAccountGroups } from './account-grouping';
 import { AccountMark } from './account-mark';
 import styles from './account-groups.module.css';
 import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
-type MoneyAccountKind = (typeof MONEY_ACCOUNT_KINDS)[number];
 
 const ACCOUNT_SKELETON_COUNT = 3;
 
@@ -28,6 +27,7 @@ const GROUP_HEADINGS = {
 
 type AccountGroupsProps = Readonly<{
   accounts: readonly Account[] | undefined;
+  topAccountId: string | undefined;
   baseCurrency: string;
 }>;
 
@@ -52,11 +52,10 @@ function readAccountClassName({
   return accountClassName;
 }
 
-export function AccountGroups({ accounts, baseCurrency }: AccountGroupsProps) {
+export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountGroupsProps) {
   const [searchParams] = useSearchParams();
   const selectedAccountId = readSelectedAccountId(searchParams);
   const groups = readAccountGroups(accounts ?? []);
-  const topAccountId = groups[0]?.accounts[0]?.id;
   return (
     <div className={styles['accountGroups']} aria-busy={accounts === undefined}>
       <div className={styles['columns']} aria-hidden="true">

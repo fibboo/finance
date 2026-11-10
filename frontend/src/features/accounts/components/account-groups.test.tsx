@@ -77,6 +77,7 @@ test('groups assets before liabilities, each with its total and its accounts in 
     // in each group neither by balance nor by name, in either direction
     <AccountGroups
       accounts={[wallet, intesaCredit, mainCard, visaCredit, savings, amexCredit]}
+      topAccountId={undefined}
       baseCurrency="USD"
     />,
   );
@@ -107,7 +108,7 @@ test('groups assets before liabilities, each with its total and its accounts in 
 
 test('leaves out a group without accounts', () => {
   // act
-  render(<AccountGroups accounts={[wallet]} baseCurrency="USD" />);
+  render(<AccountGroups accounts={[wallet]} topAccountId={undefined} baseCurrency="USD" />);
 
   // assert
   expect(screen.getByRole('region', { name: 'Assets' })).toBeInTheDocument();
@@ -116,7 +117,7 @@ test('leaves out a group without accounts', () => {
 
 test('shows the groups as loading while the accounts are pending', () => {
   // act
-  render(<AccountGroups accounts={undefined} baseCurrency="USD" />);
+  render(<AccountGroups accounts={undefined} topAccountId={undefined} baseCurrency="USD" />);
 
   // assert
   expect(screen.queryByRole('region')).not.toBeInTheDocument();

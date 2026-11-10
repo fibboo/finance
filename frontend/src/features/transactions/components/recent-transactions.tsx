@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import type { components } from '@/lib/api-schema';
 
 import { useTransactionFeed } from '../hooks/use-transaction-feed';
-import { readFeedTransactions } from './feed-transactions';
+import { readTopTransactionId } from './feed-transactions';
 import styles from './recent-transactions.module.css';
 import { TransactionFeed } from './transaction-feed';
 
@@ -26,6 +26,7 @@ export function RecentTransactions({
     isFirstPageErrorThrown: false,
     filterQuery: {},
   });
+  const topTransactionId = readTopTransactionId(feed);
   if (feed.query.isError && feed.query.data === undefined) {
     return renderDetails(undefined);
   }
@@ -37,6 +38,7 @@ export function RecentTransactions({
           feed={feed}
           baseCurrency={baseCurrency}
           transactionTypes={transactionTypes}
+          topTransactionId={topTransactionId}
           label="Recent transactions"
           header={
             <div className={styles['header']}>
@@ -48,7 +50,7 @@ export function RecentTransactions({
           }
         />
       </div>
-      {renderDetails(readFeedTransactions(feed).transactions[0]?.id)}
+      {renderDetails(topTransactionId)}
     </>
   );
 }
