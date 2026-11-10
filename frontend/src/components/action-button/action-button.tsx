@@ -39,6 +39,30 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
     };
   }, [isTapped]);
 
+  const isTipShown =
+    action.kind === 'button' &&
+    action.blockingHint !== undefined &&
+    (isHovered || isFocused || isTapped);
+  useEffect(() => {
+    if (!isTipShown) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setIsHovered(false);
+        setIsFocused(false);
+        setIsTapped(false);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [isTipShown]);
+
   const className = `${styles['actionButton'] ?? ''} ${isDanger ? (styles['danger'] ?? '') : ''}`;
   const icon = (
     <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
@@ -62,7 +86,6 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
 
   const { blockingHint, onClick } = action;
   const isBlocked = blockingHint !== undefined;
-  const isTipShown = isBlocked && (isHovered || isFocused || isTapped);
   return (
     <>
       {isBlocked && (
@@ -95,19 +118,11 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
         onPointerLeave={() => {
           setIsHovered(false);
         }}
-        onFocus={() => {
-          setIsFocused(true);
+        onFocus={(event) => {
+          setIsFocused(event.currentTarget.matches(':focus-visible'));
         }}
         onBlur={() => {
           setIsFocused(false);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape' && isTipShown) {
-            event.stopPropagation();
-            setIsHovered(false);
-            setIsFocused(false);
-            setIsTapped(false);
-          }
         }}
       >
         {icon}

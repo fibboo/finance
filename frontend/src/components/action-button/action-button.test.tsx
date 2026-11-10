@@ -1,6 +1,6 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { expect, test, vi } from 'vitest';
+import { expect, onTestFinished, test, vi } from 'vitest';
 
 import { ActionButton } from '@/components/action-button/action-button';
 import { DELETE_ICON_PATH } from '@/components/action-button/action-icons';
@@ -74,6 +74,35 @@ test('closes the reason on the next tap elsewhere', async () => {
 
   // act
   await user.pointer({ keys: '[TouchA]', target: screen.getByText('Elsewhere') });
+
+  // assert
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+});
+
+test('closes the reason a few seconds after a tap', async () => {
+  // arrange
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+  const user = userEvent.setup();
+  render(
+    <ActionButton
+      label="Delete account"
+      iconPath={DELETE_ICON_PATH}
+      isDanger
+      action={{ kind: 'button', blockingHint: HINT, onClick: vi.fn() }}
+    />,
+  );
+  await user.pointer({
+    keys: '[TouchA]',
+    target: screen.getByRole('button', { name: 'Delete account' }),
+  });
+
+  // act
+  act(() => {
+    vi.advanceTimersByTime(4000);
+  });
 
   // assert
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
