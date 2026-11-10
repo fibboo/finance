@@ -14,7 +14,8 @@
     flex: none;
     min-height: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: var(--details-column-direction, column);
+    align-self: var(--details-column-align, stretch);
     gap: var(--space-4);
     overflow-y: auto;
     scrollbar-width: none;

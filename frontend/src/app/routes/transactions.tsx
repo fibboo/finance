@@ -156,12 +156,14 @@ export function Component() {
           />
         )}
         {baseCurrency !== undefined && (
-          <DetailsColumn
-            baseCurrency={baseCurrency}
-            defaultTransactionId={topTransactionId}
-            accountCount={moneyAccounts?.total}
-            isAccountFirst={false}
-          />
+          <div className={styles['details']}>
+            <DetailsColumn
+              baseCurrency={baseCurrency}
+              defaultTransactionId={topTransactionId}
+              accountCount={moneyAccounts?.total}
+              isAccountFirst={false}
+            />
+          </div>
         )}
       </div>
     </Page>
