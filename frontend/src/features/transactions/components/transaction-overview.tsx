@@ -33,6 +33,7 @@ type TransactionOverviewProps = Readonly<{
   accountKinds: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
   closeButton: ReactNode;
+  editAction: ReactNode;
   deleteAction: ReactNode;
 }>;
 
@@ -43,6 +44,7 @@ export function TransactionOverview({
   accountKinds,
   readAccountLink,
   closeButton,
+  editAction,
   deleteAction,
 }: TransactionOverviewProps) {
   const titleId = useId();
@@ -98,7 +100,10 @@ export function TransactionOverview({
           )}
         </dl>
       )}
-      <ActionBar>{deleteAction}</ActionBar>
+      <ActionBar>
+        {editAction}
+        {deleteAction}
+      </ActionBar>
     </article>
   );
 }

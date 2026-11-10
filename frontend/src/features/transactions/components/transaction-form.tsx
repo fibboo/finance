@@ -25,7 +25,7 @@ import { AmountField } from './amount-field';
 import { readAmountInputProps } from './amount-input';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
-import { FormHeader } from './form-header';
+import { FormHeader, NEW_TRANSACTION_TITLE } from './form-header';
 import { InputRow } from './input-row';
 import { readMoneyAccountNote, toMoneyAccountItem } from './money-account-item';
 import { PickerRow } from './picker-row';
@@ -161,9 +161,8 @@ export function TransactionForm({
         }}
       >
         <FormHeader
-          transactionType={transactionType}
-          transactionTypes={transactionTypes}
-          onTypeChange={onTypeChange}
+          title={NEW_TRANSACTION_TITLE}
+          typeChoice={{ transactionType, transactionTypes, onTypeChange }}
           onClose={onClose}
         />
         <AmountField

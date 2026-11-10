@@ -5,6 +5,7 @@ import { LOCALE } from '@/lib/format-money';
 
 type Transaction = components['schemas']['Transaction'];
 type Account = components['schemas']['Account'];
+type Posting = components['schemas']['Posting'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
 export type TransactionText = readonly (string | Readonly<Account>)[];
@@ -34,6 +35,20 @@ export function readFirstMoneyAccountId(transaction: Readonly<Transaction>): str
     (posting) => isMoneyAccountKind(posting.account.kind) && !isDeletedAccount(posting.account),
   )?.account.id;
   return firstMoneyAccountId;
+}
+
+export function readAccountNames(postings: readonly Posting[]): string[] {
+  const accountNames = [
+    ...new Map(postings.map((posting) => [posting.account.id, posting.account.name])).values(),
+  ];
+  return accountNames;
+}
+
+const ACCOUNT_LIST_FORMAT = new Intl.ListFormat(LOCALE, { type: 'conjunction' });
+
+export function formatAccountList(accountNames: readonly string[]): string {
+  const accountList = ACCOUNT_LIST_FORMAT.format(accountNames);
+  return accountList;
 }
 
 export function isDeletedAccount(account: Readonly<Account>): boolean {

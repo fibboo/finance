@@ -7,6 +7,7 @@ import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
 import { server } from '@/test/setup';
 
+import type { MovementTransactionType } from '../api/new-transaction';
 import { MovementForm } from './movement-form';
 
 const euroCard = {
@@ -150,7 +151,10 @@ test.each([
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -163,7 +167,6 @@ test.each([
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
@@ -205,7 +208,10 @@ test('shows the amount in the base currency at the account rate', async () => {
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -218,7 +224,6 @@ test('shows the amount in the base currency at the account rate', async () => {
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -245,7 +250,10 @@ test('asks for the category, the location and the seller’s currency before sen
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -258,7 +266,6 @@ test('asks for the category, the location and the seller’s currency before sen
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -293,7 +300,10 @@ test('lists the categories with their category type', async () => {
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -306,7 +316,6 @@ test('lists the categories with their category type', async () => {
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -332,7 +341,10 @@ test('shows a field error of the backend at its field', async () => {
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -345,7 +357,6 @@ test('shows a field error of the backend at its field', async () => {
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -385,7 +396,10 @@ test('shows a backend error of the seller’s amount at the amount when another 
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -398,7 +412,6 @@ test('shows a backend error of the seller’s amount at the amount when another 
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -448,7 +461,10 @@ test.each([
     render(
       <MovementForm
         transactionType="INCOME"
-        transactionTypes={transactionTypes}
+        mode={{
+          kind: 'create',
+          typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+        }}
         categoryTypes={categoryTypes}
         currencies={currencies}
         moneyAccounts={[euroCard]}
@@ -461,7 +477,6 @@ test.each([
         renderIncomeSourceForm={() => null}
         renderMoneyAccountForm={() => null}
         renderLocationForm={() => null}
-        onTypeChange={vi.fn()}
         onClose={onClose}
       />,
     );
@@ -511,7 +526,10 @@ test.each([
     render(
       <MovementForm
         transactionType="INCOME"
-        transactionTypes={transactionTypes}
+        mode={{
+          kind: 'create',
+          typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+        }}
         categoryTypes={categoryTypes}
         currencies={[...currencies, { key: 'USD', label: 'US dollar' }]}
         moneyAccounts={[account]}
@@ -524,7 +542,6 @@ test.each([
         renderIncomeSourceForm={() => null}
         renderMoneyAccountForm={() => null}
         renderLocationForm={() => null}
-        onTypeChange={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -551,7 +568,10 @@ test('keeps the month of an income on the month before the date until a month is
   render(
     <MovementForm
       transactionType="INCOME"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -564,7 +584,6 @@ test('keeps the month of an income on the month before the date until a month is
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -601,7 +620,10 @@ test.each([
     render(
       <MovementForm
         transactionType="TRANSFER"
-        transactionTypes={transactionTypes}
+        mode={{
+          kind: 'create',
+          typeChoice: { transactionType: 'TRANSFER', transactionTypes, onTypeChange: vi.fn() },
+        }}
         categoryTypes={categoryTypes}
         currencies={currencies}
         moneyAccounts={[euroCard, account]}
@@ -614,7 +636,6 @@ test.each([
         renderIncomeSourceForm={() => null}
         renderMoneyAccountForm={() => null}
         renderLocationForm={() => null}
-        onTypeChange={vi.fn()}
         onClose={onClose}
       />,
     );
@@ -653,7 +674,10 @@ test('lists the accounts to send to without the account sent from', async () => 
   render(
     <MovementForm
       transactionType="TRANSFER"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'TRANSFER', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard, gelSavings]}
@@ -666,7 +690,6 @@ test('lists the accounts to send to without the account sent from', async () => 
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -687,7 +710,10 @@ test('keeps a picked month of an income that matches the month before the date w
   render(
     <MovementForm
       transactionType="INCOME"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -700,7 +726,6 @@ test('keeps a picked month of an income that matches the month before the date w
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -749,7 +774,10 @@ test.each([
     render(
       <MovementForm
         transactionType={transactionType}
-        transactionTypes={transactionTypes}
+        mode={{
+          kind: 'create',
+          typeChoice: { transactionType: transactionType, transactionTypes, onTypeChange: vi.fn() },
+        }}
         categoryTypes={categoryTypes}
         currencies={currencies}
         moneyAccounts={[euroCard, dollarCash]}
@@ -762,7 +790,6 @@ test.each([
         renderIncomeSourceForm={() => null}
         renderMoneyAccountForm={() => null}
         renderLocationForm={() => null}
-        onTypeChange={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -797,7 +824,10 @@ test('leaves out the base currency estimate of an income paid in another currenc
   render(
     <MovementForm
       transactionType="INCOME"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'INCOME', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -810,7 +840,6 @@ test('leaves out the base currency estimate of an income paid in another currenc
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -836,7 +865,10 @@ test.each([
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -849,7 +881,6 @@ test.each([
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -875,7 +906,10 @@ test('pads a grouped amount to two decimals on leaving it and sends it as a plai
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -888,7 +922,6 @@ test('pads a grouped amount to two decimals on leaving it and sends it as a plai
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
@@ -928,7 +961,10 @@ test('sends an amount ending in a point when Enter is pressed in its field', asy
   render(
     <MovementForm
       transactionType="EXPENSE"
-      transactionTypes={transactionTypes}
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionType: 'EXPENSE', transactionTypes, onTypeChange: vi.fn() },
+      }}
       categoryTypes={categoryTypes}
       currencies={currencies}
       moneyAccounts={[euroCard]}
@@ -941,7 +977,6 @@ test('sends an amount ending in a point when Enter is pressed in its field', asy
       renderIncomeSourceForm={() => null}
       renderMoneyAccountForm={() => null}
       renderLocationForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
@@ -962,3 +997,184 @@ test('sends an amount ending in a point when Enter is pressed in its field', asy
   });
   expect(requestBody).toMatchObject({ source_amount: '250.00', destination_amount: '250.00' });
 });
+
+const exchangeDifference = {
+  ...groceries,
+  name: 'Exchange differences',
+  id: '2b4f5a1d-9c3e-4e6a-8c7d-9e0f1a2b3c77',
+  kind: 'EQUITY',
+  category_type: null,
+} satisfies components['schemas']['Account'];
+
+test.each([
+  {
+    title: 'Edit expense',
+    transactionType: 'EXPENSE',
+    transaction: {
+      ...expense,
+      transaction_date: '2026-10-18',
+      comment: 'Lunch with the team',
+      postings: [
+        {
+          id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+          amount: '-42.80',
+          currency: 'EUR',
+          base_amount: '-47.08',
+          account: euroCard,
+        },
+        {
+          id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+          amount: '125.50',
+          currency: 'GEL',
+          base_amount: '47.08',
+          account: groceries,
+        },
+      ],
+    },
+    movement: {
+      from_account_id: euroCard.id,
+      to_account_id: groceries.id,
+      location_id: market.id,
+      source_amount: '42.80',
+      source_currency: 'EUR',
+      destination_amount: '125.50',
+      destination_currency: 'GEL',
+      transaction_date: '2026-10-18',
+      comment: 'Lunch with the team',
+    },
+  },
+  {
+    title: 'Edit income',
+    transactionType: 'INCOME',
+    transaction: {
+      ...expense,
+      transaction_type: 'INCOME',
+      location: null,
+      base_currency_amount: '3520.00',
+      income_period: '2026-08-01',
+      postings: [
+        {
+          id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+          amount: '-8800.00',
+          currency: 'GEL',
+          base_amount: '-3520.00',
+          account: salary,
+        },
+        {
+          id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+          amount: '3200.00',
+          currency: 'EUR',
+          base_amount: '3520.00',
+          account: euroCard,
+        },
+      ],
+    },
+    movement: {
+      from_account_id: salary.id,
+      to_account_id: euroCard.id,
+      source_amount: '8800.00',
+      source_currency: 'GEL',
+      destination_amount: '3200.00',
+      destination_currency: 'EUR',
+      base_currency_amount: '3520.00',
+      income_period: '2026-08-01',
+      transaction_date: '2026-10-20',
+      comment: null,
+    },
+  },
+  {
+    title: 'Edit transfer',
+    transactionType: 'TRANSFER',
+    transaction: {
+      ...expense,
+      transaction_type: 'TRANSFER',
+      location: null,
+      postings: [
+        {
+          id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+          amount: '-500.00',
+          currency: 'EUR',
+          base_amount: '-550.00',
+          account: euroCard,
+        },
+        {
+          id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+          amount: '1455.00',
+          currency: 'GEL',
+          base_amount: '529.09',
+          account: gelSavings,
+        },
+        // the exchange difference posts no amount
+        {
+          id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a62',
+          amount: '0',
+          currency: 'USD',
+          base_amount: '20.91',
+          account: exchangeDifference,
+        },
+      ],
+    },
+    movement: {
+      from_account_id: euroCard.id,
+      to_account_id: gelSavings.id,
+      source_amount: '500.00',
+      source_currency: 'EUR',
+      destination_amount: '1455.00',
+      destination_currency: 'GEL',
+      transaction_date: '2026-10-20',
+      comment: null,
+    },
+  },
+] satisfies {
+  title: string;
+  transactionType: MovementTransactionType;
+  transaction: components['schemas']['Transaction'];
+  movement: components['schemas']['MovementRequest'];
+}[])(
+  'starts $title with the values of the transaction and saves them unchanged',
+  async ({ title, transactionType, transaction, movement }) => {
+    // arrange
+    let requestBody: unknown = null;
+    server.use(
+      http.put(
+        `http://localhost/api/accounting/transactions/${transaction.id}`,
+        async ({ request }) => {
+          requestBody = await request.json();
+          return HttpResponse.json(transaction);
+        },
+      ),
+    );
+    const onClose = vi.fn<() => void>();
+    const user = userEvent.setup();
+    render(
+      <MovementForm
+        mode={{ kind: 'edit', transaction }}
+        transactionType={transactionType}
+        categoryTypes={categoryTypes}
+        currencies={currencies}
+        moneyAccounts={[euroCard, gelSavings]}
+        categories={[groceries]}
+        incomeSources={[salary]}
+        locations={[market]}
+        baseCurrency="USD"
+        relatedQueryKeys={[]}
+        renderCategoryForm={() => null}
+        renderIncomeSourceForm={() => null}
+        renderMoneyAccountForm={() => null}
+        renderLocationForm={() => null}
+        onClose={onClose}
+      />,
+    );
+    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+
+    // act
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    // assert
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
+    expect(requestBody).toEqual(movement);
+  },
+);
