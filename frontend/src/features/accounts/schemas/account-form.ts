@@ -17,6 +17,7 @@ export const accountFormSchema = z.object({
   description: z
     .string()
     .trim()
+    .max(DESCRIPTION_MAX_LENGTH, `Write at most ${String(DESCRIPTION_MAX_LENGTH)} characters`)
     .refine((description) => description === '' || description.length >= DESCRIPTION_MIN_LENGTH, {
       error: `Write at least ${String(DESCRIPTION_MIN_LENGTH)} characters`,
     })

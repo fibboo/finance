@@ -24,7 +24,7 @@ OLD_DESCRIPTION_LENGTH = 4096
 def upgrade() -> None:
     op.execute(
         sa.text(
-            "UPDATE accounts SET description = left(description, :length) WHERE length(description) > :length"
+            "UPDATE accounts SET description = rtrim(left(description, :length)) WHERE length(description) > :length"
         ).bindparams(length=DESCRIPTION_LENGTH)
     )
     op.alter_column(
