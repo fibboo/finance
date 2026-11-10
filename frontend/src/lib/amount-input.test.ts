@@ -145,6 +145,24 @@ test.each([
     edited: { text: '0.', caret: 2 },
   },
   {
+    change: 'a deleted digit before zeros',
+    previousText: '1,000,000',
+    text: ',000,000',
+    caret: 0,
+    isForwardDelete: false,
+    isNegativeAllowed: false,
+    edited: { text: '000,000', caret: 0 },
+  },
+  {
+    change: 'a separator deleted before zeros',
+    previousText: '1,000',
+    text: '1000',
+    caret: 1,
+    isForwardDelete: false,
+    isNegativeAllowed: false,
+    edited: { text: '000', caret: 0 },
+  },
+  {
     change: 'a deleted digit',
     previousText: '1,234',
     text: '1,23',
@@ -268,6 +286,7 @@ test.each([
   { text: '.5', submittedAmount: '0.50' },
   { text: '-12.', submittedAmount: '-12.00' },
   { text: '1,234.5', submittedAmount: '1234.50' },
+  { text: '1.2.3', submittedAmount: '1.2.3' },
 ])('submits $text as $submittedAmount', ({ text, submittedAmount }) => {
   // act
   const amount = readSubmittedAmount(text);

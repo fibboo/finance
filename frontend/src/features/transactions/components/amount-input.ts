@@ -17,6 +17,9 @@ export function readAmountInputProps({
     type: 'text',
     inputMode: isNegativeAllowed ? 'text' : 'decimal',
     autoComplete: 'off',
+    autoCorrect: 'off',
+    autoCapitalize: 'off',
+    spellCheck: false,
     placeholder: '0.00',
     onFocus: (event: FocusEvent<HTMLInputElement>) => {
       acceptedTexts.set(event.target, event.target.value);

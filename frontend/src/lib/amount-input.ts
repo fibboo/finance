@@ -26,9 +26,10 @@ function escapeForPattern(text: string): string {
 
 function createAmountPattern({
   isSigned,
-  minimumDigits,
-}: Readonly<{ isSigned: boolean; minimumDigits: number }>): RegExp {
+  isDraft,
+}: Readonly<{ isSigned: boolean; isDraft: boolean }>): RegExp {
   const sign = isSigned ? '-?' : '';
+  const minimumDigits = isDraft ? 0 : 1;
   const integerDigits = `\\d{${String(minimumDigits)},${String(AMOUNT_INTEGER_DIGITS)}}`;
   const decimalDigits = `\\d{${String(minimumDigits)},${String(AMOUNT_DECIMAL_DIGITS)}}`;
   const amountPattern = new RegExp(`^${sign}${integerDigits}(\\.${decimalDigits})?$`);
@@ -38,14 +39,14 @@ function createAmountPattern({
 const GROUP_SEPARATOR = readSeparator('group');
 const DECIMAL_SEPARATOR = readSeparator('decimal');
 
-const UNSIGNED_DRAFT_PATTERN = createAmountPattern({ isSigned: false, minimumDigits: 0 });
-const SIGNED_DRAFT_PATTERN = createAmountPattern({ isSigned: true, minimumDigits: 0 });
+const UNSIGNED_DRAFT_PATTERN = createAmountPattern({ isSigned: false, isDraft: true });
+const SIGNED_DRAFT_PATTERN = createAmountPattern({ isSigned: true, isDraft: true });
 const GROUPED_PASTE_PATTERN = new RegExp(
   `^-?\\d{1,3}(${escapeForPattern(GROUP_SEPARATOR)}\\d{3})+(${escapeForPattern(DECIMAL_SEPARATOR)}\\d*)?$`,
 );
 
-export const PLAIN_AMOUNT_PATTERN = createAmountPattern({ isSigned: false, minimumDigits: 1 });
-export const PLAIN_BALANCE_PATTERN = createAmountPattern({ isSigned: true, minimumDigits: 1 });
+export const PLAIN_AMOUNT_PATTERN = createAmountPattern({ isSigned: false, isDraft: false });
+export const PLAIN_BALANCE_PATTERN = createAmountPattern({ isSigned: true, isDraft: false });
 
 export type EditedAmountText = Readonly<{ text: string; caret: number }>;
 
@@ -169,9 +170,11 @@ export function editAmountText({
   };
   const isOnlySeparatorDeleted =
     text.length < previousText.length && typedText.plainText === readPlainAmount(previousText);
-  const { plainText, plainCaret } = dropLeadingZeros(
-    isOnlySeparatorDeleted ? removeDigitBesideCaret({ ...typedText, isForwardDelete }) : typedText,
-  );
+  const editedText = isOnlySeparatorDeleted
+    ? removeDigitBesideCaret({ ...typedText, isForwardDelete })
+    : typedText;
+  const { plainText, plainCaret } =
+    plainInserted === '' ? editedText : dropLeadingZeros(editedText);
   const draftPattern = isNegativeAllowed ? SIGNED_DRAFT_PATTERN : UNSIGNED_DRAFT_PATTERN;
   if (!draftPattern.test(plainText)) {
     return undefined;
@@ -185,21 +188,24 @@ export function editAmountText({
   return editedAmountText;
 }
 
-export function formatAmountText(plainAmount: string): string {
+function padPlainAmount(plainAmount: string): string {
   const sign = plainAmount.startsWith('-') ? '-' : '';
   const [integerDigits = '', fractionDigits = ''] = plainAmount.slice(sign.length).split('.');
-  if (integerDigits === '' && fractionDigits === '') {
+  if (!SIGNED_DRAFT_PATTERN.test(plainAmount) || (integerDigits === '' && fractionDigits === '')) {
     return plainAmount;
   }
 
   const integerPart = integerDigits === '' ? '0' : integerDigits;
-  const paddedAmount = groupPlainAmount(
-    `${sign}${integerPart}.${fractionDigits.padEnd(AMOUNT_DECIMAL_DIGITS, '0')}`,
-  );
+  const paddedAmount = `${sign}${integerPart}.${fractionDigits.padEnd(AMOUNT_DECIMAL_DIGITS, '0')}`;
   return paddedAmount;
 }
 
+export function formatAmountText(plainAmount: string): string {
+  const amountText = groupPlainAmount(padPlainAmount(plainAmount));
+  return amountText;
+}
+
 export function readSubmittedAmount(amountText: string): string {
-  const submittedAmount = readPlainAmount(formatAmountText(readPlainAmount(amountText)));
+  const submittedAmount = padPlainAmount(readPlainAmount(amountText));
   return submittedAmount;
 }
