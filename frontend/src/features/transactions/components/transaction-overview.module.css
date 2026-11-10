@@ -5,6 +5,10 @@
   gap: var(--space-4);
 }
 
+.transactionOverview > :last-child {
+  margin-top: auto;
+}
+
 .header {
   display: flex;
   align-items: flex-start;
