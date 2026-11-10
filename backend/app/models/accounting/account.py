@@ -50,7 +50,7 @@ class Account(Base):
     )
 
     name: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    description: Mapped[str | None] = mapped_column(String(4096), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
     balance: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
     currency: Mapped[str | None] = mapped_column(String(3), ForeignKey(Currency.code), nullable=True)
