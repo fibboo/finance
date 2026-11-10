@@ -160,6 +160,9 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
 .row.selected::before { background: color-mix(in oklab, var(--tint, var(--color-panel)), var(--color-ink) 10%); }
 .row.selected:not(.income):not(.transfer):not(.adjustment)::before { background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
 .dot { width: var(--size-dot); height: var(--size-dot); border-radius: var(--radius-full); background: currentColor; align-self: center; }
+.dotStack { display: flex; flex-direction: column; gap: 0.1875rem; align-self: center; }
+.inlineDot { display: inline-block; width: var(--size-dot); height: var(--size-dot); margin-right: 0.3125rem; border-radius: var(--radius-full); background: currentColor; vertical-align: 0.0625rem; }
+.ringDot { box-shadow: 0 0 0 0.125rem var(--color-transfer-row), 0 0 0 0.25rem var(--ring); }
 .text { min-width: 0; display: flex; flex-direction: column; }
 .title, .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sub { font-size: var(--font-size-2xs); color: var(--color-muted); line-height: 1.35; }
@@ -254,7 +257,10 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
 .desc { margin: 0; font-size: var(--font-size-md); color: var(--color-muted); }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
 .tiles span { min-height: 4rem; border-radius: var(--radius-action); background: var(--color-ground); display: grid; place-items: center; font-size: var(--font-size-sm); font-weight: 600; text-align: center; }
-.hint { font-size: var(--font-size-sm); color: var(--color-muted); text-align: center; margin-top: calc(var(--space-2) * -1); }
+.hint { font-size: var(--font-size-sm); color: var(--color-muted); text-align: center; margin-top: auto; margin-bottom: calc(var(--space-2) * -1); }
+.details > .del:last-child { margin-top: auto; }
+.details > .hint + .del { margin-top: 0; }
+.detailsRow { align-items: stretch; }
 .homeTop { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); }
 .homeTop .panel { padding: var(--space-4) var(--space-5); }
 .phone .total { font-size: 2rem; }
@@ -276,6 +282,16 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
 .bar em { position: absolute; left: 30%; top: -0.25rem; bottom: -0.25rem; width: 2px; background: var(--color-ink); }
 .desktop .panel.recent { padding-top: var(--space-3); }
 .panelTitle { font-size: var(--font-size-lg); }
+.wideDesktop { width: 1600px; height: 920px; }
+.main.centered > * { width: 100%; max-width: 75rem; margin-inline: auto; }
+.detailsRow { flex: none; display: flex; gap: var(--space-4); align-self: flex-start; }
+.detailsRow .details { flex: 0 0 var(--size-details); }
+.detailsColumn { flex: 0 0 var(--size-details); display: flex; flex-direction: column; gap: var(--space-4); }
+.detailsColumn .details { flex: none; }
+.homeColumns { display: flex; gap: var(--space-4); align-items: flex-start; margin-top: var(--space-4); }
+.homeMain { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.homeMain .homeTop { margin-top: 0; }
+.aHead .close { margin-left: auto; align-self: flex-start; }
 .notes { margin: 0; padding-left: var(--space-5); color: var(--color-muted); font-size: var(--font-size-sm); display: flex; flex-direction: column; gap: var(--space-1); max-width: 52rem; }
 .notes b { color: var(--color-ink); font-weight: 600; }
 </style>
@@ -301,19 +317,25 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
 
   <section>
     <h2>2 · Transactions on desktop (1280 px)</h2>
-    <p class="lead">Agreed: 2A, with the details always open. Rows as on the phone, at desktop sizes.</p>
+    <p class="lead">Agreed: the list takes the free width and the details always show on the right, the account opened from a posting under the transaction.</p>
     <div class="boards" id="txDesktopBoards"></div>
   </section>
 
   <section>
     <h2>3 · Accounts on desktop (1280 px)</h2>
-    <p class="lead">Agreed: 3A, with the details always open. Currency and rate move under the name, as on the phone; the Rate column goes and the two balances stack (USD over the account's own).</p>
+    <p class="lead">Agreed: the groups take the free width, with the details always open. Currency and rate move under the name, as on the phone; the Rate column goes and the two balances stack (USD over the account's own).</p>
     <div class="boards" id="accDesktopBoards"></div>
   </section>
 
   <section>
+    <h2>2B · Transactions in a wide window (1600 px)</h2>
+    <p class="lead">Agreed: the details in a row of equal height when the list keeps at least 34rem.</p>
+    <div class="boards" id="rowBoards"></div>
+  </section>
+
+  <section>
     <h2>4 · Home</h2>
-    <p class="lead">Agreed: 4B. Recent shares the rows of the Transactions list; on desktop it keeps a reading width with the top transaction's details beside it.</p>
+    <p class="lead">Agreed: Recent shares the rows of the Transactions list; on desktop the column on the right shows the chosen account, or the first one of the strip, above the chosen or top transaction; neither closes on desktop.</p>
     <div class="boards" id="homeBoards"></div>
   </section>
 
@@ -340,7 +362,7 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
 
   const days = [
     { label: 'Today', total: -13043.60, rows: [
-      { type: 'transfer', title: 'Transfer', accounts: [{ name: 'Wallet 2', deleted: true }, { name: 'Wallet' }], color: COLORS.blue, currency: 'USD', orig: 389.10, base: 389.10, sign: 'auto', location: null, comment: null, selected: true },
+      { type: 'transfer', title: 'Transfer', accounts: [{ name: 'Wallet 2', deleted: true, color: COLORS.orange }, { name: 'Wallet', color: COLORS.blue }], color: COLORS.blue, currency: 'USD', orig: 389.10, base: 389.10, sign: 'auto', location: null, comment: null, selected: true },
       { type: 'adjustment', title: 'Adjustment', accounts: [{ name: 'Savings', deleted: true }], color: COLORS.green, currency: 'GEL', rate: 2.5184, orig: -41571.52, base: -16507.00, location: null, comment: 'Bank statement' },
       { type: 'expense', title: 'Groceries', accounts: [{ name: 'Wallet 2', deleted: true }], color: COLORS.blue, currency: 'USD', orig: -42.10, base: -42.10, location: 'Spar', comment: null },
       { type: 'expense', title: 'Coffee', accounts: [{ name: 'Wallet' }], color: COLORS.blue, currency: 'USD', orig: -4.50, base: -4.50, location: 'Coffee Lab', comment: 'With Anna' },
@@ -354,16 +376,32 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
 
   const accountsText = (row) => row.accounts.map(name).join(' → ');
   const isForeign = (row) => row.currency !== BASE;
-  const subLine = (row) => [accountsText(row), row.currency, isForeign(row) ? rate(row.rate) : null].filter(Boolean).join(' · ');
+  const isTransfer = (row) => row.type === 'transfer';
+  const subLine = (row) => [isTransfer(row) ? null : accountsText(row), row.currency, isForeign(row) ? rate(row.rate) : null].filter(Boolean).join(' · ');
+  const titleWithDots = (row) => row.accounts.map((account) => `<span class="inlineDot" style="color:${account.color}"></span>${name(account)}`).join(' → ');
+  const stackedDots = (row) => `<span class="dotStack">${row.accounts.map((account) => `<span class="dot" style="color:${account.color}"></span>`).join('')}</span>`;
+  const dotModes = {
+    stacked: (row) => stackedDots(row),
+    inTitle: () => '<span></span>',
+    fromInColumn: (row) => `<span class="dot" style="color:${row.accounts[0].color}"></span>`,
+    split: (row) => `<span class="dot" style="background:linear-gradient(90deg, ${row.accounts[0].color} 50%, ${row.accounts[1].color} 50%)"></span>`,
+    ring: (row) => `<span class="dot ringDot" style="color:${row.accounts[1].color};--ring:${row.accounts[0].color}"></span>`,
+  };
+  let dotMode = 'fromInColumn';
+  const titleWithToDot = (row) => `${name(row.accounts[0])} → <span class="inlineDot" style="color:${row.accounts[1].color}"></span>${name(row.accounts[1])}`;
+  const titleOf = (row) => !isTransfer(row) ? row.title
+    : dotMode === 'inTitle' ? titleWithDots(row)
+    : dotMode === 'fromInColumn' ? titleWithToDot(row)
+    : accountsText(row);
   const baseAmount = (row) => `<span class="amount${row.type === 'income' ? ' in' : ''}">${money(row.base, BASE, row.sign)}</span>`;
   const origAmount = (row) => isForeign(row) ? `<span class="orig">${money(row.orig, row.currency, row.sign)}</span>` : '';
   const rowClass = (row) => `row ${row.type}${row.selected ? ' selected' : ''}`;
-  const dot = (row) => `<span class="dot" style="color:${row.color}"></span>`;
+  const dot = (row) => isTransfer(row) ? dotModes[dotMode](row) : `<span class="dot" style="color:${row.color}"></span>`;
   const text = (title, sub) => `<span class="text"><span class="title">${title}</span><span class="sub">${sub}</span></span>`;
   const dayHead = (day) => `<div class="dayHead"><b>${day.label}</b><span>${money(day.total, BASE)}</span></div>`;
 
   const rowRenderers = {
-    stacked: (row) => `<div class="${rowClass(row)}">${dot(row)}${text(row.title, subLine(row))}<span class="amounts">${baseAmount(row)}${origAmount(row)}</span></div>`,
+    stacked: (row) => `<div class="${rowClass(row)}">${dot(row)}${text(titleOf(row), subLine(row))}<span class="amounts">${baseAmount(row)}${origAmount(row)}</span></div>`,
   };
 
   const txList = ({ listClass, header, render }) =>
@@ -407,8 +445,8 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
       </div>
     </div>`;
 
-  const variant = ({ id, name, note, board, wide }) =>
-    `<div class="variant${wide ? ' wide' : ''}" id="${id}"><div class="variantHead"><b>${name}</b><span>${note}</span></div><div class="frame" data-board-width="${wide ? 1280 : 390}">${board}</div></div>`;
+  const variant = ({ id, name, note, board, wide, boardWidth }) =>
+    `<div class="variant${wide ? ' wide' : ''}" id="${id}"><div class="variantHead"><b>${name}</b><span>${note}</span></div><div class="frame" data-board-width="${boardWidth ?? (wide ? 1280 : 390)}">${board}</div></div>`;
 
   document.getElementById('phoneBoards').innerHTML = [
     variant({ id: 'transactions-phone', name: '1A · Under the USD amount', note: 'Right side: the USD amount, the account\'s amount under it. One column of amounts, no column header.',
@@ -416,11 +454,6 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
   ].join('');
 
   const txToolbar = chipsHtml;
-  document.getElementById('txDesktopBoards').innerHTML = [
-    variant({ id: 'transactions-desktop', wide: true, name: '2A · Narrow list, details always open', note: 'The list keeps a reading width (42rem) on the left; the details always show beside it. With no transaction chosen, the top one opens; desktop drops the × since there is nothing to close to.',
-      board: desktopBoard({ active: 'Transactions', title: 'Transactions', count: '-$14,646.60', toolbar: txToolbar,
-        content: `<div class="panel narrow">${txList({ listClass: 'stack', render: rowRenderers.stacked })}</div>${transactionDetails}` }) }),
-  ].join('');
 
   const RATES = { USD: 1, EUR: 0.8547, GEL: 2.5174 };
   const groups = [
@@ -458,15 +491,10 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
       <div><div class="big">${money(mainCard.balance, 'EUR', 'auto')}</div><div class="meta">${money(inBase(mainCard), BASE, 'auto')} · rate ${rate(RATES.EUR)}</div></div>
       <p class="desc">Salary card</p>
       <div class="tiles"><span>Adjust balance</span><span>Edit</span><span>Transactions</span></div>
-      <div class="del">Delete account</div>
       <div class="hint">Bring the balance to zero to delete the account.</div>
+      <div class="del">Delete account</div>
     </aside>`;
 
-  document.getElementById('accDesktopBoards').innerHTML = [
-    variant({ id: 'accounts-desktop', wide: true, name: '3A · Narrow list, details always open', note: 'Rows as on the phone. The account details always show beside the list; with no account chosen, the top one opens.',
-      board: desktopBoard({ active: 'Accounts', title: 'Accounts', count: '9', toolbar: accToolbar,
-        content: `<div class="panel narrow">${accList({ listClass: 'stack', header: '<div class="colHead"><span>Account</span><span class="r">In USD</span></div>', render: accountRenderers.stacked })}</div>${accountDetails}` }) }),
-  ].join('');
 
   const homeCards = [mainCard, groups[0].accounts[1], groups[0].accounts[3]].map((account) => `
     <div class="card${account === mainCard ? ' on' : ''}"><div class="cardHead">${mark(account)}<div class="text"><span class="title">${account.name}</span><span class="sub">${accountSub(account)}</span></div></div>
@@ -482,8 +510,7 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
       ${sidebar('Home')}
       <div class="main">
         <div class="topRow"><h3 class="pageTitle">Home</h3><span class="avatar">FI</span></div>
-        ${homeTop}
-        <div class="content">${bottom}</div>
+        ${bottom}
       </div>
     </div>`;
   const homePhoneBoard = `
@@ -493,10 +520,34 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
       <div class="panel"><div class="balHead"><b>This month</b><span class="meta">Left <b class="ok">$1,240.00</b></span></div><div class="bar"><i></i><em></em></div><div class="balHead"><span class="meta">Spent <b>-$2,270.00</b></span><span class="meta">Earned <b>$3,510.00</b></span></div></div>
       <div class="panel"><div class="balHead"><b class="panelTitle">Recent transactions</b><span class="meta">All</span></div>${txList({ listClass: 'stack', render: rowRenderers.stacked }).replaceAll(' selected', '')}</div>
     </div>`;
+
+
+  const wallet = groups[0].accounts[1];
+  const walletDetails = `
+    <aside class="details">
+      <div class="aHead"><span class="mark big" style="--c:${wallet.color}">W</span><div><div class="meta">Asset · USD</div><h4 class="dTitle">Wallet</h4></div></div>
+      <div><div class="big">${money(wallet.balance, 'USD', 'auto')}</div></div>
+      <div class="tiles"><span>Adjust balance</span><span>Edit</span><span>Transactions</span></div>
+      <div class="hint">Bring the balance to zero to delete the account.</div>
+      <div class="del">Delete account</div>
+    </aside>`;
+
+  const detailsColumnOf = (panels) => `<div class="detailsColumn">${panels.join('')}</div>`;
+  document.getElementById('txDesktopBoards').innerHTML = variant({ id: 'transactions-desktop', wide: true, name: 'Transactions', note: 'The list takes the free width; the details column on the right shows the chosen or top transaction and, under it, its first money account or the account opened from a posting; neither closes on desktop.',
+    board: desktopBoard({ active: 'Transactions', title: 'Transactions', count: '-$14,646.60', toolbar: txToolbar,
+      content: `<div class="panel">${txList({ listClass: 'stack', render: rowRenderers.stacked })}</div>${detailsColumnOf([transactionDetails, walletDetails])}` }) });
+  document.getElementById('accDesktopBoards').innerHTML = variant({ id: 'accounts-desktop', wide: true, name: 'Accounts', note: 'The groups take the free width; the details of the chosen or top account show on the right.',
+    board: desktopBoard({ active: 'Accounts', title: 'Accounts', count: '9', toolbar: accToolbar,
+      content: `<div class="panel">${accList({ listClass: 'stack', header: '<div class="colHead"><span>Account</span><span class="r">In USD</span></div>', render: accountRenderers.stacked })}</div>${accountDetails}` }) });
+  const rowBoard = ({ width }) => desktopBoard({ active: 'Transactions', title: 'Transactions', count: '-$14,646.60', toolbar: txToolbar,
+    content: `<div class="panel">${txList({ listClass: 'stack', render: rowRenderers.stacked })}</div><div class="detailsRow">${transactionDetails}${walletDetails}</div>` }).replace('class="board desktop"', `class="board desktop" style="width: ${width}px"`);
+  document.getElementById('rowBoards').innerHTML = [
+    variant({ id: 'transactions-wide', wide: true, boardWidth: 1600, name: 'Transactions in a wide window', note: 'Once the list keeps at least 34rem beside them, the transaction and its account stand in a row, both as tall as the taller one with their delete actions on one level; narrower windows stack them.', board: rowBoard({ width: 1600 }) }),
+  ].join('');
   document.getElementById('homeBoards').innerHTML = [
     variant({ id: 'home-phone', name: 'Home on a phone', note: 'Recent with the two-line rows; nothing opens until a row is tapped.', board: homePhoneBoard }),
-    variant({ id: 'home-desktop', wide: true, name: '4B · Recent narrow, details always open', note: 'As on Transactions: Recent keeps a reading width and the details of the top transaction show beside it until another is chosen.',
-      board: homeBoard(`${recentPanel('narrow')}${transactionDetails}`) }),
+    variant({ id: 'home-desktop', wide: true, name: 'Home on desktop', note: 'The summaries and Recent take the free width; the column on the right shows a chosen account above the chosen or top transaction.',
+      board: homeBoard(`<div class="homeColumns"><div class="homeMain">${homeTop}<div class="content">${recentPanel('')}</div></div>${detailsColumnOf([accountDetails, transactionDetails])}</div>`) }),
   ].join('');
 
   const params = new URLSearchParams(location.search);
