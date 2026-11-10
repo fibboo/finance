@@ -21,7 +21,7 @@ from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
-from app.services.accounting.ledger_service import recalculate_accounts
+from app.services.accounting.ledger_service import get_money_account_dates, recalculate_accounts
 
 
 async def test_recalculate_accounts_back_dated_income_revalues_later_expense(
@@ -117,7 +117,11 @@ async def test_recalculate_accounts_back_dated_income_revalues_later_expense(
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=back_dated_income_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=back_dated_income_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -256,7 +260,11 @@ async def test_recalculate_accounts_deleted_income_revalues_later_expense(
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=deleted_income_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=deleted_income_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -362,7 +370,11 @@ async def test_recalculate_accounts_expense_without_rate_returns_to_unvalued(
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=deleted_income_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=deleted_income_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -540,7 +552,11 @@ async def test_recalculate_accounts_revalued_transfers_recalculate_receiving_acc
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=back_dated_income_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=back_dated_income_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -685,7 +701,11 @@ async def test_recalculate_accounts_back_dated_adjustment_takes_rate_of_its_date
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=adjustment_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=adjustment_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -850,7 +870,11 @@ async def test_recalculate_accounts_deleted_account_balance_change_forbidden(
     # Act / Assert
     # The transfer is revalued to 100 USD, which would leave 50 USD on the deleted account
     with pytest.raises(DeletedAccountTransactionForbidden) as exc:
-        await recalculate_accounts(db=db_transaction, transaction_db=back_dated_income_db, base_currency="USD")
+        await recalculate_accounts(
+            db=db_transaction,
+            account_dates=get_money_account_dates(transaction_db=back_dated_income_db),
+            base_currency="USD",
+        )
 
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.error_code == ErrorCodeType.DELETED_ACCOUNT_TRANSACTION_FORBIDDEN
@@ -927,7 +951,11 @@ async def test_recalculate_accounts_income_values_unvalued_expenses(db: AsyncSes
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=income_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=income_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -1047,7 +1075,11 @@ async def test_recalculate_accounts_transfer_repaying_debt_posts_exchange_differ
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=transfer_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=transfer_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -1153,7 +1185,11 @@ async def test_recalculate_accounts_deleted_debt_removes_exchange_difference(
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=expense_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=expense_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -1262,7 +1298,11 @@ async def test_recalculate_accounts_deleted_income_returns_valued_expenses_to_un
     await transaction_crud.update_orm(db=db, obj_in={"status": EntityStatusType.DELETED}, id=income_db.id, commit=True)
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=income_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=income_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -1364,7 +1404,11 @@ async def test_recalculate_accounts_rate_leaves_out_unvalued_expenses(db: AsyncS
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=adjustment_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=adjustment_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert
@@ -1426,7 +1470,11 @@ async def test_recalculate_accounts_adjustment_posts_no_exchange_difference(
     await db.commit()
 
     # Act
-    await recalculate_accounts(db=db_transaction, transaction_db=adjustment_db, base_currency="USD")
+    await recalculate_accounts(
+        db=db_transaction,
+        account_dates=get_money_account_dates(transaction_db=adjustment_db),
+        base_currency="USD",
+    )
     await db_transaction.commit()
 
     # Assert

@@ -227,7 +227,17 @@ export interface paths {
         };
         /** Get Transaction */
         get: operations["get_transaction_accounting_transactions__transaction_id__get"];
-        put?: never;
+        /**
+         * Update Transaction
+         * @description Replaces an expense, an income or a transfer with the movement sent, keeping its id. The body and its field
+         *     rules are those of `POST /accounting/transactions`. The kinds of the two accounts must give the transaction's
+         *     own type: another movement is refused with `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED` and a pair that is no movement
+         *     with `MOVEMENT_NOT_ALLOWED`. A balance adjustment is not edited and answers `ENTITY_NOT_FOUND`, like a missing
+         *     or deleted transaction, and a transaction on a deleted money account is refused with
+         *     `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. Every money account of the old and the new postings is recalculated from
+         *     the earlier of its dates.
+         */
+        put: operations["update_transaction_accounting_transactions__transaction_id__put"];
         post?: never;
         /** Delete Transaction */
         delete: operations["delete_transaction_accounting_transactions__transaction_id__delete"];
@@ -662,7 +672,7 @@ export interface components {
          * ErrorCodeType
          * @enum {string}
          */
-        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "BASE_CURRENCY_MISMATCH" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
+        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "BASE_CURRENCY_MISMATCH" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
         /** ErrorResponse */
         ErrorResponse: {
             /** Message */
@@ -1755,6 +1765,50 @@ export interface operations {
             };
         };
     };
+    update_transaction_accounting_transactions__transaction_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transaction_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MovementRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_transaction_accounting_transactions__transaction_id__delete: {
         parameters: {
             query: {
@@ -2384,7 +2438,7 @@ type ReadonlyArray<T> = [
 export const accountKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["AccountKind"]> = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"];
 export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryType"]> = ["VARIABLE", "FIXED", "PERIODIC"];
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
-export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_BALANCE_UNCHANGED", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
+export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_BALANCE_UNCHANGED", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
 export const linkStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["LinkStatusType"]> = ["linked", "merge_required"];
 export const listOrderTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ListOrderType"]> = ["name", "recent_use"];
 export const orderDirectionTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderDirectionType"]> = ["asc", "desc"];

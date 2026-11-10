@@ -1609,3 +1609,98 @@ async def test_create_transfer_base_currency_amount_not_allowed(db: AsyncSession
     assert account_from.balance == Decimal("110")
     account_to: AccountModel = await account_crud.get(db=db, id=account_to_db.id)
     assert account_to.balance == Decimal("0")
+
+
+async def test_update_transfer_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    from_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Checking USD",
+            "currency": "USD",
+            "balance": Decimal("500"),
+            "base_balance": Decimal("500"),
+        },
+        commit=True,
+    )
+    old_to_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Cash USD", "currency": "USD"},
+        commit=True,
+    )
+    new_to_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.LIABILITY, "user_id": user_id, "name": "Credit card", "currency": "USD"},
+        commit=True,
+    )
+
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=TransactionType.TRANSFER
+    )
+    transaction_before: Transaction = await transaction_processor.create(
+        data=MovementRequest(
+            transaction_date=date(2025, 2, 10),
+            source_amount=Decimal("100"),
+            source_currency="USD",
+            destination_currency="USD",
+            from_account_id=from_account_db.id,
+            to_account_id=old_to_account_db.id,
+        )
+    )
+    await db.commit()
+    await db.close()
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 12),
+        comment="Card repayment",
+        source_amount=Decimal("150"),
+        source_currency="USD",
+        destination_currency="USD",
+        from_account_id=from_account_db.id,
+        to_account_id=new_to_account_db.id,
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.TRANSFER
+    )
+    transaction: Transaction = await transaction_processor.update(
+        transaction_id=transaction_before.id, data=update_data
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.id == transaction_before.id
+    assert transaction.transaction_type == TransactionType.TRANSFER
+    assert transaction.transaction_date == date(2025, 2, 12)
+    assert transaction.comment == "Card repayment"
+    assert transaction.base_currency_amount == Decimal("150")
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (from_account_db.id, Decimal("-150"), "USD", Decimal("-150")),
+        (new_to_account_db.id, Decimal("150"), "USD", Decimal("150")),
+    ]
+
+    balances: list[tuple] = (
+        await db.execute(
+            select(AccountModel.id, AccountModel.balance, AccountModel.base_balance).where(
+                AccountModel.user_id == user_id
+            )
+        )
+    ).all()
+    assert sorted(balances) == sorted(
+        [
+            (from_account_db.id, Decimal("350"), Decimal("350")),
+            (old_to_account_db.id, Decimal("0"), Decimal("0")),
+            (new_to_account_db.id, Decimal("150"), Decimal("150")),
+        ]
+    )

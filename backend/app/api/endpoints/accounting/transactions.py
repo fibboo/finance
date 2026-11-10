@@ -92,6 +92,29 @@ async def get_transaction(
     return transaction
 
 
+@router.put("/{transaction_id}")
+async def update_transaction(
+    *,
+    transaction_id: UUID,
+    update_data: MovementRequest,
+    user_id: UUID = Depends(get_onboarded_user_id),
+    db: DbTransaction,
+) -> Transaction:
+    """
+    Replaces an expense, an income or a transfer with the movement sent, keeping its id. The body and its field
+    rules are those of `POST /accounting/transactions`. The kinds of the two accounts must give the transaction's
+    own type: another movement is refused with `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED` and a pair that is no movement
+    with `MOVEMENT_NOT_ALLOWED`. A balance adjustment is not edited and answers `ENTITY_NOT_FOUND`, like a missing
+    or deleted transaction, and a transaction on a deleted money account is refused with
+    `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. Every money account of the old and the new postings is recalculated from
+    the earlier of its dates.
+    """
+    transaction: Transaction = await transaction_service.update_transaction(
+        db=db, transaction_id=transaction_id, update_data=update_data, user_id=user_id
+    )
+    return transaction
+
+
 @router.delete("/{transaction_id}")
 async def delete_transaction(
     *,

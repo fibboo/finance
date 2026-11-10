@@ -44,6 +44,19 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         transaction_db: Transaction = await self.get_refreshed(db=db, transaction_id=transaction_db.id)
         return transaction_db
 
+    async def update_with_postings(
+        self, *, db: AsyncSession, db_obj: Transaction, obj_in: TransactionCreate, postings: list[PostingCreate]
+    ) -> Transaction:
+        for field, value in obj_in.model_dump().items():
+            setattr(db_obj, field, value)
+
+        postings_db: list[Posting] = [Posting(**posting.model_dump(), transaction_id=db_obj.id) for posting in postings]
+        db.add_all(postings_db)
+        await db.flush()
+
+        transaction_db: Transaction = await self.get_refreshed(db=db, transaction_id=db_obj.id)
+        return transaction_db
+
     async def get_refreshed(self, *, db: AsyncSession, transaction_id: UUID) -> Transaction:
         query: Select = (
             select(self.model).where(self.model.id == transaction_id).execution_options(populate_existing=True)

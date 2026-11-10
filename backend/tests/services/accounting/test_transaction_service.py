@@ -15,7 +15,7 @@ from app.crud.accounting.location import location_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.crud.user.user import user_crud
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.unprocessable_422 import MovementNotAllowed
+from app.exceptions.unprocessable_422 import MovementNotAllowed, TransactionTypeChangeNotAllowed
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.posting import Posting as PostingModel
@@ -1292,3 +1292,125 @@ async def test_get_transactions_estimates_unvalued(db: AsyncSession, httpx_mock:
         unvalued_expense_db.id: (Decimal("37.50"), [Decimal("-37.50"), Decimal("37.50")]),
         valued_expense_db.id: (None, [None, None]),
     }
+
+
+async def test_update_transaction_type_change_not_allowed(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Checking USD", "currency": "USD"},
+        commit=True,
+    )
+    other_account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Cash USD", "currency": "USD"},
+        commit=True,
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Some shop"), commit=True
+    )
+    expense_before: Transaction = await transaction_service.create_transaction(
+        db=db,
+        create_data=MovementRequest(
+            transaction_date=date(2025, 2, 10),
+            from_account_id=account_db.id,
+            to_account_id=category_db.id,
+            source_amount=Decimal("10"),
+            source_currency="USD",
+            destination_amount=Decimal("10"),
+            destination_currency="USD",
+            location_id=location_db.id,
+        ),
+        user_id=user_id,
+    )
+    await db.commit()
+    await db.close()
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        from_account_id=account_db.id,
+        to_account_id=other_account_db.id,
+        source_amount=Decimal("10"),
+        source_currency="USD",
+        destination_currency="USD",
+    )
+
+    # Act / Assert
+    with pytest.raises(TransactionTypeChangeNotAllowed) as exc:
+        await transaction_service.update_transaction(
+            db=db_transaction, transaction_id=expense_before.id, update_data=update_data, user_id=user_id
+        )
+
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.error_code == ErrorCodeType.TRANSACTION_TYPE_CHANGE_NOT_ALLOWED
+    assert exc.value.log_message == (
+        f"The EXPENSE transaction `{expense_before.id}` can not become a TRANSFER transaction"
+    )
+
+    postings: list[PostingModel] = (await db.scalars(select(PostingModel).order_by(PostingModel.amount))).all()
+    assert [posting.account_id for posting in postings] == [account_db.id, category_db.id]
+
+
+async def test_update_transaction_adjustment_not_found(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Wallet", "currency": "USD"},
+        commit=True,
+    )
+    await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
+    income_source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Best Job"), commit=True
+    )
+    adjustment: Transaction = await transaction_service.adjust_balance(
+        db=db,
+        account_id=account_db.id,
+        adjustment_data=AdjustmentRequest(transaction_date=date(2025, 2, 10), new_balance=Decimal("300")),
+        user_id=user_id,
+    )
+    await db.commit()
+    await db.close()
+
+    update_data: MovementRequest = MovementRequest(
+        transaction_date=date(2025, 2, 10),
+        from_account_id=income_source_db.id,
+        to_account_id=account_db.id,
+        source_amount=Decimal("300"),
+        source_currency="USD",
+        destination_amount=Decimal("300"),
+        destination_currency="USD",
+        income_period=date(2025, 2, 1),
+    )
+
+    # Act / Assert
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_service.update_transaction(
+            db=db_transaction, transaction_id=adjustment.id, update_data=update_data, user_id=user_id
+        )
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+
+    transaction_types: list[TransactionType] = (await db.scalars(select(TransactionModel.transaction_type))).all()
+    assert transaction_types == [TransactionType.ADJUSTMENT]
