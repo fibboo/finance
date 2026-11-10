@@ -52,7 +52,8 @@ function SelectedAccount({
   currencies,
 }: SelectedAccountProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isEditing, setIsEditing] = useState(false);
+  const [editedAccountId, setEditedAccountId] = useState<string | undefined>(undefined);
+  const isEditing = editedAccountId === accountId;
   const { data: account, error } = useQuery(accountQueries.detail(accountId));
   useEffect(() => {
     revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
@@ -73,7 +74,7 @@ function SelectedAccount({
   }
 
   function closeEditForm() {
-    setIsEditing(false);
+    setEditedAccountId(undefined);
   }
 
   function dropSelectedAccount({ isReplaced }: Readonly<{ isReplaced: boolean }>) {
@@ -106,7 +107,7 @@ function SelectedAccount({
         isShownByDefault={isShownByDefault}
         isKeptOpenOnDesktop={isKeptOpenOnDesktop}
         onEdit={() => {
-          setIsEditing(true);
+          setEditedAccountId(accountId);
         }}
         onDeleted={() => {
           dropSelectedAccount({ isReplaced: true });
@@ -124,6 +125,7 @@ function SelectedAccount({
       {isEditing && account !== undefined && (
         <Sheet label="Edit account" onClose={closeEditForm}>
           <MoneyAccountForm
+            key={account.id}
             mode={{
               kind: 'edit',
               account,

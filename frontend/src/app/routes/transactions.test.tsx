@@ -1310,6 +1310,58 @@ test('deletes the transaction after the confirmation and refreshes the list and 
   expect(detailRequestCount).toBe(1);
 });
 
+test('shows the top row without a confirmation after the chosen transaction is deleted', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let isDeleted = false;
+  const coffee = {
+    ...expense,
+    id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+    postings: [
+      { ...walletPosting, amount: '-4.50', base_amount: '-4.50' },
+      { ...categoryPosting, amount: '4.50', base_amount: '4.50', account: cafes },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () => {
+      const items = isDeleted ? [expense] : [expense, coffee];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${coffee.id}`, () =>
+      HttpResponse.json(coffee),
+    ),
+    http.delete(`http://localhost/api/accounting/transactions/${coffee.id}`, () => {
+      isDeleted = true;
+      return HttpResponse.json(coffee);
+    }),
+  );
+  render(<Component />);
+  // the top row shows first, so its details are loaded before the deletion returns to them
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Groceries' });
+  await user.click(screen.getByRole('link', { name: 'Cafes' }));
+  await within(details).findByRole('heading', { level: 2, name: 'Cafes' });
+  await user.click(within(details).getByRole('button', { name: 'Delete transaction' }));
+  const confirmation = screen.getByRole('alertdialog', { name: 'Delete this transaction?' });
+
+  // act
+  await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
+
+  // assert
+  const topDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(topDetails).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Cafes' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+});
+
 test('keeps the details open when the deletion is cancelled with Escape', async () => {
   // arrange
   const user = userEvent.setup();

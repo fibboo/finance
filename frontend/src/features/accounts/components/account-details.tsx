@@ -76,6 +76,7 @@ export function AccountDetails({
             closeButton={closeButton}
             deleteAction={
               <DeleteAccount
+                key={account.id}
                 account={account}
                 currency={account.currency ?? baseCurrency}
                 isOnlyAccount={isOnlyAccount}
