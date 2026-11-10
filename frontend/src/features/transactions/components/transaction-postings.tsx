@@ -80,16 +80,14 @@ export function TransactionPostings({
           const color = readMoneyAccountColor(posting.account);
           return (
             <li key={posting.id} className={styles['posting']}>
-              {color === undefined ? (
-                <span className={styles['dotSpace']} aria-hidden="true" />
-              ) : (
+              {color !== undefined && (
                 <span className={styles['dot']} style={{ color }} aria-hidden="true" />
               )}
-              <span className={styles['account']}>
-                <span>
-                  <PostingAccount account={posting.account} readAccountLink={readAccountLink} />
-                </span>
-                <span className={styles['note']}>{readKindLabel({ posting, accountKinds })}</span>
+              <span className={styles['accountName']}>
+                <PostingAccount account={posting.account} readAccountLink={readAccountLink} />
+              </span>
+              <span className={`${styles['note'] ?? ''} ${styles['accountNote'] ?? ''}`}>
+                {readKindLabel({ posting, accountKinds })}
               </span>
               <span className={styles['amounts']}>
                 {formatMoney({
