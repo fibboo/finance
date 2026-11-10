@@ -1,16 +1,14 @@
 import { render as renderElement, type RenderResult } from '@testing-library/react';
 import type { ReactElement } from 'react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, type DataRouter, RouterProvider } from 'react-router';
 
 import { Providers } from '@/app/providers';
 import { createQueryClient } from '@/app/query-client';
 
-type Router = ReturnType<typeof createMemoryRouter>;
-
 export function render(
   ui: ReactElement,
   { initialEntries = ['/'] }: Readonly<{ initialEntries?: string[] }> = {},
-): RenderResult & Readonly<{ router: Router }> {
+): RenderResult & Readonly<{ router: DataRouter }> {
   const queryClient = createQueryClient();
   queryClient.setDefaultOptions({
     ...queryClient.getDefaultOptions(),

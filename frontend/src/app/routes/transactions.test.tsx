@@ -1360,6 +1360,83 @@ test('shows the top row without a confirmation after the chosen transaction is d
   ).toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Cafes' })).not.toBeInTheDocument();
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Groceries' })).toHaveFocus();
+});
+
+test('forgets the details of a transaction deleted after the details moved to another one', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let isDeleted = false;
+  let coffeeDetailRequestCount = 0;
+  let finishDeletion: (() => void) | undefined;
+  const deletionGate = new Promise<void>((resolve) => {
+    finishDeletion = resolve;
+  });
+  const coffee = {
+    ...expense,
+    id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+    postings: [
+      { ...walletPosting, amount: '-4.50', base_amount: '-4.50' },
+      { ...categoryPosting, amount: '4.50', base_amount: '4.50', account: cafes },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () => {
+      const items = isDeleted ? [expense] : [expense, coffee];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${coffee.id}`, () => {
+      coffeeDetailRequestCount += 1;
+      return isDeleted
+        ? HttpResponse.json(
+            { error_code: 'NOT_FOUND', message: 'Transaction not found' },
+            { status: 404 },
+          )
+        : HttpResponse.json(coffee);
+    }),
+    http.delete(`http://localhost/api/accounting/transactions/${coffee.id}`, async () => {
+      await deletionGate;
+      isDeleted = true;
+      return HttpResponse.json(coffee);
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/transactions'] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Groceries' });
+  await user.click(screen.getByRole('link', { name: 'Cafes' }));
+  await within(details).findByRole('heading', { level: 2, name: 'Cafes' });
+  await user.click(within(details).getByRole('button', { name: 'Delete transaction' }));
+  await user.click(
+    within(screen.getByRole('alertdialog', { name: 'Delete this transaction?' })).getByRole(
+      'button',
+      { name: 'Delete' },
+    ),
+  );
+  // the browser's Back shows the top row while the deletion is still on its way
+  await router.navigate(-1);
+  await within(details).findByRole('heading', { level: 2, name: 'Groceries' });
+  finishDeletion?.();
+  await waitFor(() => {
+    expect(screen.queryByRole('link', { name: 'Cafes' })).not.toBeInTheDocument();
+  });
+
+  // act: the user presses the browser's Forward
+  await router.navigate(1);
+
+  // assert
+  await waitFor(() => {
+    expect(coffeeDetailRequestCount).toBe(2);
+  });
+  const topDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(topDetails).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
 });
 
 test('keeps the details open when the deletion is cancelled with Escape', async () => {

@@ -4,10 +4,12 @@ import { useId, useState } from 'react';
 import { ActionButton } from '@/components/action-button/action-button';
 import { DELETE_ICON_PATH } from '@/components/action-button/action-icons';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
+import { focusReturnTarget } from '@/components/details-panel/focus-return';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
+import { readNeighbourTransactionLinkId, readTransactionLinkId } from '../api/selected-transaction';
 import { transactionMutations } from '../api/transaction-mutations';
 import { transactionQueries } from '../api/transaction-queries';
 import {
@@ -99,12 +101,14 @@ export function DeleteTransaction({
           isPending={isPending}
           onCancel={cancel}
           onConfirm={() => {
+            const neighbourLinkId = readNeighbourTransactionLinkId(transaction.id);
             mutate(transaction, {
               onSuccess: () => {
                 onDeleted();
                 queryClient.removeQueries({
                   queryKey: transactionQueries.detail(transaction.id).queryKey,
                 });
+                focusReturnTarget(neighbourLinkId ?? readTransactionLinkId(transaction.id));
               },
             });
           }}

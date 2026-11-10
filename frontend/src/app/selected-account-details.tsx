@@ -54,6 +54,10 @@ function SelectedAccount({
   const [searchParams, setSearchParams] = useSearchParams();
   const [editedAccountId, setEditedAccountId] = useState<string | undefined>(undefined);
   const isEditing = editedAccountId === accountId;
+  if (editedAccountId !== undefined && !isEditing) {
+    setEditedAccountId(undefined);
+  }
+
   const { data: account, error } = useQuery(accountQueries.detail(accountId));
   useEffect(() => {
     revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
@@ -125,7 +129,6 @@ function SelectedAccount({
       {isEditing && account !== undefined && (
         <Sheet label="Edit account" onClose={closeEditForm}>
           <MoneyAccountForm
-            key={account.id}
             mode={{
               kind: 'edit',
               account,

@@ -598,7 +598,7 @@ test('edits an account from its details and lists it under the new name', async 
   ).toBeInTheDocument();
 });
 
-test('closes the edit form when Back shows another account', async () => {
+test('closes the edit form when Back shows another account and keeps it closed on Forward', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
@@ -623,15 +623,24 @@ test('closes the edit form when Back shows another account', async () => {
   const nameField = within(form).getByRole('textbox', { name: 'Name' });
   await user.clear(nameField);
   await user.type(nameField, 'Cash');
-
-  // act: the user presses the browser's Back
+  // the browser's Back shows the other account, which closes the form
   await router.navigate(-1);
+  expect(
+    await within(screen.getByRole('dialog', { name: 'Account details' })).findByRole('heading', {
+      level: 2,
+      name: 'Travel card',
+    }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('form', { name: 'Edit account' })).not.toBeInTheDocument();
+
+  // act: the user presses the browser's Forward
+  await router.navigate(1);
 
   // assert
   expect(
     await within(screen.getByRole('dialog', { name: 'Account details' })).findByRole('heading', {
       level: 2,
-      name: 'Travel card',
+      name: 'Wallet',
     }),
   ).toBeInTheDocument();
   expect(screen.queryByRole('form', { name: 'Edit account' })).not.toBeInTheDocument();

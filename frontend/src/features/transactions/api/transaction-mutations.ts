@@ -99,7 +99,8 @@ export const transactionMutations = {
     return mutationOptions({
       mutationFn: deleteTransaction,
       onSuccess: async (_deletedTransaction, transaction, _onMutateResult, { client }) => {
-        const deletedDetailHash = hashKey(transactionQueries.detail(transaction.id).queryKey);
+        const deletedDetailKey = transactionQueries.detail(transaction.id).queryKey;
+        const deletedDetailHash = hashKey(deletedDetailKey);
         await Promise.all([
           client.invalidateQueries({
             queryKey: transactionQueries.details().queryKey,
@@ -108,6 +109,7 @@ export const transactionMutations = {
           }),
           invalidateFeeds({ client, relatedQueryKeys }),
         ]);
+        client.removeQueries({ queryKey: deletedDetailKey, exact: true, type: 'inactive' });
       },
     });
   },
