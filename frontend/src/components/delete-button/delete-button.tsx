@@ -17,6 +17,11 @@ export function DeleteButton({ id, label, blockingHint, onClick }: DeleteButtonP
   const isBlocked = blockingHint !== undefined;
   return (
     <div className={styles['deleteButton']}>
+      {isBlocked && (
+        <span id={hintId} className={styles['hint']}>
+          {blockingHint}
+        </span>
+      )}
       <button
         id={id}
         type="button"
@@ -34,11 +39,6 @@ export function DeleteButton({ id, label, blockingHint, onClick }: DeleteButtonP
         </svg>
         {label}
       </button>
-      {isBlocked && (
-        <span id={hintId} className={styles['hint']}>
-          {blockingHint}
-        </span>
-      )}
     </div>
   );
 }

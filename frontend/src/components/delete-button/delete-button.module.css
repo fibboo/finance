@@ -1,6 +1,7 @@
 @import '@/styles/media.css';
 
 .deleteButton {
+  margin-top: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-1-5);
