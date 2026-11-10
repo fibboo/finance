@@ -6,7 +6,7 @@ import { categoryTypeValues } from '@/lib/api-schema';
 const NAME_MIN_LENGTH = 3;
 export const NAME_MAX_LENGTH = 32;
 const DESCRIPTION_MIN_LENGTH = 3;
-export const DESCRIPTION_MAX_LENGTH = 4096;
+export const DESCRIPTION_MAX_LENGTH = 256;
 
 export const accountFormSchema = z.object({
   name: z

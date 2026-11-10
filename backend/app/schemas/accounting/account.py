@@ -53,7 +53,7 @@ CATEGORY_TYPE_LABELS: frozendict[CategoryType, str] = frozendict(
 
 class AccountBase(BaseModel):
     name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)]
-    description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=4096)] | None = None
+    description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=256)] | None = None
 
 
 class AccountCreateBase(AccountBase):
