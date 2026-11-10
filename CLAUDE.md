@@ -81,7 +81,7 @@ npm run typecheck
 
 Tests run through `backend/tests/Dockerfile`, and `backend/pytest.ini` sets the environment with fake values. The pytest-postgresql database is the one real service a suite starts. Every other external service stays mocked.
 
-`backend/tests/db_migration/test_migrations.py` applies the Alembic revisions to an empty pytest-postgresql database, fails on any difference from the models, and runs the downgrade, so a model change needs a matching revision.
+`backend/tests/db_migration/test_migrations.py` applies the Alembic revisions to an empty pytest-postgresql database, fails on any difference from the models, and runs the downgrade, so a model change needs a matching revision. It also applies the head revision to a database with a stored transaction, so a revision that changes rows of `transactions` and then alters the table is checked against a row.
 
 **Scoping rules: always apply both levels.**
 1. **Module level**: only run tests for modules whose source files changed.
