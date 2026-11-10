@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { readNeighbourLinkId } from '@/lib/neighbour-link';
+
 export const SELECTED_TRANSACTION_PARAM = 'transaction';
 const TRANSACTION_LINK_ID_PREFIX = 'transaction-link-';
 
@@ -33,11 +35,9 @@ export function readTransactionLinkId(transactionId: string): string {
 }
 
 export function readNeighbourTransactionLinkId(transactionId: string): string | undefined {
-  const linkIds = Array.from(
-    document.querySelectorAll(`[id^="${TRANSACTION_LINK_ID_PREFIX}"]`),
-    (link) => link.id,
-  );
-  const index = linkIds.indexOf(readTransactionLinkId(transactionId));
-  const neighbourLinkId = index === -1 ? undefined : (linkIds[index + 1] ?? linkIds[index - 1]);
+  const neighbourLinkId = readNeighbourLinkId({
+    linkIdPrefix: TRANSACTION_LINK_ID_PREFIX,
+    linkId: readTransactionLinkId(transactionId),
+  });
   return neighbourLinkId;
 }

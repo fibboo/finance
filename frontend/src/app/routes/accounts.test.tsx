@@ -598,7 +598,46 @@ test('edits an account from its details and lists it under the new name', async 
   ).toBeInTheDocument();
 });
 
-test('closes the edit form when Back shows another account and keeps it closed on Forward', async () => {
+test('closes the edit form when Back shows another account', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, travelCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  const { router } = render(<Component />);
+  await user.click(await screen.findByRole('link', { name: 'Travel card' }));
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Travel card' });
+  await user.click(screen.getByRole('link', { name: 'Wallet' }));
+  await within(details).findByRole('heading', { level: 2, name: 'Wallet' });
+  await user.click(within(details).getByRole('button', { name: 'Edit' }));
+  const form = await screen.findByRole('form', { name: 'Edit account' });
+  const nameField = within(form).getByRole('textbox', { name: 'Name' });
+  await user.clear(nameField);
+  await user.type(nameField, 'Cash');
+
+  // act: the user presses the browser's Back
+  await router.navigate(-1);
+
+  // assert
+  expect(
+    await within(screen.getByRole('dialog', { name: 'Account details' })).findByRole('heading', {
+      level: 2,
+      name: 'Travel card',
+    }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('form', { name: 'Edit account' })).not.toBeInTheDocument();
+});
+
+test('keeps the edit form closed when Forward returns to the account it was open for', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
@@ -625,13 +664,10 @@ test('closes the edit form when Back shows another account and keeps it closed o
   await user.type(nameField, 'Cash');
   // the browser's Back shows the other account, which closes the form
   await router.navigate(-1);
-  expect(
-    await within(screen.getByRole('dialog', { name: 'Account details' })).findByRole('heading', {
-      level: 2,
-      name: 'Travel card',
-    }),
-  ).toBeInTheDocument();
-  expect(screen.queryByRole('form', { name: 'Edit account' })).not.toBeInTheDocument();
+  await within(screen.getByRole('dialog', { name: 'Account details' })).findByRole('heading', {
+    level: 2,
+    name: 'Travel card',
+  });
 
   // act: the user presses the browser's Forward
   await router.navigate(1);
