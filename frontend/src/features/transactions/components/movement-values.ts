@@ -49,19 +49,24 @@ export function readOwnChoices(transaction: Readonly<Transaction>): OwnChoices {
   return ownChoices;
 }
 
-export function addOwnChoice<Choice extends Readonly<{ id: string }>>({
+export function addOwnChoices<Choice extends Readonly<{ id: string }>>({
   choices,
-  ownChoice,
+  ownChoices,
 }: Readonly<{
   choices: readonly Choice[] | undefined;
-  ownChoice: Choice | undefined;
+  ownChoices: readonly (Choice | undefined)[];
 }>): readonly Choice[] | undefined {
   const ownedChoices =
-    choices === undefined ||
-    ownChoice === undefined ||
-    choices.some((choice) => choice.id === ownChoice.id)
-      ? choices
-      : [...choices, ownChoice];
+    choices === undefined
+      ? undefined
+      : [
+          ...choices,
+          ...ownChoices.flatMap((ownChoice) =>
+            ownChoice === undefined || choices.some((choice) => choice.id === ownChoice.id)
+              ? []
+              : [ownChoice],
+          ),
+        ];
   return ownedChoices;
 }
 

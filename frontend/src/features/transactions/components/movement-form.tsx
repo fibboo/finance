@@ -43,7 +43,7 @@ import {
   readMovementCurrencies,
   readMovementPickers,
 } from './movement-config';
-import { addOwnChoice, readMovementValues, readOwnChoices } from './movement-values';
+import { addOwnChoices, readMovementValues, readOwnChoices } from './movement-values';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
@@ -101,15 +101,16 @@ export function MovementForm({
   const rowIdPrefix = useId();
   const copy = MOVEMENT_COPY[transactionType];
   const ownChoices = mode.kind === 'edit' ? readOwnChoices(mode.transaction) : undefined;
-  const fromAccounts = addOwnChoice({
+  const isTransfer = transactionType === 'TRANSFER';
+  const fromAccounts = addOwnChoices({
     choices: transactionType === 'INCOME' ? incomeSources : moneyAccounts,
-    ownChoice: ownChoices?.fromAccount,
+    ownChoices: [ownChoices?.fromAccount, isTransfer ? ownChoices?.toAccount : undefined],
   });
-  const toAccounts = addOwnChoice({
+  const toAccounts = addOwnChoices({
     choices: transactionType === 'EXPENSE' ? categories : moneyAccounts,
-    ownChoice: ownChoices?.toAccount,
+    ownChoices: [ownChoices?.toAccount, isTransfer ? ownChoices?.fromAccount : undefined],
   });
-  const places = addOwnChoice({ choices: locations, ownChoice: ownChoices?.location });
+  const places = addOwnChoices({ choices: locations, ownChoices: [ownChoices?.location] });
   const resolver: Resolver<MovementFormValues, unknown, MovementRequest> = (
     values,
     context,

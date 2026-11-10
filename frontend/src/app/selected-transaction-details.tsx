@@ -49,6 +49,10 @@ function SelectedTransaction({
   const [searchParams, setSearchParams] = useSearchParams();
   const [editedTransactionId, setEditedTransactionId] = useState<string | undefined>(undefined);
   const isEditing = editedTransactionId === transactionId;
+  if (editedTransactionId !== undefined && !isEditing) {
+    setEditedTransactionId(undefined);
+  }
+
   const editButtonId = useId();
   const { data: transaction, error } = useQuery(transactionQueries.detail(transactionId));
   const movementType =
@@ -114,7 +118,6 @@ function SelectedTransaction({
             <TransactionFormSkeleton />
           ) : (
             <MovementForm
-              key={transaction.id}
               mode={{ kind: 'edit', transaction }}
               transactionType={movementType}
               categoryTypes={choices.dictionaries.category_types}

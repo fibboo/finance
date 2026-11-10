@@ -1365,3 +1365,57 @@ test('leaves the amount received empty when an edited transfer into the base cur
   expect(screen.getByLabelText('Amount received')).toHaveValue('');
   expect(screen.getByLabelText('Amount sent')).toHaveValue('500.00');
 });
+
+test('lists both accounts of an edited transfer on either side when the choices lack them', async () => {
+  // arrange
+  const transaction = {
+    ...expense,
+    transaction_type: 'TRANSFER',
+    location: null,
+    postings: [
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+        amount: '-500.00',
+        currency: 'EUR',
+        base_amount: '-550.00',
+        account: euroCard,
+      },
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+        amount: '500.00',
+        currency: 'EUR',
+        base_amount: '550.00',
+        account: euroSavings,
+      },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      mode={{ kind: 'edit', transaction }}
+      transactionType="TRANSFER"
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[dollarCash]}
+      categories={undefined}
+      incomeSources={undefined}
+      locations={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /^To/ }));
+  await user.click(screen.getByRole('button', { name: /^Cash/ }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^From/ }));
+
+  // assert
+  expect(screen.getByRole('button', { name: /^Euro savings/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /^Euro card/ })).toBeInTheDocument();
+});
