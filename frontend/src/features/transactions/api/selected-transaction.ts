@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
+import { readNeighbourLinkId } from '@/lib/neighbour-link';
+
 export const SELECTED_TRANSACTION_PARAM = 'transaction';
+const TRANSACTION_LINK_ID_PREFIX = 'transaction-link-';
 
 export function readSelectedTransactionId(searchParams: URLSearchParams): string | undefined {
   const parsedId = z.uuid().safeParse(searchParams.get(SELECTED_TRANSACTION_PARAM));
@@ -27,6 +30,14 @@ export function writeSelectedTransaction({
 }
 
 export function readTransactionLinkId(transactionId: string): string {
-  const linkId = `transaction-link-${transactionId}`;
+  const linkId = `${TRANSACTION_LINK_ID_PREFIX}${transactionId}`;
   return linkId;
+}
+
+export function readNeighbourTransactionLinkId(transactionId: string): string | undefined {
+  const neighbourLinkId = readNeighbourLinkId({
+    linkIdPrefix: TRANSACTION_LINK_ID_PREFIX,
+    linkId: readTransactionLinkId(transactionId),
+  });
+  return neighbourLinkId;
 }

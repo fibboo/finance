@@ -52,7 +52,12 @@ function SelectedAccount({
   currencies,
 }: SelectedAccountProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isEditing, setIsEditing] = useState(false);
+  const [editedAccountId, setEditedAccountId] = useState<string | undefined>(undefined);
+  const isEditing = editedAccountId === accountId;
+  if (editedAccountId !== undefined && !isEditing) {
+    setEditedAccountId(undefined);
+  }
+
   const { data: account, error } = useQuery(accountQueries.detail(accountId));
   useEffect(() => {
     revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
@@ -73,7 +78,7 @@ function SelectedAccount({
   }
 
   function closeEditForm() {
-    setIsEditing(false);
+    setEditedAccountId(undefined);
   }
 
   function dropSelectedAccount({ isReplaced }: Readonly<{ isReplaced: boolean }>) {
@@ -106,7 +111,7 @@ function SelectedAccount({
         isShownByDefault={isShownByDefault}
         isKeptOpenOnDesktop={isKeptOpenOnDesktop}
         onEdit={() => {
-          setIsEditing(true);
+          setEditedAccountId(accountId);
         }}
         onDeleted={() => {
           dropSelectedAccount({ isReplaced: true });

@@ -598,6 +598,90 @@ test('edits an account from its details and lists it under the new name', async 
   ).toBeInTheDocument();
 });
 
+test('closes the edit form when Back shows another account', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, travelCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  const { router } = render(<Component />);
+  await user.click(await screen.findByRole('link', { name: 'Travel card' }));
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Travel card' });
+  await user.click(screen.getByRole('link', { name: 'Wallet' }));
+  await within(details).findByRole('heading', { level: 2, name: 'Wallet' });
+  await user.click(within(details).getByRole('button', { name: 'Edit' }));
+  const form = await screen.findByRole('form', { name: 'Edit account' });
+  const nameField = within(form).getByRole('textbox', { name: 'Name' });
+  await user.clear(nameField);
+  await user.type(nameField, 'Cash');
+
+  // act: the user presses the browser's Back
+  await router.navigate(-1);
+
+  // assert
+  expect(
+    await within(screen.getByRole('dialog', { name: 'Account details' })).findByRole('heading', {
+      level: 2,
+      name: 'Travel card',
+    }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('form', { name: 'Edit account' })).not.toBeInTheDocument();
+});
+
+test('keeps the edit form closed when Forward returns to the account it was open for', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, travelCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  const { router } = render(<Component />);
+  await user.click(await screen.findByRole('link', { name: 'Travel card' }));
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Travel card' });
+  await user.click(screen.getByRole('link', { name: 'Wallet' }));
+  await within(details).findByRole('heading', { level: 2, name: 'Wallet' });
+  await user.click(within(details).getByRole('button', { name: 'Edit' }));
+  const form = await screen.findByRole('form', { name: 'Edit account' });
+  const nameField = within(form).getByRole('textbox', { name: 'Name' });
+  await user.clear(nameField);
+  await user.type(nameField, 'Cash');
+  // the browser's Back shows the other account, which closes the form
+  await router.navigate(-1);
+  await within(screen.getByRole('dialog', { name: 'Account details' })).findByRole('heading', {
+    level: 2,
+    name: 'Travel card',
+  });
+
+  // act: the user presses the browser's Forward
+  await router.navigate(1);
+
+  // assert
+  expect(
+    await within(screen.getByRole('dialog', { name: 'Account details' })).findByRole('heading', {
+      level: 2,
+      name: 'Wallet',
+    }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('form', { name: 'Edit account' })).not.toBeInTheDocument();
+});
+
 test('drops the account param of an account that is not a money account', async () => {
   // arrange
   const groceries = {
@@ -697,6 +781,47 @@ test.each([
     expect(deletePath).toBe(`/api/accounting/accounts/${travelCard.id}`);
   },
 );
+
+test('shows the top account without a confirmation after the chosen account is deleted', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let isDeleted = false;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () => {
+      const items = isDeleted ? [wallet, creditCard] : [wallet, travelCard, creditCard];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+    http.delete(`http://localhost/api/accounting/accounts/${travelCard.id}`, () => {
+      isDeleted = true;
+      return HttpResponse.json({ ...travelCard, status: 'DELETED' });
+    }),
+  );
+  render(<Component />);
+  // the top account shows first, so its details are loaded before the deletion returns to them
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Wallet' });
+  await user.click(screen.getByRole('link', { name: 'Travel card' }));
+  await within(details).findByRole('heading', { level: 2, name: 'Travel card' });
+  await user.click(within(details).getByRole('button', { name: 'Delete account' }));
+  const confirmation = screen.getByRole('alertdialog', { name: 'Delete this account?' });
+
+  // act
+  await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
+
+  // assert
+  const topDetails = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(
+    await within(topDetails).findByRole('heading', { level: 2, name: 'Wallet' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Travel card' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+});
 
 test.each([
   {

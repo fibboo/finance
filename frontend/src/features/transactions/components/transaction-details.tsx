@@ -78,6 +78,7 @@ export function TransactionDetails({
             }
             deleteAction={
               <DeleteTransaction
+                key={transactionId}
                 transaction={transaction}
                 transactionTypes={transactionTypes}
                 relatedQueryKeys={relatedQueryKeys}
