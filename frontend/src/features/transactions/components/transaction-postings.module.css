@@ -41,17 +41,18 @@
   background: currentColor;
 }
 
-.account {
-  display: contents;
-}
-
-.accountName {
-  grid-area: 1 / 2;
+.accountName,
+.accountNote {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.account > .note {
+.accountName {
+  grid-area: 1 / 2;
+  align-self: start;
+}
+
+.accountNote {
   grid-area: 2 / 2;
 }
 
