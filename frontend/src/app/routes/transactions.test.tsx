@@ -1416,7 +1416,7 @@ test('leaves the adjustment account out of the balances the deletion recalculate
   );
 });
 
-test('marks the deleted account in the title of the details but not in the deletion text', async () => {
+test('marks the deleted account in the title and blocks Delete with its name', async () => {
   // arrange
   const user = userEvent.setup();
   const transfer = {
@@ -1467,11 +1467,12 @@ test('marks the deleted account in the title of the details but not in the delet
     }),
   ).toBeInTheDocument();
   expect(within(details).queryByRole('link', { name: /Wallet/ })).not.toBeInTheDocument();
-  expect(
-    screen.getByRole('alertdialog', { name: 'Delete this transaction?' }),
-  ).toHaveAccessibleDescription(
-    "Transfer Wallet → Savings, $12.00 on 20.10.2026. The balances of Wallet and Savings are recalculated. This can't be undone.",
+  const deleteButton = within(details).getByRole('button', { name: 'Delete transaction' });
+  expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+  expect(deleteButton).toHaveAccessibleDescription(
+    "Wallet is deleted, so this transaction can't be deleted.",
   );
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 });
 
 test('closes the details of a transaction deleted elsewhere once the tab is shown again', async () => {
