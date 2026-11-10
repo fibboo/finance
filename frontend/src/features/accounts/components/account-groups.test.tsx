@@ -149,6 +149,47 @@ test('moves the selection through the rows of both groups with the arrow keys', 
   expect(screen.getByRole('link', { name: 'Intesa credit' })).not.toHaveAttribute('aria-current');
 });
 
+test('moves the selection from the selected row with the arrow keys while the focus is outside the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <AccountGroups
+      accounts={[wallet, savings, intesaCredit]}
+      topAccountId={undefined}
+      baseCurrency="USD"
+    />,
+    { initialEntries: [`/?account=${savings.id}`] },
+  );
+
+  // act
+  await user.keyboard('{ArrowDown}');
+
+  // assert
+  const intesaLink = screen.getByRole('link', { name: 'Intesa credit' });
+  expect(intesaLink).toHaveFocus();
+  expect(intesaLink).toHaveAttribute('aria-current', 'true');
+});
+
+test('moves the selection from the first row while no row is selected or focused', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <AccountGroups
+      accounts={[wallet, savings, intesaCredit]}
+      topAccountId={undefined}
+      baseCurrency="USD"
+    />,
+  );
+
+  // act
+  await user.keyboard('{ArrowDown}');
+
+  // assert
+  const savingsLink = screen.getByRole('link', { name: 'Savings' });
+  expect(savingsLink).toHaveFocus();
+  expect(savingsLink).toHaveAttribute('aria-current', 'true');
+});
+
 test.each(['Shift', 'Control', 'Alt', 'Meta'])(
   'keeps the selection on Up at the first row and on Down with %s held',
   async (modifier) => {

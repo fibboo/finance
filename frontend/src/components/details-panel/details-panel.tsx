@@ -1,5 +1,5 @@
-import { type ReactNode, useEffect, useId, useRef } from 'react';
-import { useLocation } from 'react-router';
+import { type ReactNode, useEffect, useEffectEvent, useId, useRef } from 'react';
+import { NavigationType, useLocation, useNavigationType } from 'react-router';
 
 import { LoadError } from '@/components/load-error/load-error';
 import { Skeleton } from '@/components/skeleton/skeleton';
@@ -73,7 +73,9 @@ export function DetailsPanel({
 }: DetailsPanelProps) {
   const backdropId = useId();
   const panelId = useId();
-  const isArrowKeySelection = readIsArrowKeySelection(useLocation().state);
+  const location = useLocation();
+  const isArrowKeySelection =
+    useNavigationType() !== NavigationType.Pop && readIsArrowKeySelection(location.state);
   const handleRef = useRef<HTMLSpanElement>(null);
 
   function close() {
@@ -122,14 +124,21 @@ export function DetailsPanel({
     };
   }, [isShownByDefault, onClose, returnFocusId, backdropId, panelId]);
 
+  const readIsFocusKeptOnRow = useEffectEvent(() => {
+    const backdrop = document.getElementById(backdropId);
+    const isSheet = backdrop !== null && readIsShown(backdrop.getBoundingClientRect());
+    const isFocusKeptOnRow = isArrowKeySelection && !isSheet;
+    return isFocusKeptOnRow;
+  });
+
   useEffect(() => {
     const panel = document.getElementById(panelId);
     const isFocusInDialog = (document.activeElement?.closest(DIALOG_SELECTOR) ?? null) !== null;
-    if (panel !== null && !isShownByDefault && !isFocusInDialog && !isArrowKeySelection) {
+    if (panel !== null && !isShownByDefault && !isFocusInDialog && !readIsFocusKeptOnRow()) {
       panel.focus({ preventScroll: true });
       panel.scrollIntoView({ block: 'nearest' });
     }
-  }, [panelId, returnFocusId, isShownByDefault, isArrowKeySelection]);
+  }, [panelId, returnFocusId, isShownByDefault]);
 
   useEffect(() => {
     const panel = document.getElementById(panelId);

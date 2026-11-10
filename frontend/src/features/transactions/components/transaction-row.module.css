@@ -67,10 +67,10 @@
   outline: none;
 }
 
-.transactionRow:has(.link:focus-visible) {
-  outline: var(--size-focus) solid var(--color-ink);
-  outline-offset: calc(var(--size-focus) * -1);
+.link:focus-visible::after {
+  inset: var(--space-1) calc(var(--space-2) * -1);
   border-radius: var(--radius-badge);
+  box-shadow: inset 0 0 0 var(--size-focus-row) var(--color-focus-row);
 }
 
 .transactionRow + .transactionRow {

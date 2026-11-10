@@ -432,6 +432,67 @@ test('keeps the focus on the rows while the arrow keys move through them and sho
   expect(screen.getByRole('link', { name: 'Credit card' })).toHaveFocus();
 });
 
+test('moves to the next account with an arrow key after a row was clicked', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, travelCard, creditCard],
+        total: 3,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('link', { name: 'Travel card' }));
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Travel card' });
+
+  // act
+  await user.keyboard('{ArrowDown}');
+
+  // assert
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Credit card' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Credit card' })).toHaveFocus();
+});
+
+test('keeps the focus in the search field typed in after an arrow-key selection', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, travelCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  render(<Component />);
+  await screen.findByRole('link', { name: 'Wallet' });
+  await user.tab();
+  await user.tab();
+  await user.tab();
+  await user.keyboard('{ArrowDown}');
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Travel card' });
+
+  // act
+  await user.type(screen.getByRole('searchbox', { name: 'Search accounts' }), 'tra');
+
+  // assert
+  const searchField = screen.getByRole('searchbox', { name: 'Search accounts' });
+  expect(searchField).toHaveFocus();
+  expect(searchField).toHaveValue('tra');
+});
+
 test('shows the details of the top account while no account is chosen', async () => {
   // arrange
   server.use(
