@@ -229,11 +229,19 @@ export interface paths {
         get: operations["get_transaction_accounting_transactions__transaction_id__get"];
         /**
          * Update Transaction
-         * @description Replaces an expense, an income or a transfer with the movement sent, keeping its id. The body and its field
-         *     rules are those of `POST /accounting/transactions`. The kinds of the two accounts must give the transaction's
-         *     own type: another movement is refused with `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED` and a pair that is no movement
-         *     with `MOVEMENT_NOT_ALLOWED`. A balance adjustment is not edited and answers `ENTITY_NOT_FOUND`, like a missing
-         *     or deleted transaction, and a transaction on a deleted money account is refused with
+         * @description Replaces an expense, an income or a transfer with the movement sent, keeping its id. The body is the one of
+         *     `POST /accounting/transactions`, with the same rules by type:
+         *     - **Expenses:** `location_id` is required, `income_period` and `base_currency_amount` are refused.
+         *     - **Income:** `income_period` is required and `location_id` refused. `base_currency_amount` is required when
+         *     neither currency is the base currency, and refused otherwise.
+         *     - **Transfers:** `destination_amount` may be omitted when both currencies are the same, and must not be sent when
+         *     only `destination_currency` is the base currency, since it is derived. `location_id`, `income_period` and
+         *     `base_currency_amount` are refused.
+         *
+         *     The two accounts are checked first: an unknown one answers `ENTITY_NOT_FOUND` and a pair that is no movement
+         *     `MOVEMENT_NOT_ALLOWED`. Then the transaction: a missing or deleted one, or a balance adjustment, which is not
+         *     edited, answers `ENTITY_NOT_FOUND`, accounts that give another type than the transaction's own answer
+         *     `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED`, and a transaction on a deleted money account answers
          *     `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. Every money account of the old and the new postings is recalculated from
          *     the earlier of its dates.
          */

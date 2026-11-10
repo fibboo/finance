@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import and_, case, ColumnElement, func, literal, or_, Row, select, Select, update, Update
+from sqlalchemy import and_, case, ColumnElement, func, literal, not_, or_, Row, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -13,10 +13,17 @@ from app.schemas.base import EntityStatusType
 
 
 class CRUDPosting(CRUDBase[Posting, PostingCreate, PostingCreate]):
-    async def get_sums_at_date(self, *, db: AsyncSession, account_id: UUID, transaction_date: date) -> Row:
+    async def get_sums_at_date(
+        self, *, db: AsyncSession, account_id: UUID, transaction_date: date, transaction_id: UUID | None
+    ) -> Row:
         is_later: ColumnElement = Transaction.transaction_date > transaction_date
+        if transaction_id is not None:
+            is_later = or_(
+                is_later, and_(Transaction.transaction_date == transaction_date, Transaction.id > transaction_id)
+            )
+
         is_waiting: ColumnElement = and_(
-            Transaction.transaction_date <= transaction_date,
+            not_(is_later),
             or_(self.model.base_amount.is_(None), Transaction.valued_on > transaction_date),
         )
         query: Select = (
