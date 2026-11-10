@@ -127,6 +127,15 @@ beforeEach(() => {
           } satisfies components['schemas']['Page_Account_'])
         : HttpResponse.json(null, { status: 400 });
     }),
+    // the details of the first money account of the shown transaction
+    http.get('http://localhost/api/accounting/accounts/:accountId', ({ params }) =>
+      params['accountId'] === wallet.id
+        ? HttpResponse.json(wallet)
+        : HttpResponse.json(
+            { error_code: 'NOT_FOUND', message: 'Account not found' },
+            { status: 404 },
+          ),
+    ),
     // the details of the top row, which show while no transaction is chosen
     http.get('http://localhost/api/accounting/transactions/:transactionId', ({ params }) =>
       HttpResponse.json({

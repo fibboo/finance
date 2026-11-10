@@ -107,7 +107,7 @@ export function Component() {
   const shownTransactionId = readSelectedTransactionId(searchParams) ?? topTransactionId;
   const { data: shownTransaction } = useQuery({
     ...transactionQueries.detail(shownTransactionId ?? ''),
-    enabled: shownTransactionId !== undefined,
+    enabled: false,
   });
   return (
     <Page title="Transactions" count={readTransactionCount(feed.total)}>
