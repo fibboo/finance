@@ -91,7 +91,7 @@
 .titleDot {
   display: inline-block;
   margin-inline-end: var(--space-1);
-  vertical-align: middle;
+  vertical-align: calc(0.5cap - var(--size-dot) / 2);
 }
 
 .dot {

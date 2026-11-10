@@ -22,34 +22,42 @@
 
 .posting {
   min-height: var(--size-posting);
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--size-dot) minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-content: center;
   align-items: center;
-  gap: var(--space-3);
+  gap: 0 var(--space-3);
   font-size: var(--font-size-base);
 }
 
 .dot {
-  flex: none;
+  grid-area: 1 / 1;
+  align-self: start;
   width: var(--size-dot);
   height: var(--size-dot);
+  margin-block-start: calc((1lh - var(--size-dot)) / 2);
   border-radius: var(--radius-full);
   background: currentColor;
 }
 
-.dotSpace {
-  flex: none;
-  width: var(--size-dot);
+.account {
+  display: contents;
 }
 
-.account {
-  flex: 1 1 auto;
+.accountName {
+  grid-area: 1 / 2;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
   overflow-wrap: anywhere;
 }
 
+.account > .note {
+  grid-area: 2 / 2;
+}
+
 .amounts {
+  grid-column: 3;
+  grid-row: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
