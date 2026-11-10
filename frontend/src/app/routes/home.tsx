@@ -73,6 +73,8 @@ export function Component() {
               <SelectedAccountDetails
                 baseCurrency={baseCurrency}
                 accountCount={accountPage?.total}
+                defaultAccountId={undefined}
+                isKeptOpenOnDesktop={false}
               />
             </div>
           </div>
@@ -81,14 +83,21 @@ export function Component() {
               <RecentTransactions
                 baseCurrency={baseCurrency}
                 transactionTypes={dictionaries?.transaction_types}
+                renderDetails={(topTransactionId) => (
+                  <div
+                    className={
+                      isAccountOpenedLast ? styles['earlierSelection'] : styles['selection']
+                    }
+                  >
+                    <SelectedTransactionDetails
+                      baseCurrency={baseCurrency}
+                      defaultTransactionId={topTransactionId}
+                      readAccountLink={(accountId) => readAccountLink({ searchParams, accountId })}
+                    />
+                  </div>
+                )}
               />
             )}
-            <div className={isAccountOpenedLast ? styles['earlierSelection'] : styles['selection']}>
-              <SelectedTransactionDetails
-                baseCurrency={baseCurrency}
-                readAccountLink={(accountId) => readAccountLink({ searchParams, accountId })}
-              />
-            </div>
           </div>
         </>
       )}

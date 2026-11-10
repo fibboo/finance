@@ -18,6 +18,7 @@ type TransactionDetailsProps = Readonly<{
   accountKinds: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
   relatedQueryKeys: readonly QueryKey[];
+  isShownByDefault: boolean;
   onClose: () => void;
 }>;
 
@@ -28,6 +29,7 @@ export function TransactionDetails({
   accountKinds,
   readAccountLink,
   relatedQueryKeys,
+  isShownByDefault,
   onClose,
 }: TransactionDetailsProps) {
   const {
@@ -42,6 +44,8 @@ export function TransactionDetails({
       isLoaded={transaction !== undefined}
       isError={isError}
       isFetching={isFetching}
+      isShownByDefault={isShownByDefault}
+      isKeptOpenOnDesktop
       errorMessage="Couldn't load the transaction"
       returnFocusId={readTransactionLinkId(transactionId)}
       onRetry={() => {

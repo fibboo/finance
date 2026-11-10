@@ -109,7 +109,6 @@
   --size-day-header-lg: 1.875rem;
   --size-panel-header: 1.875rem;
   --size-panel-header-lg: 2.5rem;
-  --size-columns-header: 2rem;
   --size-chip: 2rem;
   --size-provider-mark: 2rem;
   --size-provider-action: 2.25rem;
@@ -122,15 +121,15 @@
   --size-account-mark-lg: 2.5rem;
   --size-color-swatch: 1.625rem;
   --size-color-option: 2.375rem;
-  --size-transaction-row: 2rem;
-  --size-transaction-row-lg: 2.25rem;
+  --size-transaction-row: 2.75rem;
+  --size-transaction-row-lg: 3.25rem;
   --size-recent-min: calc(
-    var(--size-panel-header) + var(--size-columns-header) + var(--space-1-5) +
-      var(--size-day-header) + var(--size-transaction-row) * 2 + var(--space-1-5)
+    var(--size-panel-header) + var(--space-1-5) + var(--size-day-header) +
+      var(--size-transaction-row) * 2 + var(--space-1-5)
   );
   --size-recent-min-lg: calc(
-    var(--size-panel-header-lg) + var(--size-columns-header-lg) + var(--space-1-5) +
-      var(--size-day-header-lg) + var(--size-transaction-row-lg) * 2 + var(--space-4)
+    var(--size-panel-header-lg) + var(--space-1-5) + var(--size-day-header-lg) +
+      var(--size-transaction-row-lg) * 2 + var(--space-4)
   );
   --size-segment: 2.5rem;
   --size-button: 2.875rem;
@@ -149,10 +148,6 @@
   --size-skeleton-label: 8rem;
   --size-skeleton-label-lg: 9.375rem;
   --size-button-wide: 13.75rem;
-  --size-amount-column-lg: 8.75rem;
-  --size-account-column-lg: 13.75rem;
-  --size-title-column-min-lg: 8rem;
-  --size-rate-column-lg: 6.25rem;
   --size-row-label: 5.75rem;
   --size-stat-tile: 6.5rem;
   --size-empty-state: 8.25rem;
@@ -177,6 +172,7 @@
   );
   --size-column: 30rem;
   --size-merge-panel: 35rem;
+  --size-list-lg: 42rem;
   --size-pace-bar: 0.5rem;
   --opacity-disabled: 0.5;
   --opacity-hover: 0.8;

@@ -18,6 +18,7 @@ import {
   writeTransactionFilters,
 } from '@/features/transactions/api/transaction-filters';
 import { FilterChips } from '@/features/transactions/components/filter-chips';
+import { readFeedTransactions } from '@/features/transactions/components/feed-transactions';
 import { NoMatchingTransactions } from '@/features/transactions/components/no-matching-transactions';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
 import { useDateJump } from '@/features/transactions/hooks/use-date-jump';
@@ -160,6 +161,7 @@ export function Component() {
         {baseCurrency !== undefined && (
           <SelectedTransactionDetails
             baseCurrency={baseCurrency}
+            defaultTransactionId={readFeedTransactions(feed).transactions[0]?.id}
             readAccountLink={readAccountLink}
           />
         )}

@@ -25,10 +25,14 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 type SelectedAccountDetailsProps = Readonly<{
   baseCurrency: string;
   accountCount: number | undefined;
+  defaultAccountId: string | undefined;
+  isKeptOpenOnDesktop: boolean;
 }>;
 
 type SelectedAccountProps = Readonly<{
   accountId: string;
+  isShownByDefault: boolean;
+  isKeptOpenOnDesktop: boolean;
   baseCurrency: string;
   isOnlyAccount: boolean;
   accountKinds: readonly DictionaryItem[];
@@ -37,6 +41,8 @@ type SelectedAccountProps = Readonly<{
 
 function SelectedAccount({
   accountId,
+  isShownByDefault,
+  isKeptOpenOnDesktop,
   baseCurrency,
   isOnlyAccount,
   accountKinds,
@@ -46,7 +52,12 @@ function SelectedAccount({
   const [isEditing, setIsEditing] = useState(false);
   const { data: account, error } = useQuery(accountQueries.detail(accountId));
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
-  if (isNotFound || (account !== undefined && !isMoneyAccountKind(account.kind))) {
+  const isUnavailable = isNotFound || (account !== undefined && !isMoneyAccountKind(account.kind));
+  if (isUnavailable && isShownByDefault) {
+    return null;
+  }
+
+  if (isUnavailable) {
     return (
       <Navigate
         to={{ search: writeSelectedAccount({ searchParams, accountId: undefined }).toString() }}
@@ -86,6 +97,8 @@ function SelectedAccount({
         }}
         isOnlyAccount={isOnlyAccount}
         relatedQueryKeys={[summaryQueries.current().queryKey, transactionQueries.feeds().queryKey]}
+        isShownByDefault={isShownByDefault}
+        isKeptOpenOnDesktop={isKeptOpenOnDesktop}
         onEdit={() => {
           setIsEditing(true);
         }}
@@ -122,18 +135,24 @@ function SelectedAccount({
 export function SelectedAccountDetails({
   baseCurrency,
   accountCount,
+  defaultAccountId,
+  isKeptOpenOnDesktop,
 }: SelectedAccountDetailsProps) {
   const [searchParams] = useSearchParams();
   const selectedAccountId = readSelectedAccountId(searchParams);
+  const accountId = selectedAccountId ?? defaultAccountId;
+  const isShownByDefault = selectedAccountId === undefined;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
-  if (selectedAccountId === undefined || dictionaries === undefined) {
+  if (accountId === undefined || dictionaries === undefined) {
     return null;
   }
 
   return (
     <SelectedAccount
-      key={selectedAccountId}
-      accountId={selectedAccountId}
+      key={`${accountId}:${String(isShownByDefault)}`}
+      accountId={accountId}
+      isShownByDefault={isShownByDefault}
+      isKeptOpenOnDesktop={isKeptOpenOnDesktop}
       baseCurrency={baseCurrency}
       isOnlyAccount={accountCount === 1}
       accountKinds={dictionaries.account_kinds}

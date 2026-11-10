@@ -19,6 +19,8 @@ type AccountDetailsProps = Readonly<{
   transactionsLink: To;
   isOnlyAccount: boolean;
   relatedQueryKeys: readonly QueryKey[];
+  isShownByDefault: boolean;
+  isKeptOpenOnDesktop: boolean;
   onEdit: () => void;
   onDeleted: () => void;
   onClose: () => void;
@@ -32,6 +34,8 @@ export function AccountDetails({
   transactionsLink,
   isOnlyAccount,
   relatedQueryKeys,
+  isShownByDefault,
+  isKeptOpenOnDesktop,
   onEdit,
   onDeleted,
   onClose,
@@ -48,6 +52,8 @@ export function AccountDetails({
       isLoaded={account !== undefined}
       isError={isError}
       isFetching={isFetching}
+      isShownByDefault={isShownByDefault}
+      isKeptOpenOnDesktop={isKeptOpenOnDesktop}
       errorMessage="Couldn't load the account"
       returnFocusId={readAccountLinkId(accountId)}
       onRetry={() => {

@@ -14,6 +14,7 @@ import {
   TYPED_SEARCH_STATE,
   writeAccountSearch,
 } from '@/features/accounts/api/account-search';
+import { readAccountGroups } from '@/features/accounts/components/account-group-order';
 import { AccountGroups } from '@/features/accounts/components/account-groups';
 import { AccountSearch } from '@/features/accounts/components/account-search';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
@@ -133,6 +134,12 @@ export function Component() {
           <SelectedAccountDetails
             baseCurrency={baseCurrency}
             accountCount={allAccountPage?.total}
+            defaultAccountId={
+              isNothingMatched
+                ? undefined
+                : readAccountGroups(accountPage?.items ?? [])[0]?.accounts[0]?.id
+            }
+            isKeptOpenOnDesktop
           />
         </div>
       )}

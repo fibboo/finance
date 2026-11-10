@@ -10,7 +10,8 @@ export type TransactionText = readonly (string | Readonly<Account>)[];
 
 type TransactionView = Readonly<{
   title: TransactionText;
-  accountNames: TransactionText | null;
+  rowTitle: TransactionText;
+  accountNames: TransactionText;
   markedAccount: Account;
   amount: number;
   baseAmount: number | null;
@@ -77,6 +78,7 @@ export function readTransactionView({
     case 'EXPENSE': {
       const view = {
         title: [credit.account],
+        rowTitle: [credit.account],
         accountNames: [debit.account],
         markedAccount: debit.account,
         amount: Number(debit.amount),
@@ -90,6 +92,7 @@ export function readTransactionView({
     case 'INCOME': {
       const view = {
         title: [debit.account],
+        rowTitle: [debit.account],
         accountNames: [credit.account],
         markedAccount: credit.account,
         amount: Number(credit.amount),
@@ -101,14 +104,11 @@ export function readTransactionView({
       return view;
     }
     case 'TRANSFER': {
+      const typeLabel = readTypeLabel({ transaction, transactionTypes });
       const view = {
-        title: [
-          `${readTypeLabel({ transaction, transactionTypes })} `,
-          debit.account,
-          ' → ',
-          credit.account,
-        ],
-        accountNames: null,
+        title: [`${typeLabel} `, debit.account, ' → ', credit.account],
+        rowTitle: [typeLabel],
+        accountNames: [debit.account, ' → ', credit.account],
         markedAccount: credit.account,
         amount: -Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : -Number(debit.base_amount),
@@ -120,8 +120,10 @@ export function readTransactionView({
     }
     case 'ADJUSTMENT': {
       const posting = credit.account.kind === 'EQUITY' ? debit : credit;
+      const typeLabel = readTypeLabel({ transaction, transactionTypes });
       const view = {
-        title: [readTypeLabel({ transaction, transactionTypes })],
+        title: [typeLabel],
+        rowTitle: [typeLabel],
         accountNames: [posting.account],
         markedAccount: posting.account,
         amount: Number(posting.amount),

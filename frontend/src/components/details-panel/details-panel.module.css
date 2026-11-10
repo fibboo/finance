@@ -25,6 +25,10 @@
   transition: transform var(--duration-sheet) ease-out;
 }
 
+.shownByDefault {
+  display: none;
+}
+
 .detailsPanel[data-dragging] {
   transition: none;
 }
@@ -135,5 +139,13 @@
 
   .close {
     margin-top: calc(var(--space-2) * -1);
+  }
+
+  .shownByDefault {
+    display: flex;
+  }
+
+  .keptOpenOnDesktop .close {
+    display: none;
   }
 }

@@ -17,11 +17,13 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 
 type SelectedTransactionDetailsProps = Readonly<{
   baseCurrency: string;
+  defaultTransactionId: string | undefined;
   readAccountLink: (accountId: string) => To;
 }>;
 
 type SelectedTransactionProps = Readonly<{
   transactionId: string;
+  isShownByDefault: boolean;
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
@@ -30,6 +32,7 @@ type SelectedTransactionProps = Readonly<{
 
 function SelectedTransaction({
   transactionId,
+  isShownByDefault,
   baseCurrency,
   transactionTypes,
   accountKinds,
@@ -38,6 +41,10 @@ function SelectedTransaction({
   const [searchParams, setSearchParams] = useSearchParams();
   const { error } = useQuery(transactionQueries.detail(transactionId));
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
+  if (isNotFound && isShownByDefault) {
+    return null;
+  }
+
   if (isNotFound) {
     return (
       <Navigate
@@ -57,6 +64,7 @@ function SelectedTransaction({
       accountKinds={accountKinds}
       readAccountLink={readAccountLink}
       relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
+      isShownByDefault={isShownByDefault}
       onClose={() => {
         setSearchParams(writeSelectedTransaction({ searchParams, transactionId: undefined }), {
           preventScrollReset: true,
@@ -68,19 +76,23 @@ function SelectedTransaction({
 
 export function SelectedTransactionDetails({
   baseCurrency,
+  defaultTransactionId,
   readAccountLink,
 }: SelectedTransactionDetailsProps) {
   const [searchParams] = useSearchParams();
   const selectedTransactionId = readSelectedTransactionId(searchParams);
+  const transactionId = selectedTransactionId ?? defaultTransactionId;
+  const isShownByDefault = selectedTransactionId === undefined;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
-  if (selectedTransactionId === undefined || dictionaries === undefined) {
+  if (transactionId === undefined || dictionaries === undefined) {
     return null;
   }
 
   return (
     <SelectedTransaction
-      key={selectedTransactionId}
-      transactionId={selectedTransactionId}
+      key={`${transactionId}:${String(isShownByDefault)}`}
+      transactionId={transactionId}
+      isShownByDefault={isShownByDefault}
       baseCurrency={baseCurrency}
       transactionTypes={dictionaries.transaction_types}
       accountKinds={dictionaries.account_kinds}

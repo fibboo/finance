@@ -99,6 +99,7 @@ test('shows the latest transactions of the whole history up to the local today',
     <RecentTransactions
       baseCurrency="USD"
       transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+      renderDetails={() => null}
     />,
   );
 
@@ -150,6 +151,7 @@ test('loads the next page when the end of Recent comes into view', async () => {
     <RecentTransactions
       baseCurrency="USD"
       transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+      renderDetails={() => null}
     />,
   );
 
@@ -178,6 +180,7 @@ test('shows the empty state without transactions', async () => {
     <RecentTransactions
       baseCurrency="USD"
       transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+      renderDetails={() => null}
     />,
   );
 
@@ -200,6 +203,7 @@ test('hides Recent when its transactions fail to load', async () => {
     <RecentTransactions
       baseCurrency="USD"
       transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+      renderDetails={() => null}
     />,
   );
 
@@ -223,6 +227,7 @@ test('shows a busy recent panel while the transactions load', () => {
     <RecentTransactions
       baseCurrency="USD"
       transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+      renderDetails={() => null}
     />,
   );
 
@@ -266,6 +271,7 @@ test('shows a transaction added elsewhere once the tab is shown again at the top
     <RecentTransactions
       baseCurrency="USD"
       transactionTypes={[{ key: 'EXPENSE', label: 'Expense' }]}
+      renderDetails={() => null}
     />,
   );
   expect(await screen.findByText('Design project')).toBeInTheDocument();

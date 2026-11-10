@@ -73,16 +73,9 @@ export function TransactionDayList({
   isGroupedByDay,
 }: TransactionDayListProps) {
   const today = useToday();
+  const topTransactionId = transactions[0]?.id;
   return (
     <div className={styles['transactionDayList']}>
-      <div className={styles['columns']} aria-hidden="true">
-        <span />
-        <span>Transaction</span>
-        <span className={styles['accountColumn']}>Account</span>
-        <span className={styles['amountColumn']}>Original</span>
-        <span className={styles['amountColumn']}>Amount</span>
-        <span className={styles['rateColumn']}>Rate</span>
-      </div>
       {isGroupedByDay ? (
         groupByDay(transactions).map((day) => (
           <div
@@ -113,6 +106,7 @@ export function TransactionDayList({
                   transaction={transaction}
                   baseCurrency={baseCurrency}
                   transactionTypes={transactionTypes}
+                  isTop={transaction.id === topTransactionId}
                 />
               ))}
             </ul>
@@ -126,6 +120,7 @@ export function TransactionDayList({
               transaction={transaction}
               baseCurrency={baseCurrency}
               transactionTypes={transactionTypes}
+              isTop={transaction.id === topTransactionId}
               dateLabel={readDayLabel({ transactionDate: transaction.transaction_date, today })}
             />
           ))}

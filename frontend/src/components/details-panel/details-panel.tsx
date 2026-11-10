@@ -23,11 +23,27 @@ function readIsOnlyShownPanel(panelId: string): boolean {
   return isOnlyShownPanel;
 }
 
+function readPanelClassName({
+  isShownByDefault,
+  isKeptOpenOnDesktop,
+}: Readonly<{ isShownByDefault: boolean; isKeptOpenOnDesktop: boolean }>): string {
+  const panelClassName = [
+    styles['detailsPanel'],
+    isShownByDefault ? styles['shownByDefault'] : undefined,
+    isKeptOpenOnDesktop ? styles['keptOpenOnDesktop'] : undefined,
+  ]
+    .filter((className) => className !== undefined)
+    .join(' ');
+  return panelClassName;
+}
+
 type DetailsPanelProps = Readonly<{
   label: string;
   isLoaded: boolean;
   isError: boolean;
   isFetching: boolean;
+  isShownByDefault: boolean;
+  isKeptOpenOnDesktop: boolean;
   errorMessage: string;
   returnFocusId: string;
   onRetry: () => void;
@@ -40,6 +56,8 @@ export function DetailsPanel({
   isLoaded,
   isError,
   isFetching,
+  isShownByDefault,
+  isKeptOpenOnDesktop,
   errorMessage,
   returnFocusId,
   onRetry,
@@ -58,6 +76,10 @@ export function DetailsPanel({
   const dragHandlers = useSheetDrag({ handleRef, onClose: close });
 
   useEffect(() => {
+    if (isShownByDefault) {
+      return undefined;
+    }
+
     function closePanel() {
       onClose();
       document.getElementById(returnFocusId)?.focus();
@@ -90,11 +112,11 @@ export function DetailsPanel({
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, returnFocusId, backdropId, panelId]);
+  }, [isShownByDefault, onClose, returnFocusId, backdropId, panelId]);
 
   useEffect(() => {
     const panel = document.getElementById(panelId);
-    if (panel === null) {
+    if (panel === null || isShownByDefault) {
       return undefined;
     }
 
@@ -115,7 +137,7 @@ export function DetailsPanel({
     return () => {
       observer.disconnect();
     };
-  }, [panelId, backdropId]);
+  }, [isShownByDefault, panelId, backdropId]);
 
   const closeButton = (
     <button type="button" className={styles['close']} aria-label="Close details" onClick={close}>
@@ -126,19 +148,23 @@ export function DetailsPanel({
   );
   return (
     <>
-      <div id={backdropId} className={styles['backdrop']} aria-hidden="true" />
+      {!isShownByDefault && (
+        <div id={backdropId} className={styles['backdrop']} aria-hidden="true" />
+      )}
       <section
         id={panelId}
         ref={(panel) => {
-          panel?.focus({ preventScroll: true });
-          panel?.scrollIntoView({ block: 'nearest' });
+          if (!isShownByDefault) {
+            panel?.focus({ preventScroll: true });
+            panel?.scrollIntoView({ block: 'nearest' });
+          }
         }}
         role="dialog"
         aria-label={label}
-        data-details-panel
+        data-details-panel={isShownByDefault ? undefined : true}
         aria-busy={!isLoaded && isFetching}
         tabIndex={-1}
-        className={styles['detailsPanel']}
+        className={readPanelClassName({ isShownByDefault, isKeptOpenOnDesktop })}
         {...dragHandlers}
       >
         <span

@@ -150,6 +150,19 @@ test('hides Recent when the accounting dictionary fails to load', async () => {
   });
 });
 
+test('shows the details of the top recent transaction while none is chosen', async () => {
+  // act
+  render(<Component />);
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  expect(details).not.toHaveFocus();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+});
+
 test('opens the details of a recent transaction on Home', async () => {
   // arrange
   const user = userEvent.setup();

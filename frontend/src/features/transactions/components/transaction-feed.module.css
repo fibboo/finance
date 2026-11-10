@@ -50,6 +50,7 @@
   }
 
   .transactions {
+    max-width: var(--size-list-lg);
     padding: 0 var(--space-2) var(--space-4);
     border-radius: var(--radius-bar);
   }

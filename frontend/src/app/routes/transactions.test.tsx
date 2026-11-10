@@ -127,6 +127,13 @@ beforeEach(() => {
           } satisfies components['schemas']['Page_Account_'])
         : HttpResponse.json(null, { status: 400 });
     }),
+    // the details of the top row, which show while no transaction is chosen
+    http.get('http://localhost/api/accounting/transactions/:transactionId', ({ params }) =>
+      HttpResponse.json({
+        ...expense,
+        id: String(params['transactionId']),
+      } satisfies components['schemas']['Transaction']),
+    ),
   );
 });
 
@@ -356,7 +363,7 @@ test('requests the checked types and names them on the chip', async () => {
 
   // assert
   expect(await screen.findByRole('button', { name: 'Type: Expense +1' })).toHaveFocus();
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Type' })).not.toBeInTheDocument();
   await waitFor(() => {
     expect(requestedTypes).toEqual([[], ['EXPENSE', 'TRANSFER']]);
   });
@@ -772,7 +779,7 @@ test('closes a filter without applying it on a press outside', async () => {
   await user.click(screen.getByRole('heading', { level: 1 }));
 
   // assert
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Type' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Type' })).toBeInTheDocument();
 });
 
@@ -1066,38 +1073,83 @@ test('shows the selected transaction with its postings, location and comment', a
   expect(screen.getByRole('link', { name: 'Groceries' })).toHaveAttribute('aria-current', 'true');
 });
 
-test('opens the details of a row and closes them', async () => {
+test('shows the details of the top row while no transaction is chosen', async () => {
+  // arrange
+  const coffee = {
+    ...expense,
+    id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+    postings: [
+      { ...walletPosting, amount: '-4.50', base_amount: '-4.50' },
+      { ...categoryPosting, amount: '4.50', base_amount: '4.50', account: cafes },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense, coffee],
+        total: 2,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  expect(details).not.toHaveFocus();
+  expect(screen.getByRole('link', { name: 'Groceries' })).not.toHaveAttribute('aria-current');
+});
+
+test('opens the details of a row and returns to the top row on Close', async () => {
   // arrange
   const user = userEvent.setup();
   let feedRequestCount = 0;
+  const coffee = {
+    ...expense,
+    id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+    postings: [
+      { ...walletPosting, amount: '-4.50', base_amount: '-4.50' },
+      { ...categoryPosting, amount: '4.50', base_amount: '4.50', account: cafes },
+    ],
+  } satisfies components['schemas']['Transaction'];
   server.use(
     http.get('http://localhost/api/accounting/transactions', () => {
       feedRequestCount += 1;
       return HttpResponse.json({
-        items: [expense],
-        total: 1,
+        items: [expense, coffee],
+        total: 2,
         page: 1,
         size: 15,
         pages: 1,
       } satisfies components['schemas']['Page_Transaction_']);
     }),
-    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
-      HttpResponse.json(expense),
+    http.get(`http://localhost/api/accounting/transactions/${coffee.id}`, () =>
+      HttpResponse.json(coffee),
     ),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('link', { name: 'Groceries' }));
+  await user.click(await screen.findByRole('link', { name: 'Cafes' }));
   const details = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(
-    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+    await within(details).findByRole('heading', { level: 2, name: 'Cafes' }),
   ).toBeInTheDocument();
 
   // act
   await user.click(within(details).getByRole('button', { name: 'Close details' }));
 
   // assert
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Groceries' })).toHaveFocus();
+  const topDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(topDetails).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Cafes' })).toHaveFocus();
   expect(feedRequestCount).toBe(1);
 });
 
