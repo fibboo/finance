@@ -218,8 +218,7 @@ export function MovementForm({
     });
   const isIncome = transactionType === 'INCOME';
   const amountAccount = isIncome ? toAccount : fromAccount;
-  const isExtraAmountShown =
-    transactionType === 'TRANSFER' ? isDestinationAmountAsked : isPaidInAnotherCurrency;
+  const isExtraAmountShown = isTransfer ? isDestinationAmountAsked : isPaidInAnotherCurrency;
   const pickers = readMovementPickers({
     transactionType,
     fromAccounts,
@@ -375,7 +374,7 @@ export function MovementForm({
             error={formState.errors.transaction_date?.message}
           />
         </div>
-        {transactionType !== 'TRANSFER' && (
+        {!isTransfer && (
           <label className={styles['anotherCurrency']}>
             <input
               {...register('is_paid_in_another_currency')}
@@ -393,7 +392,7 @@ export function MovementForm({
             isBaseCurrencyAmountAsked={isBaseCurrencyAmountAsked}
           />
         )}
-        {transactionType === 'TRANSFER' && (
+        {isTransfer && (
           <TransferExtraRows
             destinationCurrency={destination}
             isDestinationAmountAsked={isDestinationAmountAsked}

@@ -96,6 +96,12 @@ function SelectedTransaction({
         editButtonId={editButtonId}
         onEdit={() => {
           setEditedTransactionId(transactionId);
+          if (isShownByDefault) {
+            setSearchParams(writeSelectedTransaction({ searchParams, transactionId }), {
+              preventScrollReset: true,
+              replace: true,
+            });
+          }
         }}
         onClose={() => {
           setSearchParams(writeSelectedTransaction({ searchParams, transactionId: undefined }), {
