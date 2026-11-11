@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -43,9 +44,21 @@ async def get_accounts(
 
 @router.get("/{account_id}")
 async def get_account(
-    *, account_id: UUID, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *,
+    account_id: UUID,
+    balance_date: Annotated[date | None, Query(alias="date")] = None,
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
 ) -> Account:
-    account: Account = await account_service.get_account(db=db, account_id=account_id, user_id=user_id)
+    """
+    With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the sums that decide whether the account
+    has a rate for a balance adjustment on that date: its postings up to that date, without the expenses still waiting
+    for a value on it. An account outside the base currency with a rate of 0 or less has none, so its adjustment must
+    carry `base_currency_amount`. The adjustment itself is computed from the current balance, the one without `date`.
+    """
+    account: Account = await account_service.get_account(
+        db=db, account_id=account_id, user_id=user_id, balance_date=balance_date
+    )
     return account
 
 

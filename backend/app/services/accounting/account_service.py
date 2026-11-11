@@ -29,7 +29,7 @@ from app.schemas.accounting.account import (
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
-from app.services.accounting import currency_service, exchange_rate_service
+from app.services.accounting import currency_service, exchange_rate_service, ledger_service
 
 logger = get_logger(logger_name=__name__)
 
@@ -171,7 +171,9 @@ async def get_accounts(*, db: AsyncSession, request: AccountRequest, user_id: UU
     return accounts
 
 
-async def get_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
+async def get_account(
+    *, db: AsyncSession, account_id: UUID, user_id: UUID, balance_date: date | None = None
+) -> Account:
     account_db: AccountModel | None = await account_crud.get_or_none(
         db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE
     )
@@ -180,6 +182,12 @@ async def get_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> A
 
     account: Account = Account.model_validate(account_db)
     if account_db.kind not in MONEY_ACCOUNT_KINDS:
+        return account
+
+    if balance_date is not None:
+        account.balance, account.base_balance = await ledger_service.get_balances_at_date(
+            db=db, account_db=account_db, transaction_date=balance_date
+        )
         return account
 
     unvalued_sums: list[Row] = await posting_crud.get_unvalued_sums(db=db, account_ids=[account_db.id])
