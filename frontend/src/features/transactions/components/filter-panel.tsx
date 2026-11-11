@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 
 import { useOutsideClick } from '@/hooks/use-outside-click';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
@@ -28,6 +28,9 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
   }
 
   const dragHandlers = useSheetDrag({ handleRef, onClose: close });
+  const closeOnEscape = useEffectEvent(() => {
+    close();
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -36,8 +39,7 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setIsOpen(false);
-        document.getElementById(chipId)?.focus();
+        closeOnEscape();
       }
     }
 
@@ -46,7 +48,7 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, chipId]);
+  }, [isOpen]);
 
   useOutsideClick({
     isActive: isOpen,

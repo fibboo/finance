@@ -27,11 +27,22 @@ export function useOutsideClick({
     let isPressedOutside = false;
 
     function handlePointerDown(event: PointerEvent) {
-      isPressedOutside = readIsOutside(event.target);
+      const isOutside = readIsOutside(event.target);
+      const isPrimaryButton = event.button === 0;
+      isPressedOutside = isOutside && isPrimaryButton;
+      if (isOutside && !isPrimaryButton) {
+        reportOutsideClick();
+      }
+    }
+
+    function handlePointerCancel() {
+      isPressedOutside = false;
     }
 
     function handleClick(event: MouseEvent) {
-      if (isPressedOutside && readIsOutside(event.target)) {
+      const isOutsideClick = isPressedOutside && readIsOutside(event.target);
+      isPressedOutside = false;
+      if (isOutsideClick) {
         event.preventDefault();
         event.stopPropagation();
         reportOutsideClick();
@@ -39,10 +50,12 @@ export function useOutsideClick({
     }
 
     document.addEventListener('pointerdown', handlePointerDown, { capture: true });
+    document.addEventListener('pointercancel', handlePointerCancel, { capture: true });
     document.addEventListener('click', handleClick, { capture: true });
 
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, { capture: true });
+      document.removeEventListener('pointercancel', handlePointerCancel, { capture: true });
       document.removeEventListener('click', handleClick, { capture: true });
     };
   }, [isActive]);

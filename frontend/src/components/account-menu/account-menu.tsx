@@ -39,6 +39,7 @@ export function AccountMenu({ avatar, children }: AccountMenuProps) {
     readIsInside: (target) => menuRef.current?.contains(target) === true,
     onOutsideClick: () => {
       setIsOpen(false);
+      buttonRef.current?.focus();
     },
   });
 

@@ -85,12 +85,29 @@ test('closes on a tap on a control outside the menu without activating it', asyn
   // assert
   expect(screen.queryByRole('dialog', { name: 'Account' })).not.toBeInTheDocument();
   expect(onClick).not.toHaveBeenCalled();
+  expect(screen.getByRole('button', { name: 'Account menu' })).toHaveFocus();
   // the next tap reaches the control
   await user.pointer({
     keys: '[TouchA]',
     target: screen.getByRole('button', { name: 'New transaction' }),
   });
   expect(onClick).toHaveBeenCalledOnce();
+});
+
+test('closes on the press of a right click outside the menu', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(<AccountMenu avatar="NI">Menu content</AccountMenu>);
+  await user.click(screen.getByRole('button', { name: 'Account menu' }));
+
+  // act
+  await user.pointer({
+    keys: '[MouseRight>]',
+    target: screen.getByTestId('account-menu-backdrop'),
+  });
+
+  // assert
+  expect(screen.queryByRole('dialog', { name: 'Account' })).not.toBeInTheDocument();
 });
 
 test('closes on a second click of the avatar', async () => {
