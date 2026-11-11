@@ -1,5 +1,7 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
+import { useOutsideClick } from '@/hooks/use-outside-click';
+
 import styles from './account-menu.module.css';
 
 type AccountMenuProps = Readonly<{
@@ -18,25 +20,6 @@ export function AccountMenu({ avatar, children }: AccountMenuProps) {
       return;
     }
 
-    let isPressedOutside = false;
-
-    function readIsOutside(target: EventTarget | null): boolean {
-      const isOutside = target instanceof Node && menuRef.current?.contains(target) !== true;
-      return isOutside;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      isPressedOutside = readIsOutside(event.target);
-    }
-
-    function handleClick(event: MouseEvent) {
-      if (isPressedOutside && readIsOutside(event.target)) {
-        event.preventDefault();
-        event.stopPropagation();
-        setIsOpen(false);
-      }
-    }
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setIsOpen(false);
@@ -44,16 +27,20 @@ export function AccountMenu({ avatar, children }: AccountMenuProps) {
       }
     }
 
-    document.addEventListener('pointerdown', handlePointerDown, { capture: true });
-    document.addEventListener('click', handleClick, { capture: true });
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown, { capture: true });
-      document.removeEventListener('click', handleClick, { capture: true });
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
+
+  useOutsideClick({
+    isActive: isOpen,
+    readIsInside: (target) => menuRef.current?.contains(target) === true,
+    onOutsideClick: () => {
+      setIsOpen(false);
+    },
+  });
 
   return (
     <>

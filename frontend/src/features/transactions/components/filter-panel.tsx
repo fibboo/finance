@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
+import { useOutsideClick } from '@/hooks/use-outside-click';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './filter-panel.module.css';
@@ -33,28 +34,6 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
       return;
     }
 
-    let isPressedOutside = false;
-
-    function readIsOutside(target: EventTarget | null): boolean {
-      const isOutside =
-        target instanceof Node &&
-        [chipId, panelId].every((id) => document.getElementById(id)?.contains(target) !== true);
-      return isOutside;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      isPressedOutside = readIsOutside(event.target);
-    }
-
-    function handleClick(event: MouseEvent) {
-      if (isPressedOutside && readIsOutside(event.target)) {
-        event.preventDefault();
-        event.stopPropagation();
-        setIsOpen(false);
-        document.getElementById(chipId)?.focus();
-      }
-    }
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setIsOpen(false);
@@ -62,16 +41,19 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
       }
     }
 
-    document.addEventListener('pointerdown', handlePointerDown, { capture: true });
-    document.addEventListener('click', handleClick, { capture: true });
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown, { capture: true });
-      document.removeEventListener('click', handleClick, { capture: true });
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, chipId, panelId]);
+  }, [isOpen, chipId]);
+
+  useOutsideClick({
+    isActive: isOpen,
+    readIsInside: (target) =>
+      [chipId, panelId].some((id) => document.getElementById(id)?.contains(target) === true),
+    onOutsideClick: close,
+  });
 
   return (
     <div className={styles['filterPanel']}>
