@@ -29,7 +29,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Account */
+        /**
+         * Get Account
+         * @description With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the ones the account had on that date,
+         *     which a balance adjustment on that date is checked against.
+         */
         get: operations["get_account_accounting_accounts__account_id__get"];
         /** Update Account */
         put: operations["update_account_accounting_accounts__account_id__put"];
@@ -1156,7 +1160,9 @@ export interface operations {
     };
     get_account_accounting_accounts__account_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                date?: string | null;
+            };
             header?: never;
             path: {
                 account_id: string;

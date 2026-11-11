@@ -209,6 +209,99 @@ async def test_get_account_ok(db: AsyncSession):
     assert account.status == account_created.status
 
 
+@pytest.mark.parametrize(
+    ("balance_date", "balance", "base_currency_balance", "base_currency_rate"),
+    [
+        (date(2026, 3, 9), Decimal("0"), Decimal("0.00"), Decimal("0")),
+        (date(2026, 3, 10), Decimal("100"), Decimal("110.00"), Decimal("0.9090909091")),
+        (date(2026, 3, 11), Decimal("300"), Decimal("360.00"), Decimal("0.8333333333")),
+    ],
+)
+async def test_get_account_on_date(
+    db: AsyncSession,
+    balance_date: date,
+    balance: Decimal,
+    base_currency_balance: Decimal,
+    base_currency_rate: Decimal,
+):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # the account holds 250 EUR worth 360 USD: 100 EUR for 110 USD received on the 10th, 200 EUR for 250 USD on the
+    # 11th, and an expense of 50 EUR on the 10th still waiting for a value
+    account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Savings EUR",
+            "currency": "EUR",
+            "balance": Decimal("250"),
+            "base_balance": Decimal("360"),
+        },
+        commit=True,
+    )
+    source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+    incomes: list[tuple[date, Decimal, Decimal]] = [
+        (date(2026, 3, 10), Decimal("100"), Decimal("110")),
+        (date(2026, 3, 11), Decimal("200"), Decimal("250")),
+    ]
+    for transaction_date, amount, base_amount in incomes:
+        await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=TransactionType.INCOME,
+                transaction_date=transaction_date,
+                base_currency_amount=base_amount,
+                income_period=date(2026, 2, 1),
+            ),
+            postings=[
+                PostingCreate(account_id=source_db.id, amount=-amount, currency="EUR", base_amount=-base_amount),
+                PostingCreate(account_id=account_db.id, amount=amount, currency="EUR", base_amount=base_amount),
+            ],
+        )
+
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2026, 3, 10),
+            base_currency_amount=None,
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(account_id=account_db.id, amount=Decimal("-50"), currency="EUR", base_amount=None),
+            PostingCreate(account_id=category_db.id, amount=Decimal("50"), currency="EUR", base_amount=None),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    account: Account = await account_service.get_account(
+        db=db, account_id=account_db.id, user_id=user_id, balance_date=balance_date
+    )
+
+    # Assert
+    assert account.balance == balance
+    assert account.base_currency_balance == base_currency_balance
+    assert account.base_currency_rate == base_currency_rate
+    assert account.estimated_base_balance is None
+
+
 async def test_get_account_not_found(db: AsyncSession):
     # Arrange
     user_id = uuid4()

@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -43,9 +44,19 @@ async def get_accounts(
 
 @router.get("/{account_id}")
 async def get_account(
-    *, account_id: UUID, user_id: UUID = Depends(get_user_id), db: AsyncSession = Depends(get_db)
+    *,
+    account_id: UUID,
+    balance_date: Annotated[date | None, Query(alias="date")] = None,
+    user_id: UUID = Depends(get_user_id),
+    db: AsyncSession = Depends(get_db),
 ) -> Account:
-    account: Account = await account_service.get_account(db=db, account_id=account_id, user_id=user_id)
+    """
+    With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the ones the account had on that date,
+    which a balance adjustment on that date is checked against.
+    """
+    account: Account = await account_service.get_account(
+        db=db, account_id=account_id, user_id=user_id, balance_date=balance_date
+    )
     return account
 
 
