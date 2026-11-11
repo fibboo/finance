@@ -1,4 +1,4 @@
-import { type ReactNode, useLayoutEffect, useRef } from 'react';
+import { type ReactNode, useEffectEvent, useLayoutEffect, useRef } from 'react';
 
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
@@ -14,7 +14,11 @@ export function Sheet({ label, onClose, children }: SheetProps) {
   const sheetRef = useRef<HTMLDialogElement>(null);
   const handleRef = useRef<HTMLSpanElement>(null);
   const isUnmountingRef = useRef(false);
+  const isBackdropPressedRef = useRef(false);
   const dragHandlers = useSheetDrag({ handleRef, onClose });
+  const closeOnBackdropClick = useEffectEvent(() => {
+    onClose();
+  });
 
   useLayoutEffect(() => {
     const sheet = sheetRef.current;
@@ -22,11 +26,19 @@ export function Sheet({ label, onClose, children }: SheetProps) {
       return undefined;
     }
 
+    function handleClick(event: MouseEvent) {
+      if (isBackdropPressedRef.current && event.target === sheet) {
+        closeOnBackdropClick();
+      }
+    }
+
     isUnmountingRef.current = false;
     sheet.showModal();
     sheet.focus({ preventScroll: true });
+    sheet.addEventListener('click', handleClick);
 
     return () => {
+      sheet.removeEventListener('click', handleClick);
       isUnmountingRef.current = true;
       sheet.close();
     };
@@ -48,12 +60,10 @@ export function Sheet({ label, onClose, children }: SheetProps) {
         }
       }}
       onPointerDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-          return;
+        isBackdropPressedRef.current = event.target === event.currentTarget;
+        if (!isBackdropPressedRef.current) {
+          dragHandlers.onPointerDown(event);
         }
-
-        dragHandlers.onPointerDown(event);
       }}
       onPointerMove={dragHandlers.onPointerMove}
       onPointerUp={dragHandlers.onPointerUp}

@@ -150,3 +150,47 @@ test.each([
   offsetHeight.mockRestore();
   vi.useRealTimers();
 });
+
+test('closes on a tap on the backdrop once the press is released', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const onClose = vi.fn();
+  render(
+    <Sheet label="New transaction" onClose={onClose}>
+      <h2>Expense</h2>
+    </Sheet>,
+  );
+  const sheet = screen.getByRole('dialog', { name: 'New transaction' });
+  await user.pointer({ keys: '[TouchA>]', target: sheet });
+  expect(onClose).not.toHaveBeenCalled();
+
+  // act
+  await user.pointer({ keys: '[/TouchA]' });
+
+  // assert
+  expect(onClose).toHaveBeenCalledOnce();
+});
+
+test('stays open when a press that started inside is released on the backdrop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const onClose = vi.fn();
+  render(
+    <Sheet label="New transaction" onClose={onClose}>
+      <h2>Expense</h2>
+    </Sheet>,
+  );
+  await user.pointer({
+    keys: '[MouseLeft>]',
+    target: screen.getByRole('heading', { name: 'Expense' }),
+  });
+
+  // act
+  await user.pointer({
+    keys: '[/MouseLeft]',
+    target: screen.getByRole('dialog', { name: 'New transaction' }),
+  });
+
+  // assert
+  expect(onClose).not.toHaveBeenCalled();
+});

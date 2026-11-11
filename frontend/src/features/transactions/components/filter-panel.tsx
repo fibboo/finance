@@ -1,5 +1,6 @@
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 
+import { useOutsideClick } from '@/hooks/use-outside-click';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './filter-panel.module.css';
@@ -27,39 +28,34 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
   }
 
   const dragHandlers = useSheetDrag({ handleRef, onClose: close });
+  const closeOnEscape = useEffectEvent(() => {
+    close();
+  });
 
   useEffect(() => {
     if (!isOpen) {
       return;
     }
 
-    function handlePointerDown(event: PointerEvent) {
-      const { target } = event;
-      const isOutside =
-        target instanceof Node &&
-        [chipId, panelId].every((id) => document.getElementById(id)?.contains(target) !== true);
-
-      if (isOutside) {
-        setIsOpen(false);
-        document.getElementById(chipId)?.focus();
-      }
-    }
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setIsOpen(false);
-        document.getElementById(chipId)?.focus();
+        closeOnEscape();
       }
     }
 
-    document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, chipId, panelId]);
+  }, [isOpen]);
+
+  useOutsideClick({
+    isActive: isOpen,
+    readIsInside: (target) =>
+      [chipId, panelId].some((id) => document.getElementById(id)?.contains(target) === true),
+    onOutsideClick: close,
+  });
 
   return (
     <div className={styles['filterPanel']}>
