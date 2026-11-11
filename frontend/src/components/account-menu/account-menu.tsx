@@ -18,11 +18,21 @@ export function AccountMenu({ avatar, children }: AccountMenuProps) {
       return;
     }
 
-    function handlePointerDown(event: PointerEvent) {
-      const isOutside =
-        event.target instanceof Node && menuRef.current?.contains(event.target) !== true;
+    let isPressedOutside = false;
 
-      if (isOutside) {
+    function readIsOutside(target: EventTarget | null): boolean {
+      const isOutside = target instanceof Node && menuRef.current?.contains(target) !== true;
+      return isOutside;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      isPressedOutside = readIsOutside(event.target);
+    }
+
+    function handleClick(event: MouseEvent) {
+      if (isPressedOutside && readIsOutside(event.target)) {
+        event.preventDefault();
+        event.stopPropagation();
         setIsOpen(false);
       }
     }
@@ -34,11 +44,13 @@ export function AccountMenu({ avatar, children }: AccountMenuProps) {
       }
     }
 
-    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('pointerdown', handlePointerDown, { capture: true });
+    document.addEventListener('click', handleClick, { capture: true });
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('pointerdown', handlePointerDown, { capture: true });
+      document.removeEventListener('click', handleClick, { capture: true });
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);

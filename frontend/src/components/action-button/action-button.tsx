@@ -19,6 +19,8 @@ type ActionButtonProps = Readonly<{
 
 export function ActionButton({ id, label, iconPath, isDanger, action }: ActionButtonProps) {
   const hintId = useId();
+  const generatedId = useId();
+  const buttonId = id ?? generatedId;
   const isBlocked = action.kind === 'button' && action.blockingHint !== undefined;
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -28,17 +30,43 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
       return;
     }
 
+    let isPressedElsewhere = false;
+
     function hideTip() {
       setIsTapped(false);
     }
 
+    function handlePointerDown(event: PointerEvent) {
+      const { target } = event;
+      isPressedElsewhere =
+        target instanceof Node && document.getElementById(buttonId)?.contains(target) !== true;
+    }
+
+    function handleClick(event: MouseEvent) {
+      if (isPressedElsewhere) {
+        event.preventDefault();
+        event.stopPropagation();
+        hideTip();
+      }
+    }
+
+    function handleFocusOut() {
+      if (!isPressedElsewhere) {
+        hideTip();
+      }
+    }
+
     const timeoutId = window.setTimeout(hideTip, TIP_DURATION_MS);
-    document.addEventListener('pointerdown', hideTip, { capture: true });
+    document.addEventListener('pointerdown', handlePointerDown, { capture: true });
+    document.addEventListener('click', handleClick, { capture: true });
+    document.addEventListener('focusout', handleFocusOut);
     return () => {
       window.clearTimeout(timeoutId);
-      document.removeEventListener('pointerdown', hideTip, { capture: true });
+      document.removeEventListener('pointerdown', handlePointerDown, { capture: true });
+      document.removeEventListener('click', handleClick, { capture: true });
+      document.removeEventListener('focusout', handleFocusOut);
     };
-  }, [isTapped]);
+  }, [isTapped, buttonId]);
 
   const isTipShown = isBlocked && (isHovered || isFocused || isTapped);
   useEffect(() => {
@@ -94,7 +122,7 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
         </span>
       )}
       <button
-        id={id}
+        id={buttonId}
         type="button"
         aria-label={label}
         title={isBlocked ? undefined : label}
@@ -123,7 +151,6 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
         }}
         onBlur={() => {
           setIsFocused(false);
-          setIsTapped(false);
         }}
       >
         {icon}

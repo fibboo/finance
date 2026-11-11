@@ -33,13 +33,23 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
       return;
     }
 
-    function handlePointerDown(event: PointerEvent) {
-      const { target } = event;
+    let isPressedOutside = false;
+
+    function readIsOutside(target: EventTarget | null): boolean {
       const isOutside =
         target instanceof Node &&
         [chipId, panelId].every((id) => document.getElementById(id)?.contains(target) !== true);
+      return isOutside;
+    }
 
-      if (isOutside) {
+    function handlePointerDown(event: PointerEvent) {
+      isPressedOutside = readIsOutside(event.target);
+    }
+
+    function handleClick(event: MouseEvent) {
+      if (isPressedOutside && readIsOutside(event.target)) {
+        event.preventDefault();
+        event.stopPropagation();
         setIsOpen(false);
         document.getElementById(chipId)?.focus();
       }
@@ -52,11 +62,13 @@ export function FilterPanel({ title, chipLabel, isActive, children }: FilterPane
       }
     }
 
-    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('pointerdown', handlePointerDown, { capture: true });
+    document.addEventListener('click', handleClick, { capture: true });
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('pointerdown', handlePointerDown, { capture: true });
+      document.removeEventListener('click', handleClick, { capture: true });
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, chipId, panelId]);

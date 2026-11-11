@@ -101,7 +101,7 @@ export function DetailsPanel({
       focusReturnTarget(returnFocusId);
     }
 
-    function handlePointerDown(event: PointerEvent) {
+    function handleClick(event: MouseEvent) {
       if (event.target === document.getElementById(backdropId)) {
         closePanel();
       }
@@ -121,11 +121,11 @@ export function DetailsPanel({
       }
     }
 
-    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('click', handleClick);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('click', handleClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isShownByDefault, onClose, returnFocusId, backdropId, panelId]);
@@ -178,7 +178,12 @@ export function DetailsPanel({
   return (
     <>
       {!isShownByDefault && (
-        <div id={backdropId} className={styles['backdrop']} aria-hidden="true" />
+        <div
+          id={backdropId}
+          className={styles['backdrop']}
+          data-testid="details-panel-backdrop"
+          aria-hidden="true"
+        />
       )}
       <section
         id={panelId}

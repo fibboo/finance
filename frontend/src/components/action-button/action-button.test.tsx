@@ -53,9 +53,10 @@ test('ignores a tap while blocked and shows the reason over it', async () => {
   expect(screen.getByRole('tooltip')).toHaveTextContent(HINT);
 });
 
-test('closes the reason on the next tap elsewhere', async () => {
+test('closes the reason on the next tap elsewhere without activating what is tapped', async () => {
   // arrange
   const user = userEvent.setup();
+  const onEdit = vi.fn();
   render(
     <>
       <ActionButton
@@ -64,7 +65,9 @@ test('closes the reason on the next tap elsewhere', async () => {
         isDanger
         action={{ kind: 'button', blockingHint: HINT, onClick: vi.fn() }}
       />
-      <p>Elsewhere</p>
+      <button type="button" onClick={onEdit}>
+        Edit
+      </button>
     </>,
   );
   await user.pointer({
@@ -73,10 +76,14 @@ test('closes the reason on the next tap elsewhere', async () => {
   });
 
   // act
-  await user.pointer({ keys: '[TouchA]', target: screen.getByText('Elsewhere') });
+  await user.pointer({ keys: '[TouchA]', target: screen.getByRole('button', { name: 'Edit' }) });
 
   // assert
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  expect(onEdit).not.toHaveBeenCalled();
+  // the next tap reaches the control
+  await user.pointer({ keys: '[TouchA]', target: screen.getByRole('button', { name: 'Edit' }) });
+  expect(onEdit).toHaveBeenCalledOnce();
 });
 
 test('closes the reason a few seconds after a tap', async () => {

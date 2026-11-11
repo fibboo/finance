@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { render } from '@/test/render';
@@ -47,6 +47,50 @@ test('closes on a tap on the backdrop outside the menu', async () => {
 
   // assert
   expect(screen.queryByRole('dialog', { name: 'Account' })).not.toBeInTheDocument();
+});
+
+test('stays open while the press outside the menu is held', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(<AccountMenu avatar="NI">Menu content</AccountMenu>);
+  await user.click(screen.getByRole('button', { name: 'Account menu' }));
+
+  // act
+  await user.pointer({ keys: '[TouchA>]', target: screen.getByTestId('account-menu-backdrop') });
+
+  // assert
+  expect(screen.getByRole('dialog', { name: 'Account' })).toBeInTheDocument();
+});
+
+test('closes on a tap on a control outside the menu without activating it', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const onClick = vi.fn();
+  render(
+    <>
+      <AccountMenu avatar="NI">Menu content</AccountMenu>
+      <button type="button" onClick={onClick}>
+        New transaction
+      </button>
+    </>,
+  );
+  await user.click(screen.getByRole('button', { name: 'Account menu' }));
+
+  // act
+  await user.pointer({
+    keys: '[TouchA]',
+    target: screen.getByRole('button', { name: 'New transaction' }),
+  });
+
+  // assert
+  expect(screen.queryByRole('dialog', { name: 'Account' })).not.toBeInTheDocument();
+  expect(onClick).not.toHaveBeenCalled();
+  // the next tap reaches the control
+  await user.pointer({
+    keys: '[TouchA]',
+    target: screen.getByRole('button', { name: 'New transaction' }),
+  });
+  expect(onClick).toHaveBeenCalledOnce();
 });
 
 test('closes on a second click of the avatar', async () => {
