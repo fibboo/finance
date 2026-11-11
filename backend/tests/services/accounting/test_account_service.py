@@ -302,6 +302,60 @@ async def test_get_account_on_date(
     assert account.estimated_base_balance is None
 
 
+async def test_get_account_on_date_category(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    wallet_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Wallet",
+            "currency": "USD",
+            "balance": Decimal("-10"),
+            "base_balance": Decimal("-10"),
+        },
+        commit=True,
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+
+    # a category caches no balance, so an expense dated after the date has nothing to be taken out of
+    await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.EXPENSE,
+            transaction_date=date(2026, 3, 11),
+            base_currency_amount=Decimal("10"),
+            location_id=location_db.id,
+        ),
+        postings=[
+            PostingCreate(account_id=wallet_db.id, amount=Decimal("-10"), currency="USD", base_amount=Decimal("-10")),
+            PostingCreate(account_id=category_db.id, amount=Decimal("10"), currency="USD", base_amount=Decimal("10")),
+        ],
+    )
+    await db.commit()
+
+    # Act
+    account: Account = await account_service.get_account(
+        db=db, account_id=category_db.id, user_id=user_id, balance_date=date(2026, 3, 10)
+    )
+
+    # Assert
+    assert account.balance == Decimal("0")
+    assert account.base_currency_balance == Decimal("0.00")
+    assert account.base_currency_rate == Decimal("0")
+
+
 async def test_get_account_not_found(db: AsyncSession):
     # Arrange
     user_id = uuid4()

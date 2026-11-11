@@ -51,8 +51,10 @@ async def get_account(
     db: AsyncSession = Depends(get_db),
 ) -> Account:
     """
-    With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the ones the account had on that date,
-    which a balance adjustment on that date is checked against.
+    With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the sums that decide whether the account
+    has a rate for a balance adjustment on that date: its postings up to that date, without the expenses still waiting
+    for a value on it. An account outside the base currency with a rate of 0 or less has none, so its adjustment must
+    carry `base_currency_amount`. The adjustment itself is computed from the current balance, the one without `date`.
     """
     account: Account = await account_service.get_account(
         db=db, account_id=account_id, user_id=user_id, balance_date=balance_date
