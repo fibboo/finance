@@ -97,6 +97,7 @@ export function Component() {
         <div className={styles['accounts']}>
           {isNothingMatched ? (
             <NoMatchingAccounts
+              entityNames="accounts"
               onClear={() => {
                 searchField.focusAfterClear();
                 setSearchParams(writeAccountSearch({ searchParams, search: '' }), {

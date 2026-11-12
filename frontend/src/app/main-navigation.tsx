@@ -57,13 +57,12 @@ export function MainNavigation() {
         </svg>
         <span className={styles['label']}>Accounts</span>
       </NavLink>
-      <button type="button" className={styles['section']} disabled>
+      <NavLink to="/categories" className={styles['section'] ?? ''}>
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
           <path d={CATEGORIES_ICON_PATH} />
         </svg>
-        <span className={styles['label']}>Categories</span>{' '}
-        <span className={`visually-hidden ${styles['soon'] ?? ''}`}>Soon</span>
-      </button>
+        <span className={styles['label']}>Categories</span>
+      </NavLink>
       <MoreMenu isCurrent={isMoreSectionOpen}>
         {MORE_SECTIONS.map((section) => (
           <button key={section.name} type="button" className={styles['moreSection']} disabled>

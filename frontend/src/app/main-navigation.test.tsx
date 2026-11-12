@@ -31,12 +31,12 @@ test('links Accounts to its section', () => {
   expect(screen.getByRole('link', { name: 'Accounts' })).toHaveAttribute('href', '/accounts');
 });
 
-test('keeps Categories disabled and marked Soon until its screen exists', () => {
+test('links Categories to its section', () => {
   // act
   render(<MainNavigation />);
 
   // assert
-  expect(screen.getByRole('button', { name: 'Categories Soon' })).toBeDisabled();
+  expect(screen.getByRole('link', { name: 'Categories' })).toHaveAttribute('href', '/categories');
 });
 
 test.each(['Locations Soon', 'Income sources Soon'])(
