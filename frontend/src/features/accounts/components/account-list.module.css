@@ -195,7 +195,9 @@ a.account:focus-visible {
   .next {
     right: 0;
   }
+}
 
+@media (hover: hover) {
   .previous:hover,
   .next:hover {
     background: var(--color-ground);
