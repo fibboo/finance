@@ -17,10 +17,10 @@ The rules are in `.claude/rules/react.md` **Auth and Security**; `features/auth/
 
 ## Server data
 
-- Every query polls every 30 seconds while the tab is visible and refetches when the tab is shown again, since the same user may change the data from another device. The static dictionaries and the currencies by recent use are the exceptions: the first never change, and the second would reorder a list while the user reads it.
+- Every query polls every 30 seconds while the tab is visible and refetches when the tab is shown again, since the same user may change the data from another device. The exceptions are the static dictionaries, which never change, the currencies by recent use, which would reorder a list while the user reads it, and the read of `accountOnDate` for the saved date in an edit form (`transaction-form.tsx`), whose refetch would restart the amount being edited.
 - The transaction feed polls only while its list is at the top (`useTransactionFeed`), because a refetch of loaded pages under a scrolled list would move the rows the user is reading.
 - A query that keeps failing shows the error notification once, until it loads again or a mutation succeeds, so that polling does not repeat the notification every 30 seconds.
-- A route that needs a dictionary reads it with `useQuery` without suspending and shows skeletons while it loads; its error reaches the route's error boundary.
+- The sign-in and onboarding routes read their dictionary with `useQuery` without suspending and show skeletons while it loads; its error reaches the route's error boundary. The other routes decide per screen what a dictionary that failed to load hides.
 - Every transaction mutation invalidates the feeds, the account and summary keys and `transactionQueries.accountOnDate`, since any of them changes balances and rates. Merging two users invalidates every query.
 
 ## State in the URL
@@ -37,7 +37,7 @@ A details view, a form and a filter panel are each one component that CSS turns 
 
 ## Transaction feed
 
-The feed is an infinite query whose page holds the rows the screen height fits. It keeps the day it opened on, so that paging stays consistent across midnight, and drops a transaction that a shifted page repeats. A jump to a date anchors the feed there: one query pages down from the date and a second, oldest first, pages up towards today, while `use-anchor-scroll.ts` keeps the scroll position when rows are added above.
+The feed is an infinite query whose page holds the rows the screen height fits. The Transactions section keeps the day it opened on (`isOpeningDayKept`), so that paging stays consistent across midnight, while the recent transactions of Home follow the local today. The feed drops a transaction that a shifted page repeats. A jump to a date anchors the feed there: one query pages down from the date and a second, oldest first, pages up towards today, while `use-anchor-scroll.ts` keeps the scroll position when rows are added above.
 
 ## Transaction forms
 

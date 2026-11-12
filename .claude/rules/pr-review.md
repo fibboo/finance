@@ -42,7 +42,21 @@ The rules themselves are written once, in the rule files. Code or a test the dif
 | `python.md` **Database Access** | P2 | A test's arrange step that commits its rows through the plain `db` with `commit=True`. |
 | `python.md` **Endpoints** | P2 | A transaction handler that takes its processor from `factory.get_processor` and calls it. A redirect done by declaring `response_class=RedirectResponse` and returning the URL the service gives. |
 | `python.md` **Imports** | P3 | `get_logger` and the other names that section imports by name. |
-| `react.md` **Auth and Security**: a token written to `localStorage`, `sessionStorage` or a cookie that script can read, a `dangerouslySetInnerHTML`, or a URL from data placed in an `href` or `src` without checking its scheme | P1 | |
-| Every other section of `react.md` and `typescript.md` | P2 | An edit form's starting values in React Hook Form. The token refresh and session restore of the API client's auth middleware and the code exchanges in the loaders of the sign-in and link callback routes, which fetch outside TanStack Query. A map keyed by the generated union, of presentation or of UI copy that explains a value. `as const`. A secondary detail that a wider screen adds where it fits. |
 
-A settings finding covers a call the diff adds that passes a settings value into an existing parameter whose other production callers pass the same value, as well as a new parameter. A test finding is judged by what the test asserts, not by what its file is named.
+A settings finding covers a call the diff adds that passes a settings value into an existing parameter whose other production callers pass the same value, as well as a new parameter.
+
+## Frontend
+
+Each of the following is a finding when the diff adds it under `frontend/` (`.claude/rules/react.md`, `.claude/rules/typescript.md`):
+
+- a token written to `localStorage`, `sessionStorage` or a cookie that script can read, a `dangerouslySetInnerHTML`, or a URL from data placed in an `href` or `src` without checking its scheme. Grade it **P1**: it opens the app to token theft or script injection.
+- server data copied into `useState`, Context or a store (an edit form's starting values in React Hook Form are not this finding), a query key written by hand instead of taken from the feature's key factory, or a fetch outside TanStack Query other than the token refresh and session restore of the API client's auth middleware and the code exchanges in the loaders of the sign-in and link callback routes;
+- an effect that derives data, fetches, handles an event or resets state;
+- a `useMemo`, `useCallback` or `memo` without the profile or the effect dependency that justifies it;
+- an inline `eslint-disable`, a `@ts-ignore` or `@ts-expect-error`, an `any`, a non-null assertion or an `as` cast other than `as const`;
+- an API type written by hand instead of taken from the generated schema, or a backend value set or label copied into a frontend constant (a map keyed by the generated union, of presentation or of UI copy that explains a value, is not this finding);
+- an import from another feature, or a barrel file;
+- a screen, navigation section or action available at one width only (a secondary detail that a wider screen adds where it fits is not this finding), a component or component tree written for the phone or the desktop alone instead of one component that reflows with CSS, or navigation whose sections, names, icons or order differ between widths;
+- a raw color, pixel size or font in a CSS module instead of a token, or an interactive element that is not a native `button`, `a` or form control and has no role and keyboard handling.
+
+Grade every other finding in this list **P2** and treat it as blocking, since the author can act on it before the merge.

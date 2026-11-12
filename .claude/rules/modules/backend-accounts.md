@@ -4,6 +4,8 @@ paths:
   - "backend/**/accounting/*location*"
   - "backend/**/accounting/*currenc*"
   - "backend/**/accounting/*dictionar*"
+  - "backend/**/transaction_processor/**"
+  - "backend/tests/conftest.py"
 ---
 
 # backend: accounts, locations and currencies

@@ -6,6 +6,8 @@ paths:
   - "backend/**/accounting/*ledger*"
   - "backend/**/accounting/*exchange_rate*"
   - "backend/**/accounting/*summary*"
+  - "backend/app/utils/**"
+  - "backend/tests/conftest.py"
 ---
 
 # backend: ledger
