@@ -34,7 +34,10 @@ export interface paths {
          * @description With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the sums that decide whether the account
          *     has a rate for a balance adjustment on that date: its postings up to that date, without the expenses still waiting
          *     for a value on it. An account outside the base currency with a rate of 0 or less has none, so its adjustment must
-         *     carry `base_currency_amount`. The adjustment itself is computed from the current balance, the one without `date`.
+         *     carry `base_currency_amount`. With `excluded_transaction_id` next to `date`, the sums leave that transaction's
+         *     postings out, for a client that edits that adjustment. The read only subtracts the postings, while the update
+         *     also revalues the account without them, so the update may still decide otherwise and answer
+         *     `NO_ACCOUNT_BASE_CURRENCY_RATE` or `BASE_CURRENCY_AMOUNT_NOT_ALLOWED`.
          */
         get: operations["get_account_accounting_accounts__account_id__get"];
         /** Update Account */
@@ -81,11 +84,38 @@ export interface paths {
         put?: never;
         /**
          * Adjust Balance
-         * @description Sets the account to `new_balance` with an ADJUSTMENT transaction between the account and the Adjustments account.
-         *     Its amounts are the difference from the current balance in the account currency. `base_currency_amount` is
-         *     required only for an account outside the base currency that has no base currency rate yet.
+         * @description Changes the balance by `amount` with an ADJUSTMENT transaction between the account and the Adjustments account.
+         *     `amount` is in the account currency: a positive one increases the balance, a negative one decreases it, and zero
+         *     is refused. `base_currency_amount` is required only for an account outside the base currency that has no base
+         *     currency rate on the date, and refused otherwise.
          */
         post: operations["adjust_balance_accounting_accounts__account_id__adjustment_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounting/accounts/{account_id}/adjustment/{transaction_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Adjustment
+         * @description Replaces the amount, date and comment of an ADJUSTMENT transaction of the account, keeping its id. The body is
+         *     the one of `POST /accounting/accounts/{account_id}/adjustment`. The account is never changed: a transaction that
+         *     is not on this account answers `ENTITY_NOT_FOUND`, a transaction of another type
+         *     `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED` and one on a deleted account `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`.
+         *     `base_currency_amount` follows the rule of a create on the ledger without the transaction, which
+         *     `GET /accounting/accounts/{account_id}` answers with `date` and `excluded_transaction_id`. The edited transaction
+         *     moves to the end of its date, as a new one is placed, and the account is recalculated.
+         */
+        put: operations["update_adjustment_accounting_accounts__account_id__adjustment__transaction_id__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -248,8 +278,9 @@ export interface paths {
          *
          *     The two accounts are checked before the transaction: an unknown one answers `ENTITY_NOT_FOUND` and a pair that is
          *     no movement `MOVEMENT_NOT_ALLOWED`, even for a transaction that would answer `ENTITY_NOT_FOUND` itself, as a
-         *     missing or deleted one and a balance adjustment, which is not edited, do. Accounts that give another type than
-         *     the transaction's own answer `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED`, and a transaction on a deleted money account
+         *     missing or deleted one does. Accounts that give another type than the transaction's own answer
+         *     `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED`, as does a balance adjustment, which is edited through
+         *     `PUT /accounting/accounts/{account_id}/adjustment/{transaction_id}`, and a transaction on a deleted money account
          *     `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. The old postings are then removed and their accounts
          *     recalculated, and the new postings pass the checks of creation on that ledger, so a transfer from an account
          *     without a rate answers `NO_ACCOUNT_BASE_CURRENCY_RATE`. The edited transaction moves to the end of its date, as a
@@ -647,8 +678,8 @@ export interface components {
             transaction_date: string;
             /** Comment */
             comment?: string | null;
-            /** New Balance */
-            new_balance: number | string;
+            /** Amount */
+            amount: number | string;
             /** Base Currency Amount */
             base_currency_amount?: number | string | null;
         };
@@ -690,7 +721,7 @@ export interface components {
          * ErrorCodeType
          * @enum {string}
          */
-        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_BALANCE_UNCHANGED" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "BASE_CURRENCY_MISMATCH" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
+        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "BASE_CURRENCY_MISMATCH" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
         /** ErrorResponse */
         ErrorResponse: {
             /** Message */
@@ -1164,6 +1195,7 @@ export interface operations {
         parameters: {
             query?: {
                 date?: string | null;
+                excluded_transaction_id?: string | null;
             };
             header?: never;
             path: {
@@ -1332,6 +1364,51 @@ export interface operations {
             header?: never;
             path: {
                 account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_adjustment_accounting_accounts__account_id__adjustment__transaction_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+                transaction_id: string;
             };
             cookie?: never;
         };
@@ -2458,7 +2535,7 @@ type ReadonlyArray<T> = [
 export const accountKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["AccountKind"]> = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"];
 export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryType"]> = ["VARIABLE", "FIXED", "PERIODIC"];
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
-export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_BALANCE_UNCHANGED", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
+export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
 export const linkStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["LinkStatusType"]> = ["linked", "merge_required"];
 export const listOrderTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ListOrderType"]> = ["name", "recent_use"];
 export const orderDirectionTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderDirectionType"]> = ["asc", "desc"];

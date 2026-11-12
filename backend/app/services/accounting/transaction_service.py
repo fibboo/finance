@@ -117,3 +117,14 @@ async def adjust_balance(
     create_data: AdjustmentCreate = AdjustmentCreate(**adjustment_data.model_dump(), account_id=account_id)
     transaction: Transaction = await transaction_processor.create(data=create_data)
     return transaction
+
+
+async def update_adjustment(
+    *, db: AsyncSession, account_id: UUID, transaction_id: UUID, adjustment_data: AdjustmentRequest, user_id: UUID
+) -> Transaction:
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=TransactionType.ADJUSTMENT
+    )
+    update_data: AdjustmentCreate = AdjustmentCreate(**adjustment_data.model_dump(), account_id=account_id)
+    transaction: Transaction = await transaction_processor.update(transaction_id=transaction_id, data=update_data)
+    return transaction

@@ -42,16 +42,6 @@ class RedirectUriNotAllowed(UnprocessableException):
         )
 
 
-class AccountBalanceUnchanged(UnprocessableException):
-    def __init__(self, *, account_id: UUID, balance: Decimal, logger: logging.Logger):
-        super().__init__(
-            message="Account balance unchanged",
-            log_message=f"Account `{account_id}` already has the balance {balance}",
-            logger=logger,
-            error_code=ErrorCodeType.ACCOUNT_BALANCE_UNCHANGED,
-        )
-
-
 class AccountKindMismatch(UnprocessableException):
     def __init__(self, *, account_id: UUID, kinds: list[AccountKind], logger: logging.Logger):
         expected_kinds: str = ", ".join(kind.value for kind in kinds)

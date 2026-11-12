@@ -640,7 +640,7 @@ async def seed(*, db: AsyncSession) -> None:
     for name, balance, base_currency_amount in dataset.opening_balances:
         adjustment_data = AdjustmentRequest(
             transaction_date=opening_date,
-            new_balance=balance,
+            amount=balance,
             base_currency_amount=base_currency_amount,
             comment="Opening balance",
         )

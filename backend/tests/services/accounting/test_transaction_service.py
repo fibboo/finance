@@ -672,7 +672,7 @@ async def test_get_transactions_adjustments(db: AsyncSession):
 
     # an increase of the wallet and a decrease of the card, next to an income to the card
     adjustment_create_data: AdjustmentCreate = AdjustmentCreate(
-        transaction_date=base_date + timedelta(days=1), account_id=account_wallet_db.id, new_balance=Decimal("300")
+        transaction_date=base_date + timedelta(days=1), account_id=account_wallet_db.id, amount=Decimal("300")
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=TransactionType.ADJUSTMENT
@@ -680,7 +680,7 @@ async def test_get_transactions_adjustments(db: AsyncSession):
     wallet_increase: Transaction = await transaction_processor.create(data=adjustment_create_data)
 
     adjustment_create_data: AdjustmentCreate = AdjustmentCreate(
-        transaction_date=base_date + timedelta(days=2), account_id=account_card_db.id, new_balance=Decimal("200")
+        transaction_date=base_date + timedelta(days=2), account_id=account_card_db.id, amount=Decimal("-300")
     )
     transaction_processor: TransactionProcessor = factory.get_processor(
         db=db, user_id=user_id, transaction_type=TransactionType.ADJUSTMENT
@@ -1127,9 +1127,7 @@ async def test_adjust_balance_increase_ok(db: AsyncSession, db_transaction: Asyn
     equity_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments")
     equity_db: AccountModel = await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
-    adjustment_data: AdjustmentRequest = AdjustmentRequest(
-        transaction_date=date(2025, 2, 10), new_balance=Decimal("300")
-    )
+    adjustment_data: AdjustmentRequest = AdjustmentRequest(transaction_date=date(2025, 2, 10), amount=Decimal("300"))
 
     # Act
     transaction: Transaction = await transaction_service.adjust_balance(
@@ -1174,9 +1172,7 @@ async def test_adjust_balance_account_not_found(db: AsyncSession, db_transaction
     await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     account_id: UUID = uuid4()
-    adjustment_data: AdjustmentRequest = AdjustmentRequest(
-        transaction_date=date(2025, 2, 10), new_balance=Decimal("300")
-    )
+    adjustment_data: AdjustmentRequest = AdjustmentRequest(transaction_date=date(2025, 2, 10), amount=Decimal("300"))
 
     # Act / Assert
     with pytest.raises(EntityNotFound) as exc:
@@ -1364,7 +1360,7 @@ async def test_update_transaction_type_change_not_allowed(db: AsyncSession, db_t
     assert [posting.account_id for posting in postings] == [account_db.id, category_db.id]
 
 
-async def test_update_transaction_adjustment_not_found(db: AsyncSession, db_transaction: AsyncSession):
+async def test_update_transaction_adjustment_type_change_not_allowed(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_create_data: UserCreate = UserCreate(
         username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
@@ -1386,7 +1382,7 @@ async def test_update_transaction_adjustment_not_found(db: AsyncSession, db_tran
     adjustment: Transaction = await transaction_service.adjust_balance(
         db=db,
         account_id=account_db.id,
-        adjustment_data=AdjustmentRequest(transaction_date=date(2025, 2, 10), new_balance=Decimal("300")),
+        adjustment_data=AdjustmentRequest(transaction_date=date(2025, 2, 10), amount=Decimal("300")),
         user_id=user_id,
     )
     await db.commit()
@@ -1404,13 +1400,130 @@ async def test_update_transaction_adjustment_not_found(db: AsyncSession, db_tran
     )
 
     # Act / Assert
-    with pytest.raises(EntityNotFound) as exc:
+    with pytest.raises(TransactionTypeChangeNotAllowed) as exc:
         await transaction_service.update_transaction(
             db=db_transaction, transaction_id=adjustment.id, update_data=update_data, user_id=user_id
         )
 
-    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
-    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert exc.value.error_code == ErrorCodeType.TRANSACTION_TYPE_CHANGE_NOT_ALLOWED
+    assert exc.value.log_message == (
+        f"The ADJUSTMENT transaction `{adjustment.id}` can not become a INCOME transaction"
+    )
 
     transaction_types: list[TransactionType] = (await db.scalars(select(TransactionModel.transaction_type))).all()
     assert transaction_types == [TransactionType.ADJUSTMENT]
+
+
+async def test_update_adjustment_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Wallet", "currency": "USD"}
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    equity_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments")
+    equity_db: AccountModel = await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+    adjustment: Transaction = await transaction_service.adjust_balance(
+        db=db,
+        account_id=account_db.id,
+        adjustment_data=AdjustmentRequest(transaction_date=date(2025, 2, 10), amount=Decimal("300")),
+        user_id=user_id,
+    )
+    await db.commit()
+    await db.close()
+
+    adjustment_data: AdjustmentRequest = AdjustmentRequest(
+        transaction_date=date(2025, 2, 12), comment="Counted the cash", amount=Decimal("-120")
+    )
+
+    # Act
+    transaction: Transaction = await transaction_service.update_adjustment(
+        db=db_transaction,
+        account_id=account_db.id,
+        transaction_id=adjustment.id,
+        adjustment_data=adjustment_data,
+        user_id=user_id,
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert transaction.id == adjustment.id
+    assert transaction.created_at == adjustment.created_at
+    assert transaction.transaction_type == TransactionType.ADJUSTMENT
+    assert transaction.transaction_date == date(2025, 2, 12)
+    assert transaction.comment == "Counted the cash"
+    assert transaction.base_currency_amount == Decimal("120")
+    assert [
+        (posting.account.id, posting.amount, posting.currency, posting.base_amount) for posting in transaction.postings
+    ] == [
+        (account_db.id, Decimal("-120"), "USD", Decimal("-120")),
+        (equity_db.id, Decimal("120"), "USD", Decimal("120")),
+    ]
+
+    postings: list[PostingModel] = (await db.scalars(select(PostingModel).order_by(PostingModel.amount))).all()
+    assert [(posting.account_id, posting.amount, posting.currency, posting.base_amount) for posting in postings] == [
+        (account_db.id, Decimal("-120"), "USD", Decimal("-120")),
+        (equity_db.id, Decimal("120"), "USD", Decimal("120")),
+    ]
+
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("-120")
+    assert account_db_after.base_balance == Decimal("-120")
+
+
+@pytest.mark.parametrize("path_account", ["other", "equity"])
+async def test_update_adjustment_of_other_account_not_found(
+    db: AsyncSession, db_transaction: AsyncSession, path_account: str
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Wallet", "currency": "USD"}
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    other_account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Card", "currency": "USD"}
+    other_account_db: AccountModel = await account_crud.create(db=db, obj_in=other_account_create_data, commit=True)
+    equity_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments")
+    equity_db: AccountModel = await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+    path_account_ids: dict[str, UUID] = {"other": other_account_db.id, "equity": equity_db.id}
+    adjustment: Transaction = await transaction_service.adjust_balance(
+        db=db,
+        account_id=account_db.id,
+        adjustment_data=AdjustmentRequest(transaction_date=date(2025, 2, 10), amount=Decimal("300")),
+        user_id=user_id,
+    )
+    await db.commit()
+    await db.close()
+
+    adjustment_data: AdjustmentRequest = AdjustmentRequest(transaction_date=date(2025, 2, 10), amount=Decimal("100"))
+
+    # Act / Assert
+    with pytest.raises(EntityNotFound) as exc:
+        await transaction_service.update_adjustment(
+            db=db_transaction,
+            account_id=path_account_ids[path_account],
+            transaction_id=adjustment.id,
+            adjustment_data=adjustment_data,
+            user_id=user_id,
+        )
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
+    search_params = {"id": adjustment.id, "account_id": path_account_ids[path_account]}
+    assert exc.value.log_message == f"{TransactionModel.__name__} not found by {search_params}"
+
+    # neither account moved
+    account_db_after: AccountModel = await account_crud.get(db=db, id=account_db.id)
+    await db.refresh(account_db_after)
+    assert account_db_after.balance == Decimal("300")
+    other_account_db_after: AccountModel = await account_crud.get(db=db, id=other_account_db.id)
+    await db.refresh(other_account_db_after)
+    assert other_account_db_after.balance == Decimal("0")

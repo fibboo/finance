@@ -9,6 +9,7 @@ import type { components } from '@/lib/api-schema';
 import { DATE_TEXT_PLACEHOLDER, readIsoDate } from '@/lib/format-date';
 
 type Account = components['schemas']['Account'];
+type AdjustmentRequest = components['schemas']['AdjustmentRequest'];
 type MovementRequest = components['schemas']['MovementRequest'];
 
 const COMMENT_MIN_LENGTH = 3;
@@ -105,36 +106,56 @@ export function createAdjustmentFormSchema({
   baseCurrency: string;
   today: string;
 }>) {
-  const adjustmentFormSchema = z.object({
-    account_id: z
-      .string()
-      .min(1, ADJUSTMENT_ACCOUNT_ERROR)
-      .refine(() => account !== undefined, {
-        error: ADJUSTMENT_ACCOUNT_ERROR,
-      }),
-    new_balance: z
-      .string()
-      .transform((text) => readAmountText(text))
-      .pipe(z.string({ error: 'Enter the new balance, like 1180.50' }))
-      .refine((amount) => account === undefined || Number(amount) !== Number(account.balance), {
-        error: 'The account already has this balance',
-      }),
-    base_currency_amount: isBaseCurrencyAmountAsked
-      ? z
-          .string()
-          .transform((text) => readSubmittedAmount(text))
-          .transform((amount) => (amount === '' ? null : amount))
-          .refine(
-            (amount) =>
-              amount === null || (PLAIN_AMOUNT_PATTERN.test(amount) && Number(amount) > 0),
-            {
-              error: `Enter the amount in ${baseCurrency}, like 42.80`,
-            },
-          )
-      : skippedTextSchema,
-    transaction_date: createTransactionDateSchema(today),
-    comment: commentSchema,
-  });
+  const adjustmentFormSchema = z
+    .object({
+      account_id: z
+        .string()
+        .min(1, ADJUSTMENT_ACCOUNT_ERROR)
+        .refine(() => account !== undefined, {
+          error: ADJUSTMENT_ACCOUNT_ERROR,
+        }),
+      new_balance: z
+        .string()
+        .transform((text) => readAmountText(text))
+        .pipe(z.string({ error: 'Enter the new balance, like 1180.50' }))
+        .refine((amount) => account === undefined || Number(amount) !== Number(account.balance), {
+          error: 'The account already has this balance',
+        }),
+      base_currency_amount: isBaseCurrencyAmountAsked
+        ? z
+            .string()
+            .transform((text) => readSubmittedAmount(text))
+            .transform((amount) => (amount === '' ? null : amount))
+            .refine(
+              (amount) =>
+                amount === null || (PLAIN_AMOUNT_PATTERN.test(amount) && Number(amount) > 0),
+              {
+                error: `Enter the amount in ${baseCurrency}, like 42.80`,
+              },
+            )
+        : skippedTextSchema,
+      transaction_date: createTransactionDateSchema(today),
+      comment: commentSchema,
+    })
+    .transform((values, context) => {
+      if (account === undefined) {
+        context.addIssue({
+          code: 'custom',
+          path: ['account_id'],
+          message: ADJUSTMENT_ACCOUNT_ERROR,
+        });
+        return z.NEVER;
+      }
+
+      const adjustment = {
+        account_id: values.account_id,
+        amount: (Number(values.new_balance) - Number(account.balance)).toFixed(2),
+        base_currency_amount: values.base_currency_amount,
+        transaction_date: values.transaction_date,
+        comment: values.comment,
+      } satisfies AdjustmentRequest & { account_id: string };
+      return adjustment;
+    });
   return adjustmentFormSchema;
 }
 

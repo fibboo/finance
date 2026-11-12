@@ -302,6 +302,93 @@ async def test_get_account_on_date(
     assert account.estimated_base_balance is None
 
 
+@pytest.mark.parametrize(
+    ("balance_date", "excluded_transaction", "balance", "base_currency_balance", "base_currency_rate"),
+    [
+        (date(2026, 3, 9), "adjustment", Decimal("0"), Decimal("0.00"), Decimal("0")),
+        (date(2026, 3, 10), "adjustment", Decimal("0"), Decimal("0.00"), Decimal("0")),
+        (date(2026, 3, 11), "adjustment", Decimal("200"), Decimal("250.00"), Decimal("0.8")),
+        (date(2026, 3, 10), "income", Decimal("100"), Decimal("110.00"), Decimal("0.9090909091")),
+        (date(2026, 3, 11), "income", Decimal("100"), Decimal("110.00"), Decimal("0.9090909091")),
+    ],
+)
+async def test_get_account_on_date_without_transaction(
+    db: AsyncSession,
+    balance_date: date,
+    excluded_transaction: str,
+    balance: Decimal,
+    base_currency_balance: Decimal,
+    base_currency_rate: Decimal,
+):
+    # Arrange
+    user_id: UUID = uuid4()
+
+    # the account holds 300 EUR worth 360 USD: an adjustment of 100 EUR for 110 USD on the 10th and an income of
+    # 200 EUR for 250 USD on the 11th
+    account_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "kind": AccountKind.ASSET,
+            "user_id": user_id,
+            "name": "Savings EUR",
+            "currency": "EUR",
+            "balance": Decimal("300"),
+            "base_balance": Decimal("360"),
+        },
+        commit=True,
+    )
+    equity_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"), commit=True
+    )
+    source_db: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary"), commit=True
+    )
+    adjustment_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.ADJUSTMENT,
+            transaction_date=date(2026, 3, 10),
+            base_currency_amount=Decimal("110"),
+        ),
+        postings=[
+            PostingCreate(account_id=equity_db.id, amount=Decimal("-100"), currency="EUR", base_amount=Decimal("-110")),
+            PostingCreate(account_id=account_db.id, amount=Decimal("100"), currency="EUR", base_amount=Decimal("110")),
+        ],
+    )
+    income_db: TransactionModel = await transaction_crud.create_with_postings(
+        db=db,
+        obj_in=TransactionCreate(
+            user_id=user_id,
+            transaction_type=TransactionType.INCOME,
+            transaction_date=date(2026, 3, 11),
+            base_currency_amount=Decimal("250"),
+            income_period=date(2026, 2, 1),
+        ),
+        postings=[
+            PostingCreate(account_id=source_db.id, amount=Decimal("-200"), currency="EUR", base_amount=Decimal("-250")),
+            PostingCreate(account_id=account_db.id, amount=Decimal("200"), currency="EUR", base_amount=Decimal("250")),
+        ],
+    )
+    await db.commit()
+    transaction_ids: dict[str, UUID] = {"adjustment": adjustment_db.id, "income": income_db.id}
+
+    # Act
+    account: Account = await account_service.get_account(
+        db=db,
+        account_id=account_db.id,
+        user_id=user_id,
+        balance_date=balance_date,
+        excluded_transaction_id=transaction_ids[excluded_transaction],
+    )
+
+    # Assert
+    assert account.balance == balance
+    assert account.base_currency_balance == base_currency_balance
+    assert account.base_currency_rate == base_currency_rate
+    assert account.estimated_base_balance is None
+
+
 async def test_get_account_on_date_category(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
