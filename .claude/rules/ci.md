@@ -1,0 +1,18 @@
+---
+paths:
+  - ".github/**"
+  - "docker-compose*.yml"
+  - "**/Dockerfile"
+  - "frontend/nginx.conf"
+  - "backend/.env-production"
+---
+
+# CI/CD and production
+
+## Production compose
+
+Production runs `docker-compose.production.yml` on the VPS: `backend` and `frontend` run the GHCR images `ghcr.io/fibboo/finance-backend` and `ghcr.io/fibboo/finance-frontend` tagged with `IMAGE_TAG`, next to `postgres` and `cloudflared`, which runs the Cloudflare Tunnel to `frontend`; every service has a healthcheck (the `backend` and `frontend` ones ask `GET /health` of the backend with `wget`, a route of `app/main.py` left out of the OpenAPI schema), `frontend` starts once the `backend` one passes and `cloudflared` once the `frontend` one does (nginx answering `/api/health` through its proxy). No service publishes a port on the public address; `postgres` publishes 5432 on `172.29.172.1` only, the host's address on the Amnezia VPN network (README, Deployment). `backend` reads `backend/.env-production`, whose secrets are `'${VAR}'` placeholders filled with envsubst at deploy time, and runs uvicorn only, since the deploy applies the migrations; the compose file reads `IMAGE_TAG`, `POSTGRES_PASSWORD` and `CLOUDFLARE_TUNNEL_TOKEN` from the project `.env` the deploy writes beside it.
+
+## Workflows
+
+`.github/workflows/tests.yml` runs on every pull request (any base branch) and on every push to `main`. A push to `main` runs every job; on a pull request the `changes` job (`dorny/paths-filter`) starts each job only when its files changed: `tests` on `backend/**`, `frontend` on `frontend/**`, `api-schema` on `backend/**`, `frontend/src/lib/api-schema.ts`, `frontend/package.json` or `frontend/package-lock.json`, and all three on `.github/workflows/**`, so a change only to `docs/`, `.claude/`, `README.md` or `CLAUDE.md` runs none. On the free `ubuntu-latest` runner the `tests` job builds `backend/tests/Dockerfile` with `backend/` as the context and runs `pytest -v -n auto` inside it. The `frontend` job runs `npm ci`, `lint`, `typecheck`, a Prettier check, `test` and `build` in `frontend/`. The `api-schema` job starts the backend image with `backend/.env`, runs `generate:api` against it and fails when the committed `api-schema.ts` differs. `.github/workflows/deploy.yml` runs when `tests` succeeds on a push to `main` for the commit that is still the head of `main` (a re-run of a deploy skips that check), and on `workflow_dispatch` from any branch. It checks that every secret is set and has no single quote, builds `backend/Dockerfile` and `frontend/Dockerfile`, pushes them to GHCR tagged with the commit SHA with the GitHub Actions build cache, renders `backend/.env-production` and the project `.env` from the repository secrets, copies them with `docker-compose.production.yml` into `~/finance` on the VPS over SSH, and runs there `docker compose pull`, `up -d --wait --no-recreate postgres`, a `pg_dump` into `~/backups/pre-deploy-<utc time>-<sha>.dump` (the five newest are kept), `alembic upgrade head` in a one-off container of the new backend image started with `--no-deps`, and `up -d --remove-orphans --wait --wait-timeout 300`, which fails the deploy when a service turns unhealthy or is still starting after five minutes and is the only step that applies changes to postgres, then removes the finance images of other SHAs; a failed dump or migration stops the deploy before the backend is replaced. Re-running an earlier deploy run rolls the server back to its SHA; across a migration it needs an `alembic downgrade` first (README, Deployment). README, Deployment, lists the secrets.

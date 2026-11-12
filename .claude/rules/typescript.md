@@ -70,7 +70,7 @@ These rules apply to new and changed code under `frontend/`. They give the TypeS
 
 ## Configuration
 
-- Settings are read from one module, `frontend/src/config/env.ts`, which parses `import.meta.env` with a Zod schema at startup and exports the typed result. Code imports that object and reads the field where it is used (`.claude/rules/common.md` **Architecture**). Nothing else reads `import.meta.env`.
+- Settings are read from one module, `frontend/src/config/env.ts`, which parses `import.meta.env` with a Zod schema at startup and exports the typed result. The schema sets no default. Code imports that object and reads the field where it is used (`.claude/rules/common.md` **Architecture**). Nothing else reads `import.meta.env`.
 - Every variable under the `VITE_` prefix ships in the bundle that any visitor can read. Only public configuration goes there, never a secret.
 - Tests run on the values the Vitest config sets (`test.env`), the counterpart of `pytest.ini`. A test that needs another value overrides that one field for its own duration with `vi.stubEnv` and nothing else.
 
@@ -88,6 +88,6 @@ These rules apply to new and changed code under `frontend/`. They give the TypeS
 ## Tests
 
 - Tests are colocated with the file they test, named `<file>.test.ts` or `<file>.test.tsx`, one test file per source file.
-- The test shape of `.claude/rules/python.md` **Tests** applies in full, with these forms: the act is one call of the real code; only the network is mocked, through MSW; our own modules, hooks and the API client are never mocked with `vi.mock`; a test file defines no functions other than its tests, and shared setup lives in the Vitest setup file or in `test.each`; a definition (a union, a constant, a schema's fields) is never the subject of a test; a rule with edges is tested just inside and just outside every edge at once, with data in which moving any edge changes the asserted result, and a test that reads the clock fixes the system time (`vi.setSystemTime`) for both its arrange and its act.
+- The test shape of `.claude/rules/python.md` **Tests** applies in full. Its TypeScript forms: only the network is mocked, through MSW, and `vi.mock` or `vi.spyOn` never replaces our own modules, hooks or the API client; shared setup lives in the Vitest setup file or in `test.each`; a definition is also a union or a schema's fields; a test that reads the clock fixes it with `vi.setSystemTime`.
 - Tests run under Vitest in jsdom.
 - Test section markers are `// arrange`, `// act`, `// assert` and `// act / assert`.
