@@ -1476,7 +1476,10 @@ async def test_update_adjustment_ok(db: AsyncSession, db_transaction: AsyncSessi
     assert account_db_after.base_balance == Decimal("-120")
 
 
-async def test_update_adjustment_of_other_account_not_found(db: AsyncSession, db_transaction: AsyncSession):
+@pytest.mark.parametrize("path_account", ["other", "equity"])
+async def test_update_adjustment_of_other_account_not_found(
+    db: AsyncSession, db_transaction: AsyncSession, path_account: str
+):
     # Arrange
     user_create_data: UserCreate = UserCreate(
         username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
@@ -1489,7 +1492,8 @@ async def test_update_adjustment_of_other_account_not_found(db: AsyncSession, db
     other_account_create_data: dict = {"kind": AccountKind.ASSET, "user_id": user_id, "name": "Card", "currency": "USD"}
     other_account_db: AccountModel = await account_crud.create(db=db, obj_in=other_account_create_data, commit=True)
     equity_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments")
-    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+    equity_db: AccountModel = await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
+    path_account_ids: dict[str, UUID] = {"other": other_account_db.id, "equity": equity_db.id}
     adjustment: Transaction = await transaction_service.adjust_balance(
         db=db,
         account_id=account_db.id,
@@ -1505,7 +1509,7 @@ async def test_update_adjustment_of_other_account_not_found(db: AsyncSession, db
     with pytest.raises(EntityNotFound) as exc:
         await transaction_service.update_adjustment(
             db=db_transaction,
-            account_id=other_account_db.id,
+            account_id=path_account_ids[path_account],
             transaction_id=adjustment.id,
             adjustment_data=adjustment_data,
             user_id=user_id,
@@ -1513,7 +1517,7 @@ async def test_update_adjustment_of_other_account_not_found(db: AsyncSession, db
 
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
-    search_params = {"id": adjustment.id, "account_id": other_account_db.id}
+    search_params = {"id": adjustment.id, "account_id": path_account_ids[path_account]}
     assert exc.value.log_message == f"{TransactionModel.__name__} not found by {search_params}"
 
     # neither account moved

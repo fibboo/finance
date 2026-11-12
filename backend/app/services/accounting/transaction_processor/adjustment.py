@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
@@ -30,8 +31,8 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
 
     @staticmethod
     def _validate_update(*, data: AdjustmentCreate, transaction_db: TransactionModel) -> None:
-        account_ids: list[UUID] = [posting_db.account_id for posting_db in transaction_db.postings]
-        if data.account_id not in account_ids:
+        account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
+        if data.account_id not in account_dates:
             raise EntityNotFound(
                 entity=TransactionModel,
                 search_params={"id": transaction_db.id, "account_id": data.account_id},

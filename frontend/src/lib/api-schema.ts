@@ -35,7 +35,8 @@ export interface paths {
          *     has a rate for a balance adjustment on that date: its postings up to that date, without the expenses still waiting
          *     for a value on it. An account outside the base currency with a rate of 0 or less has none, so its adjustment must
          *     carry `base_currency_amount`. With `excluded_transaction_id` next to `date`, the sums leave that transaction's
-         *     postings out, which is the ledger an update of that adjustment is decided by.
+         *     postings out, for a client that edits that adjustment. The read only subtracts the postings, while the update
+         *     also revalues the account without them, so the update may still answer `NO_ACCOUNT_BASE_CURRENCY_RATE`.
          */
         get: operations["get_account_accounting_accounts__account_id__get"];
         /** Update Account */

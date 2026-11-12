@@ -108,7 +108,12 @@ export function createAdjustmentFormSchema({
 }>) {
   const adjustmentFormSchema = z
     .object({
-      account_id: z.string().min(1, ADJUSTMENT_ACCOUNT_ERROR),
+      account_id: z
+        .string()
+        .min(1, ADJUSTMENT_ACCOUNT_ERROR)
+        .refine(() => account !== undefined, {
+          error: ADJUSTMENT_ACCOUNT_ERROR,
+        }),
       new_balance: z
         .string()
         .transform((text) => readAmountText(text))
@@ -132,13 +137,8 @@ export function createAdjustmentFormSchema({
       transaction_date: createTransactionDateSchema(today),
       comment: commentSchema,
     })
-    .transform((values, context) => {
+    .transform((values) => {
       if (account === undefined) {
-        context.addIssue({
-          code: 'custom',
-          path: ['account_id'],
-          message: ADJUSTMENT_ACCOUNT_ERROR,
-        });
         return z.NEVER;
       }
 
