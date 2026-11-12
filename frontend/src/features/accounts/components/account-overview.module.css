@@ -63,16 +63,32 @@
   color: var(--color-muted);
   overflow-wrap: anywhere;
   overflow: hidden;
+  display: flex;
+  flex-flow: column wrap;
+  align-content: flex-end;
+}
+
+.descriptionText,
+.descriptionLine {
+  flex: none;
+  width: 100%;
+  margin-top: var(--space-4);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .descriptionText {
-  margin-top: var(--space-4);
-  max-height: round(down, 101% - var(--space-4), 1lh);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
+  max-height: clamp(0%, (101% - var(--space-4) - 1lh) * 999, 100lh);
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  overflow: hidden;
+}
+
+.descriptionLine {
+  max-height: round(down, 101% - var(--space-4), 1lh);
+  margin-bottom: calc(-1lh - var(--space-4));
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
 
 @media (--desktop) {

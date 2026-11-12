@@ -85,6 +85,9 @@ export function AccountOverview({
         account.description !== '' && (
           <p className={styles['description']}>
             <span className={styles['descriptionText']}>{account.description}</span>
+            <span className={styles['descriptionLine']} aria-hidden="true">
+              {account.description}
+            </span>
           </p>
         )}
       <ActionBar>
