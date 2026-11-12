@@ -37,6 +37,7 @@
 
   .details {
     --details-column-display: grid;
+    --details-column-gap: normal;
     --details-panel-align: stretch;
     --details-panel-contain: size;
     --details-content-min-height: 0;

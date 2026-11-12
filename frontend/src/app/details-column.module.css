@@ -19,7 +19,7 @@
     flex-direction: var(--details-column-direction, column);
     align-self: var(--details-column-align, stretch);
     max-height: 100%;
-    gap: var(--space-4);
+    gap: var(--details-column-gap, var(--space-4));
     overflow-y: auto;
     scrollbar-width: none;
   }
