@@ -1,0 +1,109 @@
+.catalogList {
+  padding: var(--space-1) var(--space-3-5) var(--space-3);
+  border-radius: var(--radius-panel);
+  background: var(--color-panel);
+}
+
+.group + .group {
+  margin-top: var(--space-1-5);
+}
+
+.groupHeader {
+  min-height: var(--size-group-band);
+  margin: var(--space-1-5) calc(var(--space-2) * -1) 0;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-segment);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  background: var(--color-band);
+}
+
+.groupHeading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.groupCount {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-muted);
+}
+
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  min-height: var(--size-option-lg);
+  padding-block: var(--space-1-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.entry + .entry {
+  border-top: var(--size-border) solid var(--color-border);
+}
+
+.mark {
+  flex: none;
+  width: var(--size-account-mark-sm);
+  height: var(--size-account-mark-sm);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-muted);
+  background: var(--color-bone);
+}
+
+.deleted .mark {
+  opacity: var(--opacity-deleted-mark);
+}
+
+.identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name,
+.description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.deleted .name {
+  color: var(--color-muted);
+}
+
+.description {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sub);
+  color: var(--color-muted);
+}
+
+.markSkeleton {
+  width: var(--size-account-mark-sm);
+  height: var(--size-account-mark-sm);
+  border-radius: var(--radius-full);
+}
+
+.nameSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text);
+}

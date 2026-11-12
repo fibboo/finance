@@ -25,7 +25,7 @@ The rules are in `.claude/rules/react.md` **Auth and Security**; `features/auth/
 
 ## State in the URL
 
-- The chosen account, the chosen transaction, the search term, the transaction filters and the open New transaction form are search params, each read and written by one module in its feature's `api/` folder and parsed with Zod; an invalid value is dropped.
+- The chosen account, the chosen transaction, the search term, the transaction filters, the catalog filters and the open New transaction form are search params, each read and written by one module in its feature's `api/` folder and parsed with Zod; an invalid value is dropped.
 - A details param whose entity answers 404 is dropped.
 - On desktop the details show the top row while nothing is chosen, without writing the URL, so that a shared link carries only what the user chose.
 - A phone has room for one sheet, so it shows the details whose param comes later in the URL. A link that opens an account from a transaction therefore moves the `account` param after the `transaction` one.

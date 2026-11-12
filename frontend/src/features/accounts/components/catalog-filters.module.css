@@ -1,0 +1,110 @@
+@import '@/styles/media.css';
+
+.catalogFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-1-5);
+}
+
+.segment {
+  flex: none;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-0-5);
+  border: 0;
+  border-radius: var(--radius-full);
+  display: flex;
+  font-size: var(--font-size-sm);
+  background: var(--color-panel);
+}
+
+.option {
+  position: relative;
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-full);
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.option:hover {
+  color: var(--color-ink);
+}
+
+.option:has(:checked) {
+  font-weight: var(--font-weight-medium);
+  background: var(--color-ink);
+  color: var(--color-panel);
+}
+
+.option:has(:focus-visible) {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.toggle {
+  flex: none;
+  min-height: var(--size-chip);
+  padding: 0 var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.toggle:has(:checked) {
+  color: var(--color-ink);
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: var(--size-toggle-width);
+  height: var(--size-toggle-height);
+  margin: 0;
+  border-radius: var(--radius-full);
+  appearance: none;
+  background: var(--color-bone);
+  cursor: pointer;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: var(--size-toggle-inset);
+  left: var(--size-toggle-inset);
+  width: var(--size-toggle-knob);
+  height: var(--size-toggle-knob);
+  border-radius: var(--radius-full);
+  background: var(--color-panel);
+}
+
+.switch:checked {
+  background: var(--color-ink);
+}
+
+.switch:checked::after {
+  left: auto;
+  right: var(--size-toggle-inset);
+}
+
+.switch:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+@media (--desktop) {
+  .option {
+    padding-inline: var(--space-3);
+  }
+}
