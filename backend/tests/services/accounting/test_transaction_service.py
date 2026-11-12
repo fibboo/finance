@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 import time_machine
 from fastapi_pagination import Page
+from pydantic import ValidationError
 from pytest_httpx import HTTPXMock
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -804,6 +805,221 @@ async def test_get_transactions_by_locations(db: AsyncSession):
         Decimal("20"),
         Decimal("10"),
     ]
+
+
+@time_machine.travel(datetime(2026, 6, 15, 12, tzinfo=UTC), tick=False)
+async def test_get_transactions_by_search_term(db: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Checking USD",
+        "currency": "USD",
+        "balance": Decimal("2000"),
+        "base_balance": Decimal("2000"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    wallet_create_data: dict = {**account_create_data, "name": "Wallet"}
+    wallet_db: AccountModel = await account_crud.create(db=db, obj_in=wallet_create_data, commit=True)
+    groceries_create_data: AccountCreate = AccountCreate(
+        user_id=user_id, kind=AccountKind.EXPENSE, name="Groceries", category_type=CategoryType.VARIABLE
+    )
+    groceries_db: AccountModel = await account_crud.create(db=db, obj_in=groceries_create_data, commit=True)
+    taxi_create_data: AccountCreate = AccountCreate(
+        user_id=user_id, kind=AccountKind.EXPENSE, name="Taxi", category_type=CategoryType.VARIABLE
+    )
+    taxi_db: AccountModel = await account_crud.create(db=db, obj_in=taxi_create_data, commit=True)
+    income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary")
+    income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
+    mall_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Mall")
+    mall_db: LocationModel = await location_crud.create(db=db, obj_in=mall_create_data, commit=True)
+    bakery_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Corner bakery")
+    bakery_db: LocationModel = await location_crud.create(db=db, obj_in=bakery_create_data, commit=True)
+
+    # another user with an expense of 60 for bread in a category also named Groceries
+    other_user_create_data: UserCreate = UserCreate(
+        username="other", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    other_user_db: UserModel = await user_crud.create(db=db, obj_in=other_user_create_data, commit=True)
+    other_user_id: UUID = other_user_db.id
+    other_account_create_data: dict = {**account_create_data, "user_id": other_user_id}
+    other_account_db: AccountModel = await account_crud.create(db=db, obj_in=other_account_create_data, commit=True)
+    other_category_create_data: AccountCreate = AccountCreate(
+        user_id=other_user_id, kind=AccountKind.EXPENSE, name="Groceries", category_type=CategoryType.VARIABLE
+    )
+    other_category_db: AccountModel = await account_crud.create(db=db, obj_in=other_category_create_data, commit=True)
+    other_location_create_data: LocationCreate = LocationCreate(user_id=other_user_id, name="Mall")
+    other_location_db: LocationModel = await location_crud.create(db=db, obj_in=other_location_create_data, commit=True)
+    today: date = datetime.now(UTC).date()
+    other_expense_create_data: MovementRequest = MovementRequest(
+        transaction_date=today,
+        comment="Weekly bread",
+        source_amount=Decimal("60"),
+        source_currency="USD",
+        destination_amount=Decimal("60"),
+        destination_currency="USD",
+        from_account_id=other_account_db.id,
+        to_account_id=other_category_db.id,
+        location_id=other_location_db.id,
+    )
+    other_expense_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=other_user_id, transaction_type=TransactionType.EXPENSE
+    )
+    await other_expense_processor.create(data=other_expense_create_data)
+
+    # an expense of 10 for groceries at the mall, 20 for a taxi at the bakery, an income of 30,
+    # a transfer of 40 to the wallet and an expense of 50 for groceries at the mall, entered in this order
+    movements: list[tuple[TransactionType, MovementRequest]] = [
+        (
+            TransactionType.EXPENSE,
+            MovementRequest(
+                transaction_date=today,
+                comment="Weekly BREAD run",
+                source_amount=Decimal("10"),
+                source_currency="USD",
+                destination_amount=Decimal("10"),
+                destination_currency="USD",
+                from_account_id=account_db.id,
+                to_account_id=groceries_db.id,
+                location_id=mall_db.id,
+            ),
+        ),
+        (
+            TransactionType.EXPENSE,
+            MovementRequest(
+                transaction_date=today,
+                source_amount=Decimal("20"),
+                source_currency="USD",
+                destination_amount=Decimal("20"),
+                destination_currency="USD",
+                from_account_id=account_db.id,
+                to_account_id=taxi_db.id,
+                location_id=bakery_db.id,
+            ),
+        ),
+        (
+            TransactionType.INCOME,
+            MovementRequest(
+                transaction_date=today,
+                comment="Bonus 100%",
+                source_amount=Decimal("30"),
+                source_currency="USD",
+                destination_amount=Decimal("30"),
+                destination_currency="USD",
+                from_account_id=income_source_db.id,
+                to_account_id=account_db.id,
+                income_period=date(2026, 6, 1),
+            ),
+        ),
+        (
+            TransactionType.TRANSFER,
+            MovementRequest(
+                transaction_date=today,
+                comment="cash",
+                source_amount=Decimal("40"),
+                source_currency="USD",
+                destination_amount=Decimal("40"),
+                destination_currency="USD",
+                from_account_id=account_db.id,
+                to_account_id=wallet_db.id,
+            ),
+        ),
+        (
+            TransactionType.EXPENSE,
+            MovementRequest(
+                transaction_date=today,
+                comment="100 percent",
+                source_amount=Decimal("50"),
+                source_currency="USD",
+                destination_amount=Decimal("50"),
+                destination_currency="USD",
+                from_account_id=account_db.id,
+                to_account_id=groceries_db.id,
+                location_id=mall_db.id,
+            ),
+        ),
+    ]
+    for transaction_type, movement_create_data in movements:
+        transaction_processor: TransactionProcessor = factory.get_processor(
+            db=db, user_id=user_id, transaction_type=transaction_type
+        )
+        await transaction_processor.create(data=movement_create_data)
+
+    await db.commit()
+    await account_crud.update_orm(db=db, obj_in={"status": EntityStatusType.DELETED}, id=taxi_db.id, commit=True)
+    await db.close()
+
+    request_comment: TransactionRequest = TransactionRequest(search_term="bread")
+    request_location: TransactionRequest = TransactionRequest(search_term="BAKERY")
+    request_deleted_category: TransactionRequest = TransactionRequest(search_term="taxi")
+    request_income_source: TransactionRequest = TransactionRequest(search_term="salary")
+    request_money_account: TransactionRequest = TransactionRequest(search_term="wallet")
+    request_every_transaction: TransactionRequest = TransactionRequest(search_term="checking")
+    request_wildcard: TransactionRequest = TransactionRequest(search_term="00%")
+    request_category_and_amount: TransactionRequest = TransactionRequest(
+        search_term="groceries", base_currency_amount_from=Decimal("20")
+    )
+    request_not_found: TransactionRequest = TransactionRequest(search_term="nothing")
+
+    # Act
+    transactions_comment: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_comment, user_id=user_id
+    )
+    transactions_location: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_location, user_id=user_id
+    )
+    transactions_deleted_category: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_deleted_category, user_id=user_id
+    )
+    transactions_income_source: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_income_source, user_id=user_id
+    )
+    transactions_money_account: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_money_account, user_id=user_id
+    )
+    transactions_every_transaction: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_every_transaction, user_id=user_id
+    )
+    transactions_wildcard: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_wildcard, user_id=user_id
+    )
+    transactions_category_and_amount: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_category_and_amount, user_id=user_id
+    )
+    transactions_not_found: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_not_found, user_id=user_id
+    )
+
+    # Assert
+    # every list is ordered by the order of entry, newest first, and holds no transaction of the other user
+    assert [item.base_currency_amount for item in transactions_comment.items] == [Decimal("10")]
+    assert [item.base_currency_amount for item in transactions_location.items] == [Decimal("20")]
+    assert [item.base_currency_amount for item in transactions_deleted_category.items] == [Decimal("20")]
+    assert [item.base_currency_amount for item in transactions_income_source.items] == [Decimal("30")]
+    assert [item.base_currency_amount for item in transactions_money_account.items] == [Decimal("40")]
+    assert [item.base_currency_amount for item in transactions_every_transaction.items] == [
+        Decimal("50"),
+        Decimal("40"),
+        Decimal("30"),
+        Decimal("20"),
+        Decimal("10"),
+    ]
+    # the % of the term is a character rather than a wildcard, so "100 percent" is not found
+    assert [item.base_currency_amount for item in transactions_wildcard.items] == [Decimal("30")]
+    assert [item.base_currency_amount for item in transactions_category_and_amount.items] == [Decimal("50")]
+    assert transactions_not_found.items == []
+
+
+def test_transaction_request_search_term_too_short():
+    # Act / Assert
+    with pytest.raises(ValidationError):
+        TransactionRequest(search_term="ab")
 
 
 async def test_get_transactions_adjustments(db: AsyncSession):

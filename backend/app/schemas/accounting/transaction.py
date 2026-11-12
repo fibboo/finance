@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, WithJsonSchema
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, StringConstraints, WithJsonSchema
 
 from app.schemas.accounting.account import AdjustmentCreate
 from app.schemas.accounting.location import Location
@@ -162,6 +162,8 @@ class TransactionRequest(Params):
     account_ids: Annotated[list[UUID], Field(max_length=100)] = []
     is_deleted_accounts_only: bool = False
     location_ids: Annotated[list[UUID], Field(max_length=100)] = []
+
+    search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
 
     @model_validator(mode="after")
     def fill_default_date_to(self) -> TransactionRequest:
