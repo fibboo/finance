@@ -141,6 +141,7 @@ class AccountRequest(Params):
 
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
     kinds: list[AccountKind] = VISIBLE_ACCOUNT_KINDS
+    category_types: list[CategoryType] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
     order: ListOrderType = ListOrderType.NAME
 
