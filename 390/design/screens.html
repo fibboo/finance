@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adjustment amount screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* The agreed screens of the adjustment form, the income form and the adjustment edit form.
+   Without parameters the page shows every screen; ?screen=<name>&width=phone|desktop&theme=dark|light
+   shows one screen alone at its own size (phone 390 x 844, desktop 1280 x 800). Tokens are the app's tokens.css. */
+*, *::before, *::after { box-sizing: border-box; }
+html { font-size: 16px; }
+body { margin: 0; font-family: 'Geist', system-ui, sans-serif; background: #2b2d31; color: #ecedee; }
+.board { padding: 24px; display: flex; flex-direction: column; gap: 32px; }
+.board h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+.boardRow { display: flex; gap: 24px; overflow-x: auto; scrollbar-width: none; align-items: flex-start; }
+
+.screen {
+  --color-ground: light-dark(#eeeeeb, #0b0c0e);
+  --color-panel: light-dark(#ffffff, #17191c);
+  --color-border: light-dark(#e2e2de, #2a2d32);
+  --color-ink: light-dark(#17181a, #ecedee);
+  --color-muted: light-dark(#5a5d64, #9a9ea6);
+  --color-accent: light-dark(#1f7a55, #4cc38a);
+  --color-backdrop: rgb(0 0 0 / 35%);
+  --shadow-popover: 0 1.125rem 3.125rem light-dark(rgb(0 0 0 / 25%), rgb(0 0 0 / 30%));
+  --rows-inset: 0.875rem;
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+.screen[data-theme='dark'] { color-scheme: dark; }
+.screen[data-theme='light'] { color-scheme: light; }
+.screen[data-width='phone'] { width: 390px; height: 844px; }
+.screen[data-width='desktop'] { width: 1280px; height: 800px; }
+.backdrop { position: absolute; inset: 0; background: var(--color-backdrop); }
+
+.sheet {
+  position: absolute;
+  inset: auto 0 0;
+  border-radius: 1.125rem 1.125rem 0 0;
+  background: var(--color-panel);
+  box-shadow: var(--shadow-popover);
+  padding: 0.5rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.handle { align-self: center; width: 2.25rem; height: 0.25rem; border-radius: 999rem; background: var(--color-border); }
+.screen[data-width='desktop'] .sheet {
+  inset: 50% auto auto 50%;
+  width: 27.5rem;
+  border-radius: 1.25rem;
+  transform: translate(-50%, -50%);
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+.screen[data-width='desktop'] .handle { display: none; }
+
+.form { display: flex; flex-direction: column; gap: 0.875rem; }
+.formHeader { min-height: 1.875rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.formHeader h1 { margin: 0; font-size: 1.125rem; font-weight: 600; }
+.close { width: 2.75rem; height: 2.75rem; margin-right: -0.625rem; display: flex; align-items: center; justify-content: center; color: var(--color-muted); }
+.close svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.chips { display: flex; gap: 0.375rem; }
+.chip {
+  flex: none; height: 2rem; padding: 0 0.75rem; border: 0.0625rem solid var(--color-border); border-radius: 999rem;
+  display: flex; align-items: center; font-size: 0.8125rem; font-weight: 600; white-space: nowrap;
+}
+.chip.on { border-color: var(--color-ink); background: var(--color-ink); color: var(--color-panel); }
+.amountField { display: flex; flex-direction: column; gap: 0.125rem; }
+.amountField .label, .amountField .hint { padding: 0 var(--rows-inset); font-size: 0.8125rem; color: var(--color-muted); }
+.amountField .hint { min-height: calc(0.8125rem * 1.5); }
+.amountControl { padding: 0 var(--rows-inset) 0 0; display: flex; align-items: baseline; gap: 0.5rem; }
+.amountValue {
+  flex: 1 1 auto; min-width: 0; padding: 0.25rem 0 0.25rem var(--rows-inset);
+  font-size: 2.25rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1;
+}
+.amountCurrency { font-size: 1rem; font-weight: 600; color: var(--color-muted); }
+.rows { padding: 0 var(--rows-inset); border-radius: 0.875rem; display: flex; flex-direction: column; background: var(--color-ground); }
+.rows > * + * { border-top: 0.0625rem solid var(--color-border); }
+.row { min-height: 3rem; display: flex; align-items: center; gap: 0.625rem; }
+.row .label { flex: none; width: 5.75rem; font-size: 0.8125rem; color: var(--color-muted); }
+.row .value { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; }
+.row .value.placeholder { color: var(--color-muted); }
+.row .note, .row .suffix { font-size: 0.8125rem; color: var(--color-muted); }
+.row .suffix { font-weight: 600; }
+.dot { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 999rem; background: #3b82c4; }
+.row svg { flex: none; width: 1rem; height: 1rem; fill: none; stroke: var(--color-muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.row svg.calendar { width: 1.125rem; height: 1.125rem; margin: 0 0.25rem; }
+.check { min-height: 2.75rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.9375rem; }
+.check i { flex: none; width: 1.125rem; height: 1.125rem; border-radius: 0.1875rem; border: 0.0625rem solid var(--color-muted); }
+.submit {
+  min-height: 3rem; border-radius: 0.875rem; display: flex; align-items: center; justify-content: center;
+  font-size: 0.9375rem; font-weight: 600; background: var(--color-ink); color: var(--color-panel);
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var CLOSE = '<span class="close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span>';
+  var CHEVRON = '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>';
+  var CALENDAR = '<svg class="calendar" viewBox="0 0 24 24"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>';
+
+  function chips(selected) {
+    return '<div class="chips">' + ['Expense', 'Income', 'Transfer', 'Adjustment'].map(function (type) {
+      return '<span class="chip' + (type === selected ? ' on' : '') + '">' + type + '</span>';
+    }).join('') + '</div>';
+  }
+  function amount(label, value, hint) {
+    return '<div class="amountField"><span class="label">' + label + '</span><span class="amountControl"><span class="amountValue">' + value +
+      '</span><span class="amountCurrency">EUR</span></span><span class="hint">' + hint + '</span></div>';
+  }
+  function baseRow(value) {
+    return '<div class="rows"><div class="row"><span class="label">In USD</span><span class="value">' + value + '</span><span class="suffix">USD</span></div></div>';
+  }
+  function accountRow(label, balance, isFixed) {
+    return '<div class="row"><span class="label">' + label + '</span><span class="dot"></span><span class="value">Revolut EUR</span><span class="note">' +
+      balance + '</span>' + (isFixed ? '' : CHEVRON) + '</div>';
+  }
+  function dateRow(date) {
+    return '<div class="row"><span class="label">Date</span><span class="value">' + date + '</span>' + CALENDAR + '</div>';
+  }
+  function commentRows(comment) {
+    return '<div class="rows"><div class="row"><span class="label">Comment</span><span class="value' + (comment === '' ? ' placeholder' : '') + '">' +
+      (comment === '' ? 'Optional' : comment) + '</span></div></div>';
+  }
+  function header(title) {
+    return '<div class="formHeader"><h1>' + title + '</h1>' + CLOSE + '</div>';
+  }
+
+  var SCREENS = {
+    'adjustment-form': {
+      title: 'Adjustment form: the amount, the new balance hint and the base currency row',
+      html: header('New transaction') + chips('Adjustment') +
+        amount('Amount', '-150.00', 'Now 1,250.00 EUR → 1,100.00 EUR') +
+        baseRow('162.40') +
+        '<div class="rows">' + accountRow('Account', '1,250.00 EUR', false) + dateRow('12.11.2026') + '</div>' +
+        commentRows('') + '<div class="submit">Adjust balance</div>'
+    },
+    'income-form': {
+      title: 'Income form: the base currency row under the amount',
+      html: header('New transaction') + chips('Income') +
+        amount('Amount received', '2,000.00', '') +
+        baseRow('2,165.00') +
+        '<div class="rows"><div class="row"><span class="label">Source</span><span class="value">Salary</span>' + CHEVRON + '</div>' +
+        accountRow('To', '1,250.00 EUR', false) +
+        '<div class="row"><span class="label">For month</span><span class="value">October 2026</span>' + CHEVRON + '</div>' +
+        dateRow('12.11.2026') + '</div>' +
+        '<div class="check"><i></i>Paid in another currency</div>' +
+        commentRows('') + '<div class="submit">Add income</div>'
+    },
+    'edit-adjustment': {
+      title: 'Edit adjustment: as opened',
+      html: header('Edit adjustment') +
+        amount('Amount', '-150.00', 'Now 1,100.00 EUR') +
+        '<div class="rows">' + accountRow('Account', '1,100.00 EUR', true) + dateRow('03.11.2026') + '</div>' +
+        commentRows('Cash counted') + '<div class="submit">Save changes</div>'
+    },
+    'edit-adjustment-changed': {
+      title: 'Edit adjustment: after the amount is changed',
+      html: header('Edit adjustment') +
+        amount('Amount', '-200.00', 'Now 1,100.00 EUR → 1,050.00 EUR') +
+        '<div class="rows">' + accountRow('Account', '1,100.00 EUR', true) + dateRow('03.11.2026') + '</div>' +
+        commentRows('Cash counted') + '<div class="submit">Save changes</div>'
+    }
+  };
+
+  function screen(name, width, theme) {
+    return '<div class="screen" data-width="' + width + '" data-theme="' + theme + '"><div class="backdrop"></div>' +
+      '<div class="sheet"><span class="handle"></span><div class="form">' + SCREENS[name].html + '</div></div></div>';
+  }
+
+  var params = new URLSearchParams(location.search);
+  var root = document.getElementById('root');
+  var chosen = params.get('screen');
+  if (chosen !== null && SCREENS[chosen] !== undefined) {
+    root.innerHTML = screen(chosen, params.get('width') === 'desktop' ? 'desktop' : 'phone', params.get('theme') === 'light' ? 'light' : 'dark');
+  } else {
+    root.className = 'board';
+    root.innerHTML = Object.keys(SCREENS).map(function (name) {
+      return '<section><h2>' + SCREENS[name].title + '</h2><div class="boardRow">' +
+        screen(name, 'phone', 'dark') + screen(name, 'phone', 'light') + screen(name, 'desktop', 'dark') + screen(name, 'desktop', 'light') +
+        '</div></section>';
+    }).join('');
+  }
+</script>
+</body>
+</html>
