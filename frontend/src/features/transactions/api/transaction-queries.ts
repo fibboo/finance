@@ -1,9 +1,10 @@
-import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions, skipToken } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
 import type { components, operations } from '@/lib/api-schema';
 import { NOT_FOUND_EXPECTED_META } from '@/lib/query-meta';
 
+type Account = components['schemas']['Account'];
 type Transaction = components['schemas']['Transaction'];
 type TransactionPage = components['schemas']['Page_Transaction_'];
 export type TransactionListQuery = NonNullable<
@@ -12,6 +13,7 @@ export type TransactionListQuery = NonNullable<
 
 const FEED_KEY = ['transactions', 'feed'] as const;
 const DETAIL_KEY = ['transactions', 'detail'] as const;
+const ACCOUNT_ON_DATE_KEY = ['transactions', 'account-on-date'] as const;
 
 async function fetchTransactions(query: Readonly<TransactionListQuery>): Promise<TransactionPage> {
   const transactions = readData(
@@ -27,6 +29,18 @@ async function fetchTransaction(transactionId: string): Promise<Transaction> {
     }),
   );
   return transaction;
+}
+
+async function fetchAccountOnDate({
+  accountId,
+  date,
+}: Readonly<{ accountId: string; date: string }>): Promise<Account> {
+  const account = readData(
+    await apiClient.GET('/accounting/accounts/{account_id}', {
+      params: { path: { account_id: accountId }, query: { date } },
+    }),
+  );
+  return account;
 }
 
 export const transactionQueries = {
@@ -50,6 +64,21 @@ export const transactionQueries = {
       queryKey: [...DETAIL_KEY, transactionId],
       queryFn: () => fetchTransaction(transactionId),
       meta: NOT_FOUND_EXPECTED_META,
+    });
+  },
+  accountsOnDate() {
+    return { queryKey: ACCOUNT_ON_DATE_KEY };
+  },
+  accountOnDate({
+    accountId,
+    date,
+  }: Readonly<{ accountId: string | undefined; date: string | undefined }>) {
+    return queryOptions({
+      queryKey: [...ACCOUNT_ON_DATE_KEY, accountId, date],
+      queryFn:
+        accountId === undefined || date === undefined
+          ? skipToken
+          : () => fetchAccountOnDate({ accountId, date }),
     });
   },
 };
