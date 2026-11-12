@@ -139,7 +139,9 @@ export function writeTransactionSearch({
 
 export function readTransactionFilterQuery(filters: TransactionFilters): TransactionFilterQuery {
   const accountIds = ACCOUNT_ID_PARAMS.flatMap((name) => filters[name]);
+  const searchTerm = filters.search === undefined ? undefined : readSearchTerm(filters.search);
   const filterQuery = {
+    ...(searchTerm !== undefined && { search_term: searchTerm }),
     ...(filters.date_from !== undefined && { date_from: filters.date_from }),
     ...(filters.transaction_types.length > 0 && {
       transaction_types: [...filters.transaction_types],
