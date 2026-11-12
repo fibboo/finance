@@ -768,6 +768,41 @@ async def test_get_accounts_kinds(db: AsyncSession):
     assert [account.name for account in equity_accounts.items] == ["Adjustments"]
 
 
+async def test_get_accounts_category_types(db: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
+    await db.commit()
+
+    default_request: AccountRequest = AccountRequest(size=100)
+    fixed_request: AccountRequest = AccountRequest(category_types=[CategoryType.FIXED])
+    fixed_and_periodic_request: AccountRequest = AccountRequest(
+        category_types=[CategoryType.FIXED, CategoryType.PERIODIC]
+    )
+
+    # Act
+    default_accounts: Page[Account] = await account_service.get_accounts(
+        db=db, request=default_request, user_id=user_id
+    )
+    fixed_accounts: Page[Account] = await account_service.get_accounts(db=db, request=fixed_request, user_id=user_id)
+    fixed_and_periodic_accounts: Page[Account] = await account_service.get_accounts(
+        db=db, request=fixed_and_periodic_request, user_id=user_id
+    )
+
+    # Assert
+    # Wallet and eight categories; the empty default filters nothing
+    assert default_accounts.total == 9
+    # Wallet has no category type and drops out
+    assert [account.name for account in fixed_accounts.items] == ["Subscriptions", "Utilities"]
+    assert [account.name for account in fixed_and_periodic_accounts.items] == [
+        "Clothing",
+        "Health",
+        "Subscriptions",
+        "Travel",
+        "Utilities",
+    ]
+
+
 async def test_get_accounts_search_term(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()

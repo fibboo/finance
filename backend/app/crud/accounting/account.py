@@ -25,6 +25,9 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
             self.model.kind.in_(request.kinds),
         )
 
+        if len(request.category_types) > 0:
+            query = query.where(self.model.category_type.in_(request.category_types))
+
         if request.search_term is not None:
             query = query.where(
                 or_(

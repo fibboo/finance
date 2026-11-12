@@ -1111,6 +1111,7 @@ export interface operations {
                 size?: number;
                 search_term?: string | null;
                 kinds?: components["schemas"]["AccountKind"][];
+                category_types?: components["schemas"]["CategoryType"][];
                 statuses?: components["schemas"]["EntityStatusType"][];
                 order?: components["schemas"]["ListOrderType"];
             };
