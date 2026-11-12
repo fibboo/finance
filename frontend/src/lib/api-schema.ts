@@ -1747,6 +1747,7 @@ export interface operations {
                 account_ids?: string[];
                 is_deleted_accounts_only?: boolean;
                 location_ids?: string[];
+                search_term?: string | null;
             };
             header?: never;
             path?: never;

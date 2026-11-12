@@ -70,3 +70,18 @@ def test_transaction_request_date_to_defaults_to_utc_today():
     # Assert
     assert request.date_to == today
     assert request.date_from is None
+
+
+@pytest.mark.parametrize("search_term", ["ab", " ab ", "   ", "a" * 257])
+def test_transaction_request_search_term_length_refused(search_term: str):
+    # Act / Assert
+    with pytest.raises(ValidationError):
+        TransactionRequest(search_term=search_term)
+
+
+def test_transaction_request_search_term_stripped():
+    # Act
+    request: TransactionRequest = TransactionRequest(search_term="  bread  ")
+
+    # Assert
+    assert request.search_term == "bread"

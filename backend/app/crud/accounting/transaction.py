@@ -5,15 +5,16 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import asc, case, ColumnElement, desc, false, func, literal, Row, select, Select, update, Update
+from sqlalchemy import asc, case, ColumnElement, desc, false, func, literal, or_, Row, select, Select, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.base import CRUDBase
 from app.models.accounting.account import Account
+from app.models.accounting.location import Location
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import ENTRY_ORDER_SEQUENCE, Transaction
-from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
+from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS, VISIBLE_ACCOUNT_KINDS
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import (
     OrderDirectionType,
@@ -151,6 +152,23 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
 
         if len(request.location_ids) > 0:
             query = query.where(Transaction.location_id.in_(request.location_ids))
+
+        if request.search_term is not None:
+            found_account_ids: Select = select(Account.id).where(
+                Account.user_id == user_id,
+                Account.kind.in_(VISIBLE_ACCOUNT_KINDS),
+                Account.name.icontains(request.search_term, autoescape=True),
+            )
+            found_location_ids: Select = select(Location.id).where(
+                Location.user_id == user_id, Location.name.icontains(request.search_term, autoescape=True)
+            )
+            query = query.where(
+                or_(
+                    Transaction.comment.icontains(request.search_term, autoescape=True),
+                    Transaction.id.in_(self.__get_account_transaction_ids(account_ids=found_account_ids)),
+                    Transaction.location_id.in_(found_location_ids),
+                )
+            )
 
         order_fields_map = {
             OrderFieldType.CREATED_AT: Transaction.created_at,
