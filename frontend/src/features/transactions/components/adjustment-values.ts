@@ -22,17 +22,17 @@ export function readAdjustmentPosting(transaction: Readonly<Transaction>): Posti
 
 export function readAdjustmentValues({
   transaction,
-  isBaseCurrencyAmountAsked,
+  isBaseCurrencyAmountEntered,
 }: Readonly<{
   transaction: Readonly<Transaction>;
-  isBaseCurrencyAmountAsked: boolean;
+  isBaseCurrencyAmountEntered: boolean;
 }>): AdjustmentFormValues {
   const posting = readAdjustmentPosting(transaction);
   const adjustmentValues = {
     account_id: posting.account.id,
     amount: formatAmountText(posting.amount),
     base_currency_amount:
-      isBaseCurrencyAmountAsked && transaction.base_currency_amount !== null
+      isBaseCurrencyAmountEntered && transaction.base_currency_amount !== null
         ? readAmountFieldText(transaction.base_currency_amount)
         : '',
     transaction_date: toDateText(transaction.transaction_date),

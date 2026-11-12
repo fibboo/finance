@@ -108,13 +108,16 @@ export function TransactionForm({
   const editedPosting = mode.kind === 'edit' ? readAdjustmentPosting(mode.transaction) : undefined;
   const editedTransactionId = mode.kind === 'edit' ? mode.transaction.id : undefined;
   const accounts = addOwnChoices({ choices: moneyAccounts, ownChoices: [editedPosting?.account] });
-  const { data: accountOnSavedDate } = useQuery(
-    transactionQueries.accountOnDate({
+  const { data: accountOnSavedDate } = useQuery({
+    ...transactionQueries.accountOnDate({
       accountId: editedPosting?.account.id,
       date: mode.kind === 'edit' ? mode.transaction.transaction_date : undefined,
       excludedTransactionId: editedTransactionId,
     }),
-  );
+    staleTime: Infinity,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+  });
   const resolver: Resolver<AdjustmentFormValues, unknown, AdjustmentFormOutput> = (
     values,
     context,
@@ -151,7 +154,7 @@ export function TransactionForm({
       ? {
           values: readAdjustmentValues({
             transaction: mode.transaction,
-            isBaseCurrencyAmountAsked: isBaseCurrencyAmountNeeded({
+            isBaseCurrencyAmountEntered: isBaseCurrencyAmountNeeded({
               account: accountOnSavedDate,
               baseCurrency,
             }),
@@ -175,7 +178,11 @@ export function TransactionForm({
   const adjust = useMutation(transactionMutations.adjust(relatedQueryKeys));
   const update = useMutation(transactionMutations.updateAdjustment(relatedQueryKeys));
   const account = accounts?.find((moneyAccount) => moneyAccount.id === accountId);
-  const { data: accountOnDate, isFetching: isAccountOnDateFetching } = useQuery(
+  const {
+    data: accountOnDate,
+    isFetching: isAccountOnDateFetching,
+    isFetchedAfterMount: isAccountOnDateFetchedAfterMount,
+  } = useQuery(
     transactionQueries.accountOnDate({
       accountId: account?.id,
       date: readAdjustmentDate({ dateText: transactionDate, today }),
@@ -324,7 +331,9 @@ export function TransactionForm({
             adjust.isPending ||
             update.isPending ||
             moneyAccounts === undefined ||
-            (mode.kind === 'edit' && isAccountOnDateFetching)
+            (mode.kind === 'edit' &&
+              (accountOnSavedDate === undefined ||
+                (isAccountOnDateFetching && !isAccountOnDateFetchedAfterMount)))
           }
         >
           {mode.kind === 'edit' ? 'Save changes' : 'Adjust balance'}
@@ -341,6 +350,7 @@ export function TransactionForm({
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {
               forgetAskedBaseAmount();
+              clearErrors('base_currency_amount');
               setValue('base_currency_amount', '');
             }
             setValue('account_id', selectedAccountId, { shouldValidate: formState.isSubmitted });

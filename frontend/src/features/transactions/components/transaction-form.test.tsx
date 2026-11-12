@@ -1207,3 +1207,32 @@ test('empties the base currency amount typed for an account once another account
   // assert
   expect(await screen.findByLabelText('In USD')).toHaveValue('');
 });
+
+test('keeps Save changes disabled when the account on the date of the edited adjustment fails to load', async () => {
+  // arrange
+  let requestCount = 0;
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () => {
+      requestCount += 1;
+      return HttpResponse.json({ message: 'Internal error', error_code: null }, { status: 500 });
+    }),
+  );
+
+  // act
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: walletAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // assert
+  await waitFor(() => {
+    expect(requestCount).toBeGreaterThan(0);
+  });
+  expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+});
