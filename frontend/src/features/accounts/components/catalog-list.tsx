@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 
@@ -12,6 +14,7 @@ type CatalogListProps = Readonly<{
 }>;
 
 export function CatalogList({ label, groups }: CatalogListProps) {
+  const headingId = useId();
   return (
     <section className={styles['catalogList']} aria-label={label} aria-busy={groups === undefined}>
       {groups === undefined && (
@@ -28,10 +31,10 @@ export function CatalogList({ label, groups }: CatalogListProps) {
         <section
           key={group.key}
           className={styles['group']}
-          aria-labelledby={`catalog-group-${group.key}`}
+          aria-labelledby={`${headingId}-${group.key}`}
         >
           <div className={styles['groupHeader']}>
-            <h2 id={`catalog-group-${group.key}`} className={styles['groupHeading']}>
+            <h2 id={`${headingId}-${group.key}`} className={styles['groupHeading']}>
               {group.heading}
             </h2>
             <span className={styles['groupCount']}>{group.entries.length}</span>
@@ -56,9 +59,11 @@ export function CatalogList({ label, groups }: CatalogListProps) {
                     ) : (
                       <span className={styles['name']}>{entry.name}</span>
                     )}
-                    {entry.description !== undefined && entry.description !== null && (
-                      <span className={styles['description']}>{entry.description}</span>
-                    )}
+                    {entry.description !== undefined &&
+                      entry.description !== null &&
+                      entry.description !== '' && (
+                        <span className={styles['description']}>{entry.description}</span>
+                      )}
                   </span>
                 </li>
               );

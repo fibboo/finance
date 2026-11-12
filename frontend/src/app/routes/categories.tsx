@@ -131,7 +131,7 @@ export function Component() {
           />
         )}
       </div>
-      {isCreating && categoryTypes !== undefined && dictionaries !== undefined && (
+      {isCreating && dictionaries !== undefined && (
         <Sheet label="New category" onClose={closeForm}>
           <CategoryForm
             name=""

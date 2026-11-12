@@ -40,19 +40,6 @@ const rent = {
   category_type: 'FIXED',
 } satisfies components['schemas']['Account'];
 
-function readCategoryPage(
-  categories: readonly components['schemas']['Account'][],
-): components['schemas']['Page_Account_'] {
-  const categoryPage = {
-    items: [...categories],
-    total: categories.length,
-    page: 1,
-    size: 100,
-    pages: 1,
-  };
-  return categoryPage;
-}
-
 beforeEach(() => {
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
@@ -76,11 +63,16 @@ test('shows the number of active categories and lists them by type with the dele
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const statuses = new URL(request.url).searchParams.getAll('statuses');
-      return HttpResponse.json(
-        readCategoryPage(
-          statuses.includes('DELETED') ? [groceries, cigarettes, rent] : [groceries, rent],
-        ),
-      );
+      const items = statuses.includes('DELETED')
+        ? [groceries, cigarettes, rent]
+        : [groceries, rent];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
     }),
   );
 
@@ -111,11 +103,14 @@ test('requests the chosen type and only the active categories with Deleted off a
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const query = new URL(request.url).searchParams;
       requestedQueries.push(query);
-      return HttpResponse.json(
-        readCategoryPage(
-          query.getAll('category_types').includes('FIXED') ? [rent] : [groceries, rent],
-        ),
-      );
+      const items = query.getAll('category_types').includes('FIXED') ? [rent] : [groceries, rent];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
     }),
   );
   const { router } = render(<Component />, { initialEntries: ['/categories'] });
@@ -149,7 +144,14 @@ test('reads the type and the toggle from the URL and drops a type the dictionary
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       requestedQueries.push(new URL(request.url).searchParams);
-      return HttpResponse.json(readCategoryPage([groceries]));
+      const items = [groceries];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
     }),
   );
 
@@ -171,15 +173,20 @@ test('searches from 3 characters and clears the search into a focused field when
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const searchTerm = new URL(request.url).searchParams.get('search_term');
       requestedTerms.push(searchTerm);
-      return HttpResponse.json(readCategoryPage(searchTerm === null ? [groceries, rent] : []));
+      const items = searchTerm === null ? [groceries, rent] : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
     }),
   );
   render(<Component />, { initialEntries: ['/categories'] });
   await screen.findByRole('region', { name: 'Variable' });
   const searchField = screen.getByRole('searchbox', { name: 'Search categories' });
-  await user.type(searchField, 'zz');
-  expect(requestedTerms).not.toContain('zz');
-  await user.type(searchField, 'z');
+  await user.type(searchField, 'zzz');
   expect(await screen.findByText('No categories match this search')).toBeInTheDocument();
 
   // act
@@ -190,6 +197,8 @@ test('searches from 3 characters and clears the search into a focused field when
   const clearedField = screen.getByRole('searchbox', { name: 'Search categories' });
   expect(clearedField).toHaveValue('');
   expect(clearedField).toHaveFocus();
+  expect(requestedTerms).toContain('zzz');
+  expect(requestedTerms).not.toContain('zz');
 });
 
 test('creates a category from New category and lists it', async () => {
@@ -199,7 +208,13 @@ test('creates a category from New category and lists it', async () => {
   let createdBody: unknown;
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
-      HttpResponse.json(readCategoryPage(categories)),
+      HttpResponse.json({
+        items: categories,
+        total: categories.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
     ),
     http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
       createdBody = await request.json();
