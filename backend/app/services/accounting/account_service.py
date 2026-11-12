@@ -172,7 +172,12 @@ async def get_accounts(*, db: AsyncSession, request: AccountRequest, user_id: UU
 
 
 async def get_account(
-    *, db: AsyncSession, account_id: UUID, user_id: UUID, balance_date: date | None = None
+    *,
+    db: AsyncSession,
+    account_id: UUID,
+    user_id: UUID,
+    balance_date: date | None = None,
+    excluded_transaction_id: UUID | None = None,
 ) -> Account:
     account_db: AccountModel | None = await account_crud.get_or_none(
         db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE
@@ -186,7 +191,10 @@ async def get_account(
 
     if balance_date is not None:
         account.balance, account.base_balance = await ledger_service.get_balances_at_date(
-            db=db, account_db=account_db, transaction_date=balance_date
+            db=db,
+            account_db=account_db,
+            transaction_date=balance_date,
+            excluded_transaction_id=excluded_transaction_id,
         )
         return account
 

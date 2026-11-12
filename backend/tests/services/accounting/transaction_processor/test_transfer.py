@@ -1422,7 +1422,7 @@ async def test_account_cache_equals_active_postings(db: AsyncSession, db_transac
         ),
         (
             TransactionType.ADJUSTMENT,
-            AdjustmentCreate(transaction_date=date(2025, 2, 6), account_id=card_db.id, new_balance=Decimal("400")),
+            AdjustmentCreate(transaction_date=date(2025, 2, 6), account_id=card_db.id, amount=Decimal("-110")),
         ),
     ]
     transactions_before: list[Transaction] = []

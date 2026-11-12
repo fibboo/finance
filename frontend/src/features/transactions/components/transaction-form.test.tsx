@@ -68,7 +68,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test('sends the new balance of the chosen account and closes', async () => {
+test('sends the difference the new balance makes as the amount and closes', async () => {
   // arrange
   let requestBody: unknown = null;
   let requestPath = '';
@@ -113,7 +113,7 @@ test('sends the new balance of the chosen account and closes', async () => {
   expect(requestBody).toEqual({
     transaction_date: '2026-10-20',
     comment: 'Cash count',
-    new_balance: '380.00',
+    amount: '-32.50',
     base_currency_amount: null,
   });
 });
@@ -186,7 +186,7 @@ test('asks for the base currency amount of an account without a rate', async () 
   expect(requestBody).toEqual({
     transaction_date: '2026-10-20',
     comment: null,
-    new_balance: '100.00',
+    amount: '100.00',
     base_currency_amount: '108.40',
   });
 });
@@ -397,7 +397,7 @@ test('asks for the base currency amount when the account had no rate on the date
   expect(requestBodies.at(-1)).toEqual({
     transaction_date: '2026-10-20',
     comment: null,
-    new_balance: '100.00',
+    amount: '50.00',
     base_currency_amount: '54.30',
   });
 });
@@ -472,7 +472,7 @@ test('leaves out the base currency amount typed for another account', async () =
   expect(requestBody).toEqual({
     transaction_date: '2026-10-20',
     comment: null,
-    new_balance: '380.00',
+    amount: '-32.50',
     base_currency_amount: null,
   });
 });
@@ -754,7 +754,7 @@ test('leaves out an amount typed before the account turned out to have a rate on
   expect(requestBody).toEqual({
     transaction_date: '2026-10-20',
     comment: null,
-    new_balance: '100.00',
+    amount: '100.00',
     base_currency_amount: null,
   });
 });
@@ -850,7 +850,7 @@ test('leaves out the base currency amount typed for a date once the date is one 
   expect(requestBody).toEqual({
     transaction_date: '2026-10-06',
     comment: null,
-    new_balance: '100.00',
+    amount: '50.00',
     base_currency_amount: null,
   });
 });

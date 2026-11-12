@@ -5,8 +5,9 @@ from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
 from app.exceptions.forbidden_403 import NoAccountBaseCurrencyRate
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.unprocessable_422 import AccountBalanceUnchanged, BaseCurrencyAmountNotAllowed
+from app.exceptions.unprocessable_422 import BaseCurrencyAmountNotAllowed
 from app.models.accounting.account import Account as AccountModel
+from app.models.accounting.transaction import Transaction as TransactionModel
 from app.schemas.accounting.account import AccountKind, AdjustmentCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
@@ -26,6 +27,16 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
     def _get_request_currencies(*, data: AdjustmentCreate) -> list[CurrencyCode]:
         currencies: list[CurrencyCode] = []
         return currencies
+
+    @staticmethod
+    def _validate_update(*, data: AdjustmentCreate, transaction_db: TransactionModel) -> None:
+        account_ids: list[UUID] = [posting_db.account_id for posting_db in transaction_db.postings]
+        if data.account_id not in account_ids:
+            raise EntityNotFound(
+                entity=TransactionModel,
+                search_params={"id": transaction_db.id, "account_id": data.account_id},
+                logger=logger,
+            )
 
     async def __get_base_currency_amount(
         self, *, data: AdjustmentCreate, account_db: AccountModel, amount: Decimal
@@ -66,9 +77,6 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
 
         self._validate_account_is_active(account_id=data.account_id, account_db=account_db)
 
-        if account_db.balance == data.new_balance:
-            raise AccountBalanceUnchanged(account_id=account_db.id, balance=account_db.balance, logger=logger)
-
         equity_account_db: AccountModel | None = await account_crud.get_or_none(
             db=self.db, user_id=self.user_id, kind=AccountKind.EQUITY, status=EntityStatusType.ACTIVE
         )
@@ -77,8 +85,7 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
                 entity=AccountModel, search_params={"user_id": self.user_id, "kind": AccountKind.EQUITY}, logger=logger
             )
 
-        difference: Decimal = data.new_balance - account_db.balance
-        amount: Decimal = abs(difference)
+        amount: Decimal = abs(data.amount)
         base_currency_amount: Decimal = await self.__get_base_currency_amount(
             data=data, account_db=account_db, amount=amount
         )
@@ -89,7 +96,7 @@ class Adjustment(TransactionProcessor[AdjustmentCreate]):
             comment=data.comment,
             base_currency_amount=base_currency_amount,
         )
-        if difference > 0:
+        if data.amount > 0:
             from_account_id, to_account_id = equity_account_db.id, account_db.id
         else:
             from_account_id, to_account_id = account_db.id, equity_account_db.id

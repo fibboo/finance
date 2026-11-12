@@ -114,8 +114,9 @@ async def update_transaction(
 
     The two accounts are checked before the transaction: an unknown one answers `ENTITY_NOT_FOUND` and a pair that is
     no movement `MOVEMENT_NOT_ALLOWED`, even for a transaction that would answer `ENTITY_NOT_FOUND` itself, as a
-    missing or deleted one and a balance adjustment, which is not edited, do. Accounts that give another type than
-    the transaction's own answer `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED`, and a transaction on a deleted money account
+    missing or deleted one does. Accounts that give another type than the transaction's own answer
+    `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED`, as does a balance adjustment, which is edited through
+    `PUT /accounting/accounts/{account_id}/adjustment/{transaction_id}`, and a transaction on a deleted money account
     `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. The old postings are then removed and their accounts
     recalculated, and the new postings pass the checks of creation on that ledger, so a transfer from an account
     without a rate answers `NO_ACCOUNT_BASE_CURRENCY_RATE`. The edited transaction moves to the end of its date, as a

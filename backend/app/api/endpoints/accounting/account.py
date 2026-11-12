@@ -47,6 +47,7 @@ async def get_account(
     *,
     account_id: UUID,
     balance_date: Annotated[date | None, Query(alias="date")] = None,
+    excluded_transaction_id: UUID | None = None,
     user_id: UUID = Depends(get_user_id),
     db: AsyncSession = Depends(get_db),
 ) -> Account:
@@ -54,10 +55,15 @@ async def get_account(
     With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the sums that decide whether the account
     has a rate for a balance adjustment on that date: its postings up to that date, without the expenses still waiting
     for a value on it. An account outside the base currency with a rate of 0 or less has none, so its adjustment must
-    carry `base_currency_amount`. The adjustment itself is computed from the current balance, the one without `date`.
+    carry `base_currency_amount`. With `excluded_transaction_id` next to `date`, the sums leave that transaction's
+    postings out, which is the ledger an update of that adjustment is decided by.
     """
     account: Account = await account_service.get_account(
-        db=db, account_id=account_id, user_id=user_id, balance_date=balance_date
+        db=db,
+        account_id=account_id,
+        user_id=user_id,
+        balance_date=balance_date,
+        excluded_transaction_id=excluded_transaction_id,
     )
     return account
 
@@ -103,11 +109,36 @@ async def adjust_balance(
     db: DbTransaction,
 ) -> Transaction:
     """
-    Sets the account to `new_balance` with an ADJUSTMENT transaction between the account and the Adjustments account.
-    Its amounts are the difference from the current balance in the account currency. `base_currency_amount` is
-    required only for an account outside the base currency that has no base currency rate yet.
+    Changes the balance by `amount` with an ADJUSTMENT transaction between the account and the Adjustments account.
+    `amount` is in the account currency: a positive one increases the balance, a negative one decreases it, and zero
+    is refused. `base_currency_amount` is required only for an account outside the base currency that has no base
+    currency rate on the date, and refused otherwise.
     """
     transaction: Transaction = await transaction_service.adjust_balance(
         db=db, account_id=account_id, adjustment_data=adjustment_data, user_id=user_id
+    )
+    return transaction
+
+
+@router.put("/{account_id}/adjustment/{transaction_id}")
+async def update_adjustment(
+    *,
+    account_id: UUID,
+    transaction_id: UUID,
+    adjustment_data: AdjustmentRequest,
+    user_id: UUID = Depends(get_onboarded_user_id),
+    db: DbTransaction,
+) -> Transaction:
+    """
+    Replaces the amount, date and comment of an ADJUSTMENT transaction of the account, keeping its id. The body is
+    the one of `POST /accounting/accounts/{account_id}/adjustment`. The account is never changed: a transaction that
+    is not on this account answers `ENTITY_NOT_FOUND`, a transaction of another type
+    `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED` and one on a deleted account `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`.
+    `base_currency_amount` follows the rule of a create on the ledger without the transaction, which
+    `GET /accounting/accounts/{account_id}` answers with `date` and `excluded_transaction_id`. The edited transaction
+    moves to the end of its date, as a new one is placed, and the account is recalculated.
+    """
+    transaction: Transaction = await transaction_service.update_adjustment(
+        db=db, account_id=account_id, transaction_id=transaction_id, adjustment_data=adjustment_data, user_id=user_id
     )
     return transaction

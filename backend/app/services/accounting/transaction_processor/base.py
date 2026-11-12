@@ -118,6 +118,10 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         currencies: list[CurrencyCode] = sorted({data.source_currency, data.destination_currency})
         return currencies
 
+    @staticmethod
+    def _validate_update(*, data: T, transaction_db: TransactionModel) -> None:
+        pass
+
     async def _get_debit_base_amount(
         self, *, account_db: AccountModel, amount: Decimal, transaction_date: date
     ) -> Decimal | None:
@@ -241,10 +245,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         transaction_db: TransactionModel | None = await transaction_crud.get_or_none(
             db=self.db, id=transaction_id, user_id=self.user_id, status=EntityStatusType.ACTIVE, with_for_update=True
         )
-        is_adjustment: bool = (
-            transaction_db is not None and transaction_db.transaction_type == TransactionType.ADJUSTMENT
-        )
-        if transaction_db is None or is_adjustment:
+        if transaction_db is None:
             raise EntityNotFound(
                 entity=TransactionModel, search_params={"id": transaction_id, "user_id": self.user_id}, logger=logger
             )
@@ -257,6 +258,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
                 logger=logger,
             )
 
+        self._validate_update(data=data, transaction_db=transaction_db)
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
         account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
         accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_by_ids(

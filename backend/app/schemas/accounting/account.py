@@ -6,7 +6,15 @@ from uuid import UUID
 
 from fastapi import Query
 from fastapi_pagination import Params
-from pydantic import BaseModel, computed_field, ConfigDict, Field, model_validator, StringConstraints
+from pydantic import (
+    BaseModel,
+    computed_field,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+    StringConstraints,
+)
 
 from app.schemas.base import CurrencyCode, EntityStatusType, ListOrderType, RequestAmount, TransactionComment
 from app.utils import utils
@@ -145,8 +153,16 @@ class AccountRequest(Params):
 class AdjustmentRequest(BaseModel):
     transaction_date: date
     comment: TransactionComment | None = None
-    new_balance: Annotated[Decimal, Field(max_digits=15, decimal_places=2)]
+    amount: Annotated[Decimal, Field(max_digits=15, decimal_places=2)]
     base_currency_amount: RequestAmount | None = None
+
+    @field_validator("amount")
+    @classmethod
+    def validate_amount(cls, amount: Decimal) -> Decimal:
+        if amount == 0:
+            raise ValueError("amount can not be zero")
+
+        return amount
 
 
 class AdjustmentCreate(AdjustmentRequest):

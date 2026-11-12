@@ -13,9 +13,13 @@ from app.schemas.base import EntityStatusType
 
 
 class CRUDPosting(CRUDBase[Posting, PostingCreate, PostingCreate]):
-    async def get_sums_at_date(self, *, db: AsyncSession, account_id: UUID, transaction_date: date) -> Row:
-        is_later: ColumnElement = Transaction.transaction_date > transaction_date
+    async def get_sums_at_date(
+        self, *, db: AsyncSession, account_id: UUID, transaction_date: date, excluded_transaction_id: UUID | None = None
+    ) -> Row:
+        is_excluded: ColumnElement = Transaction.id.is_not_distinct_from(excluded_transaction_id)
+        is_later: ColumnElement = and_(Transaction.transaction_date > transaction_date, ~is_excluded)
         is_waiting: ColumnElement = and_(
+            ~is_excluded,
             Transaction.transaction_date <= transaction_date,
             or_(self.model.base_amount.is_(None), Transaction.valued_on > transaction_date),
         )
@@ -25,6 +29,8 @@ class CRUDPosting(CRUDBase[Posting, PostingCreate, PostingCreate]):
                 func.coalesce(func.sum(self.model.base_amount).filter(is_later), 0).label("later_base_amount"),
                 func.coalesce(func.sum(self.model.amount).filter(is_waiting), 0).label("waiting_amount"),
                 func.coalesce(func.sum(self.model.base_amount).filter(is_waiting), 0).label("waiting_base_amount"),
+                func.coalesce(func.sum(self.model.amount).filter(is_excluded), 0).label("excluded_amount"),
+                func.coalesce(func.sum(self.model.base_amount).filter(is_excluded), 0).label("excluded_base_amount"),
             )
             .select_from(self.model)
             .join(Transaction, Transaction.id == self.model.transaction_id)
