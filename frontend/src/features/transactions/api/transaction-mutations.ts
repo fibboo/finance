@@ -73,9 +73,11 @@ function invalidateFeeds({
   relatedQueryKeys,
 }: Readonly<{ client: QueryClient; relatedQueryKeys: readonly QueryKey[] }>): Promise<unknown> {
   const invalidation = Promise.all(
-    [transactionQueries.feeds().queryKey, ...relatedQueryKeys].map((queryKey) =>
-      client.invalidateQueries({ queryKey }),
-    ),
+    [
+      transactionQueries.feeds().queryKey,
+      transactionQueries.accountsOnDate().queryKey,
+      ...relatedQueryKeys,
+    ].map((queryKey) => client.invalidateQueries({ queryKey })),
   );
   return invalidation;
 }

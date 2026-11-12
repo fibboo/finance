@@ -57,6 +57,11 @@ const adjustment = {
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 9, 20, 12));
+  server.use(
+    http.get('http://localhost/api/accounting/accounts/:accountId', ({ params }) =>
+      HttpResponse.json(params['accountId'] === wallet.id ? wallet : euroCard),
+    ),
+  );
 });
 
 afterEach(() => {
@@ -356,6 +361,11 @@ test('asks for the base currency amount when the account had no rate on the date
       },
     ),
   );
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, () =>
+      HttpResponse.json({ ...euroCard, balance: '50', base_currency_rate: '0.92' }),
+    ),
+  );
   const onClose = vi.fn<() => void>();
   const user = userEvent.setup();
   render(
@@ -575,4 +585,104 @@ test.each([
 
   // assert
   expect(screen.getByLabelText('New balance')).toHaveValue(shown);
+});
+
+test('asks for the base currency amount once the date is one the account had no rate on', async () => {
+  // arrange
+  // the account has a rate from 06.10.2026 on, and none up to 05.10.2026
+  const ratedEuroCard = { ...euroCard, balance: '50', base_currency_rate: '0.92' };
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, ({ request }) => {
+      const date = new URL(request.url).searchParams.get('date') ?? '';
+      return HttpResponse.json(date >= '2026-10-06' ? ratedEuroCard : euroCard);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[ratedEuroCard]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  const shownOnDates: boolean[] = [];
+
+  // act
+  await user.clear(screen.getByLabelText('Date'));
+  await user.type(screen.getByLabelText('Date'), '05102026');
+  await screen.findByLabelText('In USD');
+  shownOnDates.push(screen.queryByLabelText('In USD') !== null);
+  await user.clear(screen.getByLabelText('Date'));
+  await user.type(screen.getByLabelText('Date'), '06102026');
+  await waitFor(() => {
+    expect(screen.queryByLabelText('In USD')).not.toBeInTheDocument();
+  });
+  shownOnDates.push(screen.queryByLabelText('In USD') !== null);
+
+  // assert
+  expect(shownOnDates).toEqual([true, false]);
+});
+
+test('leaves out the base currency amount typed for a date the account had a rate on', async () => {
+  // arrange
+  // the account has a rate from 06.10.2026 on, and none up to 05.10.2026
+  const ratedEuroCard = { ...euroCard, balance: '50', base_currency_rate: '0.92' };
+  let requestBody: unknown = null;
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, ({ request }) => {
+      const date = new URL(request.url).searchParams.get('date') ?? '';
+      return HttpResponse.json(date >= '2026-10-06' ? ratedEuroCard : euroCard);
+    }),
+    http.post(
+      'http://localhost/api/accounting/accounts/:accountId/adjustment',
+      async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(adjustment);
+      },
+    ),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[ratedEuroCard]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={onClose}
+    />,
+  );
+  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.clear(screen.getByLabelText('Date'));
+  await user.type(screen.getByLabelText('Date'), '05102026');
+  await user.type(await screen.findByLabelText('In USD'), '54.30');
+  await user.clear(screen.getByLabelText('Date'));
+  await user.type(screen.getByLabelText('Date'), '06102026');
+  await waitFor(() => {
+    expect(screen.queryByLabelText('In USD')).not.toBeInTheDocument();
+  });
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(requestBody).toEqual({
+    transaction_date: '2026-10-06',
+    comment: null,
+    new_balance: '100.00',
+    base_currency_amount: null,
+  });
 });

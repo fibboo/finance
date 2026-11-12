@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type QueryKey, useMutation } from '@tanstack/react-query';
+import { type QueryKey, useMutation, useQuery } from '@tanstack/react-query';
 import { type ReactNode, useId, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
@@ -9,11 +9,12 @@ import { type CreateFormProps, EntityPicker } from '@/components/entity-picker/e
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
-import { toDateText } from '@/lib/format-date';
+import { readIsoDate, toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
 import type { AdjustmentTransactionType, EntryTransactionType } from '../api/new-transaction';
 import { transactionMutations } from '../api/transaction-mutations';
+import { transactionQueries } from '../api/transaction-queries';
 import {
   COMMENT_MAX_LENGTH,
   createAdjustmentFormSchema,
@@ -125,6 +126,16 @@ export function TransactionForm({
   });
   const adjust = useMutation(transactionMutations.adjust(relatedQueryKeys));
   const account = moneyAccounts?.find((moneyAccount) => moneyAccount.id === accountId);
+  const adjustmentDate = readIsoDate(transactionDate);
+  const { data: accountOnDate } = useQuery(
+    transactionQueries.accountOnDate({
+      accountId: account?.id,
+      date: adjustmentDate !== undefined && adjustmentDate <= today ? adjustmentDate : undefined,
+    }),
+  );
+  const isBaseAmountShown =
+    isBaseAmountAsked ||
+    isBaseCurrencyAmountNeeded({ account: accountOnDate ?? account, baseCurrency });
   const requestError = formState.errors.root?.['server']?.message;
 
   function closePicker() {
@@ -142,7 +153,11 @@ export function TransactionForm({
         noValidate
         onSubmit={(event) => {
           void handleSubmit((values) => {
-            adjust.mutate(values, {
+            const adjustment = {
+              ...values,
+              base_currency_amount: isBaseAmountShown ? values.base_currency_amount : null,
+            };
+            adjust.mutate(adjustment, {
               onSuccess: onClose,
               onError: (error) => {
                 readSaveErrors({
@@ -205,7 +220,7 @@ export function TransactionForm({
             error={formState.errors.transaction_date?.message}
           />
         </div>
-        {(isBaseAmountAsked || isBaseCurrencyAmountNeeded({ account, baseCurrency })) && (
+        {isBaseAmountShown && (
           <div className={styles['rows']}>
             <InputRow
               label={`In ${baseCurrency}`}
