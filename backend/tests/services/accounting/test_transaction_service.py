@@ -645,6 +645,103 @@ async def test_get_transactions_by_date(db: AsyncSession):
     ]
 
 
+async def test_get_transactions_by_locations(db: AsyncSession):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+
+    account_create_data: dict = {
+        "kind": AccountKind.ASSET,
+        "user_id": user_id,
+        "name": "Checking USD",
+        "currency": "USD",
+        "balance": Decimal("2000"),
+        "base_balance": Decimal("2000"),
+    }
+    account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
+    category_create_data: AccountCreate = AccountCreate(
+        user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+    )
+    category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
+    shop_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
+    shop_db: LocationModel = await location_crud.create(db=db, obj_in=shop_create_data, commit=True)
+    cafe_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some cafe")
+    cafe_db: LocationModel = await location_crud.create(db=db, obj_in=cafe_create_data, commit=True)
+    market_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some market")
+    market_db: LocationModel = await location_crud.create(db=db, obj_in=market_create_data, commit=True)
+
+    # expenses of 10 and 40 at the shop, 20 at the cafe and 30 at the market, entered in the order of their amounts
+    today: date = datetime.now(UTC).date()
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    for location_db, amount in [(shop_db, "10"), (cafe_db, "20"), (market_db, "30"), (shop_db, "40")]:
+        expense_create_data: MovementRequest = MovementRequest(
+            transaction_date=today,
+            source_amount=Decimal(amount),
+            source_currency="USD",
+            destination_amount=Decimal(amount),
+            destination_currency="USD",
+            from_account_id=account_db.id,
+            to_account_id=category_db.id,
+            location_id=location_db.id,
+        )
+        await transaction_processor.create(data=expense_create_data)
+
+    await db.commit()
+    await db.close()
+
+    request_shop: TransactionRequest = TransactionRequest(location_ids=[shop_db.id])
+    request_shop_and_cafe: TransactionRequest = TransactionRequest(location_ids=[shop_db.id, cafe_db.id])
+    request_shop_from_amount: TransactionRequest = TransactionRequest(
+        location_ids=[shop_db.id], base_currency_amount_from=Decimal("20")
+    )
+    request_unknown_location: TransactionRequest = TransactionRequest(location_ids=[uuid4()])
+    request_cafe_and_unknown_location: TransactionRequest = TransactionRequest(location_ids=[cafe_db.id, uuid4()])
+    request_no_location_filter: TransactionRequest = TransactionRequest()
+
+    # Act
+    transactions_shop: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_shop, user_id=user_id
+    )
+    transactions_shop_and_cafe: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_shop_and_cafe, user_id=user_id
+    )
+    transactions_shop_from_amount: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_shop_from_amount, user_id=user_id
+    )
+    transactions_unknown_location: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_unknown_location, user_id=user_id
+    )
+    transactions_cafe_and_unknown_location: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_cafe_and_unknown_location, user_id=user_id
+    )
+    transactions_no_location_filter: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_no_location_filter, user_id=user_id
+    )
+
+    # Assert
+    # every list is ordered by the order of entry, newest first
+    assert [item.base_currency_amount for item in transactions_shop.items] == [Decimal("40"), Decimal("10")]
+    assert [item.base_currency_amount for item in transactions_shop_and_cafe.items] == [
+        Decimal("40"),
+        Decimal("20"),
+        Decimal("10"),
+    ]
+    assert [item.base_currency_amount for item in transactions_shop_from_amount.items] == [Decimal("40")]
+    assert transactions_unknown_location.items == []
+    assert [item.base_currency_amount for item in transactions_cafe_and_unknown_location.items] == [Decimal("20")]
+    assert [item.base_currency_amount for item in transactions_no_location_filter.items] == [
+        Decimal("40"),
+        Decimal("30"),
+        Decimal("20"),
+        Decimal("10"),
+    ]
+
+
 async def test_get_transactions_adjustments(db: AsyncSession):
     # Arrange
     base_date: date = date.today() - timedelta(days=30)

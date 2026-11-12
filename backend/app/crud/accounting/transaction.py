@@ -149,6 +149,9 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             transaction_ids: Select = self.__get_account_transaction_ids(account_ids=deleted_account_ids)
             query = query.where(Transaction.id.in_(transaction_ids))
 
+        if len(request.location_ids) > 0:
+            query = query.where(Transaction.location_id.in_(request.location_ids))
+
         order_fields_map = {
             OrderFieldType.CREATED_AT: Transaction.created_at,
             OrderFieldType.TRANSACTION_DATE: Transaction.transaction_date,

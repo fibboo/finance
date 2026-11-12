@@ -161,6 +161,7 @@ class TransactionRequest(Params):
 
     account_ids: Annotated[list[UUID], Field(max_length=100)] = []
     is_deleted_accounts_only: bool = False
+    location_ids: Annotated[list[UUID], Field(max_length=100)] = []
 
     @model_validator(mode="after")
     def fill_default_date_to(self) -> TransactionRequest:
