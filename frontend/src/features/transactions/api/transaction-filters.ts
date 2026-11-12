@@ -137,6 +137,12 @@ export function writeTransactionSearch({
   return nextSearchParams;
 }
 
+export function readTransactionListKey(searchParams: URLSearchParams): string {
+  const searchTerm = readSearchTerm(readTransactionSearch(searchParams));
+  const listKey = writeTransactionSearch({ searchParams, search: searchTerm ?? '' }).toString();
+  return listKey;
+}
+
 export function readTransactionFilterQuery(filters: TransactionFilters): TransactionFilterQuery {
   const accountIds = ACCOUNT_ID_PARAMS.flatMap((name) => filters[name]);
   const searchTerm = filters.search === undefined ? undefined : readSearchTerm(filters.search);

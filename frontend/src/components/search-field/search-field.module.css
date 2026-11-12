@@ -44,7 +44,7 @@
 }
 
 @media (--desktop) {
-  .accountSearch {
+  .searchField {
     flex: 0 1 var(--size-search);
   }
 

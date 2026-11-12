@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 
 import { DetailsColumn } from '@/app/details-column';
 import { useBaseCurrency } from '@/app/use-base-currency';
+import { useOpenNewTransaction } from '@/app/use-open-new-transaction';
 import { useShownAccount } from '@/app/use-shown-account';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
@@ -10,10 +11,6 @@ import { SearchField } from '@/components/search-field/search-field';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
-import {
-  DEFAULT_ENTRY_TRANSACTION_TYPE,
-  writeNewTransactionType,
-} from '@/features/transactions/api/new-transaction';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,
@@ -21,6 +18,7 @@ import {
   isSortedByDate,
   readTransactionFilterQuery,
   readTransactionFilters,
+  readTransactionListKey,
   readTransactionSearch,
   type TransactionFilters,
   writeTransactionFilters,
@@ -77,9 +75,10 @@ export function Component() {
     searchParams: writeSelectedTransaction({ searchParams, transactionId: undefined }),
     accountId: undefined,
   });
-  const listKey = listSearchParams.toString();
+  const listKey = readTransactionListKey(listSearchParams);
   const search = readTransactionSearch(searchParams);
   const searchField = useSearchField(search);
+  const openNewTransaction = useOpenNewTransaction();
   const { anchorDate, jumpToDate, clearJump } = useDateJump(listKey);
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
@@ -126,26 +125,13 @@ export function Component() {
           term={search}
           isFocusedOnMount={searchField.isFocusedOnMount}
           onSearch={(nextSearch) => {
-            clearJump();
             setSearchParams(
               writeTransactionSearch({ searchParams: listSearchParams, search: nextSearch }),
               { replace: true, state: TYPED_SEARCH_STATE },
             );
           }}
         />
-        <NewButton
-          entityName="transaction"
-          isDisabled={false}
-          onClick={() => {
-            setSearchParams(
-              writeNewTransactionType({
-                searchParams,
-                transactionType: DEFAULT_ENTRY_TRANSACTION_TYPE,
-              }),
-              { preventScrollReset: true },
-            );
-          }}
-        />
+        <NewButton entityName="transaction" isDisabled={false} onClick={openNewTransaction} />
       </div>
       {baseCurrency !== undefined &&
         dictionaries !== undefined &&
@@ -168,7 +154,7 @@ export function Component() {
               } else {
                 jumpToDate({
                   date: readJumpDate({ date: jumpDate, filters: nextFilters }),
-                  listKey: nextSearchParams.toString(),
+                  listKey: readTransactionListKey(nextSearchParams),
                 });
               }
             }}
@@ -194,6 +180,7 @@ export function Component() {
                   <NoMatchingTransactions
                     onReset={() => {
                       clearJump();
+                      searchField.focusAfterClear();
                       setSearchParams({});
                     }}
                   />

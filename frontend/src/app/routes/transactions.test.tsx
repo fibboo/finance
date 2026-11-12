@@ -789,7 +789,9 @@ test('shows the empty state for a search that matches nothing and clears it on R
 
   // assert
   expect(await screen.findByText('Groceries')).toBeInTheDocument();
-  expect(screen.getByRole('searchbox', { name: 'Search transactions' })).toHaveValue('');
+  const searchField = screen.getByRole('searchbox', { name: 'Search transactions' });
+  expect(searchField).toHaveValue('');
+  expect(searchField).toHaveFocus();
 });
 
 test('opens New transaction on an expense and keeps the filters', async () => {

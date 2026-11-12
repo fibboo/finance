@@ -42,7 +42,7 @@ A **module** is a directory that ships as its own container. It owns a `Dockerfi
   - `app/`: the router (`router.tsx`), the route modules (`routes/`), the providers, the query client, the app layout with its navigation, the onboarding guard (`require-onboarding.tsx`), and everything that composes more than one feature (the details column, the New transaction sheet, the choices of a transaction form).
   - `features/<feature>/`: one domain each, in `api/`, `components/`, `hooks/` and `schemas/`: `auth` (the session, sign-in, linking a provider), `user`, `dictionaries`, `currencies`, `summary`, `accounts`, `transactions` and `locations`.
   - `components/`: shared UI without domain knowledge (`Page`, `Sheet`, `DetailsPanel`, `ActionBar`, `EntityForm`, `EntityPicker`, `SearchField`, `NewButton`, the fields, `Skeleton`, `LoadError`, `BootScreen`).
-  - `hooks/`: hooks that features share (the local today, the search field that resets on Back and Reset, arrow-key selection, sheet drag, outside click).
+  - `hooks/`: hooks that features share (the local today, the search field that resets when the search changes other than by typing, arrow-key selection, sheet drag, outside click).
   - `lib/`: the generated API types (`api-schema.ts`), the one openapi-fetch client (`api-client.ts`) with its `ApiError`, and the formatting and input rules of money, dates, amounts, search terms and account colors.
   - `config/env.ts`: the one reader of `import.meta.env`.
   - `styles/`: `tokens.css`, `global.css` and `media.css`.
