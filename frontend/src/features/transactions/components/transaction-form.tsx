@@ -108,6 +108,13 @@ export function TransactionForm({
   const editedPosting = mode.kind === 'edit' ? readAdjustmentPosting(mode.transaction) : undefined;
   const editedTransactionId = mode.kind === 'edit' ? mode.transaction.id : undefined;
   const accounts = addOwnChoices({ choices: moneyAccounts, ownChoices: [editedPosting?.account] });
+  const { data: accountOnSavedDate } = useQuery(
+    transactionQueries.accountOnDate({
+      accountId: editedPosting?.account.id,
+      date: mode.kind === 'edit' ? mode.transaction.transaction_date : undefined,
+      excludedTransactionId: editedTransactionId,
+    }),
+  );
   const resolver: Resolver<AdjustmentFormValues, unknown, AdjustmentFormOutput> = (
     values,
     context,
@@ -142,7 +149,13 @@ export function TransactionForm({
     resolver,
     ...(mode.kind === 'edit'
       ? {
-          values: readAdjustmentValues(mode.transaction),
+          values: readAdjustmentValues({
+            transaction: mode.transaction,
+            isBaseCurrencyAmountAsked: isBaseCurrencyAmountNeeded({
+              account: accountOnSavedDate,
+              baseCurrency,
+            }),
+          }),
           resetOptions: { keepDirtyValues: true },
         }
       : {
@@ -162,7 +175,7 @@ export function TransactionForm({
   const adjust = useMutation(transactionMutations.adjust(relatedQueryKeys));
   const update = useMutation(transactionMutations.updateAdjustment(relatedQueryKeys));
   const account = accounts?.find((moneyAccount) => moneyAccount.id === accountId);
-  const { data: accountOnDate, isLoading: isAccountOnDateLoading } = useQuery(
+  const { data: accountOnDate, isFetching: isAccountOnDateFetching } = useQuery(
     transactionQueries.accountOnDate({
       accountId: account?.id,
       date: readAdjustmentDate({ dateText: transactionDate, today }),
@@ -178,13 +191,6 @@ export function TransactionForm({
     if (isBaseAmountAsked) {
       clearErrors('base_currency_amount');
       setIsBaseAmountAsked(false);
-    }
-  }
-
-  function handleDateChange() {
-    forgetAskedBaseAmount();
-    if (!isBaseAmountShown) {
-      setValue('base_currency_amount', '', { shouldDirty: true });
     }
   }
 
@@ -274,14 +280,16 @@ export function TransactionForm({
           />
           <InputRow
             label="Date"
-            input={readDateInputProps(register('transaction_date', { onChange: handleDateChange }))}
+            input={readDateInputProps(
+              register('transaction_date', { onChange: forgetAskedBaseAmount }),
+            )}
             action={
               <CalendarButton
                 label="transaction"
                 value={transactionDate}
                 max={today}
                 onPick={(dateText) => {
-                  handleDateChange();
+                  forgetAskedBaseAmount();
                   setValue('transaction_date', dateText, {
                     shouldDirty: true,
                     shouldValidate: formState.isSubmitted,
@@ -316,7 +324,7 @@ export function TransactionForm({
             adjust.isPending ||
             update.isPending ||
             moneyAccounts === undefined ||
-            (mode.kind === 'edit' && isAccountOnDateLoading)
+            (mode.kind === 'edit' && isAccountOnDateFetching)
           }
         >
           {mode.kind === 'edit' ? 'Save changes' : 'Adjust balance'}
@@ -333,6 +341,7 @@ export function TransactionForm({
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {
               forgetAskedBaseAmount();
+              setValue('base_currency_amount', '');
             }
             setValue('account_id', selectedAccountId, { shouldValidate: formState.isSubmitted });
             closePicker();

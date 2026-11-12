@@ -1110,7 +1110,9 @@ test('reads the account on the date without the edited adjustment and starts fro
   );
 
   // assert
-  expect(await screen.findByLabelText('In USD')).toHaveValue('35.20');
+  await waitFor(() => {
+    expect(screen.getByLabelText('In USD')).toHaveValue('35.20');
+  });
   expect(excludedTransactionId).toBe(walletAdjustment.id);
 });
 
@@ -1171,6 +1173,36 @@ test('asks for the base currency amount afresh when the edited adjustment moves 
     initialSelectionStart: 0,
     initialSelectionEnd: 10,
   });
+
+  // assert
+  expect(await screen.findByLabelText('In USD')).toHaveValue('');
+});
+
+test('empties the base currency amount typed for an account once another account is chosen', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet, euroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.type(await screen.findByLabelText('In USD'), '42.80');
+  await user.click(screen.getByRole('button', { name: /^Account/ }));
+  await user.click(screen.getByRole('button', { name: /^Wallet/ }));
+  await user.click(screen.getByRole('button', { name: /^Account/ }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
 
   // assert
   expect(await screen.findByLabelText('In USD')).toHaveValue('');
