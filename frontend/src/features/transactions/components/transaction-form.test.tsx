@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -692,10 +692,12 @@ test('stops asking for the amount the backend asked for once the date changes', 
   await user.type(screen.getByLabelText('New balance'), '100');
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
   await screen.findByLabelText('In USD');
-  await user.clear(screen.getByLabelText('Date'));
 
   // act
-  await user.type(screen.getByLabelText('Date'), '19102026');
+  await user.type(screen.getByLabelText('Date'), '19102026', {
+    initialSelectionStart: 0,
+    initialSelectionEnd: 10,
+  });
 
   // assert
   await waitFor(() => {
@@ -703,15 +705,15 @@ test('stops asking for the amount the backend asked for once the date changes', 
   });
 });
 
-test('leaves out an amount typed for a date the account had a rate on, even an invalid one', async () => {
+test('leaves out an amount typed before the account turned out to have a rate on the date', async () => {
   // arrange
-  // the account has a rate from 06.10.2026 on, and none up to 05.10.2026
+  // the listed account has no rate today, and the slower answer says it had one on the date
   const ratedEuroCard = { ...euroCard, balance: '50', base_currency_rate: '0.92' };
   let requestBody: unknown = null;
   server.use(
-    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, ({ request }) => {
-      const date = new URL(request.url).searchParams.get('date') ?? '';
-      return HttpResponse.json(date >= '2026-10-06' ? ratedEuroCard : euroCard);
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, async () => {
+      await delay(300);
+      return HttpResponse.json(ratedEuroCard);
     }),
     http.post(
       'http://localhost/api/accounting/accounts/:accountId/adjustment',
@@ -727,7 +729,7 @@ test('leaves out an amount typed for a date the account had a rate on, even an i
     <TransactionForm
       transactionType="ADJUSTMENT"
       transactionTypes={transactionTypes}
-      moneyAccounts={[ratedEuroCard]}
+      moneyAccounts={[euroCard]}
       presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
@@ -736,12 +738,8 @@ test('leaves out an amount typed for a date the account had a rate on, even an i
       onClose={onClose}
     />,
   );
+  await user.type(screen.getByLabelText('In USD'), '0');
   await user.type(screen.getByLabelText('New balance'), '100');
-  await user.clear(screen.getByLabelText('Date'));
-  await user.type(screen.getByLabelText('Date'), '05102026');
-  await user.type(await screen.findByLabelText('In USD'), '0');
-  await user.clear(screen.getByLabelText('Date'));
-  await user.type(screen.getByLabelText('Date'), '06102026');
   await waitFor(() => {
     expect(screen.queryByLabelText('In USD')).not.toBeInTheDocument();
   });
@@ -754,9 +752,43 @@ test('leaves out an amount typed for a date the account had a rate on, even an i
     expect(onClose).toHaveBeenCalled();
   });
   expect(requestBody).toEqual({
-    transaction_date: '2026-10-06',
+    transaction_date: '2026-10-20',
     comment: null,
     new_balance: '100.00',
     base_currency_amount: null,
   });
+});
+
+test('drops the base currency amount typed for another date', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, () =>
+      HttpResponse.json(euroCard),
+    ),
+  );
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[euroCard]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.type(screen.getByLabelText('In USD'), '42.80');
+
+  // act
+  await user.type(screen.getByLabelText('Date'), '19102026', {
+    initialSelectionStart: 0,
+    initialSelectionEnd: 10,
+  });
+
+  // assert
+  expect(screen.getByLabelText('Date')).toHaveValue('19.10.2026');
+  expect(screen.getByLabelText('In USD')).toHaveValue('');
 });
