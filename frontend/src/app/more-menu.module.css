@@ -1,0 +1,45 @@
+@import '@/styles/media.css';
+
+.moreMenu {
+  min-width: 0;
+}
+
+.more {
+  width: 100%;
+}
+
+.moreMenu .more[aria-expanded='true'] {
+  background: var(--color-ground);
+  color: var(--color-ink);
+}
+
+.sections {
+  display: none;
+}
+
+.openSections {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-2));
+  z-index: 1;
+  width: var(--size-more-menu);
+  padding: var(--space-1-5);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-action);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-panel);
+  box-shadow: var(--shadow-popover);
+}
+
+@media (--desktop) {
+  .moreMenu,
+  .sections,
+  .openSections {
+    display: contents;
+  }
+
+  .moreMenu .more {
+    display: none;
+  }
+}

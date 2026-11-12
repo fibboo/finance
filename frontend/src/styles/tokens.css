@@ -134,12 +134,15 @@
       var(--size-transaction-row-lg) * 2 + var(--space-4)
   );
   --size-segment: 2.5rem;
+  --size-back-to-top: 2.5rem;
+  --size-menu-row: 2.875rem;
   --size-button: 2.875rem;
   --size-avatar: 3rem;
   --size-empty-icon: 3.5rem;
   --size-option: 3rem;
   --size-field-lg: 3rem;
   --size-fab: 2.875rem;
+  --size-fab-room: calc(var(--size-fab) + var(--space-2));
   --size-button-lg: 3.25rem;
   --size-option-lg: 3.25rem;
   --size-posting: 3.25rem;
@@ -157,6 +160,7 @@
   --size-empty-state-lg: 10rem;
   --size-account-tile-sm: 9rem;
   --size-account-tile: 13.125rem;
+  --size-more-menu: 13.5rem;
   --size-sidebar: 14.5rem;
   --size-popover: 18.75rem;
   --size-search: 20rem;
