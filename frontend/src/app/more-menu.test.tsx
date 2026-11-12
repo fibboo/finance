@@ -45,7 +45,7 @@ test('closes on Escape and returns focus to More', async () => {
   expect(screen.getByRole('button', { name: 'More' })).toHaveFocus();
 });
 
-test('closes on a click outside the menu', async () => {
+test('closes on a click outside the menu and leaves the focus where the click put it', async () => {
   // arrange
   const user = userEvent.setup();
   render(
@@ -61,6 +61,7 @@ test('closes on a click outside the menu', async () => {
 
   // assert
   expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.getByRole('button', { name: 'Outside' })).toHaveFocus();
 });
 
 test('stays open on a click on one of its sections', async () => {
