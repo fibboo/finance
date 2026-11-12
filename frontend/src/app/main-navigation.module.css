@@ -1,6 +1,7 @@
 @import '@/styles/media.css';
 
 .mainNavigation {
+  position: relative;
   height: var(--size-bar);
   padding: 0 var(--space-1-5);
   border: var(--size-border) solid var(--color-border);
@@ -13,12 +14,13 @@
 }
 
 .addTransaction {
-  grid-area: 1 / 3;
-  justify-self: center;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-3));
   width: var(--size-fab);
   height: var(--size-fab);
   border: 0;
-  border-radius: var(--radius-fab);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,7 +29,18 @@
   font-weight: var(--font-weight-semibold);
   background: var(--color-ink);
   color: var(--color-ground);
+  box-shadow: var(--shadow-bar);
   cursor: pointer;
+}
+
+:root:has([data-back-to-top]) .addTransaction {
+  bottom: calc(100% + var(--space-3) + var(--size-back-to-top) + var(--space-2-5));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .addTransaction {
+    transition: bottom var(--duration-fade) ease;
+  }
 }
 
 .addTransaction:hover {
@@ -75,6 +88,26 @@
   opacity: var(--opacity-disabled);
 }
 
+.moreSection {
+  composes: section;
+  flex: none;
+  height: var(--size-menu-row);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-segment);
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  font-size: var(--font-size-md);
+}
+
+.soon {
+  margin-left: auto;
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-badge);
+  font-size: var(--font-size-2xs);
+  background: var(--color-ground);
+}
+
 .label {
   max-width: 100%;
   overflow: hidden;
@@ -106,10 +139,12 @@
   }
 
   .addTransaction {
+    position: static;
     width: auto;
     height: var(--size-touch);
     margin-bottom: var(--space-2-5);
     border-radius: var(--radius-control);
+    box-shadow: none;
   }
 
   .addTransaction .icon {
@@ -144,11 +179,7 @@
     height: var(--size-icon);
   }
 
-  .soon {
-    margin-left: auto;
-    padding: var(--space-0-5) var(--space-2);
-    border-radius: var(--radius-badge);
-    font-size: var(--font-size-2xs);
-    background: var(--color-ground);
+  .moreSection {
+    border-radius: var(--radius-control);
   }
 }

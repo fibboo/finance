@@ -1,22 +1,27 @@
 @import '@/styles/media.css';
 
 .backToTop {
-  position: absolute;
-  right: var(--space-4);
-  bottom: var(--space-4);
-  z-index: 1;
-  width: var(--size-touch);
-  height: var(--size-touch);
+  position: fixed;
+  right: calc(var(--space-3) + (var(--size-fab) - var(--size-back-to-top)) / 2);
+  bottom: calc(var(--size-bar) + var(--space-3) * 2);
+  width: var(--size-back-to-top);
+  height: var(--size-back-to-top);
   padding: 0;
-  border: 0;
+  border: var(--size-border) solid var(--color-border);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-ink);
-  color: var(--color-ground);
+  background: var(--color-panel);
+  color: var(--color-ink);
   box-shadow: var(--shadow-popover);
   cursor: pointer;
+}
+
+.backToTop::before {
+  content: '';
+  position: absolute;
+  inset: calc((var(--size-back-to-top) - var(--size-touch)) / 2);
 }
 
 .backToTop:hover {
@@ -29,8 +34,8 @@
 }
 
 .icon {
-  width: var(--size-icon);
-  height: var(--size-icon);
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -40,7 +45,23 @@
 
 @media (--desktop) {
   .backToTop {
+    position: absolute;
     right: var(--space-6);
     bottom: var(--space-6);
+    z-index: 1;
+    width: var(--size-touch);
+    height: var(--size-touch);
+    border: 0;
+    background: var(--color-ink);
+    color: var(--color-ground);
+  }
+
+  .backToTop::before {
+    content: none;
+  }
+
+  .icon {
+    width: var(--size-icon);
+    height: var(--size-icon);
   }
 }
