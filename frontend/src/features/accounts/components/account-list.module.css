@@ -162,7 +162,7 @@ a.account:focus-visible {
   content: ' · ';
 }
 
-@media (pointer: fine) {
+@media (--desktop), (pointer: fine) {
   .accountItem,
   .account {
     scroll-margin-inline: calc(var(--size-touch) + var(--space-2));
@@ -195,7 +195,9 @@ a.account:focus-visible {
   .next {
     right: 0;
   }
+}
 
+@media (hover: hover) {
   .previous:hover,
   .next:hover {
     background: var(--color-ground);
