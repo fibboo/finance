@@ -123,9 +123,10 @@ A database migrated before the Alembic revisions were squashed into one initial 
 
 Every successful `tests` run on a push to `main` starts `.github/workflows/deploy.yml`, which can also be started by hand
 from the Actions tab on any branch. A `tests` run of a commit that is no longer the head of `main`, such as a re-run of
-an old failure, deploys nothing. It builds `backend/Dockerfile` and `frontend/Dockerfile` on the GitHub runner, pushes
-them to `ghcr.io/fibboo/finance-backend` and `ghcr.io/fibboo/finance-frontend` tagged with the commit SHA, and brings the
-VPS up to that commit. The server never builds: it has 1 GB of RAM.
+an old failure, deploys nothing. Both workflows run on the self-hosted runner on the VPS (see Self-hosted runner
+below), so the deploy builds `backend/Dockerfile` and `frontend/Dockerfile` on the server itself, pushes them to
+`ghcr.io/fibboo/finance-backend` and `ghcr.io/fibboo/finance-frontend` tagged with the commit SHA, and brings the server
+up to that commit without SSH.
 
 On the server, `~/finance` holds `docker-compose.production.yml`, `backend/.env-production` rendered from the repository
 secrets, and a `.env` with `COMPOSE_FILE`, `IMAGE_TAG`, `POSTGRES_PASSWORD` and `CLOUDFLARE_TUNNEL_TOKEN`, so a manual
@@ -140,7 +141,7 @@ Amnezia VPN containers. With Amnezia on, a database client connects to `172.29.1
 database `finance`, with the `POSTGRES_PASSWORD` secret as the password. The bind depends on that network: if Amnezia is
 removed or its network gets another subnet, postgres cannot start and the deploy fails before the backend is replaced.
 
-On the server the deploy runs, in order: `docker compose pull`; `up -d --wait --no-recreate postgres`, which only starts
+In `~/finance` the deploy runs, in order: `docker compose pull`; `up -d --wait --no-recreate postgres`, which only starts
 a stopped database and leaves changes to it for the last step; a `pg_dump -Fc` of the database into
 `~/backups/pre-deploy-<utc time>-<sha>.dump`, keeping the five newest; `alembic upgrade head` in a one-off container of
 the new backend image; `up -d --remove-orphans --wait --wait-timeout 300`, which returns once every service is healthy:
@@ -157,7 +158,7 @@ The previous backend keeps serving on the new schema for the seconds between the
 that drops or renames a column, or adds a `NOT NULL` column without a default, ships in two deploys: first the code that
 no longer needs the old shape, then the revision.
 
-To roll back, re-run an earlier deploy run; it redeploys that run's SHA. An older image does not know the revisions
+To roll back, re-run an earlier deploy run; it rebuilds and redeploys that run's SHA. An older image does not know the revisions
 added after it, so when the commits being rolled back added a migration, first take a dump with
 `docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > ~/backups/pre-downgrade.dump`,
 then run `docker compose exec backend alembic downgrade <revision>` on the server while the newer image is still running,
@@ -167,21 +168,67 @@ Repository secrets the workflow reads; the deploy fails before building when one
 
 | Secret | Value |
 | --- | --- |
-| `SSH_HOST`, `SSH_USER` | The VPS address and the user that runs Docker there |
-| `SSH_PRIVATE_KEY` | A private key whose public half is in that user's `~/.ssh/authorized_keys` |
-| `SSH_KNOWN_HOSTS` | The host's line from `ssh-keyscan <host>`, checked before connecting |
 | `JWT_SECRET` | The signing key of the access tokens |
 | `POSTGRES_PASSWORD` | The database password; it goes into `DATABASE_URL` as is, so generate a URL-safe one (`openssl rand -hex 32`). Postgres reads it only when the volume is first created, so to change it run `docker compose exec postgres psql -U finance -c "ALTER USER finance PASSWORD '<new>'"` before updating the secret |
 | `CLOUDFLARE_TUNNEL_TOKEN` | The token of the tunnel, from Cloudflare Zero Trust → Networks → Tunnels |
 | `TELEGRAM_CLIENT_ID`, `TELEGRAM_CLIENT_SECRET` | The OIDC client from BotFather |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | The OAuth client from Google Cloud |
 
-The images are pushed with the workflow's `GITHUB_TOKEN`. Once, the server logs in to the registry with a personal
-access token that has only `read:packages`; the token stays on the server:
+The images are pushed with the workflow's `GITHUB_TOKEN`, which the deploy job keeps in a Docker config of its own
+that is deleted with the job. A manual `docker compose pull` on the server needs a login of the server's user, once,
+with a personal access token that has only `read:packages`; the token stays on the server:
 
 ```bash
 docker login ghcr.io -u <github_user>
 ```
+
+### Self-hosted runner
+
+The repository is private and its free GitHub-hosted minutes do not cover the workflows, so every job of `tests` and
+`deploy` runs on one runner on the VPS, labelled `self-hosted`. A job there has Docker access to production, so the
+repository must stay private while the runner is attached: a public repository would run the code of any fork's pull
+request on the server. The runner takes one job at a time, so the jobs of a run execute in sequence.
+
+The server has 1 vCPU and 1 GB of RAM, so the runner is set up to give way to production:
+
+- a 3 GB swap file, `/swapfile`, next to the 1 GB swap partition, listed in `/etc/fstab`;
+- a drop-in of the runner's unit, `/etc/systemd/system/actions.runner.fibboo-finance.racknerd.service.d/limits.conf`,
+  with `OOMScoreAdjust=500`, `MemoryHigh=500M`, `CPUWeight=20` and `Nice=10`: above 500 MB the steps that run on the
+  host (Node) are pushed into swap, and the kernel kills a job before postgres or the backend;
+- the containers the jobs start run with `--memory`, `--memory-swap` and `--cpu-shares`, set in `tests.yml`;
+- the jobs that build an image end by pruning dangling images and build cache older than a week.
+
+A `docker build` is not covered by these limits, so production answers slower while an image builds.
+
+To install the runner, take the registration token from the repository's Settings → Actions → Runners → New
+self-hosted runner (or `gh api -X POST repos/fibboo/finance/actions/runners/registration-token --jq .token`); it is
+valid for one hour. As the user that runs Docker, with the version and checksum of the latest
+[runner release](https://github.com/actions/runner/releases):
+
+```bash
+mkdir ~/actions-runner && cd ~/actions-runner
+curl -sSfL -o runner.tar.gz https://github.com/actions/runner/releases/download/v<version>/actions-runner-linux-x64-<version>.tar.gz
+echo "<sha256>  runner.tar.gz" | sha256sum -c -
+tar xzf runner.tar.gz && rm runner.tar.gz
+./config.sh --unattended --url https://github.com/fibboo/finance --token <token> --name racknerd
+```
+
+Then as root, from the same folder:
+
+```bash
+fallocate -l 3G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo "/swapfile none swap sw 0 0" >> /etc/fstab
+./svc.sh install <user>
+mkdir /etc/systemd/system/actions.runner.fibboo-finance.racknerd.service.d
+printf '[Service]\nOOMScoreAdjust=500\nMemoryHigh=500M\nCPUWeight=20\nNice=10\n' \
+  > /etc/systemd/system/actions.runner.fibboo-finance.racknerd.service.d/limits.conf
+systemctl daemon-reload
+./svc.sh start
+```
+
+The runner shows as Idle under Settings → Actions → Runners and updates itself. To remove it, run `./svc.sh stop` and
+`./svc.sh uninstall` as root, then `./config.sh remove --token <token>` as the user with a removal token from the same
+page, and delete the folder and the drop-in.
 
 ---
 

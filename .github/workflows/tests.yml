@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     permissions:
       contents: read
@@ -42,8 +42,8 @@ jobs:
   tests:
     needs: changes
     if: github.event_name == 'push' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: self-hosted
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -51,13 +51,19 @@ jobs:
         run: docker build -t finance-test -f backend/tests/Dockerfile backend
 
       - name: Run tests
-        run: docker run --rm finance-test pytest -v -n auto
+        run: docker run --rm --memory 512m --memory-swap 2g --cpu-shares 256 finance-test pytest -v -n auto
+
+      - name: Prune dangling images and old build cache
+        if: always()
+        run: |
+          docker image prune -f
+          docker builder prune -f --filter until=168h
 
   frontend:
     needs: changes
     if: github.event_name == 'push' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: self-hosted
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: frontend
@@ -67,8 +73,6 @@ jobs:
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 26.12.0
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -91,23 +95,22 @@ jobs:
   api-schema:
     needs: changes
     if: github.event_name == 'push' || needs.changes.outputs.api_schema == 'true' || needs.changes.outputs.workflows == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: self-hosted
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
 
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 26.12.0
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Build backend image
         run: docker build -t finance-test -f backend/tests/Dockerfile backend
 
       - name: Start backend
         run: |
-          docker run -d --env-file backend/.env -p 8000:8000 finance-test uvicorn app.main:app --host 0.0.0.0
+          docker rm -f finance-api-schema 2> /dev/null || true
+          docker run -d --name finance-api-schema --memory 256m --memory-swap 1g --cpu-shares 256             --env-file backend/.env -p 127.0.0.1:8000:8000 finance-test uvicorn app.main:app --host 0.0.0.0
           curl -sf --retry 30 --retry-all-errors --retry-delay 1 -o /dev/null http://localhost:8000/openapi.json
 
       - name: Install dependencies
@@ -120,3 +123,10 @@ jobs:
 
       - name: Fail on stale API types
         run: git diff --exit-code frontend/src/lib/api-schema.ts
+
+      - name: Stop backend, prune dangling images and old build cache
+        if: always()
+        run: |
+          docker rm -f finance-api-schema
+          docker image prune -f
+          docker builder prune -f --filter until=168h

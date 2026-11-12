@@ -14,7 +14,7 @@ concurrency:
 jobs:
   freshness:
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     permissions:
       contents: read
@@ -29,7 +29,7 @@ jobs:
         run: |
           if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ "$GITHUB_RUN_ATTEMPT" -gt 1 ]; then
             echo "is_latest=true" >> "$GITHUB_OUTPUT"
-          elif [ "$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)" = "$HEAD_SHA" ]; then
+          elif [ "$(curl -sf -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.sha" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/main")" = "$HEAD_SHA" ]; then
             echo "is_latest=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::$HEAD_SHA is no longer the head of main, so it is not deployed."
@@ -39,7 +39,7 @@ jobs:
   deploy:
     needs: freshness
     if: needs.freshness.outputs.is_latest == 'true'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 30
     permissions:
       contents: read
@@ -79,62 +79,42 @@ jobs:
           } > deploy/.env
           cp docker-compose.production.yml deploy/
 
-      - uses: docker/setup-buildx-action@v4.4.1
-
-      - uses: docker/login-action@v4.6.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to GHCR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "DOCKER_CONFIG=$RUNNER_TEMP/docker" >> "$GITHUB_ENV"
+          echo "$GITHUB_TOKEN" | DOCKER_CONFIG="$RUNNER_TEMP/docker" docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: backend
-          file: backend/Dockerfile
-          push: true
-          tags: ghcr.io/fibboo/finance-backend:${{ env.IMAGE_TAG }}
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+        run: |
+          docker build -t "ghcr.io/fibboo/finance-backend:$IMAGE_TAG" -f backend/Dockerfile backend
+          docker push "ghcr.io/fibboo/finance-backend:$IMAGE_TAG"
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: frontend
-          file: frontend/Dockerfile
-          push: true
-          tags: ghcr.io/fibboo/finance-frontend:${{ env.IMAGE_TAG }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
-
-      - name: Set up SSH
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
-          install -m 700 -d ~/.ssh
-          install -m 600 /dev/null ~/.ssh/deploy_key
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
-          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          docker build -t "ghcr.io/fibboo/finance-frontend:$IMAGE_TAG" -f frontend/Dockerfile frontend
+          docker push "ghcr.io/fibboo/finance-frontend:$IMAGE_TAG"
 
       - name: Deploy
-        env:
-          SSH_TARGET: ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
         run: |
-          ssh -i ~/.ssh/deploy_key "$SSH_TARGET" 'umask 077 && mkdir -p ~/finance/backend'
-          scp -p -i ~/.ssh/deploy_key deploy/.env deploy/docker-compose.production.yml "$SSH_TARGET:finance/"
-          scp -p -i ~/.ssh/deploy_key deploy/backend/.env-production "$SSH_TARGET:finance/backend/"
-          ssh -i ~/.ssh/deploy_key "$SSH_TARGET" IMAGE_TAG="$IMAGE_TAG" bash -s <<'EOF'
-          set -eu
+          umask 077
+          mkdir -p ~/finance/backend ~/backups
+          cp deploy/.env deploy/docker-compose.production.yml ~/finance/
+          cp deploy/backend/.env-production ~/finance/backend/
           cd ~/finance
           docker compose pull
           docker compose up -d --wait --no-recreate postgres
-          umask 077
-          mkdir -p ~/backups
           docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' < /dev/null > ~/backups/pre-deploy.dump.tmp
           mv ~/backups/pre-deploy.dump.tmp ~/backups/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ)-$IMAGE_TAG.dump
           ls -1t ~/backups/pre-deploy-*.dump | tail -n +6 | xargs -r rm --
           docker compose run --rm --no-deps -T backend alembic upgrade head < /dev/null
           docker compose up -d --remove-orphans --wait --wait-timeout 300
           docker images --filter 'reference=ghcr.io/fibboo/finance-*' --format '{{.Repository}}:{{.Tag}}' | grep -v ":$IMAGE_TAG\$" | xargs -r docker rmi
-          EOF
+
+      - name: Remove rendered env files, prune dangling images and old build cache
+        if: always()
+        run: |
+          rm -rf deploy
+          docker image prune -f
+          docker builder prune -f --filter until=168h
