@@ -42,7 +42,6 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
     readIsInside: (target) => menuRef.current?.contains(target) === true,
     onOutsideClick: () => {
       setIsOpen(false);
-      buttonRef.current?.focus();
     },
   });
 

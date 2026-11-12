@@ -4,7 +4,6 @@
   position: fixed;
   right: calc(var(--space-3) + (var(--size-fab) - var(--size-back-to-top)) / 2);
   bottom: calc(var(--size-bar) + var(--space-3) * 2);
-  z-index: 1;
   width: var(--size-back-to-top);
   height: var(--size-back-to-top);
   padding: 0;
@@ -49,11 +48,16 @@
     position: absolute;
     right: var(--space-6);
     bottom: var(--space-6);
+    z-index: 1;
     width: var(--size-touch);
     height: var(--size-touch);
     border: 0;
     background: var(--color-ink);
     color: var(--color-ground);
+  }
+
+  .backToTop::before {
+    content: none;
   }
 
   .icon {

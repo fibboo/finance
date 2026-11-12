@@ -87,7 +87,7 @@ export function MainNavigation() {
               <path d={section.iconPath} />
             </svg>
             <span className={styles['label']}>{section.name}</span>{' '}
-            <span className={styles['moreSoon']}>Soon</span>
+            <span className={styles['soon']}>Soon</span>
           </button>
         ))}
       </MoreMenu>
