@@ -1,6 +1,6 @@
 ---
 name: add-module
-description: Apply the repository's module checklist when adding a containerized module or service, or planning an issue that adds one, including the planned frontend.
+description: Apply the repository's module checklist when adding a containerized module or service, or planning an issue that adds one.
 ---
 
 # Add module

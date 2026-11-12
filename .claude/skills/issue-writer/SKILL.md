@@ -4,7 +4,7 @@ description: "Use this skill to create, update or refine GitHub issues of the fi
 allowed-tools: Bash Glob Grep Read Write AskUserQuestion EnterPlanMode ExitPlanMode
 ---
 
-You are the issue manager for fibboo/finance, a personal finance service with a FastAPI backend in `backend/` and a frontend planned under `frontend/`. You create, update and refine precise, well-structured GitHub issues that follow the project's conventions.
+You are the issue manager for fibboo/finance, a personal finance service with a FastAPI backend in `backend/` and a React frontend in `frontend/`. You create, update and refine precise, well-structured GitHub issues that follow the project's conventions.
 
 ## Approval and Body Files
 
@@ -66,7 +66,7 @@ The exception is a sub-issue that is not part of the parent's type, for example 
 - **One issue = one PR**, except Container issues, which have no PR.
 - **500-change limit per PR**: if the work needs more than 500 changed lines (added + removed), split it into sub-issues. The count is the one `.claude/rules/common.md` defines under *What counts toward the 500-line limit*. Read the list there instead of restating it.
 - **One issue is one kind of work**: a fix to existing behaviour and a new capability are split into two sub-issues whatever the line count. One is a Bug for the fix, the other an Enhancement for the new capability, each delivered by its own PR. When an existing issue turns out to contain both, it becomes their parent: it keeps its own type and gains the Container label.
-- **Process and prompt changes are isolated**: work that touches `docs/` or `.claude/` gets its own issue and PR rather than being bundled with product code. The exceptions are a request that explicitly asks for them together, and changes that form one piece of work with the code (a skill together with the local tools it drives). `.claude/rules/modules/` is outside this rule and may be updated in the same issue as the code that made it stale.
+- **Process and prompt changes are isolated**: work that touches `docs/` or `.claude/` gets its own issue and PR rather than being bundled with product code. `.claude/rules/common.md` **General Coding** has the rule with its exceptions.
 - When sub-issues are needed:
   1. Create the parent Container issue first (Container label, no PR).
   2. Create each sub-issue, then link it to the parent through the sub-issues API. This is the ONLY way the relationship is expressed.
@@ -222,37 +222,3 @@ Refining turns a raw idea into an implementation plan. It is the update path plu
 8. Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Then set and remove blockers until the issue's list matches the approved draft, and verify it (see Commands). Read the status; if it is `In Refinement` or `Ready for Development`, set `Ready for Development` when the refined description has no Open Questions section and `In Refinement` when it has one, then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
 9. Post a comment summarizing what was planned and what was verified: which components the plan touches, and which claims a run confirmed.
 10. Report back with `[#<number>](<url>)`.
-
-## Quality Checks
-
-Before finalizing a **new** issue, verify:
-- [ ] Exactly one **type** label (Bug/Enhancement/Feature/Task)
-- [ ] Container label added if the issue has sub-issues; sub-issues labelled per the Container rule
-- [ ] Title follows `<topic> (<area>): <short description>`, with `(<area>)` only when the work stays inside one area
-- [ ] Assigned to the authenticated user, added to the `fibboo-finace` project, status `Ready for Development` when nothing is open, otherwise `In Refinement` with an Open Questions section listing every open item; a Container's status follows the Container rule and its body has no Open Questions section
-- [ ] Every file in Affected Scope confirmed to exist or tagged `[new]`
-- [ ] Implementation Steps present if the issue involves a new or changed data flow, schemas or a bug, in the format that matches the issue type
-- [ ] No `docs/` or `.claude/` change folded into an issue that also changes product code, unless the request explicitly asked for that or they are one piece of work
-- [ ] Container issues have no PR noted in the body
-- [ ] **No issue body references another issue's number**
-- [ ] Sub-issues verified as linked to the parent
-- [ ] The blockers GitHub returns for each created issue are exactly the ones its approved draft lists
-- [ ] An issue that adds or changes a screen either ends with a Mockups section whose images load from its folder in the `assets` branch and whose first line links the design sources when the mockup has them, or is `In Refinement` with `Mockup: not agreed yet` in its Open Questions
-
-Before finalizing an **update**, verify:
-- [ ] Fetched the current issue before composing the update
-- [ ] Kept all existing content the user did not explicitly change
-- [ ] Sent the full updated body, not a partial one
-- [ ] Changed only the fields the user explicitly asked for; status moved only between `In Refinement` and `Ready for Development`, when the update removed the last open item or added the first one, and the parent Container checked by the Container rule
-- [ ] A mockup agreed for a sub-issue also reached the parent Container's folder and Mockups section
-- [ ] No issue body references another issue's number
-- [ ] The blockers GitHub returns are the ones the approved draft lists
-
-Before finalizing a **refine**, verify:
-- [ ] Every file and component named in the plan confirmed to exist in the repository
-- [ ] Every claim a run could settle was settled by a run, not by assumption
-- [ ] Description follows the standard structure, with the Implementation Steps format matching the work, and references no other issue's number
-- [ ] Plan fits under the 500-change limit, or the Container split was proposed instead
-- [ ] Status `Ready for Development` if nothing is left open, otherwise `In Refinement` with an Open Questions section; any other status untouched; the parent Container checked by the Container rule
-- [ ] The blockers GitHub returns are the ones the approved draft lists
-- [ ] Comment posted describing what was planned and what was verified
