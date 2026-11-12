@@ -162,10 +162,11 @@ export function TransactionForm({
     isBaseCurrencyAmountNeeded({ account: accountOnDate ?? account, baseCurrency });
   const requestError = formState.errors.root?.['server']?.message;
 
-  function dropBaseAmount() {
-    setValue('base_currency_amount', '');
-    clearErrors('base_currency_amount');
-    setIsBaseAmountAsked(false);
+  function forgetAskedBaseAmount() {
+    if (isBaseAmountAsked) {
+      clearErrors('base_currency_amount');
+      setIsBaseAmountAsked(false);
+    }
   }
 
   function closePicker() {
@@ -230,14 +231,16 @@ export function TransactionForm({
           />
           <InputRow
             label="Date"
-            input={readDateInputProps(register('transaction_date', { onChange: dropBaseAmount }))}
+            input={readDateInputProps(
+              register('transaction_date', { onChange: forgetAskedBaseAmount }),
+            )}
             action={
               <CalendarButton
                 label="transaction"
                 value={transactionDate}
                 max={today}
                 onPick={(dateText) => {
-                  dropBaseAmount();
+                  forgetAskedBaseAmount();
                   setValue('transaction_date', dateText, {
                     shouldValidate: formState.isSubmitted,
                   });
@@ -295,7 +298,7 @@ export function TransactionForm({
           create={{ label: 'Create account', renderForm: renderMoneyAccountForm }}
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {
-              dropBaseAmount();
+              forgetAskedBaseAmount();
             }
             setValue('account_id', selectedAccountId, { shouldValidate: formState.isSubmitted });
             closePicker();

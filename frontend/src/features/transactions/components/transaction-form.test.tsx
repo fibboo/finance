@@ -428,7 +428,7 @@ test('refuses a date after today', async () => {
   expect(await screen.findByText('Choose a date up to today')).toBeInTheDocument();
 });
 
-test('drops the base currency amount typed for another account', async () => {
+test('leaves out the base currency amount typed for another account', async () => {
   // arrange
   let requestBody: unknown = null;
   server.use(
@@ -759,7 +759,7 @@ test('leaves out an amount typed before the account turned out to have a rate on
   });
 });
 
-test('drops the base currency amount typed for another date', async () => {
+test('keeps the typed base currency amount when the date changes', async () => {
   // arrange
   server.use(
     http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, () =>
@@ -790,5 +790,67 @@ test('drops the base currency amount typed for another date', async () => {
 
   // assert
   expect(screen.getByLabelText('Date')).toHaveValue('19.10.2026');
-  expect(screen.getByLabelText('In USD')).toHaveValue('');
+  expect(screen.getByLabelText('In USD')).toHaveValue('42.80');
+});
+
+test('leaves out the base currency amount typed for a date once the date is one with a rate', async () => {
+  // arrange
+  // the account has a rate from 06.10.2026 on, and none up to 05.10.2026
+  const ratedEuroCard = { ...euroCard, balance: '50', base_currency_rate: '0.92' };
+  let requestBody: unknown = null;
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, ({ request }) => {
+      const date = new URL(request.url).searchParams.get('date') ?? '';
+      return HttpResponse.json(date >= '2026-10-06' ? ratedEuroCard : euroCard);
+    }),
+    http.post(
+      'http://localhost/api/accounting/accounts/:accountId/adjustment',
+      async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(adjustment);
+      },
+    ),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[ratedEuroCard]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={onClose}
+    />,
+  );
+  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.type(screen.getByLabelText('Date'), '05102026', {
+    initialSelectionStart: 0,
+    initialSelectionEnd: 10,
+  });
+  await user.type(await screen.findByLabelText('In USD'), '54.30');
+  await user.type(screen.getByLabelText('Date'), '06102026', {
+    initialSelectionStart: 0,
+    initialSelectionEnd: 10,
+  });
+  await waitFor(() => {
+    expect(screen.queryByLabelText('In USD')).not.toBeInTheDocument();
+  });
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(requestBody).toEqual({
+    transaction_date: '2026-10-06',
+    comment: null,
+    new_balance: '100.00',
+    base_currency_amount: null,
+  });
 });
