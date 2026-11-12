@@ -13,17 +13,27 @@
   .detailsColumn {
     flex: none;
     min-height: 0;
-    display: flex;
+    display: var(--details-column-display, flex);
+    grid-row: 1 / -1;
+    grid-template-rows: subgrid;
     flex-direction: var(--details-column-direction, column);
     align-self: var(--details-column-align, stretch);
     max-height: 100%;
-    gap: var(--space-4);
+    gap: var(--details-column-gap, var(--space-4));
     overflow-y: auto;
     scrollbar-width: none;
   }
 
   .detailsColumn:not(:has([data-details])) {
     display: none;
+  }
+
+  .detailsColumn > :first-child {
+    --details-panel-row: 1;
+  }
+
+  .detailsColumn > :last-child {
+    --details-panel-row: 2;
   }
 
   .earlierSelection {

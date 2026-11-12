@@ -36,9 +36,16 @@
   }
 
   .details {
+    --details-column-display: grid;
+    --details-column-gap: normal;
+    --details-panel-align: stretch;
+    --details-panel-contain: size;
+    --details-content-min-height: 0;
+
     grid-column: 2;
     grid-row: 1 / -1;
     min-height: 0;
-    display: flex;
+    display: grid;
+    grid-template-rows: subgrid;
   }
 }
