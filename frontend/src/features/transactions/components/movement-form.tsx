@@ -25,7 +25,7 @@ import {
   readAccountCurrency,
 } from '../schemas/transaction-form';
 import { AmountField } from './amount-field';
-import { readAmountInputProps } from './amount-input';
+import { BaseCurrencyAmountRow } from './base-currency-amount-row';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { ExpenseExtraRows } from './expense-extra-rows';
@@ -311,17 +311,11 @@ export function MovementForm({
           }
         />
         {isIncome && isBaseCurrencyAmountAsked && (
-          <div className={styles['rows']}>
-            <InputRow
-              label={`In ${baseCurrency}`}
-              input={readAmountInputProps({
-                registration: register('base_currency_amount'),
-                isNegativeAllowed: false,
-              })}
-              suffix={baseCurrency}
-              error={formState.errors.base_currency_amount?.message}
-            />
-          </div>
+          <BaseCurrencyAmountRow
+            baseCurrency={baseCurrency}
+            registration={register('base_currency_amount')}
+            error={formState.errors.base_currency_amount?.message}
+          />
         )}
         <div className={styles['rows']}>
           <PickerRow

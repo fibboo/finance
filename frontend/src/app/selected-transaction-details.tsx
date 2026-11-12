@@ -55,6 +55,7 @@ function SelectedTransaction({
   }
 
   const editButtonId = useId();
+  const relatedQueryKeys = [accountQueries.all().queryKey, summaryQueries.current().queryKey];
   const { data: transaction, error } = useQuery(transactionQueries.detail(transactionId));
   const choices = useMovementChoices(isEditing ? transaction?.transaction_type : undefined);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
@@ -88,7 +89,7 @@ function SelectedTransaction({
         transactionTypes={transactionTypes}
         accountKinds={accountKinds}
         readAccountLink={readAccountLink}
-        relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
+        relatedQueryKeys={relatedQueryKeys}
         isShownByDefault={isShownByDefault}
         editButtonId={editButtonId}
         onEdit={() => {
@@ -125,7 +126,7 @@ function SelectedTransaction({
               transactionType={transaction.transaction_type}
               moneyAccounts={choices.moneyAccounts}
               baseCurrency={choices.baseCurrency}
-              relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
+              relatedQueryKeys={relatedQueryKeys}
               onClose={closeEditForm}
             />
           ) : (
@@ -139,11 +140,7 @@ function SelectedTransaction({
               incomeSources={choices.incomeSources}
               locations={choices.locations}
               baseCurrency={choices.baseCurrency}
-              relatedQueryKeys={[
-                accountQueries.all().queryKey,
-                summaryQueries.current().queryKey,
-                locationQueries.all().queryKey,
-              ]}
+              relatedQueryKeys={[...relatedQueryKeys, locationQueries.all().queryKey]}
               {...choices.createForms}
               onClose={closeEditForm}
             />

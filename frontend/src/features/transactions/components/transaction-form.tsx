@@ -25,7 +25,7 @@ import {
 } from '../schemas/transaction-form';
 import { readAdjustmentPosting, readAdjustmentValues } from './adjustment-values';
 import { AmountField } from './amount-field';
-import { readAmountInputProps } from './amount-input';
+import { BaseCurrencyAmountRow } from './base-currency-amount-row';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { FormHeader, NEW_TRANSACTION_TITLE, type TypeChoice } from './form-header';
@@ -160,8 +160,9 @@ export function TransactionForm({
     name: ['account_id', 'amount', 'transaction_date'],
   });
   const adjust = useMutation(transactionMutations.adjust(relatedQueryKeys));
+  const update = useMutation(transactionMutations.updateAdjustment(relatedQueryKeys));
   const account = accounts?.find((moneyAccount) => moneyAccount.id === accountId);
-  const { data: accountOnDate } = useQuery(
+  const { data: accountOnDate, isLoading: isAccountOnDateLoading } = useQuery(
     transactionQueries.accountOnDate({
       accountId: account?.id,
       date: readAdjustmentDate({ dateText: transactionDate, today }),
@@ -180,6 +181,13 @@ export function TransactionForm({
     }
   }
 
+  function handleDateChange() {
+    forgetAskedBaseAmount();
+    if (!isBaseAmountShown) {
+      setValue('base_currency_amount', '', { shouldDirty: true });
+    }
+  }
+
   function closePicker() {
     flushSync(() => {
       setIsPickingAccount(false);
@@ -195,24 +203,26 @@ export function TransactionForm({
         noValidate
         onSubmit={(event) => {
           void handleSubmit((values) => {
-            adjust.mutate(
-              { ...values, transaction_id: editedTransactionId },
-              {
-                onSuccess: onClose,
-                onError: (error) => {
-                  readSaveErrors({
-                    error,
-                    fields: FORM_FIELDS,
-                    fallbackMessage: SAVE_ERROR_MESSAGE,
-                  }).forEach(({ field, message }) => {
-                    if (field === 'base_currency_amount') {
-                      setIsBaseAmountAsked(true);
-                    }
-                    setError(field, { message });
-                  });
-                },
+            const saveOptions = {
+              onSuccess: onClose,
+              onError: (error: Error) => {
+                readSaveErrors({
+                  error,
+                  fields: FORM_FIELDS,
+                  fallbackMessage: SAVE_ERROR_MESSAGE,
+                }).forEach(({ field, message }) => {
+                  if (field === 'base_currency_amount') {
+                    setIsBaseAmountAsked(true);
+                  }
+                  setError(field, { message });
+                });
               },
-            );
+            };
+            if (mode.kind === 'edit') {
+              update.mutate({ ...values, transaction_id: mode.transaction.id }, saveOptions);
+            } else {
+              adjust.mutate(values, saveOptions);
+            }
           })(event);
         }}
       >
@@ -239,17 +249,11 @@ export function TransactionForm({
           error={formState.errors.amount?.message}
         />
         {isBaseAmountShown && (
-          <div className={styles['rows']}>
-            <InputRow
-              label={`In ${baseCurrency}`}
-              input={readAmountInputProps({
-                registration: register('base_currency_amount'),
-                isNegativeAllowed: false,
-              })}
-              suffix={baseCurrency}
-              error={formState.errors.base_currency_amount?.message}
-            />
-          </div>
+          <BaseCurrencyAmountRow
+            baseCurrency={baseCurrency}
+            registration={register('base_currency_amount')}
+            error={formState.errors.base_currency_amount?.message}
+          />
         )}
         <div className={styles['rows']}>
           <PickerRow
@@ -270,16 +274,14 @@ export function TransactionForm({
           />
           <InputRow
             label="Date"
-            input={readDateInputProps(
-              register('transaction_date', { onChange: forgetAskedBaseAmount }),
-            )}
+            input={readDateInputProps(register('transaction_date', { onChange: handleDateChange }))}
             action={
               <CalendarButton
                 label="transaction"
                 value={transactionDate}
                 max={today}
                 onPick={(dateText) => {
-                  forgetAskedBaseAmount();
+                  handleDateChange();
                   setValue('transaction_date', dateText, {
                     shouldDirty: true,
                     shouldValidate: formState.isSubmitted,
@@ -310,7 +312,12 @@ export function TransactionForm({
         <button
           type="submit"
           className={styles['submit']}
-          disabled={adjust.isPending || moneyAccounts === undefined}
+          disabled={
+            adjust.isPending ||
+            update.isPending ||
+            moneyAccounts === undefined ||
+            (mode.kind === 'edit' && isAccountOnDateLoading)
+          }
         >
           {mode.kind === 'edit' ? 'Save changes' : 'Adjust balance'}
         </button>

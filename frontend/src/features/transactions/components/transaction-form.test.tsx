@@ -1039,6 +1039,9 @@ test('sends the update of the edited adjustment and closes', async () => {
     initialSelectionEnd: 6,
   });
 
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
@@ -1109,4 +1112,66 @@ test('reads the account on the date without the edited adjustment and starts fro
   // assert
   expect(await screen.findByLabelText('In USD')).toHaveValue('35.20');
   expect(excludedTransactionId).toBe(walletAdjustment.id);
+});
+
+test('keeps Save changes disabled until the account on the date of the edited adjustment has loaded', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, async () => {
+      await delay(300);
+      return HttpResponse.json(wallet);
+    }),
+  );
+
+  // act
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: walletAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+});
+
+test('asks for the base currency amount afresh when the edited adjustment moves to a date without a rate', async () => {
+  // arrange
+  // the account has a rate from 06.10.2026 on, and none up to 05.10.2026
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, ({ request }) => {
+      const date = new URL(request.url).searchParams.get('date') ?? '';
+      return HttpResponse.json(date >= '2026-10-06' ? ratedEuroCard : euroCard);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: euroCardAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[ratedEuroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+
+  // act
+  await user.type(screen.getByLabelText('Date'), '05102026', {
+    initialSelectionStart: 0,
+    initialSelectionEnd: 10,
+  });
+
+  // assert
+  expect(await screen.findByLabelText('In USD')).toHaveValue('');
 });

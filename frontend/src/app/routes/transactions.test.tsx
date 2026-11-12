@@ -1975,6 +1975,9 @@ test('saves the adjustment edited from its details and refreshes its details', a
   await user.clear(amount);
   await user.type(amount, '50');
 
+  await waitFor(() => {
+    expect(within(editForm).getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
   // act
   await user.click(within(editForm).getByRole('button', { name: 'Save changes' }));
 
