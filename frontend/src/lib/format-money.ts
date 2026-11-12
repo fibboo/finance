@@ -1,5 +1,7 @@
 export const LOCALE = 'en-US';
 
+export const AMOUNT_DECIMAL_DIGITS = 2;
+
 export function formatMoney({
   amount,
   currency,
@@ -15,6 +17,8 @@ export function formatMoney({
     style: 'currency',
     currency,
     currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: AMOUNT_DECIMAL_DIGITS,
+    maximumFractionDigits: AMOUNT_DECIMAL_DIGITS,
     signDisplay,
     trailingZeroDisplay,
   }).format(amount);

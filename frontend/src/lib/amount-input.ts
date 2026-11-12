@@ -1,7 +1,6 @@
-import { LOCALE } from './format-money';
+import { AMOUNT_DECIMAL_DIGITS, LOCALE } from './format-money';
 
 const AMOUNT_INTEGER_DIGITS = 13;
-const AMOUNT_DECIMAL_DIGITS = 2;
 const GROUP_SIZE = 3;
 const PLAIN_DECIMAL_SEPARATOR = '.';
 const SEPARATOR_PARTS = new Intl.NumberFormat(LOCALE).formatToParts(1000.5);
