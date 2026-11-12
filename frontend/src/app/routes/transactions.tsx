@@ -4,10 +4,15 @@ import { useSearchParams } from 'react-router';
 import { DetailsColumn } from '@/app/details-column';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { useShownAccount } from '@/app/use-shown-account';
+import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import {
+  DEFAULT_ENTRY_TRANSACTION_TYPE,
+  writeNewTransactionType,
+} from '@/features/transactions/api/new-transaction';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,
@@ -106,6 +111,20 @@ export function Component() {
   });
   return (
     <Page title="Transactions" count={readTransactionCount(feed.total)}>
+      <div className={styles['actions']}>
+        <NewButton
+          entityName="transaction"
+          onClick={() => {
+            setSearchParams(
+              writeNewTransactionType({
+                searchParams,
+                transactionType: DEFAULT_ENTRY_TRANSACTION_TYPE,
+              }),
+              { preventScrollReset: true },
+            );
+          }}
+        />
+      </div>
       {baseCurrency !== undefined &&
         dictionaries !== undefined &&
         accounts !== undefined &&

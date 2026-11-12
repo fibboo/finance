@@ -31,6 +31,7 @@ const MORE_SECTIONS = [
 export function MainNavigation() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { pathname } = useLocation();
+  const isHome = matchPath('/', pathname) !== null;
   const isMoreSectionOpen = MORE_SECTIONS.some(
     (section) => matchPath({ path: section.path, end: false }, pathname) !== null,
   );
@@ -39,7 +40,7 @@ export function MainNavigation() {
     <nav aria-label="Main" className={styles['mainNavigation']}>
       <button
         type="button"
-        className={styles['addTransaction']}
+        className={isHome ? styles['addTransaction'] : styles['addTransactionOffHome']}
         onClick={() => {
           setSearchParams(
             writeNewTransactionType({

@@ -16,7 +16,7 @@
 .staleRows {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 0 var(--space-2) calc(var(--size-fab-room) + var(--size-back-to-top));
+  padding: 0 var(--space-2) var(--transaction-feed-end-room, var(--size-back-to-top));
   border-radius: calc(var(--radius-panel) - var(--space-1-5))
     calc(var(--radius-panel) - var(--space-1-5)) 0 0;
   overflow-x: hidden;
