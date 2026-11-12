@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { PLAIN_AMOUNT_PATTERN } from '@/lib/amount-input';
 import { type components, transactionTypeValues } from '@/lib/api-schema';
+import { readSearchTerm } from '@/lib/search-term';
 
 import type { TransactionListQuery } from './transaction-queries';
 
@@ -10,7 +11,9 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 export const DATE_ORDER_PREFIX = 'transaction_date:';
 export const DEFAULT_ORDER = `${DATE_ORDER_PREFIX}desc`;
 export const OLDEST_FIRST_ORDER = `${DATE_ORDER_PREFIX}asc`;
+const SEARCH_PARAM = 'search';
 const SINGLE_PARAMS = [
+  SEARCH_PARAM,
   'date_from',
   'base_currency_amount_from',
   'base_currency_amount_to',
@@ -22,6 +25,7 @@ const LIST_PARAMS = ['transaction_types', ...ACCOUNT_ID_PARAMS] as const;
 export type AccountIdParam = (typeof ACCOUNT_ID_PARAMS)[number];
 
 const transactionFiltersSchema = z.object({
+  search: z.string().min(1).optional().catch(undefined),
   date_from: z.iso.date().optional().catch(undefined),
   transaction_types: z
     .array(z.string())
@@ -114,9 +118,36 @@ export function writeTransactionFilters(filters: TransactionFilters): URLSearchP
   return searchParams;
 }
 
+export function readTransactionSearch(searchParams: URLSearchParams): string {
+  const search = searchParams.get(SEARCH_PARAM) ?? '';
+  return search;
+}
+
+export function writeTransactionSearch({
+  searchParams,
+  search,
+}: Readonly<{ searchParams: URLSearchParams; search: string }>): URLSearchParams {
+  const nextSearchParams = new URLSearchParams(searchParams);
+  if (search === '') {
+    nextSearchParams.delete(SEARCH_PARAM);
+  } else {
+    nextSearchParams.set(SEARCH_PARAM, search);
+  }
+
+  return nextSearchParams;
+}
+
+export function readTransactionListKey(searchParams: URLSearchParams): string {
+  const searchTerm = readSearchTerm(readTransactionSearch(searchParams));
+  const listKey = writeTransactionSearch({ searchParams, search: searchTerm ?? '' }).toString();
+  return listKey;
+}
+
 export function readTransactionFilterQuery(filters: TransactionFilters): TransactionFilterQuery {
   const accountIds = ACCOUNT_ID_PARAMS.flatMap((name) => filters[name]);
+  const searchTerm = filters.search === undefined ? undefined : readSearchTerm(filters.search);
   const filterQuery = {
+    ...(searchTerm !== undefined && { search_term: searchTerm }),
     ...(filters.date_from !== undefined && { date_from: filters.date_from }),
     ...(filters.transaction_types.length > 0 && {
       transaction_types: [...filters.transaction_types],
@@ -140,6 +171,7 @@ export function isSortedByDate(filters: TransactionFilters): boolean {
 
 export function hasNarrowingFilters(filters: TransactionFilters): boolean {
   const isNarrowed =
+    (filters.search !== undefined && readSearchTerm(filters.search) !== undefined) ||
     filters.date_from !== undefined ||
     filters.transaction_types.length > 0 ||
     filters.base_currency_amount_from !== undefined ||

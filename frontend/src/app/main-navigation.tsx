@@ -1,12 +1,8 @@
-import { matchPath, NavLink, useLocation, useSearchParams } from 'react-router';
-
-import {
-  DEFAULT_ENTRY_TRANSACTION_TYPE,
-  writeNewTransactionType,
-} from '@/features/transactions/api/new-transaction';
+import { matchPath, NavLink, useLocation } from 'react-router';
 
 import styles from './main-navigation.module.css';
 import { MoreMenu } from './more-menu';
+import { useOpenNewTransaction } from './use-open-new-transaction';
 
 const HOME_ICON_PATH = 'M4 11 12 4l8 7v9h-5v-6H9v6H4z';
 const TRANSACTIONS_ICON_PATH = 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01';
@@ -29,7 +25,7 @@ const MORE_SECTIONS = [
 ] as const;
 
 export function MainNavigation() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const openNewTransaction = useOpenNewTransaction();
   const { pathname } = useLocation();
   const isMoreSectionOpen = MORE_SECTIONS.some(
     (section) => matchPath({ path: section.path, end: false }, pathname) !== null,
@@ -37,19 +33,7 @@ export function MainNavigation() {
 
   return (
     <nav aria-label="Main" className={styles['mainNavigation']}>
-      <button
-        type="button"
-        className={styles['addTransaction']}
-        onClick={() => {
-          setSearchParams(
-            writeNewTransactionType({
-              searchParams,
-              transactionType: DEFAULT_ENTRY_TRANSACTION_TYPE,
-            }),
-            { preventScrollReset: true },
-          );
-        }}
-      >
+      <button type="button" className={styles['addTransaction']} onClick={openNewTransaction}>
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
           <path d={ADD_ICON_PATH} />
         </svg>

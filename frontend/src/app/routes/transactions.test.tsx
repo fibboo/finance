@@ -734,6 +734,94 @@ test('resets the filters that match nothing', async () => {
   expect(screen.getByRole('button', { name: 'Type' })).toBeInTheDocument();
 });
 
+test('requests the typed search once it has 3 characters and keeps it in the URL', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const requestedSearchTerms: (string | null)[] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedSearchTerms.push(new URL(request.url).searchParams.get('search_term'));
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/transactions'] });
+  await screen.findByText('Groceries');
+  const searchField = screen.getByRole('searchbox', { name: 'Search transactions' });
+  await user.type(searchField, 'Gr');
+
+  // act
+  await user.type(searchField, 'o');
+
+  // assert
+  await waitFor(() => {
+    expect(requestedSearchTerms).toContain('Gro');
+  });
+  expect(requestedSearchTerms).not.toContain('Gr');
+  expect(new URLSearchParams(router.state.location.search).get('search')).toBe('Gro');
+});
+
+test('shows the empty state for a search that matches nothing and clears it on Reset filters', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const isSearched = new URL(request.url).searchParams.has('search_term');
+      return HttpResponse.json({
+        items: isSearched ? [] : [expense],
+        total: isSearched ? 0 : 1,
+        page: 1,
+        size: 15,
+        pages: isSearched ? 0 : 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />, { initialEntries: ['/transactions?search=Rent'] });
+  expect(await screen.findByText('Nothing matches these filters')).toBeInTheDocument();
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+  // assert
+  expect(await screen.findByText('Groceries')).toBeInTheDocument();
+  const searchField = screen.getByRole('searchbox', { name: 'Search transactions' });
+  expect(searchField).toHaveValue('');
+  expect(searchField).toHaveFocus();
+});
+
+test('opens New transaction on an expense and keeps the filters', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: ['/transactions?transaction_types=EXPENSE'],
+  });
+  await screen.findByText('Groceries');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'New transaction' }));
+
+  // assert
+  const searchParams = new URLSearchParams(router.state.location.search);
+  expect(searchParams.get('new_transaction')).toBe('EXPENSE');
+  expect(searchParams.getAll('transaction_types')).toEqual(['EXPENSE']);
+});
+
 test('drops the filters of the URL that are not valid', async () => {
   // arrange
   let requestedSearch = '';

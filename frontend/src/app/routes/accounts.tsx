@@ -1,32 +1,32 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { NavigationType, useLocation, useNavigationType, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 
 import { SelectedAccountDetails } from '@/app/selected-account-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
+import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
+import { SearchField } from '@/components/search-field/search-field';
 import { Sheet } from '@/components/sheet/sheet';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import {
-  isAccountSearchTyped,
+  ACCOUNT_SEARCH_FIELD_ID,
   readAccountSearch,
-  readAccountSearchTerm,
-  TYPED_SEARCH_STATE,
   writeAccountSearch,
 } from '@/features/accounts/api/account-search';
 import { readTopAccountId } from '@/features/accounts/components/account-grouping';
 import { AccountGroups } from '@/features/accounts/components/account-groups';
-import { AccountSearch } from '@/features/accounts/components/account-search';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
 import { currencyQueries } from '@/features/currencies/api/currency-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import { isThrownWithoutData } from '@/lib/query-meta';
+import { readSearchTerm } from '@/lib/search-term';
 
 import styles from './accounts.module.css';
 
-const NEW_ACCOUNT_ICON_PATH = 'M12 5v14M5 12h14';
 function readAccountCount(
   total: number | undefined,
 ): Readonly<{ value: number; label: string }> | undefined {
@@ -39,30 +39,9 @@ export function Component() {
   const baseCurrency = useBaseCurrency();
   const [isCreating, setIsCreating] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation();
-  const navigationType = useNavigationType();
   const search = readAccountSearch(searchParams);
-  const [searchField, setSearchField] = useState({
-    locationKey: location.key,
-    search,
-    version: 0,
-    isFocusedOnMount: false,
-  });
-  const [isSearchClearPending, setIsSearchClearPending] = useState(false);
-  if (location.key !== searchField.locationKey) {
-    const isTyped = navigationType !== NavigationType.Pop && isAccountSearchTyped(location.state);
-    const isFieldReset = !isTyped && search !== searchField.search;
-    setSearchField({
-      locationKey: location.key,
-      search,
-      version: isFieldReset ? searchField.version + 1 : searchField.version,
-      isFocusedOnMount: isFieldReset && isSearchClearPending,
-    });
-    if (isFieldReset) {
-      setIsSearchClearPending(false);
-    }
-  }
-  const searchTerm = readAccountSearchTerm(search);
+  const searchField = useSearchField(search);
+  const searchTerm = readSearchTerm(search);
   const accountQuery = {
     size: ACCOUNT_PAGE_SIZE,
     kinds: [...MONEY_ACCOUNT_KINDS],
@@ -91,8 +70,10 @@ export function Component() {
   return (
     <Page title="Accounts" count={readAccountCount(allAccountPage?.total)}>
       <div className={styles['actions']}>
-        <AccountSearch
-          key={searchField.version}
+        <SearchField
+          key={searchField.fieldKey}
+          id={ACCOUNT_SEARCH_FIELD_ID}
+          label="Search accounts"
           term={search}
           isFocusedOnMount={searchField.isFocusedOnMount}
           onSearch={(nextSearch) => {
@@ -102,28 +83,22 @@ export function Component() {
             });
           }}
         />
-        <button
-          type="button"
-          className={styles['newAccount']}
-          disabled={
+        <NewButton
+          entityName="account"
+          isDisabled={
             dictionaries === undefined || currencies === undefined || baseCurrency === undefined
           }
           onClick={() => {
             setIsCreating(true);
           }}
-        >
-          <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-            <path d={NEW_ACCOUNT_ICON_PATH} />
-          </svg>
-          New <span className="visually-hidden-on-phone">account</span>
-        </button>
+        />
       </div>
       {baseCurrency !== undefined && (
         <div className={styles['accounts']}>
           {isNothingMatched ? (
             <NoMatchingAccounts
               onClear={() => {
-                setIsSearchClearPending(true);
+                searchField.focusAfterClear();
                 setSearchParams(writeAccountSearch({ searchParams, search: '' }), {
                   replace: true,
                 });
