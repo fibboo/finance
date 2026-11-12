@@ -1,9 +1,7 @@
 name: deploy
 
 on:
-  workflow_run:
-    workflows: [tests]
-    types: [completed]
+  push:
     branches: [main]
   workflow_dispatch:
 
@@ -12,44 +10,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  freshness:
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
-    runs-on: self-hosted
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    outputs:
-      is_latest: ${{ steps.compare.outputs.is_latest }}
-    steps:
-      - name: Compare with the head of main
-        id: compare
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ "$GITHUB_RUN_ATTEMPT" -gt 1 ]; then
-            echo "is_latest=true" >> "$GITHUB_OUTPUT"
-          elif [ "$(curl -sf -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.sha" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/main")" = "$HEAD_SHA" ]; then
-            echo "is_latest=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::$HEAD_SHA is no longer the head of main, so it is not deployed."
-            echo "is_latest=false" >> "$GITHUB_OUTPUT"
-          fi
-
   deploy:
-    needs: freshness
-    if: needs.freshness.outputs.is_latest == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
     permissions:
       contents: read
       packages: write
     env:
-      IMAGE_TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ env.IMAGE_TAG }}
 
       - name: Render env files
         env:

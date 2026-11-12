@@ -166,7 +166,7 @@ docker compose exec backend python -m scripts.seed
 
 ## CI/CD
 
-`.github/workflows/tests.yml` runs the backend tests, the frontend checks and the API schema check on every pull request, each only when its files changed, and all of them on a push to `main`. `.github/workflows/deploy.yml` deploys `main` to the VPS once the tests pass. Both run on the self-hosted runner on that VPS. Details: `.claude/rules/ci.md`.
+`.github/workflows/tests.yml` runs the backend tests, the frontend checks and the API schema check on every pull request, each only when its files changed. `.github/workflows/deploy.yml` deploys every push to `main` to the VPS. Both run on the self-hosted runner on that VPS. Details: `.claude/rules/ci.md`.
 
 ## Issue Tracking
 

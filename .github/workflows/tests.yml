@@ -2,12 +2,10 @@ name: tests
 
 on:
   pull_request:
-  push:
-    branches: [main]
 
 concurrency:
   group: tests-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   changes:
@@ -24,7 +22,6 @@ jobs:
     steps:
       - uses: dorny/paths-filter@v4.0.3
         id: filter
-        if: github.event_name == 'pull_request'
         with:
           filters: |
             backend:
@@ -41,7 +38,7 @@ jobs:
 
   tests:
     needs: changes
-    if: github.event_name == 'push' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true'
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
     steps:
@@ -61,7 +58,7 @@ jobs:
 
   frontend:
     needs: changes
-    if: github.event_name == 'push' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true'
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
     defaults:
@@ -94,7 +91,7 @@ jobs:
 
   api-schema:
     needs: changes
-    if: github.event_name == 'push' || needs.changes.outputs.api_schema == 'true' || needs.changes.outputs.workflows == 'true'
+    if: needs.changes.outputs.api_schema == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
     steps:

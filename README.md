@@ -121,9 +121,10 @@ A database migrated before the Alembic revisions were squashed into one initial 
 
 ## Deployment
 
-Every successful `tests` run on a push to `main` starts `.github/workflows/deploy.yml`, which can also be started by hand
-from the Actions tab on any branch. A `tests` run of a commit that is no longer the head of `main`, such as a re-run of
-an old failure, deploys nothing. Both workflows run on the self-hosted runner on the VPS (see Self-hosted runner
+Every push to `main` starts `.github/workflows/deploy.yml`, which can also be started by hand from the Actions tab on
+any branch. The tests run on the pull request only and not again on `main`, and the repository has no branch protection,
+so merging a pull request whose checks failed or have not finished deploys it. Deploys run one at a time; when pushes
+come faster, the newest waiting one replaces the older waiting ones. Both workflows run on the self-hosted runner on the VPS (see Self-hosted runner
 below), so the deploy builds `backend/Dockerfile` and `frontend/Dockerfile` on the server itself, pushes them to
 `ghcr.io/fibboo/finance-backend` and `ghcr.io/fibboo/finance-frontend` tagged with the commit SHA, and brings the server
 up to that commit without SSH.
@@ -213,9 +214,11 @@ tar xzf runner.tar.gz && rm runner.tar.gz
 ./config.sh --unattended --url https://github.com/fibboo/finance --token <token> --name racknerd
 ```
 
-Then as root, from the same folder:
+Then as root, from the same folder; `libatomic1` is a library the Node build that `actions/setup-node` downloads
+needs:
 
 ```bash
+apt-get install -y libatomic1
 fallocate -l 3G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
 echo "/swapfile none swap sw 0 0" >> /etc/fstab
 ./svc.sh install <user>
