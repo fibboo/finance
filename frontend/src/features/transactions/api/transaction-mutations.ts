@@ -22,13 +22,40 @@ async function postAdjustment({
   account_id,
   ...body
 }: Readonly<AdjustmentRequest & { account_id: string }>): Promise<Transaction> {
+  const adjustment = readData(
+    await apiClient.POST('/accounting/accounts/{account_id}/adjustment', {
+      params: { path: { account_id } },
+      body,
+    }),
+  );
+  return adjustment;
+}
+
+async function putAdjustment({
+  account_id,
+  transaction_id,
+  ...body
+}: Readonly<
+  AdjustmentRequest & { account_id: string; transaction_id: string }
+>): Promise<Transaction> {
+  const adjustment = readData(
+    await apiClient.PUT('/accounting/accounts/{account_id}/adjustment/{transaction_id}', {
+      params: { path: { account_id, transaction_id } },
+      body,
+    }),
+  );
+  return adjustment;
+}
+
+async function sendAdjustment<Request>({
+  send,
+  request,
+}: Readonly<{
+  send: (request: Request) => Promise<Transaction>;
+  request: Request;
+}>): Promise<Transaction> {
   try {
-    const adjustment = readData(
-      await apiClient.POST('/accounting/accounts/{account_id}/adjustment', {
-        params: { path: { account_id } },
-        body,
-      }),
-    );
+    const adjustment = await send(request);
     return adjustment;
   } catch (error) {
     const baseCurrencyAmountMessage =
@@ -136,9 +163,21 @@ export const transactionMutations = {
   },
   adjust(relatedQueryKeys: readonly QueryKey[]) {
     return mutationOptions({
-      mutationFn: postAdjustment,
+      mutationFn: (request: Parameters<typeof postAdjustment>[0]) =>
+        sendAdjustment({ send: postAdjustment, request }),
       onSuccess: (_adjustment, _request, _onMutateResult, { client }) =>
         invalidateFeeds({ client, relatedQueryKeys }),
+    });
+  },
+  updateAdjustment(relatedQueryKeys: readonly QueryKey[]) {
+    return mutationOptions({
+      mutationFn: (request: Parameters<typeof putAdjustment>[0]) =>
+        sendAdjustment({ send: putAdjustment, request }),
+      onSuccess: (_adjustment, _request, _onMutateResult, { client }) =>
+        invalidateFeeds({
+          client,
+          relatedQueryKeys: [transactionQueries.details().queryKey, ...relatedQueryKeys],
+        }),
     });
   },
 };

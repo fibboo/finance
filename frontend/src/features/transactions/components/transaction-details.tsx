@@ -72,9 +72,7 @@ export function TransactionDetails({
             readAccountLink={readAccountLink}
             closeButton={closeButton}
             editAction={
-              transaction.transaction_type !== 'ADJUSTMENT' && (
-                <EditTransaction id={editButtonId} transaction={transaction} onEdit={onEdit} />
-              )
+              <EditTransaction id={editButtonId} transaction={transaction} onEdit={onEdit} />
             }
             deleteAction={
               <DeleteTransaction

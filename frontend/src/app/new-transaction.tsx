@@ -53,14 +53,19 @@ export function NewTransaction() {
         <TransactionFormSkeleton />
       ) : transactionType === 'ADJUSTMENT' ? (
         <TransactionForm
+          mode={{
+            kind: 'create',
+            typeChoice: {
+              transactionTypes: dictionaries.transaction_types,
+              onTypeChange: changeType,
+            },
+            presetAccountId: readNewTransactionAccountId(searchParams),
+            renderMoneyAccountForm: createForms.renderMoneyAccountForm,
+          }}
           transactionType={transactionType}
-          transactionTypes={dictionaries.transaction_types}
           moneyAccounts={moneyAccounts}
-          presetAccountId={readNewTransactionAccountId(searchParams)}
           baseCurrency={baseCurrency}
           relatedQueryKeys={relatedQueryKeys}
-          renderMoneyAccountForm={createForms.renderMoneyAccountForm}
-          onTypeChange={changeType}
           onClose={close}
         />
       ) : (

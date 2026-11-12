@@ -54,6 +54,64 @@ const adjustment = {
   postings: [],
 } satisfies components['schemas']['Transaction'];
 
+const ratedEuroCard = {
+  ...euroCard,
+  balance: '50',
+  base_currency_rate: '0.92',
+} satisfies components['schemas']['Account'];
+
+const adjustmentsAccount = {
+  ...wallet,
+  name: 'Adjustments',
+  id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a05',
+  kind: 'EQUITY',
+  balance: '32.50',
+  color: null,
+} satisfies components['schemas']['Account'];
+
+const walletAdjustment = {
+  ...adjustment,
+  transaction_date: '2026-10-18',
+  comment: 'Cash count',
+  base_currency_amount: '-35.20',
+  postings: [
+    {
+      id: '6b2e0d4f-3c5a-4f7b-9d8e-0f1a2b3c4d51',
+      account: wallet,
+      amount: '-32.50',
+      currency: 'USD',
+      base_amount: '-32.50',
+    },
+    {
+      id: '6b2e0d4f-3c5a-4f7b-9d8e-0f1a2b3c4d52',
+      account: adjustmentsAccount,
+      amount: '32.50',
+      currency: 'USD',
+      base_amount: '32.50',
+    },
+  ],
+} satisfies components['schemas']['Transaction'];
+
+const euroCardAdjustment = {
+  ...walletAdjustment,
+  postings: [
+    {
+      id: '6b2e0d4f-3c5a-4f7b-9d8e-0f1a2b3c4d53',
+      account: ratedEuroCard,
+      amount: '-32.50',
+      currency: 'EUR',
+      base_amount: '-35.20',
+    },
+    {
+      id: '6b2e0d4f-3c5a-4f7b-9d8e-0f1a2b3c4d54',
+      account: adjustmentsAccount,
+      amount: '32.50',
+      currency: 'EUR',
+      base_amount: '35.20',
+    },
+  ],
+} satisfies components['schemas']['Transaction'];
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 9, 20, 12));
@@ -68,7 +126,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test('sends the difference the new balance makes as the amount and closes', async () => {
+test('sends the typed amount and closes', async () => {
   // arrange
   let requestBody: unknown = null;
   let requestPath = '';
@@ -86,20 +144,22 @@ test('sends the difference the new balance makes as the amount and closes', asyn
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
   await user.click(screen.getByRole('button', { name: /^Account/ }));
   await user.click(screen.getByRole('button', { name: /^Wallet/ }));
-  await user.type(screen.getByLabelText('New balance'), '380');
+  await user.type(screen.getByLabelText('Amount'), '-32.5');
   await user.type(screen.getByLabelText('Comment'), 'Cash count');
 
   // act
@@ -118,19 +178,21 @@ test('sends the difference the new balance makes as the amount and closes', asyn
   });
 });
 
-test('shows the current balance and the difference the new balance makes', async () => {
+test('shows the current balance and the balance the amount leads to', async () => {
   // arrange
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -138,10 +200,10 @@ test('shows the current balance and the difference the new balance makes', async
   await user.click(screen.getByRole('button', { name: /^Wallet/ }));
 
   // act
-  await user.type(screen.getByLabelText('New balance'), '380');
+  await user.type(screen.getByLabelText('Amount'), '-32.5');
 
   // assert
-  expect(screen.getByText('Now $412.50 · -$32.50')).toBeInTheDocument();
+  expect(screen.getByText('Now $412.50 → $380.00')).toBeInTheDocument();
 });
 
 test('asks for the base currency amount of an account without a rate', async () => {
@@ -160,20 +222,22 @@ test('asks for the base currency amount of an account without a rate', async () 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
   await user.click(screen.getByRole('button', { name: /^Account/ }));
   await user.click(screen.getByRole('button', { name: /^Euro card/ }));
-  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.type(screen.getByLabelText('Amount'), '100');
 
   // act
   await user.type(screen.getByLabelText('In USD'), '108,40');
@@ -193,21 +257,23 @@ test('asks for the base currency amount of an account without a rate', async () 
 
 test.each([
   { field: 'Account', typed: '', error: 'Choose the account to adjust' },
-  { field: 'New balance', typed: '-', error: 'Enter the new balance, like 1180.50' },
+  { field: 'Amount', typed: '-', error: 'Enter the amount, like -150.00' },
   { field: 'Comment', typed: 'ok', error: 'Write at least 3 characters' },
 ])('refuses to send when $field is not valid', async ({ field, typed, error }) => {
   // arrange
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -222,31 +288,33 @@ test.each([
   expect(await screen.findByText(error)).toBeInTheDocument();
 });
 
-test('refuses a new balance equal to the current one', async () => {
+test('refuses an amount of zero', async () => {
   // arrange
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
   await user.click(screen.getByRole('button', { name: /^Account/ }));
   await user.click(screen.getByRole('button', { name: /^Wallet/ }));
-  await user.type(screen.getByLabelText('New balance'), '412.5');
+  await user.type(screen.getByLabelText('Amount'), '0');
 
   // act
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
 
   // assert
-  expect(await screen.findByText('The account already has this balance')).toBeInTheDocument();
+  expect(await screen.findByText('Enter an amount other than zero')).toBeInTheDocument();
 });
 
 test('shows a field error of the backend at its field', async () => {
@@ -264,20 +332,22 @@ test('shows a field error of the backend at its field', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
   await user.click(screen.getByRole('button', { name: /^Account/ }));
   await user.click(screen.getByRole('button', { name: /^Wallet/ }));
-  await user.type(screen.getByLabelText('New balance'), '380');
+  await user.type(screen.getByLabelText('Amount'), '380');
   await user.type(screen.getByLabelText('Comment'), 'Cash count');
 
   // act
@@ -295,14 +365,16 @@ test('finds an account by a part of its name', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -321,14 +393,16 @@ test('offers only the transaction types the form can enter', () => {
   // act
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -370,20 +444,22 @@ test('asks for the base currency amount when the account had no rate on the date
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[{ ...euroCard, balance: '50', base_currency_rate: '0.92' }]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
   await user.click(screen.getByRole('button', { name: /^Account/ }));
   await user.click(screen.getByRole('button', { name: /^Euro card/ }));
-  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.type(screen.getByLabelText('Amount'), '100');
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
   await user.type(await screen.findByLabelText('In USD'), '54.30');
 
@@ -397,7 +473,7 @@ test('asks for the base currency amount when the account had no rate on the date
   expect(requestBodies.at(-1)).toEqual({
     transaction_date: '2026-10-20',
     comment: null,
-    amount: '50.00',
+    amount: '100.00',
     base_currency_amount: '54.30',
   });
 });
@@ -407,14 +483,16 @@ test('refuses a date after today', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -444,14 +522,16 @@ test('leaves out the base currency amount typed for another account', async () =
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
@@ -460,7 +540,7 @@ test('leaves out the base currency amount typed for another account', async () =
   await user.type(screen.getByLabelText('In USD'), '42.80');
   await user.click(screen.getByRole('button', { name: /^Account/ }));
   await user.click(screen.getByRole('button', { name: /^Wallet/ }));
-  await user.type(screen.getByLabelText('New balance'), '380');
+  await user.type(screen.getByLabelText('Amount'), '-32.5');
 
   // act
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
@@ -490,18 +570,20 @@ test('starts with the preset account chosen and adjusts its balance', async () =
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet, euroCard]}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
-  await user.type(screen.getByLabelText('New balance'), '15');
+  await user.type(screen.getByLabelText('Amount'), '15');
 
   // act
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
@@ -519,18 +601,20 @@ test('asks for the account when the preset account is not a money account', asyn
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
-  await user.type(screen.getByLabelText('New balance'), '15');
+  await user.type(screen.getByLabelText('Amount'), '15');
 
   // act
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
@@ -543,14 +627,16 @@ test('keeps Adjust balance disabled until the money accounts have loaded', () =>
   // act
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={undefined}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -563,28 +649,30 @@ test.each([
   { typed: '-1250.5', shown: '-1,250.5' },
   { typed: '-12a', shown: '-12' },
   { typed: '12-', shown: '12' },
-])('shows the typed new balance $typed as $shown', async ({ typed, shown }) => {
+])('shows the typed amount $typed as $shown', async ({ typed, shown }) => {
   // arrange
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: undefined,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[wallet]}
-      presetAccountId={undefined}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
 
   // act
-  await user.type(screen.getByLabelText('New balance'), typed);
+  await user.type(screen.getByLabelText('Amount'), typed);
 
   // assert
-  expect(screen.getByLabelText('New balance')).toHaveValue(shown);
+  expect(screen.getByLabelText('Amount')).toHaveValue(shown);
 });
 
 test('asks for the base currency amount once the date is one the account had no rate on', async () => {
@@ -600,14 +688,16 @@ test('asks for the base currency amount once the date is one the account had no 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[ratedEuroCard]}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -633,14 +723,16 @@ test('stops asking for the base currency amount once the date is one the account
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[ratedEuroCard]}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -678,18 +770,20 @@ test('stops asking for the amount the backend asked for once the date changes', 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[ratedEuroCard]}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
-  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.type(screen.getByLabelText('Amount'), '100');
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
   await screen.findByLabelText('In USD');
 
@@ -727,19 +821,21 @@ test('leaves out an amount typed before the account turned out to have a rate on
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[euroCard]}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
   await user.type(screen.getByLabelText('In USD'), '0');
-  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.type(screen.getByLabelText('Amount'), '100');
   await waitFor(() => {
     expect(screen.queryByLabelText('In USD')).not.toBeInTheDocument();
   });
@@ -769,14 +865,16 @@ test('keeps the typed base currency amount when the date changes', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[euroCard]}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={vi.fn()}
     />,
   );
@@ -815,18 +913,20 @@ test('leaves out the base currency amount typed for a date once the date is one 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
       transactionType="ADJUSTMENT"
-      transactionTypes={transactionTypes}
       moneyAccounts={[ratedEuroCard]}
-      presetAccountId={euroCard.id}
       baseCurrency="USD"
       relatedQueryKeys={[]}
-      renderMoneyAccountForm={() => null}
-      onTypeChange={vi.fn()}
       onClose={onClose}
     />,
   );
-  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.type(screen.getByLabelText('Amount'), '100');
   await user.type(screen.getByLabelText('Date'), '05102026', {
     initialSelectionStart: 0,
     initialSelectionEnd: 10,
@@ -850,7 +950,289 @@ test('leaves out the base currency amount typed for a date once the date is one 
   expect(requestBody).toEqual({
     transaction_date: '2026-10-06',
     comment: null,
-    amount: '50.00',
+    amount: '100.00',
     base_currency_amount: null,
   });
+});
+
+test('shows the base currency amount right under the amount', async () => {
+  // act
+  render(
+    <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[euroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // assert
+  const baseCurrencyAmount = await screen.findByLabelText('In USD');
+  expect(
+    screen.getByLabelText('Amount').compareDocumentPosition(baseCurrencyAmount) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    baseCurrencyAmount.compareDocumentPosition(screen.getByRole('button', { name: /^Account/ })) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+test('starts the edit form from the adjustment with its account fixed', () => {
+  // act
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: walletAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet, euroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // assert
+  expect(screen.getByRole('heading', { name: 'Edit adjustment' })).toBeInTheDocument();
+  expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Amount')).toHaveValue('-32.50');
+  expect(screen.getByLabelText('Date')).toHaveValue('18.10.2026');
+  expect(screen.getByLabelText('Comment')).toHaveValue('Cash count');
+  expect(screen.getByText('Wallet')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^Account/ })).not.toBeInTheDocument();
+});
+
+test('sends the update of the edited adjustment and closes', async () => {
+  // arrange
+  let requestBody: unknown = null;
+  let requestPath = '';
+  server.use(
+    http.put(
+      'http://localhost/api/accounting/accounts/:accountId/adjustment/:transactionId',
+      async ({ request }) => {
+        requestPath = new URL(request.url).pathname;
+        requestBody = await request.json();
+        return HttpResponse.json(walletAdjustment);
+      },
+    ),
+  );
+  const onClose = vi.fn<() => void>();
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: walletAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet, euroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={onClose}
+    />,
+  );
+  await user.type(screen.getByLabelText('Amount'), '-40', {
+    initialSelectionStart: 0,
+    initialSelectionEnd: 6,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await waitFor(() => {
+    expect(onClose).toHaveBeenCalled();
+  });
+  expect(requestPath).toBe(
+    `/api/accounting/accounts/${wallet.id}/adjustment/${walletAdjustment.id}`,
+  );
+  expect(requestBody).toEqual({
+    transaction_date: '2026-10-18',
+    comment: 'Cash count',
+    amount: '-40.00',
+    base_currency_amount: null,
+  });
+});
+
+test.each([
+  { typed: '-32.5', hint: 'Now $412.50' },
+  { typed: '-40', hint: 'Now $412.50 → $405.00' },
+])('shows $hint for the edited adjustment of -32.50 with $typed typed', async ({ typed, hint }) => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: walletAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // act
+  await user.type(screen.getByLabelText('Amount'), typed, {
+    initialSelectionStart: 0,
+    initialSelectionEnd: 6,
+  });
+
+  // assert
+  expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription(hint);
+});
+
+test('reads the account on the date without the edited adjustment and starts from its base currency amount', async () => {
+  // arrange
+  let excludedTransactionId: string | null = null;
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, ({ request }) => {
+      excludedTransactionId = new URL(request.url).searchParams.get('excluded_transaction_id');
+      return HttpResponse.json(euroCard);
+    }),
+  );
+
+  // act
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: euroCardAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[ratedEuroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // assert
+  await waitFor(() => {
+    expect(screen.getByLabelText('In USD')).toHaveValue('35.20');
+  });
+  expect(excludedTransactionId).toBe(walletAdjustment.id);
+});
+
+test('keeps Save changes disabled until the account on the date of the edited adjustment has loaded', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, async () => {
+      await delay(300);
+      return HttpResponse.json(wallet);
+    }),
+  );
+
+  // act
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: walletAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+});
+
+test('asks for the base currency amount afresh when the edited adjustment moves to a date without a rate', async () => {
+  // arrange
+  // the account has a rate from 06.10.2026 on, and none up to 05.10.2026
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, ({ request }) => {
+      const date = new URL(request.url).searchParams.get('date') ?? '';
+      return HttpResponse.json(date >= '2026-10-06' ? ratedEuroCard : euroCard);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: euroCardAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[ratedEuroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+
+  // act
+  await user.type(screen.getByLabelText('Date'), '05102026', {
+    initialSelectionStart: 0,
+    initialSelectionEnd: 10,
+  });
+
+  // assert
+  expect(await screen.findByLabelText('In USD')).toHaveValue('');
+});
+
+test('empties the base currency amount typed for an account once another account is chosen', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: euroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet, euroCard]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.type(await screen.findByLabelText('In USD'), '42.80');
+  await user.click(screen.getByRole('button', { name: /^Account/ }));
+  await user.click(screen.getByRole('button', { name: /^Wallet/ }));
+  await user.click(screen.getByRole('button', { name: /^Account/ }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+
+  // assert
+  expect(await screen.findByLabelText('In USD')).toHaveValue('');
+});
+
+test('keeps Save changes disabled when the account on the date of the edited adjustment fails to load', async () => {
+  // arrange
+  let requestCount = 0;
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () => {
+      requestCount += 1;
+      return HttpResponse.json({ message: 'Internal error', error_code: null }, { status: 500 });
+    }),
+  );
+
+  // act
+  render(
+    <TransactionForm
+      mode={{ kind: 'edit', transaction: walletAdjustment }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[wallet]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // assert
+  await waitFor(() => {
+    expect(requestCount).toBeGreaterThan(0);
+  });
+  expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
 });
