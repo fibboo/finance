@@ -285,6 +285,12 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
   </section>
 
   <section>
+    <h2>7 · Transactions: search and New</h2>
+    <p class="lead">Agreed: Transactions gets the row of the other sections above its filter chips, the search by text on the left and New transaction on the right. The search looks in the comment, the names of the accounts of a transaction and the name of its location. The floating add button and the sidebar button stay.</p>
+    <div class="boards" id="searchBoards"></div>
+  </section>
+
+  <section>
     <h2>What else changes</h2>
     <ul class="notes">
       <li><b>No amounts in the rows.</b> The API's balance of a category or an income source is its all-time total, so the rows show the name and the description only.</li>
@@ -430,6 +436,7 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
     ] },
   ];
   const chipsHtml = `<div class="filters chipRow">${['Period', 'Type', 'Accounts', 'Categories', 'Income', 'Locations', 'Amount', 'Sort'].map((c) => `<span class="chip">${c}</span>`).join('')}</div>`;
+  const txToolbar = `${toolbar({ placeholder: 'Search transactions', newLabel: 'transaction' })}${chipsHtml}`;
 
   document.getElementById('navBoards').innerHTML = [
     variant({ id: 'more-popover-phone', name: 'More opens a menu above the bar', note: 'A small popover anchored to More with Locations and Income sources, closed by an outside click like the account menu.',
@@ -437,8 +444,8 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
         overlay: `<div class="popover"><div class="menuRows">${moreRows()}</div></div>` }) }),
     variant({ id: 'more-current-phone', name: 'Inside a More section', note: 'More stays marked as current while Locations or Income sources is open.',
       board: phoneBoard({ active: 'income', title: 'Income sources', count: '4', toolbar: toolbar({ placeholder: 'Search income sources', newLabel: 'income source' }), filters: statusOnly(true), list: flat(incomeSources, { kind: 'income', isSelectable: false }) }) }),
-    variant({ id: 'back-to-top-phone', name: 'Add and Back to top', note: 'Back to top of a scrolled Transactions list shows under the add button, a little smaller; the add button moves up to make room and comes back down when the arrow goes.',
-      board: phoneBoard({ active: 'transactions', title: 'Transactions', count: '-$1,229.00', toolbar: chipsHtml, list: txList(feedDays), extra: `<span class="toTop">${icon('up')}</span>` }) }),
+    variant({ id: 'back-to-top-phone', name: 'Add and Back to top', note: 'Back to top of a scrolled Transactions list shows under the add button, a little smaller; the add button moves up to make room and comes back down when the arrow goes. Transactions has the row of the other sections above its filter chips: the search by text and New transaction.',
+      board: phoneBoard({ active: 'transactions', title: 'Transactions', count: '-$1,229.00', toolbar: txToolbar, list: txList(feedDays), extra: `<span class="toTop">${icon('up')}</span>` }) }),
   ].join('');
 
   document.getElementById('catDesktopBoards').innerHTML = [
@@ -512,8 +519,8 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
   const cigarettes = categories.Variable.find((c) => c.deleted);
   const spar = locations[0];
   const feedWithSelection = txList(feedDays.map((d, i) => ({ ...d, rows: d.rows.map((r, j) => (i === 0 && j === 1 ? { ...r, selected: true } : r)) })));
-  const txBoard = (panels) => desktopBoard({ active: 'transactions', title: 'Transactions', count: '-$1,229.00', toolbar: chipsHtml, filters: '', list: feedWithSelection, aside: `<div class="detailsColumn">${panels.join('')}</div>` });
-  const txPhone = (sheet) => phoneBoard({ active: 'transactions', title: 'Transactions', count: '-$1,229.00', toolbar: chipsHtml, list: feedWithSelection, overlay: `<div class="backdrop"></div><div class="bsheet" style="padding:0">${sheet}</div>` });
+  const txBoard = (panels) => desktopBoard({ active: 'transactions', title: 'Transactions', count: '-$1,229.00', toolbar: txToolbar, filters: '', list: feedWithSelection, aside: `<div class="detailsColumn">${panels.join('')}</div>` });
+  const txPhone = (sheet) => phoneBoard({ active: 'transactions', title: 'Transactions', count: '-$1,229.00', toolbar: txToolbar, list: feedWithSelection, overlay: `<div class="backdrop"></div><div class="bsheet" style="padding:0">${sheet}</div>` });
 
   document.getElementById('detailBoards').innerHTML = [
     variant({ id: 'transaction-category-desktop', wide: true, name: 'Category opened from a transaction', note: 'The category of the postings and the location are links, like a money account. The opened one takes the place of the account in the details column, with Transactions, Edit and Delete.',
@@ -524,6 +531,13 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
       board: txPhone(entryDetails({ entry: groceries, kind: 'category', meta: 'Category · Variable', close: true, inSheet: true })) }),
     variant({ id: 'deleted-category-details-phone', name: 'Deleted category details', note: 'A deleted one offers Transactions and Restore.',
       board: txPhone(entryDetails({ entry: cigarettes, kind: 'category', meta: 'Category · Variable', close: true, inSheet: true })) }),
+  ].join('');
+
+  document.getElementById('searchBoards').innerHTML = [
+    variant({ id: 'transactions-search-phone', name: 'Transactions with search on a phone', note: 'The search field takes the free width and New keeps its short label; the chips scroll sideways under them.',
+      board: phoneBoard({ active: 'transactions', title: 'Transactions', count: '-$1,229.00', toolbar: txToolbar, list: txList(feedDays) }) }),
+    variant({ id: 'transactions-search-desktop', wide: true, name: 'Transactions with search on desktop', note: 'The search field and New transaction sit at the left above the chips, as in the other sections.',
+      board: txBoard([transactionDetails({ category: groceries, location: spar })]) }),
   ].join('');
 
   document.querySelectorAll('.phone .desktopOnly').forEach((el) => el.remove());
