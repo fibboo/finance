@@ -57,7 +57,8 @@ async def get_account(
     for a value on it. An account outside the base currency with a rate of 0 or less has none, so its adjustment must
     carry `base_currency_amount`. With `excluded_transaction_id` next to `date`, the sums leave that transaction's
     postings out, for a client that edits that adjustment. The read only subtracts the postings, while the update
-    also revalues the account without them, so the update may still answer `NO_ACCOUNT_BASE_CURRENCY_RATE`.
+    also revalues the account without them, so the update may still decide otherwise and answer
+    `NO_ACCOUNT_BASE_CURRENCY_RATE` or `BASE_CURRENCY_AMOUNT_NOT_ALLOWED`.
     """
     account: Account = await account_service.get_account(
         db=db,

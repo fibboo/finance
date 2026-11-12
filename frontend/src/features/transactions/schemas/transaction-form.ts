@@ -137,8 +137,13 @@ export function createAdjustmentFormSchema({
       transaction_date: createTransactionDateSchema(today),
       comment: commentSchema,
     })
-    .transform((values) => {
+    .transform((values, context) => {
       if (account === undefined) {
+        context.addIssue({
+          code: 'custom',
+          path: ['account_id'],
+          message: ADJUSTMENT_ACCOUNT_ERROR,
+        });
         return z.NEVER;
       }
 
