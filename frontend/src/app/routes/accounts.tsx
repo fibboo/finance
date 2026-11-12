@@ -4,7 +4,6 @@ import { NavigationType, useLocation, useNavigationType, useSearchParams } from 
 
 import { SelectedAccountDetails } from '@/app/selected-account-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
-import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
 import { Sheet } from '@/components/sheet/sheet';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
@@ -27,6 +26,7 @@ import { isThrownWithoutData } from '@/lib/query-meta';
 
 import styles from './accounts.module.css';
 
+const NEW_ACCOUNT_ICON_PATH = 'M12 5v14M5 12h14';
 function readAccountCount(
   total: number | undefined,
 ): Readonly<{ value: number; label: string }> | undefined {
@@ -102,15 +102,21 @@ export function Component() {
             });
           }}
         />
-        <NewButton
-          entityName="account"
-          isDisabled={
+        <button
+          type="button"
+          className={styles['newAccount']}
+          disabled={
             dictionaries === undefined || currencies === undefined || baseCurrency === undefined
           }
           onClick={() => {
             setIsCreating(true);
           }}
-        />
+        >
+          <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+            <path d={NEW_ACCOUNT_ICON_PATH} />
+          </svg>
+          New <span className="visually-hidden-on-phone">account</span>
+        </button>
       </div>
       {baseCurrency !== undefined && (
         <div className={styles['accounts']}>

@@ -1,11 +1,5 @@
 @import '@/styles/media.css';
 
-.actions {
-  flex: none;
-  display: flex;
-  justify-content: flex-end;
-}
-
 .transactions {
   flex: 1 1 auto;
   min-height: 0;

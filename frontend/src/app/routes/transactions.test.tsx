@@ -2089,30 +2089,3 @@ test('blocks Edit with the name of the deleted location of the transaction', asy
   );
   expect(screen.queryByRole('dialog', { name: 'Edit transaction' })).not.toBeInTheDocument();
 });
-
-test('asks for a new expense from New transaction and keeps the filters', async () => {
-  // arrange
-  const user = userEvent.setup();
-  server.use(
-    http.get('http://localhost/api/accounting/transactions', () =>
-      HttpResponse.json({
-        items: [expense],
-        total: 1,
-        page: 1,
-        size: 15,
-        pages: 1,
-      } satisfies components['schemas']['Page_Transaction_']),
-    ),
-  );
-  const { router } = render(<Component />, {
-    initialEntries: ['/transactions?base_currency_amount_from=100'],
-  });
-
-  // act
-  await user.click(screen.getByRole('button', { name: 'New transaction' }));
-
-  // assert
-  expect(router.state.location.search).toBe(
-    '?base_currency_amount_from=100&new_transaction=EXPENSE',
-  );
-});
