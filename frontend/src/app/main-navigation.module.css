@@ -33,11 +33,6 @@
   cursor: pointer;
 }
 
-.addTransactionOffHome {
-  composes: addTransaction;
-  display: none;
-}
-
 :root:has([data-back-to-top]) .addTransaction {
   bottom: calc(100% + var(--space-3) + var(--size-back-to-top) + var(--space-2-5));
 }
@@ -150,10 +145,6 @@
     margin-bottom: var(--space-2-5);
     border-radius: var(--radius-control);
     box-shadow: none;
-  }
-
-  .addTransactionOffHome {
-    display: flex;
   }
 
   .addTransaction .icon {

@@ -16,6 +16,7 @@
   --sticky-top: calc(var(--size-touch) + var(--space-2));
 
   flex: none;
+  padding-bottom: var(--size-fab-room);
   display: flex;
   flex-direction: column;
 }
@@ -29,6 +30,7 @@
   .accounts {
     --sticky-top: calc(var(--size-touch) + var(--space-4));
 
+    padding-bottom: 0;
     flex-direction: row;
     gap: var(--space-4);
   }

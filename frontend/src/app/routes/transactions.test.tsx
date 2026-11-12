@@ -2090,7 +2090,7 @@ test('blocks Edit with the name of the deleted location of the transaction', asy
   expect(screen.queryByRole('dialog', { name: 'Edit transaction' })).not.toBeInTheDocument();
 });
 
-test('opens the New transaction sheet on an expense and keeps the filters', async () => {
+test('asks for a new expense from New transaction and keeps the filters', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
