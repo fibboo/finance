@@ -967,6 +967,7 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
 
     request_comment: TransactionRequest = TransactionRequest(search_term="bread")
     request_location: TransactionRequest = TransactionRequest(search_term="BAKERY")
+    request_shared_location_name: TransactionRequest = TransactionRequest(search_term="mall")
     request_deleted_category: TransactionRequest = TransactionRequest(search_term="taxi")
     request_income_source: TransactionRequest = TransactionRequest(search_term="salary")
     request_money_account: TransactionRequest = TransactionRequest(search_term="wallet")
@@ -984,6 +985,9 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     )
     transactions_location: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request_location, user_id=user_id
+    )
+    transactions_shared_location_name: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_shared_location_name, user_id=user_id
     )
     transactions_deleted_category: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request_deleted_category, user_id=user_id
@@ -1014,6 +1018,10 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     # every list is ordered by the order of entry, newest first, and holds no transaction of the other user
     assert [item.base_currency_amount for item in transactions_comment.items] == [Decimal("10")]
     assert [item.base_currency_amount for item in transactions_location.items] == [Decimal("20")]
+    assert [item.base_currency_amount for item in transactions_shared_location_name.items] == [
+        Decimal("50"),
+        Decimal("10"),
+    ]
     assert [item.base_currency_amount for item in transactions_deleted_category.items] == [Decimal("20")]
     assert [item.base_currency_amount for item in transactions_income_source.items] == [Decimal("30")]
     assert [item.base_currency_amount for item in transactions_money_account.items] == [Decimal("40")]
