@@ -110,7 +110,7 @@ jobs:
       - name: Start backend
         run: |
           docker rm -f finance-api-schema 2> /dev/null || true
-          docker run -d --name finance-api-schema --memory 256m --memory-swap 1g --cpu-shares 256             --env-file backend/.env -p 127.0.0.1:8000:8000 finance-test uvicorn app.main:app --host 0.0.0.0
+          docker run -d --name finance-api-schema --memory 256m --memory-swap 1g --cpu-shares 256 \n            --env-file backend/.env -p 127.0.0.1:8000:8000 finance-test uvicorn app.main:app --host 0.0.0.0
           curl -sf --retry 30 --retry-all-errors --retry-delay 1 -o /dev/null http://localhost:8000/openapi.json
 
       - name: Install dependencies
