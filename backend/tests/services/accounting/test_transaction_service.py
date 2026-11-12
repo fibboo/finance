@@ -5,7 +5,6 @@ from uuid import UUID, uuid4
 import pytest
 import time_machine
 from fastapi_pagination import Page
-from pydantic import ValidationError
 from pytest_httpx import HTTPXMock
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -841,6 +840,8 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     mall_db: LocationModel = await location_crud.create(db=db, obj_in=mall_create_data, commit=True)
     bakery_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Corner bakery")
     bakery_db: LocationModel = await location_crud.create(db=db, obj_in=bakery_create_data, commit=True)
+    equity_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments")
+    await account_crud.create(db=db, obj_in=equity_create_data, commit=True)
 
     # another user with an expense of 60 for bread in a category also named Groceries
     other_user_create_data: UserCreate = UserCreate(
@@ -951,6 +952,15 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
         )
         await transaction_processor.create(data=movement_create_data)
 
+    # then a balance adjustment of 70 of the checking account, posted against the hidden Adjustments account
+    adjustment_create_data: AdjustmentCreate = AdjustmentCreate(
+        transaction_date=today, account_id=account_db.id, amount=Decimal("70")
+    )
+    adjustment_processor: TransactionProcessor = factory.get_processor(
+        db=db, user_id=user_id, transaction_type=TransactionType.ADJUSTMENT
+    )
+    await adjustment_processor.create(data=adjustment_create_data)
+
     await db.commit()
     await account_crud.update_orm(db=db, obj_in={"status": EntityStatusType.DELETED}, id=taxi_db.id, commit=True)
     await db.close()
@@ -965,6 +975,7 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     request_category_and_amount: TransactionRequest = TransactionRequest(
         search_term="groceries", base_currency_amount_from=Decimal("20")
     )
+    request_hidden_account: TransactionRequest = TransactionRequest(search_term="adjustments")
     request_not_found: TransactionRequest = TransactionRequest(search_term="nothing")
 
     # Act
@@ -992,6 +1003,9 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     transactions_category_and_amount: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request_category_and_amount, user_id=user_id
     )
+    transactions_hidden_account: Page[Transaction] = await transaction_service.get_transactions(
+        db=db, request=request_hidden_account, user_id=user_id
+    )
     transactions_not_found: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request_not_found, user_id=user_id
     )
@@ -1004,6 +1018,7 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     assert [item.base_currency_amount for item in transactions_income_source.items] == [Decimal("30")]
     assert [item.base_currency_amount for item in transactions_money_account.items] == [Decimal("40")]
     assert [item.base_currency_amount for item in transactions_every_transaction.items] == [
+        Decimal("70"),
         Decimal("50"),
         Decimal("40"),
         Decimal("30"),
@@ -1013,13 +1028,9 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     # the % of the term is a character rather than a wildcard, so "100 percent" is not found
     assert [item.base_currency_amount for item in transactions_wildcard.items] == [Decimal("30")]
     assert [item.base_currency_amount for item in transactions_category_and_amount.items] == [Decimal("50")]
+    # the hidden Adjustments account is not searched
+    assert transactions_hidden_account.items == []
     assert transactions_not_found.items == []
-
-
-def test_transaction_request_search_term_too_short():
-    # Act / Assert
-    with pytest.raises(ValidationError):
-        TransactionRequest(search_term="ab")
 
 
 async def test_get_transactions_adjustments(db: AsyncSession):

@@ -14,7 +14,7 @@ from app.models.accounting.account import Account
 from app.models.accounting.location import Location
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import ENTRY_ORDER_SEQUENCE, Transaction
-from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
+from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS, VISIBLE_ACCOUNT_KINDS
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import (
     OrderDirectionType,
@@ -155,7 +155,9 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
 
         if request.search_term is not None:
             found_account_ids: Select = select(Account.id).where(
-                Account.user_id == user_id, Account.name.icontains(request.search_term, autoescape=True)
+                Account.user_id == user_id,
+                Account.kind.in_(VISIBLE_ACCOUNT_KINDS),
+                Account.name.icontains(request.search_term, autoescape=True),
             )
             found_location_ids: Select = select(Location.id).where(
                 Location.user_id == user_id, Location.name.icontains(request.search_term, autoescape=True)
