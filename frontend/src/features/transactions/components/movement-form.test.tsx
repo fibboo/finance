@@ -562,6 +562,48 @@ test.each([
   },
 );
 
+test('shows the base currency amount of an income right under the amount received', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="INCOME"
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+      }}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={undefined}
+      incomeSources={[salary]}
+      locations={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /^To/ }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+
+  // assert
+  const baseCurrencyAmount = screen.getByLabelText('In USD');
+  expect(
+    screen.getByLabelText('Amount received').compareDocumentPosition(baseCurrencyAmount) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    baseCurrencyAmount.compareDocumentPosition(screen.getByRole('button', { name: /^Source/ })) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
 test('keeps the month of an income on the month before the date until a month is picked', async () => {
   // arrange
   const user = userEvent.setup();

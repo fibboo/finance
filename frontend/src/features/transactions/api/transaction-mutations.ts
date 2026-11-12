@@ -18,16 +18,24 @@ const BASE_CURRENCY_AMOUNT_MESSAGES: Partial<Record<ErrorCode, string>> = {
     'The account had a rate on this date, so leave the amount in the base currency empty',
 };
 
-async function postAdjustment({
+async function saveAdjustment({
   account_id,
+  transaction_id,
   ...body
-}: Readonly<AdjustmentRequest & { account_id: string }>): Promise<Transaction> {
+}: Readonly<
+  AdjustmentRequest & { account_id: string; transaction_id: string | undefined }
+>): Promise<Transaction> {
   try {
     const adjustment = readData(
-      await apiClient.POST('/accounting/accounts/{account_id}/adjustment', {
-        params: { path: { account_id } },
-        body,
-      }),
+      transaction_id === undefined
+        ? await apiClient.POST('/accounting/accounts/{account_id}/adjustment', {
+            params: { path: { account_id } },
+            body,
+          })
+        : await apiClient.PUT('/accounting/accounts/{account_id}/adjustment/{transaction_id}', {
+            params: { path: { account_id, transaction_id } },
+            body,
+          }),
     );
     return adjustment;
   } catch (error) {
@@ -136,9 +144,15 @@ export const transactionMutations = {
   },
   adjust(relatedQueryKeys: readonly QueryKey[]) {
     return mutationOptions({
-      mutationFn: postAdjustment,
-      onSuccess: (_adjustment, _request, _onMutateResult, { client }) =>
-        invalidateFeeds({ client, relatedQueryKeys }),
+      mutationFn: saveAdjustment,
+      onSuccess: (_adjustment, request, _onMutateResult, { client }) =>
+        invalidateFeeds({
+          client,
+          relatedQueryKeys:
+            request.transaction_id === undefined
+              ? relatedQueryKeys
+              : [transactionQueries.details().queryKey, ...relatedQueryKeys],
+        }),
     });
   },
 };

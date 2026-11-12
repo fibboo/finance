@@ -16,7 +16,7 @@ type OwnChoices = Readonly<{
   location: Location | undefined;
 }>;
 
-function readAmountFieldText(amount: string): string {
+export function readAmountFieldText(amount: string): string {
   const amountText = formatAmountText(amount.startsWith('-') ? amount.slice(1) : amount);
   return amountText;
 }

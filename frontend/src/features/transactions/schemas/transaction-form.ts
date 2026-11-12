@@ -114,13 +114,11 @@ export function createAdjustmentFormSchema({
         .refine(() => account !== undefined, {
           error: ADJUSTMENT_ACCOUNT_ERROR,
         }),
-      new_balance: z
+      amount: z
         .string()
         .transform((text) => readAmountText(text))
-        .pipe(z.string({ error: 'Enter the new balance, like 1180.50' }))
-        .refine((amount) => account === undefined || Number(amount) !== Number(account.balance), {
-          error: 'The account already has this balance',
-        }),
+        .pipe(z.string({ error: 'Enter the amount, like -150.00' }))
+        .refine((amount) => Number(amount) !== 0, { error: 'Enter an amount other than zero' }),
       base_currency_amount: isBaseCurrencyAmountAsked
         ? z
             .string()
@@ -149,7 +147,7 @@ export function createAdjustmentFormSchema({
 
       const adjustment = {
         account_id: values.account_id,
-        amount: (Number(values.new_balance) - Number(account.balance)).toFixed(2),
+        amount: values.amount,
         base_currency_amount: values.base_currency_amount,
         transaction_date: values.transaction_date,
         comment: values.comment,
@@ -158,6 +156,8 @@ export function createAdjustmentFormSchema({
     });
   return adjustmentFormSchema;
 }
+
+export type AdjustmentFormValues = z.input<ReturnType<typeof createAdjustmentFormSchema>>;
 
 export function readPreviousMonth(isoDate: string): string {
   const monthStart = new Date(

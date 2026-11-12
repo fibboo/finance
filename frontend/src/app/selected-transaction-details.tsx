@@ -15,6 +15,7 @@ import {
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { MovementForm } from '@/features/transactions/components/movement-form';
 import { TransactionDetails } from '@/features/transactions/components/transaction-details';
+import { TransactionForm } from '@/features/transactions/components/transaction-form';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
@@ -55,11 +56,7 @@ function SelectedTransaction({
 
   const editButtonId = useId();
   const { data: transaction, error } = useQuery(transactionQueries.detail(transactionId));
-  const movementType =
-    transaction === undefined || transaction.transaction_type === 'ADJUSTMENT'
-      ? undefined
-      : transaction.transaction_type;
-  const choices = useMovementChoices(isEditing ? movementType : undefined);
+  const choices = useMovementChoices(isEditing ? transaction?.transaction_type : undefined);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   if (isNotFound && isShownByDefault) {
     return null;
@@ -115,17 +112,26 @@ function SelectedTransaction({
           });
         }}
       />
-      {isEditing && transaction !== undefined && movementType !== undefined && (
+      {isEditing && transaction !== undefined && (
         <Sheet label="Edit transaction" onClose={closeEditForm}>
           {choices.dictionaries === undefined ||
           choices.currencies === undefined ||
           choices.baseCurrency === undefined ||
           !choices.isEveryListLoaded ? (
             <TransactionFormSkeleton />
+          ) : transaction.transaction_type === 'ADJUSTMENT' ? (
+            <TransactionForm
+              mode={{ kind: 'edit', transaction }}
+              transactionType={transaction.transaction_type}
+              moneyAccounts={choices.moneyAccounts}
+              baseCurrency={choices.baseCurrency}
+              relatedQueryKeys={[accountQueries.all().queryKey, summaryQueries.current().queryKey]}
+              onClose={closeEditForm}
+            />
           ) : (
             <MovementForm
               mode={{ kind: 'edit', transaction }}
-              transactionType={movementType}
+              transactionType={transaction.transaction_type}
               categoryTypes={choices.dictionaries.category_types}
               currencies={choices.currencies}
               moneyAccounts={choices.moneyAccounts}

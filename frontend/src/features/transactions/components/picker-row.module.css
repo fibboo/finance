@@ -18,6 +18,10 @@
   cursor: pointer;
 }
 
+.fixed {
+  cursor: default;
+}
+
 .button:focus-visible {
   outline: var(--size-focus) solid var(--color-ink);
   outline-offset: calc(var(--size-focus) * -1);

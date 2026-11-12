@@ -34,10 +34,23 @@ async function fetchTransaction(transactionId: string): Promise<Transaction> {
 async function fetchAccountOnDate({
   accountId,
   date,
-}: Readonly<{ accountId: string; date: string }>): Promise<Account> {
+  excludedTransactionId,
+}: Readonly<{
+  accountId: string;
+  date: string;
+  excludedTransactionId: string | undefined;
+}>): Promise<Account> {
   const account = readData(
     await apiClient.GET('/accounting/accounts/{account_id}', {
-      params: { path: { account_id: accountId }, query: { date } },
+      params: {
+        path: { account_id: accountId },
+        query: {
+          date,
+          ...(excludedTransactionId === undefined
+            ? {}
+            : { excluded_transaction_id: excludedTransactionId }),
+        },
+      },
     }),
   );
   return account;
@@ -72,13 +85,18 @@ export const transactionQueries = {
   accountOnDate({
     accountId,
     date,
-  }: Readonly<{ accountId: string | undefined; date: string | undefined }>) {
+    excludedTransactionId,
+  }: Readonly<{
+    accountId: string | undefined;
+    date: string | undefined;
+    excludedTransactionId: string | undefined;
+  }>) {
     return queryOptions({
-      queryKey: [...ACCOUNT_ON_DATE_KEY, accountId, date],
+      queryKey: [...ACCOUNT_ON_DATE_KEY, accountId, date, excludedTransactionId],
       queryFn:
         accountId === undefined || date === undefined
           ? skipToken
-          : () => fetchAccountOnDate({ accountId, date }),
+          : () => fetchAccountOnDate({ accountId, date, excludedTransactionId }),
     });
   },
 };

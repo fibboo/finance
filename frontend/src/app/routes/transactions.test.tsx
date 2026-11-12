@@ -1907,11 +1907,14 @@ test('saves the edited expense and refreshes the list and its details', async ()
   });
 });
 
-test('leaves Edit out of the details of an adjustment', async () => {
+test('saves the adjustment edited from its details and refreshes its details', async () => {
   // arrange
-  const adjustment = {
+  const user = userEvent.setup();
+  const storedAdjustment = {
     ...expense,
     transaction_type: 'ADJUSTMENT',
+    location: null,
+    base_currency_amount: '12.00',
     postings: [
       {
         ...categoryPosting,
@@ -1920,6 +1923,95 @@ test('leaves Edit out of the details of an adjustment', async () => {
         account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
       },
       { ...walletPosting, amount: '12.00', base_amount: '12.00' },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  const editedAdjustment = {
+    ...storedAdjustment,
+    base_currency_amount: '50.00',
+    postings: [
+      {
+        ...categoryPosting,
+        amount: '-50.00',
+        base_amount: '-50.00',
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+      },
+      { ...walletPosting, amount: '50.00', base_amount: '50.00' },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  let isEdited = false;
+  let requestBody: unknown = null;
+  let requestPath = '';
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [isEdited ? editedAdjustment : storedAdjustment],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(isEdited ? editedAdjustment : storedAdjustment),
+    ),
+    http.put(
+      'http://localhost/api/accounting/accounts/:accountId/adjustment/:transactionId',
+      async ({ request }) => {
+        requestPath = new URL(request.url).pathname;
+        requestBody = await request.json();
+        isEdited = true;
+        return HttpResponse.json(editedAdjustment);
+      },
+    ),
+    http.get('http://localhost/api/accounting/currencies', () =>
+      HttpResponse.json([{ key: 'USD', label: 'US dollar' }]),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await user.click(await within(details).findByRole('button', { name: 'Edit transaction' }));
+  const editForm = await screen.findByRole('dialog', { name: 'Edit transaction' });
+  const amount = await within(editForm).findByLabelText('Amount');
+  await user.clear(amount);
+  await user.type(amount, '50');
+
+  // act
+  await user.click(within(editForm).getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Edit transaction' })).not.toBeInTheDocument();
+  });
+  expect(await within(details).findAllByText('+$50.00')).not.toHaveLength(0);
+  expect(requestPath).toBe(`/api/accounting/accounts/${wallet.id}/adjustment/${expense.id}`);
+  expect(requestBody).toEqual({
+    transaction_date: '2026-10-20',
+    comment: null,
+    amount: '50.00',
+    base_currency_amount: null,
+  });
+});
+
+test('blocks Edit with the name of the deleted account of an adjustment', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const adjustment = {
+    ...expense,
+    transaction_type: 'ADJUSTMENT',
+    location: null,
+    postings: [
+      {
+        ...categoryPosting,
+        amount: '-12.00',
+        base_amount: '-12.00',
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+      },
+      {
+        ...walletPosting,
+        amount: '12.00',
+        base_amount: '12.00',
+        account: { ...wallet, status: 'DELETED' },
+      },
     ],
   } satisfies components['schemas']['Transaction'];
   server.use(
@@ -1936,18 +2028,19 @@ test('leaves Edit out of the details of an adjustment', async () => {
       HttpResponse.json(adjustment),
     ),
   );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
 
   // act
-  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  await user.click(await within(details).findByRole('button', { name: 'Edit transaction' }));
 
   // assert
-  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
-  expect(
-    await within(details).findByRole('button', { name: 'Delete transaction' }),
-  ).toBeInTheDocument();
-  expect(
-    within(details).queryByRole('button', { name: 'Edit transaction' }),
-  ).not.toBeInTheDocument();
+  const editButton = within(details).getByRole('button', { name: 'Edit transaction' });
+  expect(editButton).toHaveAttribute('aria-disabled', 'true');
+  expect(editButton).toHaveAccessibleDescription(
+    "Wallet is deleted, so this transaction can't be edited.",
+  );
+  expect(screen.queryByRole('dialog', { name: 'Edit transaction' })).not.toBeInTheDocument();
 });
 
 test('blocks Edit with the name of the deleted location of the transaction', async () => {

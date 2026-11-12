@@ -12,37 +12,38 @@ import type { components } from '@/lib/api-schema';
 import { readIsoDate, toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
-import type { AdjustmentTransactionType, EntryTransactionType } from '../api/new-transaction';
+import type { AdjustmentTransactionType } from '../api/new-transaction';
 import { transactionMutations } from '../api/transaction-mutations';
 import { transactionQueries } from '../api/transaction-queries';
 import {
+  type AdjustmentFormValues,
   COMMENT_MAX_LENGTH,
   createAdjustmentFormSchema,
   isBaseCurrencyAmountNeeded,
   readAccountCurrency,
   readAmountText,
 } from '../schemas/transaction-form';
+import { readAdjustmentPosting, readAdjustmentValues } from './adjustment-values';
 import { AmountField } from './amount-field';
 import { readAmountInputProps } from './amount-input';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
-import { FormHeader, NEW_TRANSACTION_TITLE } from './form-header';
+import { FormHeader, NEW_TRANSACTION_TITLE, type TypeChoice } from './form-header';
 import { InputRow } from './input-row';
 import { readMoneyAccountNote, toMoneyAccountItem } from './money-account-item';
+import { addOwnChoices } from './movement-values';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
 import styles from './transaction-form.module.css';
 
 type Account = components['schemas']['Account'];
-type DictionaryItem = components['schemas']['DictionaryItem'];
-type AdjustmentFormSchema = ReturnType<typeof createAdjustmentFormSchema>;
-type AdjustmentFormInput = z.input<AdjustmentFormSchema>;
-type AdjustmentFormOutput = z.output<AdjustmentFormSchema>;
+type Transaction = components['schemas']['Transaction'];
+type AdjustmentFormOutput = z.output<ReturnType<typeof createAdjustmentFormSchema>>;
 
 const SAVE_ERROR_MESSAGE = "Couldn't save the adjustment. Please try again.";
 const FORM_FIELDS = [
   'account_id',
-  'new_balance',
+  'amount',
   'base_currency_amount',
   'transaction_date',
   'comment',
@@ -50,20 +51,17 @@ const FORM_FIELDS = [
 
 function readBalanceHint({
   account,
-  newBalanceText,
-}: Readonly<{ account: Readonly<Account>; newBalanceText: string }>): string {
+  amountText,
+  savedAmount,
+}: Readonly<{ account: Readonly<Account>; amountText: string; savedAmount: number }>): string {
   const currency = readAccountCurrency(account);
-  const balance = formatMoney({ amount: Number(account.balance), currency });
-  const newBalance = readAmountText(newBalanceText);
-  const difference =
-    newBalance === undefined
+  const balance = Number(account.balance);
+  const amount = readAmountText(amountText);
+  const newBalance =
+    amount === undefined || Number(amount) === savedAmount
       ? ''
-      : ` · ${formatMoney({
-          amount: Number(newBalance) - Number(account.balance),
-          currency,
-          signDisplay: 'exceptZero',
-        })}`;
-  const hint = `Now ${balance}${difference}`;
+      : ` → ${formatMoney({ amount: balance - savedAmount + Number(amount), currency })}`;
+  const hint = `Now ${formatMoney({ amount: balance, currency })}${newBalance}`;
   return hint;
 }
 
@@ -76,27 +74,30 @@ function readAdjustmentDate({
   return adjustmentDate;
 }
 
+type TransactionFormMode =
+  | Readonly<{
+      kind: 'create';
+      typeChoice: TypeChoice;
+      presetAccountId: string | undefined;
+      renderMoneyAccountForm: (props: CreateFormProps) => ReactNode;
+    }>
+  | Readonly<{ kind: 'edit'; transaction: Readonly<Transaction> }>;
+
 type TransactionFormProps = Readonly<{
+  mode: TransactionFormMode;
   transactionType: AdjustmentTransactionType;
-  transactionTypes: readonly DictionaryItem[];
   moneyAccounts: readonly Account[] | undefined;
-  presetAccountId: string | undefined;
   baseCurrency: string;
   relatedQueryKeys: readonly QueryKey[];
-  renderMoneyAccountForm: (props: CreateFormProps) => ReactNode;
-  onTypeChange: (transactionType: EntryTransactionType) => void;
   onClose: () => void;
 }>;
 
 export function TransactionForm({
+  mode,
   transactionType,
-  transactionTypes,
   moneyAccounts,
-  presetAccountId,
   baseCurrency,
   relatedQueryKeys,
-  renderMoneyAccountForm,
-  onTypeChange,
   onClose,
 }: TransactionFormProps) {
   const today = useToday();
@@ -104,18 +105,20 @@ export function TransactionForm({
   const [isPickingAccount, setIsPickingAccount] = useState(false);
   const [isBaseAmountAsked, setIsBaseAmountAsked] = useState(false);
   const accountRowId = useId();
-  const resolver: Resolver<AdjustmentFormInput, unknown, AdjustmentFormOutput> = (
+  const editedPosting = mode.kind === 'edit' ? readAdjustmentPosting(mode.transaction) : undefined;
+  const editedTransactionId = mode.kind === 'edit' ? mode.transaction.id : undefined;
+  const accounts = addOwnChoices({ choices: moneyAccounts, ownChoices: [editedPosting?.account] });
+  const resolver: Resolver<AdjustmentFormValues, unknown, AdjustmentFormOutput> = (
     values,
     context,
     options,
   ) => {
-    const listedAccount = moneyAccounts?.find(
-      (moneyAccount) => moneyAccount.id === values.account_id,
-    );
+    const listedAccount = accounts?.find((moneyAccount) => moneyAccount.id === values.account_id);
     const listedAccountOnDate = queryClient.getQueryData(
       transactionQueries.accountOnDate({
         accountId: listedAccount?.id,
         date: readAdjustmentDate({ dateText: values.transaction_date, today }),
+        excludedTransactionId: editedTransactionId,
       }).queryKey,
     );
     const adjustmentFormSchema = createAdjustmentFormSchema({
@@ -132,29 +135,37 @@ export function TransactionForm({
     return zodResolver(adjustmentFormSchema)(values, context, options);
   };
   const { control, register, handleSubmit, setError, setValue, clearErrors, formState } = useForm<
-    AdjustmentFormInput,
+    AdjustmentFormValues,
     unknown,
     AdjustmentFormOutput
   >({
     resolver,
-    defaultValues: {
-      account_id: presetAccountId ?? '',
-      new_balance: '',
-      base_currency_amount: '',
-      transaction_date: toDateText(today),
-      comment: '',
-    },
+    ...(mode.kind === 'edit'
+      ? {
+          values: readAdjustmentValues(mode.transaction),
+          resetOptions: { keepDirtyValues: true },
+        }
+      : {
+          defaultValues: {
+            account_id: mode.presetAccountId ?? '',
+            amount: '',
+            base_currency_amount: '',
+            transaction_date: toDateText(today),
+            comment: '',
+          },
+        }),
   });
-  const [accountId, newBalanceText, transactionDate] = useWatch({
+  const [accountId, amountText, transactionDate] = useWatch({
     control,
-    name: ['account_id', 'new_balance', 'transaction_date'],
+    name: ['account_id', 'amount', 'transaction_date'],
   });
   const adjust = useMutation(transactionMutations.adjust(relatedQueryKeys));
-  const account = moneyAccounts?.find((moneyAccount) => moneyAccount.id === accountId);
+  const account = accounts?.find((moneyAccount) => moneyAccount.id === accountId);
   const { data: accountOnDate } = useQuery(
     transactionQueries.accountOnDate({
       accountId: account?.id,
       date: readAdjustmentDate({ dateText: transactionDate, today }),
+      excludedTransactionId: editedTransactionId,
     }),
   );
   const isBaseAmountShown =
@@ -184,38 +195,62 @@ export function TransactionForm({
         noValidate
         onSubmit={(event) => {
           void handleSubmit((values) => {
-            adjust.mutate(values, {
-              onSuccess: onClose,
-              onError: (error) => {
-                readSaveErrors({
-                  error,
-                  fields: FORM_FIELDS,
-                  fallbackMessage: SAVE_ERROR_MESSAGE,
-                }).forEach(({ field, message }) => {
-                  if (field === 'base_currency_amount') {
-                    setIsBaseAmountAsked(true);
-                  }
-                  setError(field, { message });
-                });
+            adjust.mutate(
+              { ...values, transaction_id: editedTransactionId },
+              {
+                onSuccess: onClose,
+                onError: (error) => {
+                  readSaveErrors({
+                    error,
+                    fields: FORM_FIELDS,
+                    fallbackMessage: SAVE_ERROR_MESSAGE,
+                  }).forEach(({ field, message }) => {
+                    if (field === 'base_currency_amount') {
+                      setIsBaseAmountAsked(true);
+                    }
+                    setError(field, { message });
+                  });
+                },
               },
-            });
+            );
           })(event);
         }}
       >
         <FormHeader
-          title={NEW_TRANSACTION_TITLE}
+          title={mode.kind === 'edit' ? 'Edit adjustment' : NEW_TRANSACTION_TITLE}
           transactionType={transactionType}
-          typeChoice={{ transactionTypes, onTypeChange }}
+          typeChoice={mode.kind === 'create' ? mode.typeChoice : undefined}
           onClose={onClose}
         />
         <AmountField
-          label="New balance"
-          registration={register('new_balance')}
+          label="Amount"
+          registration={register('amount')}
           isNegativeAllowed
           currency={account === undefined ? undefined : readAccountCurrency(account)}
-          hint={account === undefined ? undefined : readBalanceHint({ account, newBalanceText })}
-          error={formState.errors.new_balance?.message}
+          hint={
+            account === undefined
+              ? undefined
+              : readBalanceHint({
+                  account,
+                  amountText,
+                  savedAmount: Number(editedPosting?.amount ?? 0),
+                })
+          }
+          error={formState.errors.amount?.message}
         />
+        {isBaseAmountShown && (
+          <div className={styles['rows']}>
+            <InputRow
+              label={`In ${baseCurrency}`}
+              input={readAmountInputProps({
+                registration: register('base_currency_amount'),
+                isNegativeAllowed: false,
+              })}
+              suffix={baseCurrency}
+              error={formState.errors.base_currency_amount?.message}
+            />
+          </div>
+        )}
         <div className={styles['rows']}>
           <PickerRow
             id={accountRowId}
@@ -225,9 +260,13 @@ export function TransactionForm({
             color={account === undefined ? undefined : readAccountColor(account)}
             note={account === undefined ? undefined : readMoneyAccountNote(account)}
             error={formState.errors.account_id?.message}
-            onOpen={() => {
-              setIsPickingAccount(true);
-            }}
+            onOpen={
+              mode.kind === 'edit'
+                ? undefined
+                : () => {
+                    setIsPickingAccount(true);
+                  }
+            }
           />
           <InputRow
             label="Date"
@@ -242,6 +281,7 @@ export function TransactionForm({
                 onPick={(dateText) => {
                   forgetAskedBaseAmount();
                   setValue('transaction_date', dateText, {
+                    shouldDirty: true,
                     shouldValidate: formState.isSubmitted,
                   });
                 }}
@@ -250,19 +290,6 @@ export function TransactionForm({
             error={formState.errors.transaction_date?.message}
           />
         </div>
-        {isBaseAmountShown && (
-          <div className={styles['rows']}>
-            <InputRow
-              label={`In ${baseCurrency}`}
-              input={readAmountInputProps({
-                registration: register('base_currency_amount'),
-                isNegativeAllowed: false,
-              })}
-              suffix={baseCurrency}
-              error={formState.errors.base_currency_amount?.message}
-            />
-          </div>
-        )}
         <div className={styles['rows']}>
           <InputRow
             label="Comment"
@@ -285,17 +312,17 @@ export function TransactionForm({
           className={styles['submit']}
           disabled={adjust.isPending || moneyAccounts === undefined}
         >
-          Adjust balance
+          {mode.kind === 'edit' ? 'Save changes' : 'Adjust balance'}
         </button>
       </form>
-      {isPickingAccount && (
+      {mode.kind === 'create' && isPickingAccount && (
         <EntityPicker
           title="Account"
           searchLabel="Search accounts"
           emptyText="There are no accounts yet."
           items={moneyAccounts?.map(toMoneyAccountItem)}
           selectedId={account?.id}
-          create={{ label: 'Create account', renderForm: renderMoneyAccountForm }}
+          create={{ label: 'Create account', renderForm: mode.renderMoneyAccountForm }}
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {
               forgetAskedBaseAmount();
