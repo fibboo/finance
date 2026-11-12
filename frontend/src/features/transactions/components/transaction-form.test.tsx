@@ -611,25 +611,99 @@ test('asks for the base currency amount once the date is one the account had no 
       onClose={vi.fn()}
     />,
   );
-  const shownOnDates: boolean[] = [];
+  await user.clear(screen.getByLabelText('Date'));
 
   // act
+  await user.type(screen.getByLabelText('Date'), '05102026');
+
+  // assert
+  expect(await screen.findByLabelText('In USD')).toBeInTheDocument();
+});
+
+test('stops asking for the base currency amount once the date is one the account had a rate on', async () => {
+  // arrange
+  // the account has a rate from 06.10.2026 on, and none up to 05.10.2026
+  const ratedEuroCard = { ...euroCard, balance: '50', base_currency_rate: '0.92' };
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, ({ request }) => {
+      const date = new URL(request.url).searchParams.get('date') ?? '';
+      return HttpResponse.json(date >= '2026-10-06' ? ratedEuroCard : euroCard);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[ratedEuroCard]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
   await user.clear(screen.getByLabelText('Date'));
   await user.type(screen.getByLabelText('Date'), '05102026');
   await screen.findByLabelText('In USD');
-  shownOnDates.push(screen.queryByLabelText('In USD') !== null);
   await user.clear(screen.getByLabelText('Date'));
+
+  // act
   await user.type(screen.getByLabelText('Date'), '06102026');
+
+  // assert
   await waitFor(() => {
     expect(screen.queryByLabelText('In USD')).not.toBeInTheDocument();
   });
-  shownOnDates.push(screen.queryByLabelText('In USD') !== null);
-
-  // assert
-  expect(shownOnDates).toEqual([true, false]);
 });
 
-test('leaves out the base currency amount typed for a date the account had a rate on', async () => {
+test('stops asking for the amount the backend asked for once the date changes', async () => {
+  // arrange
+  const ratedEuroCard = { ...euroCard, balance: '50', base_currency_rate: '0.92' };
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${euroCard.id}`, () =>
+      HttpResponse.json(ratedEuroCard),
+    ),
+    http.post('http://localhost/api/accounting/accounts/:accountId/adjustment', () =>
+      HttpResponse.json(
+        {
+          message: 'Accounts has no base currency rate',
+          error_code: 'NO_ACCOUNT_BASE_CURRENCY_RATE',
+        },
+        { status: 403 },
+      ),
+    ),
+  );
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      transactionType="ADJUSTMENT"
+      transactionTypes={transactionTypes}
+      moneyAccounts={[ratedEuroCard]}
+      presetAccountId={euroCard.id}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderMoneyAccountForm={() => null}
+      onTypeChange={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.type(screen.getByLabelText('New balance'), '100');
+  await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
+  await screen.findByLabelText('In USD');
+  await user.clear(screen.getByLabelText('Date'));
+
+  // act
+  await user.type(screen.getByLabelText('Date'), '19102026');
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByLabelText('In USD')).not.toBeInTheDocument();
+  });
+});
+
+test('leaves out an amount typed for a date the account had a rate on, even an invalid one', async () => {
   // arrange
   // the account has a rate from 06.10.2026 on, and none up to 05.10.2026
   const ratedEuroCard = { ...euroCard, balance: '50', base_currency_rate: '0.92' };
@@ -665,7 +739,7 @@ test('leaves out the base currency amount typed for a date the account had a rat
   await user.type(screen.getByLabelText('New balance'), '100');
   await user.clear(screen.getByLabelText('Date'));
   await user.type(screen.getByLabelText('Date'), '05102026');
-  await user.type(await screen.findByLabelText('In USD'), '54.30');
+  await user.type(await screen.findByLabelText('In USD'), '0');
   await user.clear(screen.getByLabelText('Date'));
   await user.type(screen.getByLabelText('Date'), '06102026');
   await waitFor(() => {

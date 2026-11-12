@@ -96,9 +96,15 @@ export function isBaseCurrencyAmountNeeded({
 
 export function createAdjustmentFormSchema({
   account,
+  isBaseCurrencyAmountAsked,
   baseCurrency,
   today,
-}: Readonly<{ account: Readonly<Account> | undefined; baseCurrency: string; today: string }>) {
+}: Readonly<{
+  account: Readonly<Account> | undefined;
+  isBaseCurrencyAmountAsked: boolean;
+  baseCurrency: string;
+  today: string;
+}>) {
   const adjustmentFormSchema = z.object({
     account_id: z
       .string()
@@ -113,16 +119,19 @@ export function createAdjustmentFormSchema({
       .refine((amount) => account === undefined || Number(amount) !== Number(account.balance), {
         error: 'The account already has this balance',
       }),
-    base_currency_amount: z
-      .string()
-      .transform((text) => readSubmittedAmount(text))
-      .transform((amount) => (amount === '' ? null : amount))
-      .refine(
-        (amount) => amount === null || (PLAIN_AMOUNT_PATTERN.test(amount) && Number(amount) > 0),
-        {
-          error: `Enter the amount in ${baseCurrency}, like 42.80`,
-        },
-      ),
+    base_currency_amount: isBaseCurrencyAmountAsked
+      ? z
+          .string()
+          .transform((text) => readSubmittedAmount(text))
+          .transform((amount) => (amount === '' ? null : amount))
+          .refine(
+            (amount) =>
+              amount === null || (PLAIN_AMOUNT_PATTERN.test(amount) && Number(amount) > 0),
+            {
+              error: `Enter the amount in ${baseCurrency}, like 42.80`,
+            },
+          )
+      : skippedTextSchema,
     transaction_date: createTransactionDateSchema(today),
     comment: commentSchema,
   });

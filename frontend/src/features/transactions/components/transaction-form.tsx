@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type QueryKey, useMutation, useQuery } from '@tanstack/react-query';
+import { type QueryKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ReactNode, useId, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
@@ -67,6 +67,15 @@ function readBalanceHint({
   return hint;
 }
 
+function readAdjustmentDate({
+  dateText,
+  today,
+}: Readonly<{ dateText: string; today: string }>): string | undefined {
+  const isoDate = readIsoDate(dateText);
+  const adjustmentDate = isoDate !== undefined && isoDate <= today ? isoDate : undefined;
+  return adjustmentDate;
+}
+
 type TransactionFormProps = Readonly<{
   transactionType: AdjustmentTransactionType;
   transactionTypes: readonly DictionaryItem[];
@@ -91,6 +100,7 @@ export function TransactionForm({
   onClose,
 }: TransactionFormProps) {
   const today = useToday();
+  const queryClient = useQueryClient();
   const [isPickingAccount, setIsPickingAccount] = useState(false);
   const [isBaseAmountAsked, setIsBaseAmountAsked] = useState(false);
   const accountRowId = useId();
@@ -98,14 +108,29 @@ export function TransactionForm({
     values,
     context,
     options,
-  ) =>
-    zodResolver(
-      createAdjustmentFormSchema({
-        account: moneyAccounts?.find((account) => account.id === values.account_id),
-        baseCurrency,
-        today,
-      }),
-    )(values, context, options);
+  ) => {
+    const listedAccount = moneyAccounts?.find(
+      (moneyAccount) => moneyAccount.id === values.account_id,
+    );
+    const listedAccountOnDate = queryClient.getQueryData(
+      transactionQueries.accountOnDate({
+        accountId: listedAccount?.id,
+        date: readAdjustmentDate({ dateText: values.transaction_date, today }),
+      }).queryKey,
+    );
+    const adjustmentFormSchema = createAdjustmentFormSchema({
+      account: listedAccount,
+      isBaseCurrencyAmountAsked:
+        isBaseAmountAsked ||
+        isBaseCurrencyAmountNeeded({
+          account: listedAccountOnDate ?? listedAccount,
+          baseCurrency,
+        }),
+      baseCurrency,
+      today,
+    });
+    return zodResolver(adjustmentFormSchema)(values, context, options);
+  };
   const { control, register, handleSubmit, setError, setValue, clearErrors, formState } = useForm<
     AdjustmentFormInput,
     unknown,
@@ -126,17 +151,21 @@ export function TransactionForm({
   });
   const adjust = useMutation(transactionMutations.adjust(relatedQueryKeys));
   const account = moneyAccounts?.find((moneyAccount) => moneyAccount.id === accountId);
-  const adjustmentDate = readIsoDate(transactionDate);
   const { data: accountOnDate } = useQuery(
     transactionQueries.accountOnDate({
       accountId: account?.id,
-      date: adjustmentDate !== undefined && adjustmentDate <= today ? adjustmentDate : undefined,
+      date: readAdjustmentDate({ dateText: transactionDate, today }),
     }),
   );
   const isBaseAmountShown =
     isBaseAmountAsked ||
     isBaseCurrencyAmountNeeded({ account: accountOnDate ?? account, baseCurrency });
   const requestError = formState.errors.root?.['server']?.message;
+
+  function forgetAskedBaseAmount() {
+    clearErrors('base_currency_amount');
+    setIsBaseAmountAsked(false);
+  }
 
   function closePicker() {
     flushSync(() => {
@@ -153,11 +182,7 @@ export function TransactionForm({
         noValidate
         onSubmit={(event) => {
           void handleSubmit((values) => {
-            const adjustment = {
-              ...values,
-              base_currency_amount: isBaseAmountShown ? values.base_currency_amount : null,
-            };
-            adjust.mutate(adjustment, {
+            adjust.mutate(values, {
               onSuccess: onClose,
               onError: (error) => {
                 readSaveErrors({
@@ -204,13 +229,16 @@ export function TransactionForm({
           />
           <InputRow
             label="Date"
-            input={readDateInputProps(register('transaction_date'))}
+            input={readDateInputProps(
+              register('transaction_date', { onChange: forgetAskedBaseAmount }),
+            )}
             action={
               <CalendarButton
                 label="transaction"
                 value={transactionDate}
                 max={today}
                 onPick={(dateText) => {
+                  forgetAskedBaseAmount();
                   setValue('transaction_date', dateText, {
                     shouldValidate: formState.isSubmitted,
                   });
@@ -269,8 +297,7 @@ export function TransactionForm({
           onSelect={(selectedAccountId) => {
             if (selectedAccountId !== accountId) {
               setValue('base_currency_amount', '');
-              clearErrors('base_currency_amount');
-              setIsBaseAmountAsked(false);
+              forgetAskedBaseAmount();
             }
             setValue('account_id', selectedAccountId, { shouldValidate: formState.isSubmitted });
             closePicker();
