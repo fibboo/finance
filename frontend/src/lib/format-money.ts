@@ -1,6 +1,6 @@
 export const LOCALE = 'en-US';
 
-const AMOUNT_FRACTION_DIGITS = 2;
+export const AMOUNT_DECIMAL_DIGITS = 2;
 
 export function formatMoney({
   amount,
@@ -17,8 +17,8 @@ export function formatMoney({
     style: 'currency',
     currency,
     currencyDisplay: 'narrowSymbol',
-    minimumFractionDigits: AMOUNT_FRACTION_DIGITS,
-    maximumFractionDigits: AMOUNT_FRACTION_DIGITS,
+    minimumFractionDigits: AMOUNT_DECIMAL_DIGITS,
+    maximumFractionDigits: AMOUNT_DECIMAL_DIGITS,
     signDisplay,
     trailingZeroDisplay,
   }).format(amount);
