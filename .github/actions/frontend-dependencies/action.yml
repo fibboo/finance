@@ -1,0 +1,28 @@
+name: Frontend dependencies
+description: >-
+  Sets up Node and fills frontend/node_modules, from the copy kept on the runner
+  while the Node version and package-lock.json stay the same, and with npm ci otherwise.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7.1.0
+      with:
+        node-version: 26.12.0
+        package-manager-cache: false
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: frontend
+      run: |
+        cache=~/.cache/finance-ci/node_modules
+        key="$(node --version)-$(sha256sum package-lock.json | cut -d ' ' -f 1)"
+        if [ -d "$cache/$key" ]; then
+          cp -al "$cache/$key" node_modules
+        else
+          npm ci
+          rm -rf "$cache"
+          mkdir -p "$cache"
+          cp -al node_modules "$cache/$key.tmp"
+          mv "$cache/$key.tmp" "$cache/$key"
+        fi

@@ -64,15 +64,12 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      NODE_OPTIONS: --max-old-space-size=2048
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 26.12.0
-
-      - name: Install dependencies
-        run: npm ci
+      - uses: ./.github/actions/frontend-dependencies
 
       - name: Lint
         run: npm run lint
@@ -97,9 +94,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 26.12.0
+      - uses: ./.github/actions/frontend-dependencies
 
       - name: Build backend image
         run: docker build -t finance-test -f backend/tests/Dockerfile backend
@@ -110,10 +105,6 @@ jobs:
           docker run -d --name finance-api-schema --memory 256m --memory-swap 1g --cpu-shares 256 \
             --env-file backend/.env -p 127.0.0.1:8000:8000 finance-test uvicorn app.main:app --host 0.0.0.0
           curl -sf --retry 30 --retry-all-errors --retry-delay 1 -o /dev/null http://localhost:8000/openapi.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
 
       - name: Regenerate API types
         working-directory: frontend

@@ -199,6 +199,10 @@ The server has 1 vCPU and 1 GB of RAM, so the runner is set up to give way to pr
 - the containers the jobs start run with `--memory`, `--memory-swap` and `--cpu-shares`, set in `tests.yml`;
 - the jobs that build an image end by pruning dangling images and build cache older than a week.
 
+One core makes every step slow, so the runner keeps what does not change between runs: Docker's layer cache
+rebuilds the test image only from the first changed layer, and `~/.cache/finance-ci/node_modules` holds the
+installed frontend dependencies of the last `package-lock.json`, which the jobs hard-link into the workspace.
+
 A `docker build` is not covered by these limits, so production answers slower while an image builds.
 
 To install the runner, take the registration token from the repository's Settings → Actions → Runners → New
