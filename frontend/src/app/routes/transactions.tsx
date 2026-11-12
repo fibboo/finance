@@ -4,10 +4,16 @@ import { useSearchParams } from 'react-router';
 import { DetailsColumn } from '@/app/details-column';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { useShownAccount } from '@/app/use-shown-account';
+import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
+import { SearchField } from '@/components/search-field/search-field';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import {
+  DEFAULT_ENTRY_TRANSACTION_TYPE,
+  writeNewTransactionType,
+} from '@/features/transactions/api/new-transaction';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,
@@ -15,8 +21,10 @@ import {
   isSortedByDate,
   readTransactionFilterQuery,
   readTransactionFilters,
+  readTransactionSearch,
   type TransactionFilters,
   writeTransactionFilters,
+  writeTransactionSearch,
 } from '@/features/transactions/api/transaction-filters';
 import { FilterChips } from '@/features/transactions/components/filter-chips';
 import { readTopTransactionId } from '@/features/transactions/components/feed-transactions';
@@ -24,6 +32,7 @@ import { NoMatchingTransactions } from '@/features/transactions/components/no-ma
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
 import { useDateJump } from '@/features/transactions/hooks/use-date-jump';
 import { useTransactionFeed } from '@/features/transactions/hooks/use-transaction-feed';
+import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { useToday } from '@/hooks/use-today';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
@@ -64,10 +73,13 @@ export function Component() {
   const baseCurrency = useBaseCurrency();
   const today = useToday();
   const [searchParams, setSearchParams] = useSearchParams();
-  const listKey = writeSelectedAccount({
+  const listSearchParams = writeSelectedAccount({
     searchParams: writeSelectedTransaction({ searchParams, transactionId: undefined }),
     accountId: undefined,
-  }).toString();
+  });
+  const listKey = listSearchParams.toString();
+  const search = readTransactionSearch(searchParams);
+  const searchField = useSearchField(search);
   const { anchorDate, jumpToDate, clearJump } = useDateJump(listKey);
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
@@ -106,6 +118,35 @@ export function Component() {
   });
   return (
     <Page title="Transactions" count={readTransactionCount(feed.total)}>
+      <div className={styles['actions']}>
+        <SearchField
+          key={searchField.fieldKey}
+          id="transaction-search"
+          label="Search transactions"
+          term={search}
+          isFocusedOnMount={searchField.isFocusedOnMount}
+          onSearch={(nextSearch) => {
+            clearJump();
+            setSearchParams(
+              writeTransactionSearch({ searchParams: listSearchParams, search: nextSearch }),
+              { replace: true, state: TYPED_SEARCH_STATE },
+            );
+          }}
+        />
+        <NewButton
+          entityName="transaction"
+          isDisabled={false}
+          onClick={() => {
+            setSearchParams(
+              writeNewTransactionType({
+                searchParams,
+                transactionType: DEFAULT_ENTRY_TRANSACTION_TYPE,
+              }),
+              { preventScrollReset: true },
+            );
+          }}
+        />
+      </div>
       {baseCurrency !== undefined &&
         dictionaries !== undefined &&
         accounts !== undefined &&

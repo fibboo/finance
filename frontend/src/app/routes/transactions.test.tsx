@@ -734,6 +734,34 @@ test('resets the filters that match nothing', async () => {
   expect(screen.getByRole('button', { name: 'Type' })).toBeInTheDocument();
 });
 
+test('opens New transaction on an expense and keeps the filters', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: ['/transactions?transaction_types=EXPENSE'],
+  });
+  await screen.findByText('Groceries');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'New transaction' }));
+
+  // assert
+  const searchParams = new URLSearchParams(router.state.location.search);
+  expect(searchParams.get('new_transaction')).toBe('EXPENSE');
+  expect(searchParams.getAll('transaction_types')).toEqual(['EXPENSE']);
+});
+
 test('drops the filters of the URL that are not valid', async () => {
   // arrange
   let requestedSearch = '';

@@ -1,25 +1,26 @@
 import { useRef, useState } from 'react';
 
-import { ACCOUNT_SEARCH_FIELD_ID } from '../api/account-search';
-import styles from './account-search.module.css';
+import styles from './search-field.module.css';
 
 const SEARCH_ICON_PATH = 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14m9 16-3.5-3.5';
 
-type AccountSearchProps = Readonly<{
+type SearchFieldProps = Readonly<{
+  id: string;
+  label: string;
   term: string;
   isFocusedOnMount: boolean;
   onSearch: (term: string) => void;
 }>;
 
-export function AccountSearch({ term, isFocusedOnMount, onSearch }: AccountSearchProps) {
+export function SearchField({ id, label, term, isFocusedOnMount, onSearch }: SearchFieldProps) {
   const [value, setValue] = useState(term);
   const hasFocusedOnMount = useRef(false);
   return (
-    <label className={styles['accountSearch']}>
+    <label className={styles['searchField']}>
       <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
         <path d={SEARCH_ICON_PATH} />
       </svg>
-      <span className="visually-hidden">Search accounts</span>
+      <span className="visually-hidden">{label}</span>
       <input
         ref={(input) => {
           if (input !== null && isFocusedOnMount && !hasFocusedOnMount.current) {
@@ -27,10 +28,10 @@ export function AccountSearch({ term, isFocusedOnMount, onSearch }: AccountSearc
             input.focus();
           }
         }}
-        id={ACCOUNT_SEARCH_FIELD_ID}
+        id={id}
         type="search"
         className={styles['input']}
-        placeholder="Search accounts"
+        placeholder={label}
         autoComplete="off"
         value={value}
         onChange={(event) => {

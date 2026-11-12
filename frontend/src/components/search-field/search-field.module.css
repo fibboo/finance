@@ -1,6 +1,6 @@
 @import '@/styles/media.css';
 
-.accountSearch {
+.searchField {
   flex: 1 1 auto;
   min-width: 0;
   min-height: var(--size-touch);
@@ -13,7 +13,7 @@
   color: var(--color-muted);
 }
 
-.accountSearch:focus-within {
+.searchField:focus-within {
   outline: var(--size-focus) solid var(--color-ink);
   outline-offset: calc(var(--size-focus) * -1);
 }
