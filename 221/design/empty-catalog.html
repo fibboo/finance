@@ -1,0 +1,193 @@
+<title>Empty Catalog Mockups</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: page of variant rows; each row shows a scaled desktop board and a phone board in the app's own tokens. */
+:root {
+  --bg: #eeeeeb; --fg: #17181a; --muted: #5a5d64; --line: #e2e2de;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0b0c0e; --fg: #ecedee; --muted: #9a9ea6; --line: #2a2d32; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #0b0c0e; --fg: #ecedee; --muted: #9a9ea6; --line: #2a2d32; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: 'Geist', system-ui, sans-serif; }
+.page { max-width: 1500px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.02em; }
+.lead { color: var(--muted); margin: 0 0 16px; max-width: 70ch; line-height: 1.5; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.toolbar button { font: inherit; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.toolbar button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.toolbar button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+section.variant { margin-bottom: 40px; }
+.variant h2 { font-size: 18px; margin: 0 0 4px; }
+.variant p.note { margin: 0 0 12px; color: var(--muted); line-height: 1.5; max-width: 80ch; }
+.boards { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+.deskWrap { flex: 1 1 640px; min-width: 0; max-width: 1040px; }
+.deskScale { width: 100%; aspect-ratio: 1280 / 800; position: relative; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); }
+.deskScale > .app { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; transform-origin: 0 0; }
+.phone { width: 300px; max-width: 100%; aspect-ratio: 390 / 844; position: relative; overflow: hidden; border-radius: 22px; border: 1px solid var(--line); flex: 0 0 auto; }
+.phone > .app { position: absolute; top: 0; left: 0; width: 390px; height: 844px; transform-origin: 0 0; }
+.cap { font-size: 12px; color: var(--muted); margin-top: 6px; }
+table.copy { border-collapse: collapse; font-size: 14px; }
+.tableWrap { overflow-x: auto; }
+table.copy th, table.copy td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.copy th { color: var(--muted); font-weight: 500; }
+
+/* ---- app tokens (from frontend/src/styles/tokens.css) ---- */
+.app {
+  --color-ground: #eeeeeb; --color-panel: #ffffff; --color-border: #e2e2de; --color-ink: #17181a;
+  --color-muted: #5a5d64; --color-accent: #1f7a55; --color-band: #f4f4f1; --color-track: #dcdcd7; --color-selected: #eaf3ee;
+  font-family: 'Geist', system-ui, sans-serif; background: var(--color-ground); color: var(--color-ink);
+  font-size: 15px; box-sizing: border-box;
+}
+.app[data-mock="dark"] {
+  --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+  --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-band: #1e2125; --color-track: #24272b; --color-selected: #16241d;
+}
+.app *, .app *::before { box-sizing: border-box; }
+.app.desk { display: flex; gap: 24px; padding: 24px; }
+.side { width: 232px; flex: none; background: var(--color-panel); border-radius: 20px; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; padding: 0 8px 14px; }
+.brand i { width: 9px; height: 9px; border-radius: 3px; background: var(--color-accent); }
+.addTx { background: var(--color-ink); color: var(--color-ground); border-radius: 14px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+.nav { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 12px; color: var(--color-muted); font-size: 14px; }
+.nav.on { background: var(--color-ground); color: var(--color-ink); font-weight: 600; }
+.nav svg, .ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.head { display: flex; align-items: center; justify-content: space-between; height: 44px; }
+.title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.title span { color: var(--color-muted); font-weight: 400; margin-left: 6px; }
+.avatar { width: 40px; height: 40px; border-radius: 999px; background: var(--color-panel); display: grid; place-items: center; font-size: 13px; font-weight: 600; }
+.actions { display: flex; gap: 10px; }
+.search { height: 46px; flex: 0 1 320px; background: var(--color-panel); border-radius: 14px; display: flex; align-items: center; gap: 10px; padding: 0 14px; color: var(--color-muted); font-size: 14px; }
+.search svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.new { height: 46px; padding: 0 18px; border-radius: 14px; background: var(--color-panel); display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.filters { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.toggle { width: 36px; height: 22px; border-radius: 999px; background: var(--color-track); position: relative; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 999px; background: var(--color-panel); }
+.toggle.on { background: var(--color-ink); }
+.toggle.on::after { left: 17px; }
+
+/* empty states */
+.empty { background: var(--color-panel); border-radius: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 24px 16px; }
+.empty .ico { width: 56px; height: 56px; border-radius: 14px; background: var(--color-ground); display: grid; place-items: center; color: var(--color-muted); margin-bottom: 4px; }
+.empty .ico svg { width: 20px; height: 20px; stroke-width: 2; }
+.empty .t { margin: 0; font-size: 18px; font-weight: 600; }
+.empty .x { margin: 0; font-size: 14px; color: var(--color-muted); max-width: 34ch; line-height: 1.45; }
+.empty .btn { margin-top: 12px; height: 46px; padding: 0 20px; border-radius: 14px; background: var(--color-ink); color: var(--color-ground); font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.empty.quiet { padding: 40px 16px; gap: 6px; }
+.empty.quiet .t { font-size: 16px; }
+
+/* phone */
+.app.ph { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.ph .head { height: 40px; }
+.ph .title { font-size: 22px; }
+.ph .actions .search { flex: 1 1 auto; }
+.ph .new { padding: 0 14px; }
+.ph .tabbar { margin-top: auto; height: 62px; background: var(--color-panel); border-radius: 22px; display: flex; justify-content: space-around; align-items: center; color: var(--color-muted); font-size: 11px; }
+.ph .tabbar div { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.ph .tabbar .on { color: var(--color-ink); font-weight: 600; }
+.ph .tabbar svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+
+<div class="page">
+  <h1>Empty catalog</h1>
+  <p class="lead">What Categories, Income sources and Locations show when the list has no entries and no search is typed. Today the page shows an empty strip. The boards show Income sources with the Deleted toggle on, as on the production screenshot.</p>
+  <div class="toolbar" role="group" aria-label="Board theme">
+    <button type="button" id="themeDark" aria-pressed="true">Boards dark</button>
+    <button type="button" id="themeLight" aria-pressed="false">Boards light</button>
+  </div>
+  <div id="variants"></div>
+
+  <section class="variant">
+    <h2>Copy for each section</h2>
+    <p class="note">A section with the Deleted toggle off and only deleted entries shows the same state, since there is nothing active to list.</p>
+    <div class="tableWrap">
+      <table class="copy">
+        <thead><tr><th>Section</th><th>Title</th><th>Text</th></tr></thead>
+        <tbody>
+          <tr><td>Income sources</td><td>No income sources yet</td><td>Add where your money comes from, like a salary or a client.</td></tr>
+          <tr><td>Categories</td><td>No categories yet</td><td>Add what you spend on, like groceries or rent.</td></tr>
+          <tr><td>Locations</td><td>No locations yet</td><td>Add the places you pay at, like a shop or a café.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+const ICONS = {
+  home: '<path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  card: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>',
+  tag: '<path d="M3 12V4h8l9 9-8 8z"/><path d="M7.5 7.5h.01"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  income: '<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+};
+const svg = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+const SEARCH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14m9 16-3.5-3.5"/></svg>';
+
+const COPY = { t: 'No income sources yet', x: 'Add where your money comes from, like a salary or a client.' };
+
+const ALL_VARIANTS = [
+  { id: 'a', name: 'A · Panel with a button', note: 'The panel of "No income sources match this search": the income icon, a title, a line of text and a filled "New income source" button that opens the same sheet as the button above.',
+    empty: () => `<div class="empty"><div class="ico">${svg('income')}</div><p class="t">${COPY.t}</p><p class="x">${COPY.x}</p><div class="btn">${svg('plus')}New income source</div></div>` },
+  { id: 'b', name: 'B · Panel without a button', note: 'The same panel with the icon, title and text, without its own button: the "New income source" button above is the one action.',
+    empty: () => `<div class="empty"><div class="ico">${svg('income')}</div><p class="t">${COPY.t}</p><p class="x">${COPY.x}</p></div>` },
+  { id: 'c', name: 'C · Quiet, like Transactions', note: 'The empty state of Transactions: a title and a line of text, no icon and no button.',
+    empty: () => `<div class="empty quiet"><p class="t">${COPY.t}</p><p class="x">${COPY.x}</p></div>` },
+];
+const VARIANTS = ALL_VARIANTS.filter((v) => v.id === 'b');
+
+function desktop(v, theme) {
+  const nav = [['home','Home'],['list','Transactions'],['card','Accounts'],['tag','Categories'],['pin','Locations'],['income','Income sources']]
+    .map(([i, l]) => `<div class="nav${l === 'Income sources' ? ' on' : ''}">${svg(i)}${l}</div>`).join('');
+  return `<div class="app desk" data-mock="${theme}">
+    <div class="side"><div class="brand"><i></i>finance</div><div class="addTx">+&nbsp; Add transaction</div>${nav}</div>
+    <div class="main">
+      <div class="head"><div class="title">Income sources<span>0</span></div><div class="avatar">FI</div></div>
+      <div class="actions"><div class="search">${SEARCH}Search income sources</div><div class="new">${svg('plus')}New income source</div></div>
+      <div class="filters"><div class="toggle on"></div>Deleted</div>
+      ${v.empty()}
+    </div></div>`;
+}
+
+function phone(v, theme) {
+  const tabs = [['home','Home'],['list','Transactions'],['card','Accounts'],['more','More']]
+    .map(([i, l]) => `<div class="${l === 'More' ? 'on' : ''}">${svg(i)}${l}</div>`).join('');
+  return `<div class="app ph" data-mock="${theme}">
+    <div class="head"><div class="title">Income sources<span>0</span></div><div class="avatar">FI</div></div>
+    <div class="actions"><div class="search">${SEARCH}Search</div><div class="new">${svg('plus')}New</div></div>
+    <div class="filters"><div class="toggle on"></div>Deleted</div>
+    ${v.empty()}
+    <div class="tabbar">${tabs}</div></div>`;
+}
+
+let theme = 'dark';
+function render() {
+  document.getElementById('variants').innerHTML = VARIANTS.map((v) => `
+    <section class="variant" id="variant-${v.id}">
+      <h2>${v.name}</h2><p class="note">${v.note}</p>
+      <div class="boards">
+        <div class="deskWrap"><div class="deskScale">${desktop(v, theme)}</div><div class="cap">Desktop, 1280 px</div></div>
+        <div><div class="phone">${phone(v, theme)}</div><div class="cap">Phone, 390 px</div></div>
+      </div>
+    </section>`).join('');
+  fit();
+}
+function fit() {
+  document.querySelectorAll('.deskScale').forEach((box) => { box.firstElementChild.style.transform = `scale(${box.clientWidth / 1280})`; });
+  document.querySelectorAll('.phone').forEach((box) => { box.firstElementChild.style.transform = `scale(${box.clientWidth / 390})`; });
+}
+function setTheme(next) {
+  theme = next;
+  document.getElementById('themeDark').setAttribute('aria-pressed', String(next === 'dark'));
+  document.getElementById('themeLight').setAttribute('aria-pressed', String(next === 'light'));
+  render();
+}
+document.getElementById('themeDark').addEventListener('click', () => setTheme('dark'));
+document.getElementById('themeLight').addEventListener('click', () => setTheme('light'));
+window.addEventListener('resize', fit);
+render();
+</script>
