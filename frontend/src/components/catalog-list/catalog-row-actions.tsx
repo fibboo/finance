@@ -6,15 +6,13 @@ import {
   RESTORE_ICON_PATH,
   TRANSACTIONS_ICON_PATH,
 } from '@/components/action-button/action-icons';
-import type { components } from '@/lib/api-schema';
 
-import { readCatalogDeleteButtonId, readCatalogRowLinkId } from '../api/catalog-row-focus';
+import type { CatalogEntry } from './catalog-entry';
 import styles from './catalog-row-actions.module.css';
-
-type Account = components['schemas']['Account'];
+import { readCatalogDeleteButtonId, readCatalogRowLinkId } from './catalog-row-focus';
 
 type CatalogRowActionsProps = Readonly<{
-  entry: Readonly<Account>;
+  entry: CatalogEntry;
   transactionsLink: To;
   isRestorePending: boolean;
   isFocusRequested: boolean;

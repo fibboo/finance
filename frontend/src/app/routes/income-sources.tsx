@@ -4,6 +4,17 @@ import { useSearchParams } from 'react-router';
 
 import { CatalogTransactions } from '@/app/catalog-transactions';
 import { readTransactionsLink } from '@/app/transactions-link';
+import { readCatalogInitial } from '@/components/catalog-list/catalog-entry';
+import { CatalogFilters } from '@/components/catalog-list/catalog-filters';
+import { CatalogList } from '@/components/catalog-list/catalog-list';
+import { CatalogRowActions } from '@/components/catalog-list/catalog-row-actions';
+import {
+  readCatalogDeleteButtonId,
+  readNeighbourCatalogRowLinkId,
+} from '@/components/catalog-list/catalog-row-focus';
+import { readCatalogSearch, writeCatalogSearch } from '@/components/catalog-list/catalog-search';
+import { readIsDeletedShown, writeIsDeletedShown } from '@/components/catalog-list/deleted-filter';
+import { NoMatchingEntries } from '@/components/catalog-list/no-matching-entries';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
@@ -11,19 +22,13 @@ import { SearchField } from '@/components/search-field/search-field';
 import { Sheet } from '@/components/sheet/sheet';
 import { accountMutations } from '@/features/accounts/api/account-mutations';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
-import { readAccountSearch, writeAccountSearch } from '@/features/accounts/api/account-search';
-import { readCatalogFilters, writeCatalogFilters } from '@/features/accounts/api/catalog-filters';
 import {
-  readCatalogDeleteButtonId,
-  readNeighbourCatalogRowLinkId,
-} from '@/features/accounts/api/catalog-row-focus';
-import { readSelectedAccountId } from '@/features/accounts/api/selected-account';
-import { CatalogFilters } from '@/features/accounts/components/catalog-filters';
-import { CatalogList } from '@/features/accounts/components/catalog-list';
+  readAccountLinkId,
+  readSelectedAccountId,
+  writeSelectedAccount,
+} from '@/features/accounts/api/selected-account';
 import { readCatalogDeleteCopy } from '@/features/accounts/components/catalog-delete-copy';
-import { CatalogRowActions } from '@/features/accounts/components/catalog-row-actions';
 import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
-import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
 import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
@@ -58,10 +63,10 @@ export function Component() {
   const [renamedIncomeSourceId, setRenamedIncomeSourceId] = useState<string | undefined>(undefined);
   const [focusedIncomeSourceId, setFocusedIncomeSourceId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
-  const search = readAccountSearch(searchParams);
+  const search = readCatalogSearch(searchParams);
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
-  const filters = readCatalogFilters({ searchParams, categoryTypes: undefined });
+  const isDeletedShown = readIsDeletedShown(searchParams);
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
     throwOnError: true,
@@ -75,7 +80,7 @@ export function Component() {
       size: ACCOUNT_PAGE_SIZE,
       kinds: ['INCOME'],
       order: 'recent_use',
-      statuses: filters.isDeletedShown ? ['ACTIVE', 'DELETED'] : ['ACTIVE'],
+      statuses: isDeletedShown ? ['ACTIVE', 'DELETED'] : ['ACTIVE'],
       ...(searchTerm !== undefined && { search_term: searchTerm }),
     }),
     placeholderData: keepPreviousData,
@@ -137,7 +142,7 @@ export function Component() {
             term={search}
             isFocusedOnMount={searchField.isFocusedOnMount}
             onSearch={(nextSearch) => {
-              setSearchParams(writeAccountSearch({ searchParams, search: nextSearch }), {
+              setSearchParams(writeCatalogSearch({ searchParams, search: nextSearch }), {
                 replace: true,
                 state: TYPED_SEARCH_STATE,
               });
@@ -152,23 +157,24 @@ export function Component() {
           />
         </div>
         <CatalogFilters
-          categoryTypes={undefined}
-          filters={filters}
-          onChange={(nextFilters) => {
-            setSearchParams(writeCatalogFilters({ searchParams, filters: nextFilters }), {
-              replace: true,
-            });
+          segment={undefined}
+          isDeletedShown={isDeletedShown}
+          onDeletedShownChange={(nextIsDeletedShown) => {
+            setSearchParams(
+              writeIsDeletedShown({ searchParams, isDeletedShown: nextIsDeletedShown }),
+              { replace: true },
+            );
           }}
         />
       </div>
       <div className={styles['incomeSources']}>
         <div className={styles['list']}>
           {isNothingMatched ? (
-            <NoMatchingAccounts
+            <NoMatchingEntries
               entityNames="income sources"
               onClear={() => {
                 searchField.focusAfterClear();
-                setSearchParams(writeAccountSearch({ searchParams, search: '' }), {
+                setSearchParams(writeCatalogSearch({ searchParams, search: '' }), {
                   replace: true,
                 });
               }}
@@ -182,9 +188,17 @@ export function Component() {
                   ? {
                       chosenEntryId: chosenIncomeSource?.id,
                       defaultEntryId: shownIncomeSource?.id,
+                      readEntryLink: (incomeSourceId) => ({
+                        search: writeSelectedAccount({
+                          searchParams,
+                          accountId: incomeSourceId,
+                        }).toString(),
+                      }),
+                      readEntryLinkId: readAccountLinkId,
                     }
                   : undefined
               }
+              renderMark={readCatalogInitial}
               renderActions={(incomeSource) => (
                 <CatalogRowActions
                   entry={incomeSource}

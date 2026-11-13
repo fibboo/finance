@@ -94,14 +94,6 @@
   font-size: var(--font-size-md);
 }
 
-.soon {
-  margin-left: auto;
-  padding: var(--space-0-5) var(--space-2);
-  border-radius: var(--radius-badge);
-  font-size: var(--font-size-2xs);
-  background: var(--color-ground);
-}
-
 .menuToggle {
   composes: section;
   display: none;
