@@ -262,7 +262,7 @@
 
   .groupHeader {
     min-height: var(--size-panel-header-lg);
-    margin: var(--space-1-5) calc(-1 * var(--space-2)) 0;
+    margin: var(--space-1-5) calc(-1 * var(--space-2));
     padding: 0 var(--space-2);
     border-bottom: 0;
     border-radius: var(--radius-segment);

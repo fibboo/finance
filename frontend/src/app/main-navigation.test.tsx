@@ -152,3 +152,28 @@ test('names Add transaction of the collapsed menu and titles it', () => {
     'Add transaction',
   );
 });
+
+test.each([
+  { menuState: 'full', isExpanded: 'true' },
+  { menuState: 'collapsed', isExpanded: 'false' },
+] as const)(
+  'marks the menu button expanded as $isExpanded in the $menuState menu',
+  ({ menuState, isExpanded }) => {
+    // act
+    render(
+      <MainNavigation
+        menuState={menuState}
+        menuToggleRef={{ current: null }}
+        onMenuToggle={() => undefined}
+        onSectionChoose={() => undefined}
+      />,
+    );
+
+    // assert
+    expect(
+      screen.getByRole('button', {
+        name: menuState === 'full' ? 'Collapse' : 'Show the full menu',
+      }),
+    ).toHaveAttribute('aria-expanded', isExpanded);
+  },
+);

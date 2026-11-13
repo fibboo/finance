@@ -93,9 +93,9 @@ export function useMenuCollapse({
   const isCollapsedByWidth = useIsNarrowerThan(fullMenuQuery);
   const [menuForm, setMenuForm] = useState(readStoredMenuForm);
   const [isOpenOverPage, setIsOpenOverPage] = useState(false);
-  const [openedOn, setOpenedOn] = useState({ pathname, isCollapsedByWidth });
-  if (openedOn.pathname !== pathname || openedOn.isCollapsedByWidth !== isCollapsedByWidth) {
-    setOpenedOn({ pathname, isCollapsedByWidth });
+  const [lastPage, setLastPage] = useState({ pathname, isCollapsedByWidth });
+  if (lastPage.pathname !== pathname || lastPage.isCollapsedByWidth !== isCollapsedByWidth) {
+    setLastPage({ pathname, isCollapsedByWidth });
     setIsOpenOverPage(false);
   }
   const isMenuOpenOverPage = isCollapsedByWidth && isOpenOverPage;
