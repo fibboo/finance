@@ -351,6 +351,36 @@ test('restores a deleted location from its row', async () => {
   expect(restoreCount).toBe(1);
 });
 
+test('opens Restore location when a restore is refused because the name is taken', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json(readLocationPage([oldMarket])),
+    ),
+    http.post(`http://localhost/api/accounting/locations/${oldMarket.id}/restore`, () =>
+      HttpResponse.json(
+        {
+          error_code: 'NAME_ALREADY_EXISTS',
+          message: 'Name already exists',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 409 },
+      ),
+    ),
+  );
+  render(<Component />, { initialEntries: ['/locations'] });
+  const list = await screen.findByRole('region', { name: 'Locations' });
+
+  // act
+  await user.click(await within(list).findByRole('button', { name: 'Restore' }));
+
+  // assert
+  const restoreForm = await screen.findByRole('form', { name: 'Restore location' });
+  const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
+  expect(name).toHaveValue('Old market');
+  expect(name).toHaveAccessibleDescription('An active location already has this name');
+});
+
 test('shows the transactions of the chosen location beside the list', async () => {
   // arrange
   const requestedLocationIds: string[] = [];

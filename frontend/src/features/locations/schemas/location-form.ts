@@ -20,5 +20,9 @@ export const locationFormSchema = z.object({
     .transform((description) => (description === '' ? null : description)),
 });
 
+export const locationRestoreFormSchema = locationFormSchema.pick({ name: true });
+
 export type LocationFormValues = z.input<typeof locationFormSchema>;
 export type LocationFormOutput = z.output<typeof locationFormSchema>;
+export type LocationRestoreFormValues = z.input<typeof locationRestoreFormSchema>;
+export type LocationRestoreFormOutput = z.output<typeof locationRestoreFormSchema>;

@@ -8,6 +8,7 @@ import { locationQueries } from './location-queries';
 
 type Location = components['schemas']['Location'];
 type LocationCreateRequest = components['schemas']['LocationCreateRequest'];
+type LocationRestoreRequest = components['schemas']['LocationRestoreRequest'];
 type LocationUpdate = components['schemas']['LocationUpdate'];
 
 function readNameError(error: unknown): unknown {
@@ -58,10 +59,14 @@ async function deleteLocation(locationId: string): Promise<Location> {
   return deletedLocation;
 }
 
-async function restoreLocation(locationId: string): Promise<Location> {
+async function restoreLocation({
+  location_id,
+  ...body
+}: Readonly<LocationRestoreRequest & { location_id: string }>): Promise<Location> {
   const restoredLocation = readData(
     await apiClient.POST('/accounting/locations/{location_id}/restore', {
-      params: { path: { location_id: locationId } },
+      params: { path: { location_id } },
+      body,
     }),
   );
   return restoredLocation;
@@ -105,9 +110,9 @@ export const locationMutations = {
   restore(relatedQueryKeys: readonly QueryKey[]) {
     return mutationOptions({
       mutationFn: restoreLocation,
-      onSuccess: (_location, _locationId, _onMutateResult, { client }) =>
+      onSuccess: (_location, _restore, _onMutateResult, { client }) =>
         invalidateLocationQueries({ client, relatedQueryKeys }),
-      onError: (_error, _locationId, _onMutateResult, { client }) =>
+      onError: (_error, _restore, _onMutateResult, { client }) =>
         client.invalidateQueries({ queryKey: locationQueries.all().queryKey }),
     });
   },

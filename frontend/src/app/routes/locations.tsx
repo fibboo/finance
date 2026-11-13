@@ -28,10 +28,12 @@ import {
   writeSelectedLocation,
 } from '@/features/locations/api/selected-location';
 import { LocationForm } from '@/features/locations/components/location-form';
+import { LocationRestoreForm } from '@/features/locations/components/location-restore-form';
 import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
+import { ApiError } from '@/lib/api-error';
 import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
 
@@ -69,6 +71,7 @@ export function Component() {
   const [isCreating, setIsCreating] = useState(false);
   const [editedLocationId, setEditedLocationId] = useState<string | undefined>(undefined);
   const [confirmedLocationId, setConfirmedLocationId] = useState<string | undefined>(undefined);
+  const [renamedLocationId, setRenamedLocationId] = useState<string | undefined>(undefined);
   const [focusedLocationId, setFocusedLocationId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readCatalogSearch(searchParams);
@@ -105,6 +108,9 @@ export function Component() {
   const confirmedLocation = locationPage?.items.find(
     (location) => location.id === confirmedLocationId,
   );
+  const renamedLocation = locationPage?.items.find(
+    (location) => location.id === renamedLocationId && location.status === 'DELETED',
+  );
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,
@@ -118,6 +124,10 @@ export function Component() {
 
   function closeEditForm() {
     setEditedLocationId(undefined);
+  }
+
+  function closeRestoreForm() {
+    setRenamedLocationId(undefined);
   }
 
   function closeConfirmation(locationId: string) {
@@ -210,11 +220,22 @@ export function Component() {
                     setConfirmedLocationId(location.id);
                   }}
                   onRestore={() => {
-                    locationRestore.mutate(location.id, {
-                      onSuccess: () => {
-                        setFocusedLocationId(location.id);
+                    locationRestore.mutate(
+                      { location_id: location.id },
+                      {
+                        onSuccess: () => {
+                          setFocusedLocationId(location.id);
+                        },
+                        onError: (error) => {
+                          if (
+                            error instanceof ApiError &&
+                            error.error_code === 'NAME_ALREADY_EXISTS'
+                          ) {
+                            setRenamedLocationId(location.id);
+                          }
+                        },
                       },
-                    });
+                    );
                   }}
                 />
               )}
@@ -255,6 +276,19 @@ export function Component() {
               },
             }}
             onBack={closeEditForm}
+          />
+        </Sheet>
+      )}
+      {renamedLocation !== undefined && (
+        <Sheet label="Restore location" onClose={closeRestoreForm}>
+          <LocationRestoreForm
+            location={renamedLocation}
+            relatedQueryKeys={relatedQueryKeys}
+            onRestored={() => {
+              closeRestoreForm();
+              setFocusedLocationId(renamedLocation.id);
+            }}
+            onBack={closeRestoreForm}
           />
         </Sheet>
       )}
