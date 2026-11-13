@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { QueryKey } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { EntityForm } from '@/components/entity-form/entity-form';
 import { TextField } from '@/components/text-field/text-field';
@@ -8,6 +8,7 @@ import type { components } from '@/lib/api-schema';
 
 import type { AccountFieldError } from '../api/account-field-errors';
 import { useAccountCreate } from '../hooks/use-account-create';
+import { useAccountNameTaken } from '../hooks/use-account-name-taken';
 import { useAccountUpdate } from '../hooks/use-account-update';
 import {
   type AccountFormOutput,
@@ -33,6 +34,8 @@ type IncomeSourceFormProps = Readonly<{
   onBack: () => void;
 }>;
 
+const NAME_TAKEN_MESSAGE = 'An active income source already has this name';
+
 function readStartingValues(mode: IncomeSourceFormMode): AccountFormValues {
   const startingValues =
     mode.kind === 'create'
@@ -43,7 +46,7 @@ function readStartingValues(mode: IncomeSourceFormMode): AccountFormValues {
 
 export function IncomeSourceForm({ mode, onBack }: IncomeSourceFormProps) {
   const startingValues = readStartingValues(mode);
-  const { register, handleSubmit, setError, formState } = useForm<
+  const { control, register, handleSubmit, setError, formState } = useForm<
     AccountFormValues,
     unknown,
     AccountFormOutput
@@ -54,6 +57,13 @@ export function IncomeSourceForm({ mode, onBack }: IncomeSourceFormProps) {
       values: startingValues,
       resetOptions: { keepDirtyValues: true },
     }),
+  });
+
+  const name = useWatch({ control, name: 'name' });
+  const { isNameTaken, isLookupPending } = useAccountNameTaken({
+    name,
+    kind: 'INCOME',
+    ownAccountId: mode.kind === 'edit' ? mode.incomeSource.id : undefined,
   });
 
   function showFieldError({ field, message }: AccountFieldError) {
@@ -82,7 +92,9 @@ export function IncomeSourceForm({ mode, onBack }: IncomeSourceFormProps) {
     <EntityForm
       title={mode.kind === 'create' ? 'New income source' : 'Edit income source'}
       submitLabel={mode.kind === 'create' ? 'Create income source' : 'Save changes'}
-      isSubmitDisabled={accountCreate.isPending || accountUpdate.isPending}
+      isSubmitDisabled={
+        isNameTaken || isLookupPending || accountCreate.isPending || accountUpdate.isPending
+      }
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
@@ -102,7 +114,7 @@ export function IncomeSourceForm({ mode, onBack }: IncomeSourceFormProps) {
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message}
+        error={formState.errors.name?.message ?? (isNameTaken ? NAME_TAKEN_MESSAGE : undefined)}
       />
       <TextField
         label="Description"

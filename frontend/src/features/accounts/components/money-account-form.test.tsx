@@ -71,11 +71,11 @@ test.each([
   async ({ kindLabel, kind, currency, hint, placeholder }) => {
     // arrange
     let createdAccount: unknown = null;
-    let requestedKinds: string[] = [];
+    const requestedKinds: string[][] = [];
     const onCreated = vi.fn();
     server.use(
       http.get('http://localhost/api/accounting/accounts', ({ request }) => {
-        requestedKinds = new URL(request.url).searchParams.getAll('kinds');
+        requestedKinds.push(new URL(request.url).searchParams.getAll('kinds'));
         return HttpResponse.json({
           items: [wallet, creditCard],
           total: 2,
@@ -104,6 +104,9 @@ test.each([
     await screen.findByText('Dimmed colors are used by other accounts.');
     await user.click(screen.getByRole('radio', { name: kindLabel }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Currency' }), currency);
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
+    });
 
     // act
     await user.click(screen.getByRole('button', { name: 'Create account' }));
@@ -118,7 +121,7 @@ test.each([
       'placeholder',
       placeholder,
     );
-    expect(requestedKinds).toEqual(['ASSET', 'LIABILITY']);
+    expect(requestedKinds).toContainEqual(['ASSET', 'LIABILITY']);
     expect(createdAccount).toEqual({
       name: 'Travel card',
       description: null,
@@ -196,6 +199,9 @@ test('edits the name, color and description of an account and keeps its kind and
   await user.clear(nameField);
   await user.type(nameField, 'Pocket');
   await user.click(screen.getByRole('radio', { name: 'Indigo' }));
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -248,6 +254,9 @@ test('starts the edit with the color of the account and shows a taken name at th
   );
   await screen.findByText('Dimmed colors are used by other accounts.');
   expect(screen.getByRole('radio', { name: 'Blue' })).toBeChecked();
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -297,6 +306,9 @@ test.each([
   // switching away and back shows the own color stays selectable
   await user.click(screen.getByRole('radio', { name: 'Indigo' }));
   await user.click(screen.getByRole('radio', { name: 'Blue' }));
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -339,6 +351,9 @@ test('counts an account without a color as using the first color', async () => {
     />,
   );
   await screen.findByText('Dimmed colors are used by other accounts.');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Create account' }));
@@ -355,4 +370,54 @@ test('counts an account without a color as using the first color', async () => {
     currency: 'USD',
     color: '#2E8C7A',
   });
+});
+
+test('says an asset name is taken while it is typed and frees it for a liability', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const searchParams = new URL(request.url).searchParams;
+      const items =
+        searchParams.get('search_term') === null
+          ? [wallet, creditCard]
+          : [wallet, creditCard].filter(
+              (account) =>
+                searchParams.getAll('kinds').includes(account.kind) &&
+                account.name.includes(searchParams.get('search_term') ?? ''),
+            );
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <MoneyAccountForm
+      mode={{ kind: 'create', name: '', onCreated: vi.fn() }}
+      accountKinds={accountKinds}
+      currencies={currencies}
+      baseCurrency="USD"
+      onBack={vi.fn()}
+    />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+
+  // act
+  await user.type(name, 'Wallet');
+
+  // assert
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active account already has this name');
+  });
+  expect(screen.getByRole('button', { name: 'Create account' })).toBeDisabled();
+  // the same name is free among liabilities
+  await user.click(screen.getByRole('radio', { name: 'Liability' }));
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
+  });
+  expect(name).not.toHaveAccessibleDescription();
 });

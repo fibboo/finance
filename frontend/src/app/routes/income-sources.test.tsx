@@ -193,6 +193,9 @@ test('creates an income source from New income source and lists it', async () =>
   await user.click(screen.getByRole('button', { name: 'New income source' }));
   const form = await screen.findByRole('form', { name: 'New income source' });
   await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Freelance');
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Create income source' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Create income source' }));
@@ -226,6 +229,9 @@ test('edits an income source from its row and lists the saved name', async () =>
   const name = within(form).getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Wages');
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Save changes' }));
@@ -278,8 +284,14 @@ test('opens Restore income source when a restore is refused because the name is 
   // arrange
   const user = userEvent.setup();
   server.use(
-    http.get('http://localhost/api/accounting/accounts', () =>
-      HttpResponse.json(readAccountPage([scholarship])),
+    http.get('http://localhost/api/accounting/accounts', ({ request }) =>
+      HttpResponse.json(
+        readAccountPage(
+          new URL(request.url).searchParams.has('search_term')
+            ? [{ ...scholarship, id: '9e0f1a2b-4e6a-4c7d-8e9f-5a1d9c3e3c50', status: 'ACTIVE' }]
+            : [scholarship],
+        ),
+      ),
     ),
     http.post(`http://localhost/api/accounting/accounts/${scholarship.id}/restore`, () =>
       HttpResponse.json(
@@ -301,7 +313,9 @@ test('opens Restore income source when a restore is refused because the name is 
   const restoreForm = await screen.findByRole('form', { name: 'Restore income source' });
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
   expect(name).toHaveValue('Scholarship');
-  expect(name).toHaveAccessibleDescription('An active income source already has this name');
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active income source already has this name');
+  });
 });
 
 test('shows the transactions of the top income source beside the list while none is chosen', async () => {

@@ -20,6 +20,19 @@ const carrefour = {
 } satisfies components['schemas']['Location'];
 
 test('opens with the name in focus', () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+  );
+
   // act
   render(
     <LocationForm
@@ -41,6 +54,15 @@ test.each([
     // arrange
     let requestCount = 0;
     server.use(
+      http.get('http://localhost/api/accounting/locations', () =>
+        HttpResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Location_']),
+      ),
       http.post('http://localhost/api/accounting/locations', () => {
         requestCount += 1;
         return HttpResponse.json(carrefour satisfies components['schemas']['Location'], {
@@ -56,6 +78,9 @@ test.each([
         onBack={vi.fn()}
       />,
     );
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create location' })).toBeEnabled();
+    });
 
     // act
     await user.click(screen.getByRole('button', { name: 'Create location' }));
@@ -72,6 +97,15 @@ test.each([
 test('shows a taken name at the Name field', async () => {
   // arrange
   server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
     http.post('http://localhost/api/accounting/locations', () =>
       HttpResponse.json(
         {
@@ -89,6 +123,9 @@ test('shows a taken name at the Name field', async () => {
       onBack={vi.fn()}
     />,
   );
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create location' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Create location' }));
@@ -108,6 +145,15 @@ test.each([
     // arrange
     let requestCount = 0;
     server.use(
+      http.get('http://localhost/api/accounting/locations', () =>
+        HttpResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Location_']),
+      ),
       http.post('http://localhost/api/accounting/locations', () => {
         requestCount += 1;
         return HttpResponse.json(carrefour satisfies components['schemas']['Location'], {
@@ -124,6 +170,9 @@ test.each([
       />,
     );
     await user.type(screen.getByRole('textbox', { name: /^Description/ }), description);
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create location' })).toBeEnabled();
+    });
 
     // act
     await user.click(screen.getByRole('button', { name: 'Create location' }));
@@ -143,6 +192,15 @@ test('opens Edit location with the saved values and saves the changes', async ()
   // arrange
   let updatedBody: unknown;
   server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
     http.put(`http://localhost/api/accounting/locations/${carrefour.id}`, async ({ request }) => {
       updatedBody = await request.json();
       return HttpResponse.json({
@@ -164,6 +222,9 @@ test('opens Edit location with the saved values and saves the changes', async ()
   expect(description).toHaveValue('abc');
   await user.clear(description);
   await user.type(description, 'East Point mall');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -173,4 +234,70 @@ test('opens Edit location with the saved values and saves the changes', async ()
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
   expect(updatedBody).toEqual({ name: 'Carrefour', description: 'East Point mall' });
+});
+
+test('says a name an active location holds while it is typed and keeps Create location disabled', async () => {
+  // arrange
+  let lookupQuery = new URLSearchParams();
+  server.use(
+    http.get('http://localhost/api/accounting/locations', ({ request }) => {
+      lookupQuery = new URL(request.url).searchParams;
+      const items = lookupQuery.get('search_term') === 'Carrefour' ? [carrefour] : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(<LocationForm mode={{ kind: 'create', name: '', onCreated: vi.fn() }} onBack={vi.fn()} />);
+  const name = screen.getByRole('textbox', { name: 'Name' });
+
+  // act
+  await user.type(name, 'Carrefour');
+
+  // assert
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active location already has this name');
+  });
+  expect(screen.getByRole('button', { name: 'Create location' })).toBeDisabled();
+  expect(lookupQuery.getAll('statuses')).toEqual(['ACTIVE']);
+  // a name that differs only by one letter is free
+  await user.type(name, 's');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create location' })).toBeEnabled();
+  });
+  expect(name).not.toHaveAccessibleDescription();
+});
+
+test('leaves the edited location out of the names it finds taken', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [carrefour],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+  );
+
+  // act
+  render(
+    <LocationForm
+      mode={{ kind: 'edit', location: carrefour, relatedQueryKeys: [], onSaved: vi.fn() }}
+      onBack={vi.fn()}
+    />,
+  );
+
+  // assert
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+  expect(screen.getByRole('textbox', { name: 'Name' })).not.toHaveAccessibleDescription();
 });

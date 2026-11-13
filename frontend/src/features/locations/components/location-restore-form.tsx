@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type QueryKey, useMutation } from '@tanstack/react-query';
-import { type FieldErrors, useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { EntityForm } from '@/components/entity-form/entity-form';
 import { TextField } from '@/components/text-field/text-field';
@@ -8,6 +8,7 @@ import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
 import { locationMutations } from '../api/location-mutations';
+import { useLocationNameTaken } from '../hooks/use-location-name-taken';
 import {
   type LocationRestoreFormOutput,
   locationRestoreFormSchema,
@@ -24,9 +25,7 @@ type LocationRestoreFormProps = Readonly<{
   onBack: () => void;
 }>;
 
-const NAME_TAKEN_ERRORS = {
-  name: { type: 'server', message: 'An active location already has this name' },
-} as const satisfies FieldErrors<LocationRestoreFormValues>;
+const NAME_TAKEN_MESSAGE = 'An active location already has this name';
 
 export function LocationRestoreForm({
   location,
@@ -34,14 +33,18 @@ export function LocationRestoreForm({
   onRestored,
   onBack,
 }: LocationRestoreFormProps) {
-  const { register, handleSubmit, setError, formState } = useForm<
+  const { control, register, handleSubmit, setError, formState } = useForm<
     LocationRestoreFormValues,
     unknown,
     LocationRestoreFormOutput
   >({
     resolver: zodResolver(locationRestoreFormSchema),
     defaultValues: { name: location.name },
-    errors: NAME_TAKEN_ERRORS,
+  });
+  const name = useWatch({ control, name: 'name' });
+  const { isNameTaken, isLookupPending } = useLocationNameTaken({
+    name,
+    ownLocationId: location.id,
   });
   const restore = useMutation(locationMutations.restore(relatedQueryKeys));
 
@@ -49,7 +52,7 @@ export function LocationRestoreForm({
     <EntityForm
       title="Restore location"
       submitLabel="Restore location"
-      isSubmitDisabled={restore.isPending}
+      isSubmitDisabled={isNameTaken || isLookupPending || restore.isPending}
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
@@ -60,7 +63,7 @@ export function LocationRestoreForm({
               onSuccess: onRestored,
               onError: (error) => {
                 if (error instanceof ApiError && error.error_code === 'NAME_ALREADY_EXISTS') {
-                  setError('name', { message: NAME_TAKEN_ERRORS.name.message });
+                  setError('name', { message: NAME_TAKEN_MESSAGE });
                 } else if (error instanceof ApiError) {
                   error.fieldErrors.forEach((fieldError) => {
                     setError(fieldError.field === 'name' ? 'name' : 'root.server', {
@@ -81,7 +84,7 @@ export function LocationRestoreForm({
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message}
+        error={formState.errors.name?.message ?? (isNameTaken ? NAME_TAKEN_MESSAGE : undefined)}
       />
     </EntityForm>
   );

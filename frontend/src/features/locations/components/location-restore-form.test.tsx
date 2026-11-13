@@ -19,7 +19,22 @@ const oldMarket = {
   updated_at: '2026-10-01T09:00:00Z',
 } satisfies components['schemas']['Location'];
 
-test('opens with the name of the location and the reason it was refused', () => {
+test('opens with the name of the location and the reason an active location holds it', async () => {
+  // arrange
+  let lookupQuery = new URLSearchParams();
+  server.use(
+    http.get('http://localhost/api/accounting/locations', ({ request }) => {
+      lookupQuery = new URL(request.url).searchParams;
+      return HttpResponse.json({
+        items: [{ ...oldMarket, id: '4a521d7b-f0e1-4a52-9f3a-0b5c1f0e8d47', status: 'ACTIVE' }],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']);
+    }),
+  );
+
   // act
   render(
     <LocationRestoreForm
@@ -34,7 +49,60 @@ test('opens with the name of the location and the reason it was refused', () => 
   expect(screen.getByRole('form', { name: 'Restore location' })).toBeInTheDocument();
   const name = screen.getByRole('textbox', { name: 'Name' });
   expect(name).toHaveValue('Old market');
-  expect(name).toHaveAccessibleDescription('An active location already has this name');
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active location already has this name');
+  });
+  expect(screen.getByRole('button', { name: 'Restore location' })).toBeDisabled();
+  expect(lookupQuery.getAll('statuses')).toEqual(['ACTIVE']);
+  expect(lookupQuery.get('search_term')).toBe('Old market');
+});
+
+test('drops the reason and allows the restore once a free name is typed', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', ({ request }) => {
+      const searchTerm = new URL(request.url).searchParams.get('search_term');
+      const items =
+        searchTerm === 'Old market'
+          ? [
+              {
+                ...oldMarket,
+                id: '4a521d7b-f0e1-4a52-9f3a-0b5c1f0e8d47',
+                status: 'ACTIVE' as const,
+              },
+            ]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <LocationRestoreForm
+      location={oldMarket}
+      relatedQueryKeys={[]}
+      onRestored={vi.fn()}
+      onBack={vi.fn()}
+    />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active location already has this name');
+  });
+
+  // act
+  await user.type(name, ' 2025');
+
+  // assert
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore location' })).toBeEnabled();
+  });
+  expect(name).not.toHaveAccessibleDescription();
 });
 
 test('restores the location under the typed name', async () => {
@@ -42,6 +110,15 @@ test('restores the location under the typed name', async () => {
   let restoreBody: unknown = null;
   const onRestored = vi.fn();
   server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
     http.post(
       `http://localhost/api/accounting/locations/${oldMarket.id}/restore`,
       async ({ request }) => {
@@ -66,6 +143,9 @@ test('restores the location under the typed name', async () => {
   const name = screen.getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, '  Old market 2025 ');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore location' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Restore location' }));
@@ -81,6 +161,15 @@ test('keeps the window open with the reason under the name when the new name is 
   // arrange
   const onRestored = vi.fn();
   server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
     http.post(`http://localhost/api/accounting/locations/${oldMarket.id}/restore`, () =>
       HttpResponse.json(
         {
@@ -103,6 +192,9 @@ test('keeps the window open with the reason under the name when the new name is 
   const name = screen.getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Spar');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore location' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Restore location' }));

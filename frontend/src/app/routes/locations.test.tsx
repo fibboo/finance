@@ -209,6 +209,9 @@ test('creates a location from New location and lists it', async () => {
   await user.click(screen.getByRole('button', { name: 'New location' }));
   const form = await screen.findByRole('form', { name: 'New location' });
   await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Coffee Lab');
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Create location' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Create location' }));
@@ -242,6 +245,9 @@ test('edits a location from its row and lists the saved name', async () => {
   const name = within(form).getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Spar Express');
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Save changes' }));
@@ -273,6 +279,9 @@ test('shows a taken name at the Name field of Edit location', async () => {
   const list = await screen.findByRole('region', { name: 'Locations' });
   await user.click(await within(list).findByRole('button', { name: 'Edit' }));
   const form = await screen.findByRole('form', { name: 'Edit location' });
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Save changes' }));
@@ -355,8 +364,14 @@ test('opens Restore location when a restore is refused because the name is taken
   // arrange
   const user = userEvent.setup();
   server.use(
-    http.get('http://localhost/api/accounting/locations', () =>
-      HttpResponse.json(readLocationPage([oldMarket])),
+    http.get('http://localhost/api/accounting/locations', ({ request }) =>
+      HttpResponse.json(
+        readLocationPage(
+          new URL(request.url).searchParams.has('search_term')
+            ? [{ ...oldMarket, id: '9e0f1a2b-4e6a-4c7d-8e9f-5a1d9c3e3c50', status: 'ACTIVE' }]
+            : [oldMarket],
+        ),
+      ),
     ),
     http.post(`http://localhost/api/accounting/locations/${oldMarket.id}/restore`, () =>
       HttpResponse.json(
@@ -378,7 +393,9 @@ test('opens Restore location when a restore is refused because the name is taken
   const restoreForm = await screen.findByRole('form', { name: 'Restore location' });
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
   expect(name).toHaveValue('Old market');
-  expect(name).toHaveAccessibleDescription('An active location already has this name');
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active location already has this name');
+  });
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
 

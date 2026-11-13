@@ -295,6 +295,15 @@ test('opens Restore category when a restore from the details is refused because 
     http.get(`http://localhost/api/accounting/accounts/${groceries.id}`, () =>
       HttpResponse.json({ ...groceries, status: 'DELETED' }),
     ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [{ ...groceries, id: '9e0f1a2b-4e6a-4c7d-8e9f-5a1d9c3e3c50', status: 'ACTIVE' }],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.post(`http://localhost/api/accounting/accounts/${groceries.id}/restore`, () =>
       HttpResponse.json(
         {
@@ -327,9 +336,11 @@ test('opens Restore category when a restore from the details is refused because 
 
   // assert
   const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
-  expect(within(restoreForm).getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
-    'An active category already has this name',
-  );
+  await waitFor(() => {
+    expect(within(restoreForm).getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
+      'An active category already has this name',
+    );
+  });
 });
 
 test('restores a category under a new name from its details and moves the focus to its Transactions', async () => {
@@ -340,6 +351,15 @@ test('restores a category under a new name from its details and moves the focus 
   server.use(
     http.get(`http://localhost/api/accounting/accounts/${groceries.id}`, () =>
       HttpResponse.json(category),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
     ),
     http.post(
       `http://localhost/api/accounting/accounts/${groceries.id}/restore`,
@@ -381,6 +401,9 @@ test('restores a category under a new name from its details and moves the focus 
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Groceries 2025');
+  await waitFor(() => {
+    expect(within(restoreForm).getByRole('button', { name: 'Restore category' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(restoreForm).getByRole('button', { name: 'Restore category' }));
