@@ -19,7 +19,14 @@ export function RestoreAccount({
   onRestored,
   onNameTaken,
 }: RestoreAccountProps) {
-  const { mutate, isPending } = useMutation(accountMutations.restore(relatedQueryKeys));
+  const restoreOptions = accountMutations.restore(relatedQueryKeys);
+  const { mutate, isPending } = useMutation({
+    ...restoreOptions,
+    onSuccess: async (account, restore, onMutateResult, context) => {
+      await restoreOptions.onSuccess?.(account, restore, onMutateResult, context);
+      onRestored();
+    },
+  });
   return (
     <ActionButton
       label="Restore"
@@ -36,7 +43,6 @@ export function RestoreAccount({
           mutate(
             { account_id: accountId },
             {
-              onSuccess: onRestored,
               onError: (error) => {
                 if (error instanceof ApiError && error.error_code === 'NAME_ALREADY_EXISTS') {
                   onNameTaken();

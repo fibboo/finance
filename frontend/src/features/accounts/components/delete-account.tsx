@@ -62,7 +62,16 @@ export function DeleteAccount({
 }: DeleteAccountProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const queryClient = useQueryClient();
-  const { mutate, isPending } = useMutation(accountMutations.delete(relatedQueryKeys));
+  const deleteOptions = accountMutations.delete(relatedQueryKeys);
+  const { mutate, isPending } = useMutation({
+    ...deleteOptions,
+    onSuccess: async (deletedAccount, accountId, onMutateResult, context) => {
+      await deleteOptions.onSuccess?.(deletedAccount, accountId, onMutateResult, context);
+      if (!isMoneyAccountKind(deletedAccount.kind)) {
+        onDeleted();
+      }
+    },
+  });
   const buttonId = useId();
   const blockingHint = readBlockingHint({ account, isOnlyAccount });
   const deleteCopy = readDeleteCopy({ account, currency });
@@ -98,11 +107,11 @@ export function DeleteAccount({
             mutate(account.id, {
               onSuccess: () => {
                 setIsConfirming(false);
-                onDeleted();
                 if (!isMoneyAccountKind(account.kind)) {
                   return;
                 }
 
+                onDeleted();
                 queryClient.removeQueries({
                   queryKey: accountQueries.detail(account.id).queryKey,
                   exact: true,
