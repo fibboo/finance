@@ -1137,6 +1137,43 @@ test('shows the details of the top transaction and its money account beside the 
   expect(router.state.location.search).toBe(`?account=${groceries.id}`);
 });
 
+test('drops the chosen transaction when the type filter or Deleted changes the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/categories?account=${rent.id}&transaction=${rentPayment.id}`],
+  });
+
+  // act
+  await user.click(await screen.findByRole('radio', { name: 'Fixed' }));
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+  expect(new URLSearchParams(router.state.location.search).get('account')).toBe(rent.id);
+
+  // act
+  await router.navigate(`/categories?account=${rent.id}&transaction=${rentPayment.id}`);
+  await user.click(screen.getByRole('switch', { name: 'Deleted' }));
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+});
+
 test('gives a phone plain names and no transactions of a category', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 390);

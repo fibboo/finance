@@ -64,6 +64,7 @@ export function Component() {
   const [isCreating, setIsCreating] = useState(false);
   const [focusedIncomeSourceId, setFocusedIncomeSourceId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
+  const listSearchParams = writeSelectedTransaction({ searchParams, transactionId: undefined });
   const search = readCatalogSearch(searchParams);
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
@@ -141,10 +142,13 @@ export function Component() {
             term={search}
             isFocusedOnMount={searchField.isFocusedOnMount}
             onSearch={(nextSearch) => {
-              setSearchParams(writeCatalogSearch({ searchParams, search: nextSearch }), {
-                replace: true,
-                state: TYPED_SEARCH_STATE,
-              });
+              setSearchParams(
+                writeCatalogSearch({ searchParams: listSearchParams, search: nextSearch }),
+                {
+                  replace: true,
+                  state: TYPED_SEARCH_STATE,
+                },
+              );
             }}
           />
           <NewButton
@@ -160,7 +164,10 @@ export function Component() {
           isDeletedShown={isDeletedShown}
           onDeletedShownChange={(nextIsDeletedShown) => {
             setSearchParams(
-              writeIsDeletedShown({ searchParams, isDeletedShown: nextIsDeletedShown }),
+              writeIsDeletedShown({
+                searchParams: listSearchParams,
+                isDeletedShown: nextIsDeletedShown,
+              }),
               { replace: true },
             );
           }}
@@ -173,9 +180,12 @@ export function Component() {
               entityNames="income sources"
               onClear={() => {
                 searchField.focusAfterClear();
-                setSearchParams(writeCatalogSearch({ searchParams, search: '' }), {
-                  replace: true,
-                });
+                setSearchParams(
+                  writeCatalogSearch({ searchParams: listSearchParams, search: '' }),
+                  {
+                    replace: true,
+                  },
+                );
               }}
             />
           ) : hasNoEntries ? (
@@ -195,10 +205,7 @@ export function Component() {
                       defaultEntryId: shownIncomeSource?.id,
                       readEntryLink: (incomeSourceId) => ({
                         search: writeSelectedAccount({
-                          searchParams: writeSelectedTransaction({
-                            searchParams,
-                            transactionId: undefined,
-                          }),
+                          searchParams: listSearchParams,
                           accountId: incomeSourceId,
                         }).toString(),
                       }),
