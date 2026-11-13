@@ -76,7 +76,13 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
       throw new Error('A category form needs the dictionaries.');
     }
 
-    return <CategoryForm {...props} categoryTypes={dictionaries.category_types} />;
+    return (
+      <CategoryForm
+        mode={{ kind: 'create', name: props.name, onCreated: props.onCreated }}
+        categoryTypes={dictionaries.category_types}
+        onBack={props.onBack}
+      />
+    );
   }
 
   const isEveryListLoaded =

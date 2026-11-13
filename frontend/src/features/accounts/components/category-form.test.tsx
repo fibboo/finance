@@ -66,9 +66,8 @@ test.each([
   const user = userEvent.setup();
   render(
     <CategoryForm
-      name="Coffee shops"
+      mode={{ kind: 'create', name: 'Coffee shops', onCreated }}
       categoryTypes={categoryTypes}
-      onCreated={onCreated}
       onBack={vi.fn()}
     />,
   );
@@ -88,4 +87,81 @@ test.each([
     kind: 'EXPENSE',
     category_type,
   });
+});
+
+test('saves the changed name, type and description of an edited category', async () => {
+  // arrange
+  let updatedCategory: unknown = null;
+  const onSaved = vi.fn();
+  server.use(
+    http.put(`http://localhost/api/accounting/accounts/${groceries.id}`, async ({ request }) => {
+      updatedCategory = await request.json();
+      return HttpResponse.json(groceries satisfies components['schemas']['Account']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <CategoryForm
+      mode={{
+        kind: 'edit',
+        category: { ...groceries, description: 'Supermarkets' },
+        relatedQueryKeys: [],
+        onSaved,
+      }}
+      categoryTypes={categoryTypes}
+      onBack={vi.fn()}
+    />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+  const description = screen.getByRole('textbox', { name: /Description/ });
+  expect(screen.getByRole('form', { name: 'Edit category' })).toBeInTheDocument();
+  expect(name).toHaveValue('Groceries');
+  expect(description).toHaveValue('Supermarkets');
+  expect(screen.getByRole('radio', { name: 'Variable' })).toBeChecked();
+  await user.clear(name);
+  await user.type(name, 'Food');
+  await user.click(screen.getByRole('radio', { name: 'Periodic' }));
+  await user.clear(description);
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await vi.waitFor(() => {
+    expect(onSaved).toHaveBeenCalledOnce();
+  });
+  expect(updatedCategory).toEqual({
+    name: 'Food',
+    description: null,
+    category_type: 'PERIODIC',
+  });
+});
+
+test('shows a name another category has under the name field of the edit form', async () => {
+  // arrange
+  server.use(
+    http.put(`http://localhost/api/accounting/accounts/${groceries.id}`, () =>
+      HttpResponse.json(
+        {
+          error_code: 'NAME_ALREADY_EXISTS',
+          message: 'This name is already taken',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 409 },
+      ),
+    ),
+  );
+  const user = userEvent.setup();
+  render(
+    <CategoryForm
+      mode={{ kind: 'edit', category: groceries, relatedQueryKeys: [], onSaved: vi.fn() }}
+      categoryTypes={categoryTypes}
+      onBack={vi.fn()}
+    />,
+  );
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  expect(await screen.findByText('This name is already taken')).toBeInTheDocument();
 });

@@ -16,13 +16,17 @@ export function useAccountUpdate({
   onSaved: () => void;
   onFieldError: (fieldError: AccountFieldError) => void;
 }>) {
-  const mutation = useMutation(accountMutations.update(relatedQueryKeys));
+  const updateOptions = accountMutations.update(relatedQueryKeys);
+  const mutation = useMutation({
+    ...updateOptions,
+    onSuccess: async (account, body, onMutateResult, context) => {
+      await updateOptions.onSuccess?.(account, body, onMutateResult, context);
+      onSaved();
+    },
+  });
 
   function update(account: Readonly<AccountUpdate & { account_id: string }>) {
     mutation.mutate(account, {
-      onSuccess: () => {
-        onSaved();
-      },
       onError: (error) => {
         readAccountFieldErrors(error).forEach(onFieldError);
       },

@@ -58,6 +58,15 @@ async function deleteAccount(accountId: string): Promise<Account> {
   return deletedAccount;
 }
 
+async function restoreAccount(accountId: string): Promise<Account> {
+  const restoredAccount = readData(
+    await apiClient.POST('/accounting/accounts/{account_id}/restore', {
+      params: { path: { account_id: accountId } },
+    }),
+  );
+  return restoredAccount;
+}
+
 export const accountMutations = {
   create() {
     return mutationOptions({
@@ -94,6 +103,17 @@ export const accountMutations = {
       },
       onError: (_error, _accountId, _onMutateResult, { client }) =>
         client.invalidateQueries({ queryKey: accountQueries.all().queryKey }),
+    });
+  },
+  restore(relatedQueryKeys: readonly QueryKey[]) {
+    return mutationOptions({
+      mutationFn: restoreAccount,
+      onSuccess: (_restoredAccount, _accountId, _onMutateResult, { client }) =>
+        Promise.all(
+          [accountQueries.all().queryKey, ...relatedQueryKeys].map((queryKey) =>
+            client.invalidateQueries({ queryKey }),
+          ),
+        ),
     });
   },
 };

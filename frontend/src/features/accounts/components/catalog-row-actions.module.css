@@ -1,0 +1,56 @@
+@import '@/styles/media.css';
+
+.catalogRowActions {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-0-5);
+}
+
+.action {
+  width: var(--size-touch);
+  height: var(--size-touch);
+  border: 0;
+  padding: 0;
+  border-radius: var(--radius-segment);
+  display: grid;
+  place-items: center;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.action:hover {
+  opacity: var(--opacity-hover);
+}
+
+.action[aria-disabled='true'] {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.action:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+}
+
+.icon {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (--desktop) {
+  .action {
+    width: var(--size-row-action);
+    height: var(--size-row-action);
+  }
+}

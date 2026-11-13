@@ -1,13 +1,19 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
+import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
 import { SearchField } from '@/components/search-field/search-field';
 import { Sheet } from '@/components/sheet/sheet';
+import { accountMutations } from '@/features/accounts/api/account-mutations';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { readAccountSearch, writeAccountSearch } from '@/features/accounts/api/account-search';
+import {
+  readCatalogDeleteButtonId,
+  readNeighbourCatalogRowLinkId,
+} from '@/features/accounts/api/catalog-row-focus';
 import {
   readCatalogFilters,
   readCategoryTypeOptions,
@@ -16,9 +22,12 @@ import {
 import { CatalogFilters } from '@/features/accounts/components/catalog-filters';
 import { readCategoryGroups } from '@/features/accounts/components/catalog-grouping';
 import { CatalogList } from '@/features/accounts/components/catalog-list';
+import { CatalogRowActions } from '@/features/accounts/components/catalog-row-actions';
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
+import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
@@ -39,6 +48,9 @@ function readCategoryCount(
 
 export function Component() {
   const [isCreating, setIsCreating] = useState(false);
+  const [editedCategoryId, setEditedCategoryId] = useState<string | undefined>(undefined);
+  const [confirmedCategoryId, setConfirmedCategoryId] = useState<string | undefined>(undefined);
+  const [focusedCategoryId, setFocusedCategoryId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readAccountSearch(searchParams);
   const searchField = useSearchField(search);
@@ -69,9 +81,28 @@ export function Component() {
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && categoryPage?.items.length === 0;
+  const editedCategory = categoryPage?.items.find((category) => category.id === editedCategoryId);
+  const confirmedCategory = categoryPage?.items.find(
+    (category) => category.id === confirmedCategoryId,
+  );
+  const relatedQueryKeys = [
+    transactionQueries.feeds().queryKey,
+    transactionQueries.details().queryKey,
+  ];
+  const categoryDelete = useMutation(accountMutations.delete(relatedQueryKeys));
+  const categoryRestore = useMutation(accountMutations.restore(relatedQueryKeys));
 
   function closeForm() {
     setIsCreating(false);
+  }
+
+  function closeEditForm() {
+    setEditedCategoryId(undefined);
+  }
+
+  function closeConfirmation(categoryId: string) {
+    setConfirmedCategoryId(undefined);
+    document.getElementById(readCatalogDeleteButtonId(categoryId))?.focus();
   }
 
   return (
@@ -128,18 +159,90 @@ export function Component() {
                 ? undefined
                 : readCategoryGroups({ categories: categoryPage.items, categoryTypes })
             }
+            renderActions={(category) => (
+              <CatalogRowActions
+                entry={category}
+                transactionsLink={{
+                  pathname: '/transactions',
+                  search: writeTransactionFilters({
+                    transaction_types: [],
+                    account_ids: [],
+                    category_ids: [category.id],
+                    income_source_ids: [],
+                  }).toString(),
+                }}
+                isRestorePending={categoryRestore.isPending}
+                isFocusRequested={category.id === focusedCategoryId}
+                onFocused={() => {
+                  setFocusedCategoryId(undefined);
+                }}
+                onEdit={() => {
+                  setEditedCategoryId(category.id);
+                }}
+                onDelete={() => {
+                  setConfirmedCategoryId(category.id);
+                }}
+                onRestore={() => {
+                  categoryRestore.mutate(category.id, {
+                    onSuccess: () => {
+                      setFocusedCategoryId(category.id);
+                    },
+                  });
+                }}
+              />
+            )}
           />
         )}
       </div>
       {isCreating && dictionaries !== undefined && (
         <Sheet label="New category" onClose={closeForm}>
           <CategoryForm
-            name=""
+            mode={{ kind: 'create', name: '', onCreated: closeForm }}
             categoryTypes={dictionaries.category_types}
-            onCreated={closeForm}
             onBack={closeForm}
           />
         </Sheet>
+      )}
+      {editedCategory !== undefined && dictionaries !== undefined && (
+        <Sheet label="Edit category" onClose={closeEditForm}>
+          <CategoryForm
+            mode={{
+              kind: 'edit',
+              category: editedCategory,
+              relatedQueryKeys,
+              onSaved: () => {
+                setEditedCategoryId((openCategoryId) =>
+                  openCategoryId === editedCategory.id ? undefined : openCategoryId,
+                );
+              },
+            }}
+            categoryTypes={dictionaries.category_types}
+            onBack={closeEditForm}
+          />
+        </Sheet>
+      )}
+      {confirmedCategory !== undefined && (
+        <DeleteConfirmation
+          title="Delete this category?"
+          text={`${confirmedCategory.name}. It leaves your categories and the pickers, and its past transactions keep showing it.`}
+          isPending={categoryDelete.isPending}
+          onCancel={() => {
+            closeConfirmation(confirmedCategory.id);
+          }}
+          onConfirm={() => {
+            const neighbourLinkId = readNeighbourCatalogRowLinkId(confirmedCategory.id);
+            categoryDelete.mutate(confirmedCategory.id, {
+              onSuccess: () => {
+                setConfirmedCategoryId(undefined);
+                document.getElementById(neighbourLinkId ?? CATEGORY_SEARCH_FIELD_ID)?.focus();
+              },
+              onError: () => {
+                closeConfirmation(confirmedCategory.id);
+                setFocusedCategoryId(confirmedCategory.id);
+              },
+            });
+          }}
+        />
       )}
     </Page>
   );
