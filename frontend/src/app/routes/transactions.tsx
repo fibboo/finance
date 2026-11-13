@@ -206,6 +206,7 @@ export function Component() {
               shownAccount={shownAccount}
               accountCount={moneyAccounts?.total}
               isAccountFirst={false}
+              isEntryParamOwnedByPage={false}
             />
           </div>
         )}

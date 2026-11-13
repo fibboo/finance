@@ -6,7 +6,7 @@ import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import styles from './transaction-overview.module.css';
-import { TransactionPostings } from './transaction-postings';
+import { type ReadAccountLink, TransactionPostings } from './transaction-postings';
 import { TransactionTextParts } from './transaction-text-parts';
 import { readTransactionView, readTypeLabel, readWeekdayDateText } from './transaction-view';
 
@@ -32,7 +32,7 @@ type TransactionOverviewProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
-  readAccountLink: (accountId: string) => To;
+  readAccountLink: ReadAccountLink;
   readLocationLink: (locationId: string) => LocationLink;
   closeButton: ReactNode;
   editAction: ReactNode;

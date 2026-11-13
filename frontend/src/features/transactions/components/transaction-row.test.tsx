@@ -268,7 +268,10 @@ test.each([
       baseCurrency="USD"
       transactionTypes={transactionTypes}
       isTop={false}
-      arrowKeySelection={{ 'data-arrow-key-list': 'transactions' }}
+      arrowKeySelection={{
+        'data-arrow-key-list': 'transactions',
+        'data-arrow-key-orientation': 'vertical',
+      }}
     />,
   );
 
@@ -302,7 +305,10 @@ test.each([
       baseCurrency="USD"
       transactionTypes={transactionTypes}
       isTop={false}
-      arrowKeySelection={{ 'data-arrow-key-list': 'transactions' }}
+      arrowKeySelection={{
+        'data-arrow-key-list': 'transactions',
+        'data-arrow-key-orientation': 'vertical',
+      }}
     />,
     { initialEntries: [url] },
   );

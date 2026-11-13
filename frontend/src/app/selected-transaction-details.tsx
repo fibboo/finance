@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { Navigate, type To, useSearchParams } from 'react-router';
+import { Navigate, useSearchParams } from 'react-router';
 
 import { Sheet } from '@/components/sheet/sheet';
 import { accountQueries } from '@/features/accounts/api/account-queries';
@@ -17,6 +17,7 @@ import { MovementForm } from '@/features/transactions/components/movement-form';
 import { TransactionDetails } from '@/features/transactions/components/transaction-details';
 import { TransactionForm } from '@/features/transactions/components/transaction-form';
 import type { LocationLink } from '@/features/transactions/components/transaction-overview';
+import type { ReadAccountLink } from '@/features/transactions/components/transaction-postings';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
@@ -28,7 +29,7 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 type SelectedTransactionDetailsProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
-  readAccountLink: (accountId: string) => To;
+  readAccountLink: ReadAccountLink;
   readLocationLink: (locationId: string) => LocationLink;
 }>;
 
@@ -38,7 +39,7 @@ type SelectedTransactionProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
-  readAccountLink: (accountId: string) => To;
+  readAccountLink: ReadAccountLink;
   readLocationLink: (locationId: string) => LocationLink;
 }>;
 

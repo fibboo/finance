@@ -20,6 +20,7 @@ const ARROW_KEY_SELECTION_STATE = { isArrowKeySelection: true } satisfies z.infe
 
 export type ArrowKeySelectionProps = Readonly<{
   'data-arrow-key-list': string;
+  'data-arrow-key-orientation': Orientation;
 }>;
 
 function readStep({
@@ -36,6 +37,32 @@ function readIsKeyOwnedElsewhere(target: EventTarget | null): boolean {
   const isKeyOwnedElsewhere =
     target instanceof Element && target.closest(KEY_OWNER_SELECTOR) !== null;
   return isKeyOwnedElsewhere;
+}
+
+function readIsMovedByKey({
+  target,
+  list,
+  orientation,
+  isFocusRequired,
+}: Readonly<{
+  target: EventTarget | null;
+  list: string;
+  orientation: Orientation;
+  isFocusRequired: boolean;
+}>): boolean {
+  const focusOwner =
+    target instanceof Element
+      ? target.closest('[data-arrow-key-list], [data-details-panel]')
+      : null;
+  const focusedRow =
+    focusOwner?.hasAttribute('data-details-panel') === true
+      ? document.getElementById(focusOwner.getAttribute('data-return-focus-id') ?? '')
+      : focusOwner;
+  const isMovedByKey =
+    focusedRow?.getAttribute('data-arrow-key-orientation') === orientation
+      ? focusedRow.getAttribute('data-arrow-key-list') === list
+      : !isFocusRequired;
+  return isMovedByKey;
 }
 
 function readNextRow({
@@ -59,12 +86,21 @@ function readNextRow({
 export function useArrowKeySelection({
   list,
   orientation,
-}: Readonly<{ list: string; orientation: Orientation }>): ArrowKeySelectionProps {
+  isFocusRequired,
+}: Readonly<{
+  list: string;
+  orientation: Orientation;
+  isFocusRequired: boolean;
+}>): ArrowKeySelectionProps {
   const navigate = useNavigate();
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const step = readStep({ event, orientation });
-      if (step === undefined || readIsKeyOwnedElsewhere(event.target)) {
+      if (
+        step === undefined ||
+        readIsKeyOwnedElsewhere(event.target) ||
+        !readIsMovedByKey({ target: event.target, list, orientation, isFocusRequired })
+      ) {
         return;
       }
 
@@ -86,9 +122,9 @@ export function useArrowKeySelection({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [list, orientation, navigate]);
+  }, [list, orientation, isFocusRequired, navigate]);
 
-  const selectionProps = { 'data-arrow-key-list': list };
+  const selectionProps = { 'data-arrow-key-list': list, 'data-arrow-key-orientation': orientation };
   return selectionProps;
 }
 

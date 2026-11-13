@@ -71,6 +71,7 @@ export function Component() {
               shownAccount={shownAccount}
               accountCount={accountPage?.total}
               isAccountFirst
+              isEntryParamOwnedByPage={false}
             />
           </div>
         </div>

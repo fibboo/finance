@@ -36,6 +36,7 @@ export function CatalogList<Entry extends CatalogEntry>({
   const arrowKeySelection = useArrowKeySelection({
     list: 'catalog-entries',
     orientation: 'vertical',
+    isFocusRequired: false,
   });
   return (
     <section className={styles['catalogList']} aria-label={label} aria-busy={groups === undefined}>

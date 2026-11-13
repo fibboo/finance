@@ -34,6 +34,62 @@ const oldMarket = {
   status: 'DELETED',
 } satisfies components['schemas']['Location'];
 
+const wallet = {
+  name: 'Wallet',
+  description: null,
+  id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  kind: 'ASSET',
+  balance: '412.50',
+  currency: 'USD',
+  color: null,
+  category_type: null,
+  base_currency_rate: '1',
+  status: 'ACTIVE',
+  base_currency_balance: '412.50',
+} satisfies components['schemas']['Account'];
+
+const groceries = {
+  ...wallet,
+  name: 'Groceries',
+  id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
+  kind: 'EXPENSE',
+  balance: '0',
+  currency: null,
+  category_type: 'VARIABLE',
+  base_currency_balance: '0',
+} satisfies components['schemas']['Account'];
+
+const sparPurchase = {
+  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c60',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  transaction_date: '2026-10-20',
+  comment: null,
+  base_currency_amount: '42.80',
+  location: spar,
+  income_period: null,
+  transaction_type: 'EXPENSE',
+  status: 'ACTIVE',
+  created_at: '2026-10-20T09:00:00Z',
+  updated_at: '2026-10-20T09:00:00Z',
+  postings: [
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a80',
+      amount: '-42.80',
+      currency: 'USD',
+      base_amount: '-42.80',
+      account: wallet,
+    },
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a81',
+      amount: '42.80',
+      currency: 'USD',
+      base_amount: '42.80',
+      account: groceries,
+    },
+  ],
+} satisfies components['schemas']['Transaction'];
+
 function readLocationPage(
   items: readonly components['schemas']['Location'][],
 ): components['schemas']['Page_Location_'] {
@@ -159,8 +215,9 @@ test('requests the search term and offers to clear a search that matches nothing
   expect(requestedTerms).toContain('zoo');
 });
 
-test('gives an active row Transactions, Edit and Delete and a deleted one Restore', async () => {
+test('gives an active row Transactions, Edit and Delete and a deleted one Restore on a phone', async () => {
   // arrange
+  vi.stubGlobal('innerWidth', 390);
   server.use(
     http.get('http://localhost/api/accounting/locations', () =>
       HttpResponse.json(readLocationPage([spar, oldMarket])),
@@ -186,6 +243,38 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   expect(within(sparRow).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   expect(within(oldMarketRow).getAllByRole('button')).toHaveLength(1);
   expect(within(oldMarketRow).getByRole('button', { name: 'Restore' })).toBeInTheDocument();
+});
+
+test('gives an active row Edit and Delete without Transactions on desktop', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json(readLocationPage([spar, oldMarket])),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: ['/locations'] });
+
+  // assert
+  const list = await screen.findByRole('region', { name: 'Locations' });
+  await within(list).findByText('Spar');
+  const [sparRow, oldMarketRow] = within(list).getAllByRole('listitem');
+  if (sparRow === undefined || oldMarketRow === undefined) {
+    throw new Error('Both entries have a row.');
+  }
+
+  expect(within(sparRow).queryByRole('link', { name: 'Transactions' })).not.toBeInTheDocument();
+  expect(
+    within(sparRow)
+      .getAllByRole('button')
+      .map((button) => button.title),
+  ).toEqual(['Edit', 'Delete']);
+  expect(
+    within(oldMarketRow)
+      .getAllByRole('button')
+      .map((button) => button.title),
+  ).toEqual(['Restore']);
 });
 
 test('creates a location from New location and lists it', async () => {
@@ -546,3 +635,84 @@ test.each([
     expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
   },
 );
+
+test('shows the chosen transaction of a location with its first money account whatever the account param and drops it when another location is chosen on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json(readLocationPage([spar, coffeeLab])),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({ items: [wallet], total: 1, page: 1, size: 100, pages: 1 }),
+    ),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const items =
+        new URL(request.url).searchParams.getAll('location_ids').join() === spar.id
+          ? [sparPurchase]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${sparPurchase.id}`, () =>
+      HttpResponse.json(sparPurchase),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
+      HttpResponse.json(wallet),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [
+      `/locations?account=${groceries.id}&location=${spar.id}&transaction=${sparPurchase.id}`,
+    ],
+  });
+
+  // assert
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(await within(transactionDetails).findByRole('link', { name: 'Wallet' })).toHaveAttribute(
+    'href',
+    `/accounts?account=${wallet.id}`,
+  );
+  expect(within(transactionDetails).getByRole('link', { name: 'Groceries' })).toHaveAttribute(
+    'href',
+    `/categories?account=${groceries.id}`,
+  );
+  expect(within(transactionDetails).getByRole('link', { name: 'Spar' })).toHaveAttribute(
+    'href',
+    `/locations?location=${spar.id}`,
+  );
+  expect(screen.queryByRole('dialog', { name: 'Location details' })).not.toBeInTheDocument();
+  const accountDetails = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(await within(accountDetails).findByText('Wallet')).toBeInTheDocument();
+
+  // act
+  await user.click(accountDetails);
+  await user.click(screen.getByRole('link', { name: 'Coffee Lab' }));
+
+  // assert
+  expect(
+    await screen.findByRole('region', { name: 'Transactions of Coffee Lab' }),
+  ).toBeInTheDocument();
+  const searchParams = new URLSearchParams(router.state.location.search);
+  expect(searchParams.get('location')).toBe(coffeeLab.id);
+  expect(searchParams.get('account')).toBe(groceries.id);
+  expect(searchParams.get('transaction')).toBeNull();
+});

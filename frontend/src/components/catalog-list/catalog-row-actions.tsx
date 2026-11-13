@@ -13,7 +13,7 @@ import { readCatalogDeleteButtonId, readCatalogRowLinkId } from './catalog-row-f
 
 type CatalogRowActionsProps = Readonly<{
   entry: CatalogEntry;
-  transactionsLink: To;
+  transactionsLink: To | undefined;
   isRestorePending: boolean;
   isFocusRequested: boolean;
   onFocused: () => void;
@@ -71,19 +71,22 @@ export function CatalogRowActions({
 
   return (
     <span className={styles['catalogRowActions']}>
-      <Link
-        ref={focusWhenRequested}
-        id={rowLinkId}
-        to={transactionsLink}
-        aria-label="Transactions"
-        title="Transactions"
-        className={styles['action']}
-      >
-        <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-          <path d={TRANSACTIONS_ICON_PATH} />
-        </svg>
-      </Link>
+      {transactionsLink !== undefined && (
+        <Link
+          ref={focusWhenRequested}
+          id={rowLinkId}
+          to={transactionsLink}
+          aria-label="Transactions"
+          title="Transactions"
+          className={styles['action']}
+        >
+          <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+            <path d={TRANSACTIONS_ICON_PATH} />
+          </svg>
+        </Link>
+      )}
       <button
+        {...(transactionsLink === undefined && { ref: focusWhenRequested, id: rowLinkId })}
         type="button"
         aria-label="Edit"
         title="Edit"

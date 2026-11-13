@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { CatalogTransactions } from '@/app/catalog-transactions';
+import { CATALOG_FULL_MENU_MIN_WIDTH, CatalogTransactions } from '@/app/catalog-transactions';
 import { LOCATION_ICON_PATH } from '@/app/location-icon';
 import { readLocationTransactionsLink } from '@/app/transactions-link';
 import { CatalogFilters } from '@/components/catalog-list/catalog-filters';
@@ -35,6 +35,7 @@ import {
 } from '@/features/locations/components/location-delete-copy';
 import { LocationForm } from '@/features/locations/components/location-form';
 import { LocationRestoreForm } from '@/features/locations/components/location-restore-form';
+import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { useListedEntry } from '@/hooks/use-listed-entry';
@@ -44,6 +45,8 @@ import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
 
 import styles from './locations.module.css';
+
+export const handle = { fullMenuMinWidth: CATALOG_FULL_MENU_MIN_WIDTH };
 
 const LOCATION_SEARCH_FIELD_ID = 'location-search';
 const LOCATION_GROUP_KEY = 'LOCATIONS';
@@ -187,7 +190,13 @@ export function Component() {
                       chosenEntryId: chosenLocation?.id,
                       defaultEntryId: shownLocation?.id,
                       readEntryLink: (locationId) => ({
-                        search: writeSelectedLocation({ searchParams, locationId }).toString(),
+                        search: writeSelectedLocation({
+                          searchParams: writeSelectedTransaction({
+                            searchParams,
+                            transactionId: undefined,
+                          }),
+                          locationId,
+                        }).toString(),
                       }),
                       readEntryLinkId: readLocationLinkId,
                     }
@@ -201,7 +210,9 @@ export function Component() {
               renderActions={(location) => (
                 <CatalogRowActions
                   entry={location}
-                  transactionsLink={readLocationTransactionsLink(location.id)}
+                  transactionsLink={
+                    isDesktop ? undefined : readLocationTransactionsLink(location.id)
+                  }
                   isRestorePending={locationRestore.isPending}
                   isFocusRequested={location.id === focusedLocationId}
                   onFocused={() => {

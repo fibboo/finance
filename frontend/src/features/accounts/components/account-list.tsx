@@ -42,6 +42,7 @@ export function AccountList({
   const arrowKeySelection = useArrowKeySelection({
     list: 'account-cards',
     orientation: 'horizontal',
+    isFocusRequired: false,
   });
   const accountsRef = useRef<HTMLUListElement>(null);
   const { observeFirst, observeLast, isFirstInView, isLastInView } = useStripEdges();

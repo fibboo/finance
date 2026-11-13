@@ -1,5 +1,4 @@
 import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
-import type { To } from 'react-router';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
 import type { components } from '@/lib/api-schema';
@@ -9,6 +8,7 @@ import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
 import { EditTransaction } from './edit-transaction';
 import { type LocationLink, TransactionOverview } from './transaction-overview';
+import type { ReadAccountLink } from './transaction-postings';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
@@ -17,7 +17,7 @@ type TransactionDetailsProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
-  readAccountLink: (accountId: string) => To;
+  readAccountLink: ReadAccountLink;
   readLocationLink: (locationId: string) => LocationLink;
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;

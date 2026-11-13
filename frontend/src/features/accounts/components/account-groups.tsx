@@ -55,7 +55,11 @@ function readAccountClassName({
 
 export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountGroupsProps) {
   const [searchParams] = useSearchParams();
-  const arrowKeySelection = useArrowKeySelection({ list: 'accounts', orientation: 'vertical' });
+  const arrowKeySelection = useArrowKeySelection({
+    list: 'accounts',
+    orientation: 'vertical',
+    isFocusRequired: false,
+  });
   const selectedAccountId = readSelectedAccountId(searchParams);
   const groups = readAccountGroups(accounts ?? []);
   return (

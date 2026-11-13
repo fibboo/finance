@@ -200,6 +200,7 @@ export function DetailsPanel({
         role="dialog"
         aria-label={label}
         data-details-panel={isShownByDefault ? undefined : true}
+        data-return-focus-id={returnFocusId}
         data-details
         aria-busy={(!isLoaded && isFetching) || isReplacing}
         tabIndex={-1}

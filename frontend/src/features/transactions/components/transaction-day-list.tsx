@@ -60,13 +60,15 @@ function readDayTotal({
   return dayTotal;
 }
 
+export type RowSelection = 'none' | 'keysInList' | 'keysOnPage';
+
 type TransactionDayListProps = Readonly<{
   transactions: readonly Transaction[];
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   topTransactionId: string | undefined;
   isGroupedByDay: boolean;
-  isSelectable: boolean;
+  selection: RowSelection;
 }>;
 
 export function TransactionDayList({
@@ -75,11 +77,15 @@ export function TransactionDayList({
   transactionTypes,
   topTransactionId,
   isGroupedByDay,
-  isSelectable,
+  selection,
 }: TransactionDayListProps) {
   const today = useToday();
-  const arrowKeySelection = useArrowKeySelection({ list: 'transactions', orientation: 'vertical' });
-  const rowSelection = isSelectable ? arrowKeySelection : undefined;
+  const arrowKeySelection = useArrowKeySelection({
+    list: 'transactions',
+    orientation: 'vertical',
+    isFocusRequired: selection === 'keysInList',
+  });
+  const rowSelection = selection === 'none' ? undefined : arrowKeySelection;
   return (
     <div className={styles['transactionDayList']}>
       {isGroupedByDay ? (

@@ -1,10 +1,11 @@
-import { useSearchParams } from 'react-router';
+import { type To, useSearchParams } from 'react-router';
 
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import {
   readLocationLinkId,
   writeSelectedLocation,
 } from '@/features/locations/api/selected-location';
+import type { components } from '@/lib/api-schema';
 
 import styles from './details-column.module.css';
 import { SelectedAccountDetails } from './selected-account-details';
@@ -12,12 +13,34 @@ import { SelectedLocationDetails } from './selected-location-details';
 import { SelectedTransactionDetails } from './selected-transaction-details';
 import type { ShownAccount } from './use-shown-account';
 
+type Account = components['schemas']['Account'];
+
+const ACCOUNT_SECTION_PATHNAMES = {
+  ASSET: '/accounts',
+  LIABILITY: '/accounts',
+  EXPENSE: '/categories',
+  INCOME: '/income-sources',
+  EQUITY: '/accounts',
+} as const satisfies Readonly<Record<Account['kind'], string>>;
+
+function readAccountSectionLink(account: Readonly<Account>): To {
+  const accountSectionLink = {
+    pathname: ACCOUNT_SECTION_PATHNAMES[account.kind],
+    search: writeSelectedAccount({
+      searchParams: new URLSearchParams(),
+      accountId: account.id,
+    }).toString(),
+  };
+  return accountSectionLink;
+}
+
 type DetailsColumnProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
   shownAccount: ShownAccount;
   accountCount: number | undefined;
   isAccountFirst: boolean;
+  isEntryParamOwnedByPage: boolean;
 }>;
 
 export function DetailsColumn({
@@ -26,23 +49,35 @@ export function DetailsColumn({
   shownAccount,
   accountCount,
   isAccountFirst,
+  isEntryParamOwnedByPage,
 }: DetailsColumnProps) {
   const [searchParams] = useSearchParams();
-  const { shownLocationId } = shownAccount;
+  const shownLocationId = isEntryParamOwnedByPage ? undefined : shownAccount.shownLocationId;
   const isEntryOpenedLast =
-    shownLocationId === undefined
+    !isEntryParamOwnedByPage &&
+    (shownLocationId === undefined
       ? shownAccount.isAccountOpenedLast
-      : shownAccount.isLocationOpenedLast;
+      : shownAccount.isLocationOpenedLast);
   const transactionDetails = (
     <div className={isEntryOpenedLast ? styles['earlierSelection'] : styles['selection']}>
       <SelectedTransactionDetails
         baseCurrency={baseCurrency}
         defaultTransactionId={defaultTransactionId}
-        readAccountLink={(accountId) => ({
-          search: writeSelectedAccount({ searchParams, accountId }).toString(),
-        })}
+        readAccountLink={(account) =>
+          isEntryParamOwnedByPage
+            ? readAccountSectionLink(account)
+            : { search: writeSelectedAccount({ searchParams, accountId: account.id }).toString() }
+        }
         readLocationLink={(locationId) => ({
-          to: { search: writeSelectedLocation({ searchParams, locationId }).toString() },
+          to: isEntryParamOwnedByPage
+            ? {
+                pathname: '/locations',
+                search: writeSelectedLocation({
+                  searchParams: new URLSearchParams(),
+                  locationId,
+                }).toString(),
+              }
+            : { search: writeSelectedLocation({ searchParams, locationId }).toString() },
           id: readLocationLinkId(locationId),
         })}
       />
@@ -57,6 +92,7 @@ export function DetailsColumn({
           defaultAccountId={shownAccount.defaultAccountId}
           isKeptOpenOnDesktop
           isParamIgnored={shownAccount.isAccountParamStale}
+          isParamOwnedByPage={isEntryParamOwnedByPage}
           isMoneyAccountOnly={false}
         />
       ) : (

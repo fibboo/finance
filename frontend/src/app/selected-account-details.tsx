@@ -42,12 +42,14 @@ type SelectedAccountDetailsProps = Readonly<{
   defaultAccountId: string | undefined;
   isKeptOpenOnDesktop: boolean;
   isParamIgnored: boolean;
+  isParamOwnedByPage: boolean;
   isMoneyAccountOnly: boolean;
 }>;
 
 type SelectedAccountProps = Readonly<{
   accountId: string;
   isShownByDefault: boolean;
+  isParamOwnedByPage: boolean;
   isKeptOpenOnDesktop: boolean;
   isMoneyAccountOnly: boolean;
   baseCurrency: string;
@@ -113,6 +115,7 @@ function AccountForm({
 function SelectedAccount({
   accountId,
   isShownByDefault,
+  isParamOwnedByPage,
   isKeptOpenOnDesktop,
   isMoneyAccountOnly,
   baseCurrency,
@@ -177,8 +180,15 @@ function SelectedAccount({
     });
   }
 
-  function dropSelectedAccount({ isReplaced }: Readonly<{ isReplaced: boolean }>) {
-    setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
+  function writeAccountParam({
+    nextAccountId,
+    isReplaced,
+  }: Readonly<{ nextAccountId: string | undefined; isReplaced: boolean }>) {
+    if (isParamOwnedByPage) {
+      return;
+    }
+
+    setSearchParams(writeSelectedAccount({ searchParams, accountId: nextAccountId }), {
       preventScrollReset: true,
       replace: isReplaced,
     });
@@ -204,20 +214,17 @@ function SelectedAccount({
           setEditedAccountId(accountId);
         }}
         onDeleted={() => {
-          dropSelectedAccount({ isReplaced: true });
+          writeAccountParam({ nextAccountId: undefined, isReplaced: true });
         }}
         onStatusChanged={focusTransactionsLink}
         onRestoreNameTaken={() => {
           setRenamedAccountId(accountId);
         }}
         onClose={() => {
-          dropSelectedAccount({ isReplaced: false });
+          writeAccountParam({ nextAccountId: undefined, isReplaced: false });
         }}
         onChoose={() => {
-          setSearchParams(writeSelectedAccount({ searchParams, accountId }), {
-            preventScrollReset: true,
-            replace: true,
-          });
+          writeAccountParam({ nextAccountId: accountId, isReplaced: true });
         }}
       />
       {isEditing && account !== undefined && account.kind !== 'EQUITY' && (
@@ -266,10 +273,12 @@ export function SelectedAccountDetails({
   defaultAccountId,
   isKeptOpenOnDesktop,
   isParamIgnored,
+  isParamOwnedByPage,
   isMoneyAccountOnly,
 }: SelectedAccountDetailsProps) {
   const [searchParams] = useSearchParams();
-  const selectedAccountId = isParamIgnored ? undefined : readSelectedAccountId(searchParams);
+  const selectedAccountId =
+    isParamIgnored || isParamOwnedByPage ? undefined : readSelectedAccountId(searchParams);
   const accountId = selectedAccountId ?? defaultAccountId;
   const isShownByDefault = selectedAccountId === undefined;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
@@ -281,6 +290,7 @@ export function SelectedAccountDetails({
     <SelectedAccount
       accountId={accountId}
       isShownByDefault={isShownByDefault}
+      isParamOwnedByPage={isParamOwnedByPage}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}
       isMoneyAccountOnly={isMoneyAccountOnly}
       baseCurrency={baseCurrency}
