@@ -702,9 +702,11 @@ test('filters by a location of the URL that is not in the list once and drops an
   expect(
     await screen.findByRole('button', { name: 'Locations: Locations · 1' }),
   ).toBeInTheDocument();
-  expect(requestedSearch).toBe(
-    `?location_ids=${deletedLocationId}&size=15&date_to=2026-10-20&page=1`,
-  );
+  await waitFor(() => {
+    expect(requestedSearch).toBe(
+      `?location_ids=${deletedLocationId}&size=15&date_to=2026-10-20&page=1`,
+    );
+  });
 });
 
 test('clears a location of the URL that is not in the list from the panel', async () => {
