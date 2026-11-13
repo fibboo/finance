@@ -470,3 +470,20 @@ test('gives a phone plain names and no transactions of a location', async () => 
   expect(screen.queryByRole('region', { name: /^Transactions of/ })).not.toBeInTheDocument();
   expect(transactionRequestCount).toBe(0);
 });
+
+test('shows an empty state instead of the list when there are no locations', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json(readLocationPage([])),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: ['/locations'] });
+
+  // assert
+  expect(await screen.findByText('No locations yet')).toBeInTheDocument();
+  expect(screen.getByText('Add the places you pay at, like a shop or a café.')).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Locations' })).not.toBeInTheDocument();
+});

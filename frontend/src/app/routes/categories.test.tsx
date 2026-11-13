@@ -982,3 +982,26 @@ test('gives a phone plain names and no transactions of a category', async () => 
   expect(screen.queryByRole('region', { name: /^Transactions of/ })).not.toBeInTheDocument();
   expect(transactionRequestCount).toBe(0);
 });
+
+test('shows an empty state instead of the list when there are no categories', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: ['/categories'] });
+
+  // assert
+  expect(await screen.findByText('No categories yet')).toBeInTheDocument();
+  expect(screen.getByText('Add what you spend on, like groceries or rent.')).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Categories' })).not.toBeInTheDocument();
+});
