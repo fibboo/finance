@@ -645,6 +645,7 @@ test('keeps Restore category closed after a category restored under a new name l
 
   // assert
   expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent('Smokes');
+  expect(screen.getByRole('searchbox', { name: 'Search categories' })).toHaveFocus();
   expect(screen.queryByRole('form', { name: 'Restore category' })).not.toBeInTheDocument();
 });
 
