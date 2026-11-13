@@ -1061,6 +1061,68 @@ test('shows the transactions of the category whose name is chosen and moves the 
   expect(new URLSearchParams(router.state.location.search).get('account')).toBe(cigarettes.id);
 });
 
+test('links a deleted location of the chosen transaction with Deleted on', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 1280);
+  const oldOffice = {
+    name: 'Old office',
+    description: null,
+    id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d47',
+    user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+    status: 'DELETED',
+    created_at: '2026-10-01T09:00:00Z',
+    updated_at: '2026-10-01T09:00:00Z',
+  } satisfies components['schemas']['Location'];
+  const rentPaymentAtOldOffice = {
+    ...rentPayment,
+    location: oldOffice,
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [{ key: 'FIXED', label: 'Fixed' }],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [rent],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [rentPaymentAtOldOffice],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${rentPayment.id}`, () =>
+      HttpResponse.json(rentPaymentAtOldOffice),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
+
+  // assert
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(transactionDetails).findByRole('link', { name: /Old office/ }),
+  ).toHaveAttribute('href', `/locations?location=${oldOffice.id}&deleted=on`);
+});
+
 test('shows the details of the top transaction beside the transactions of a category whose rows name the account on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();

@@ -1,54 +1,118 @@
+import { act, renderHook } from '@testing-library/react';
 import { expect, test, vi } from 'vitest';
 
-import { readIsDeletedShown, writeIsDeletedShown } from './deleted-filter';
+import {
+  readIsDeletedShown,
+  storeIsDeletedShown,
+  useStoredIsDeletedShown,
+  writeDeletedShown,
+  writeIsDeletedShown,
+} from './deleted-filter';
 
-test('shows deleted entries when neither the URL nor the storage says otherwise', () => {
+test('takes the stored value when the URL has no deleted param', () => {
   // act
-  const isDeletedShown = readIsDeletedShown({
+  const isShownByStoredOn = readIsDeletedShown({
     searchParams: new URLSearchParams(),
-    page: 'locations',
+    isStoredDeletedShown: true,
+  });
+  const isShownByStoredOff = readIsDeletedShown({
+    searchParams: new URLSearchParams(),
+    isStoredDeletedShown: false,
   });
 
   // assert
-  expect(isDeletedShown).toBe(true);
-});
-
-test('takes the stored value of the page when the URL has no deleted param', () => {
-  // arrange
-  localStorage.setItem('deleted:locations', 'off');
-
-  // act
-  const isLocationDeletedShown = readIsDeletedShown({
-    searchParams: new URLSearchParams(),
-    page: 'locations',
-  });
-  const isCategoryDeletedShown = readIsDeletedShown({
-    searchParams: new URLSearchParams(),
-    page: 'categories',
-  });
-
-  // assert
-  expect(isLocationDeletedShown).toBe(false);
-  expect(isCategoryDeletedShown).toBe(true);
+  expect(isShownByStoredOn).toBe(true);
+  expect(isShownByStoredOff).toBe(false);
 });
 
 test('takes the deleted param over the stored value', () => {
-  // arrange
-  localStorage.setItem('deleted:locations', 'off');
-
   // act
-  const isDeletedShownByOn = readIsDeletedShown({
+  const isShownByOn = readIsDeletedShown({
     searchParams: new URLSearchParams('deleted=on'),
-    page: 'locations',
+    isStoredDeletedShown: false,
   });
-  const isDeletedShownByOff = readIsDeletedShown({
+  const isShownByOff = readIsDeletedShown({
     searchParams: new URLSearchParams('deleted=off'),
-    page: 'categories',
+    isStoredDeletedShown: true,
   });
 
   // assert
-  expect(isDeletedShownByOn).toBe(true);
-  expect(isDeletedShownByOff).toBe(false);
+  expect(isShownByOn).toBe(true);
+  expect(isShownByOff).toBe(false);
+});
+
+test('takes the stored value when the deleted param is not one it knows', () => {
+  // act
+  const isDeletedShown = readIsDeletedShown({
+    searchParams: new URLSearchParams('deleted=hidden'),
+    isStoredDeletedShown: false,
+  });
+
+  // assert
+  expect(isDeletedShown).toBe(false);
+});
+
+test('writes off to the URL when Deleted is turned off', () => {
+  // act
+  const searchParams = writeIsDeletedShown({
+    searchParams: new URLSearchParams('search=spar'),
+    isDeletedShown: false,
+    isStoredDeletedShown: true,
+  });
+
+  // assert
+  expect(searchParams.toString()).toBe('search=spar&deleted=off');
+});
+
+test('writes on to the URL when Deleted is turned on over a stored off', () => {
+  // act
+  const searchParams = writeIsDeletedShown({
+    searchParams: new URLSearchParams('deleted=off'),
+    isDeletedShown: true,
+    isStoredDeletedShown: false,
+  });
+
+  // assert
+  expect(searchParams.get('deleted')).toBe('on');
+});
+
+test('drops the deleted param when Deleted is turned on over a stored on', () => {
+  // act
+  const searchParams = writeIsDeletedShown({
+    searchParams: new URLSearchParams('deleted=off'),
+    isDeletedShown: true,
+    isStoredDeletedShown: true,
+  });
+
+  // assert
+  expect(searchParams.has('deleted')).toBe(false);
+});
+
+test('writes on to the URL of a link to a deleted entry', () => {
+  // act
+  const searchParams = writeDeletedShown(new URLSearchParams('location=1'));
+
+  // assert
+  expect(searchParams.toString()).toBe('location=1&deleted=on');
+});
+
+test('reads the stored value of the page only and follows what is stored later', () => {
+  // arrange
+  localStorage.setItem('deleted:locations', 'off');
+  const { result: locations } = renderHook(() => useStoredIsDeletedShown('locations'));
+  const { result: categories } = renderHook(() => useStoredIsDeletedShown('categories'));
+  expect(locations.current).toBe(false);
+  expect(categories.current).toBe(true);
+
+  // act
+  act(() => {
+    storeIsDeletedShown({ page: 'locations', isDeletedShown: true });
+  });
+
+  // assert
+  expect(locations.current).toBe(true);
+  expect(localStorage.getItem('deleted:locations')).toBe('on');
+  expect(localStorage.getItem('deleted:categories')).toBeNull();
 });
 
 test('shows deleted entries when the stored value is not one it knows', () => {
@@ -56,58 +120,13 @@ test('shows deleted entries when the stored value is not one it knows', () => {
   localStorage.setItem('deleted:locations', 'hidden');
 
   // act
-  const isDeletedShown = readIsDeletedShown({
-    searchParams: new URLSearchParams(),
-    page: 'locations',
-  });
+  const { result } = renderHook(() => useStoredIsDeletedShown('locations'));
 
   // assert
-  expect(isDeletedShown).toBe(true);
+  expect(result.current).toBe(true);
 });
 
-test('stores turning Deleted off for the page only and writes off to the URL', () => {
-  // act
-  const searchParams = writeIsDeletedShown({
-    searchParams: new URLSearchParams('search=spar'),
-    page: 'locations',
-    isDeletedShown: false,
-  });
-
-  // assert
-  expect(searchParams.toString()).toBe('search=spar&deleted=off');
-  expect(localStorage.getItem('deleted:locations')).toBe('off');
-  expect(localStorage.getItem('deleted:categories')).toBeNull();
-});
-
-test('writes on to the URL when Deleted is turned on over a stored off', () => {
-  // arrange
-  localStorage.setItem('deleted:locations', 'off');
-
-  // act
-  const searchParams = writeIsDeletedShown({
-    searchParams: new URLSearchParams(),
-    page: 'locations',
-    isDeletedShown: true,
-  });
-
-  // assert
-  expect(searchParams.get('deleted')).toBe('on');
-  expect(localStorage.getItem('deleted:locations')).toBe('on');
-});
-
-test('drops the deleted param when Deleted is turned on and nothing stored hides deleted entries', () => {
-  // act
-  const searchParams = writeIsDeletedShown({
-    searchParams: new URLSearchParams('deleted=off'),
-    page: 'locations',
-    isDeletedShown: true,
-  });
-
-  // assert
-  expect(searchParams.has('deleted')).toBe(false);
-});
-
-test('keeps working on the URL alone when the storage throws', () => {
+test('shows deleted entries and stores nothing when the browser blocks storage', () => {
   // arrange
   vi.stubGlobal('localStorage', {
     getItem: () => {
@@ -117,15 +136,13 @@ test('keeps working on the URL alone when the storage throws', () => {
       throw new DOMException('Storage is blocked.', 'SecurityError');
     },
   });
+  const { result } = renderHook(() => useStoredIsDeletedShown('locations'));
 
   // act
-  const searchParams = writeIsDeletedShown({
-    searchParams: new URLSearchParams(),
-    page: 'locations',
-    isDeletedShown: false,
+  act(() => {
+    storeIsDeletedShown({ page: 'locations', isDeletedShown: false });
   });
-  const isDeletedShown = readIsDeletedShown({ searchParams, page: 'locations' });
 
   // assert
-  expect(isDeletedShown).toBe(false);
+  expect(result.current).toBe(true);
 });

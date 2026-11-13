@@ -12,9 +12,10 @@ import { readTransactionView, readTypeLabel, readWeekdayDateText } from './trans
 
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
+type Location = components['schemas']['Location'];
 export type LocationLink = Readonly<{ to: To; id: string }>;
 
-export type ReadLocationLink = (locationId: string) => LocationLink | undefined;
+export type ReadLocationLink = (location: Readonly<Location>) => LocationLink | undefined;
 
 function readBaseAmount({
   transaction,
@@ -56,7 +57,7 @@ export function TransactionOverview({
   const view = readTransactionView({ transaction, transactionTypes });
   const baseAmount = readBaseAmount({ transaction, baseAmount: view.baseAmount });
   const locationLink =
-    transaction.location === null ? undefined : readLocationLink(transaction.location.id);
+    transaction.location === null ? undefined : readLocationLink(transaction.location);
   return (
     <article aria-labelledby={titleId} className={styles['transactionOverview']}>
       <div className={styles['header']} data-sheet-drag-area>

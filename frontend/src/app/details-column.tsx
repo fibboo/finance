@@ -41,9 +41,11 @@ export function DetailsColumn({
         readAccountLink={(account) => ({
           search: writeSelectedAccount({ searchParams, accountId: account.id }).toString(),
         })}
-        readLocationLink={(locationId) => ({
-          to: { search: writeSelectedLocation({ searchParams, locationId }).toString() },
-          id: readLocationLinkId(locationId),
+        readLocationLink={(location) => ({
+          to: {
+            search: writeSelectedLocation({ searchParams, locationId: location.id }).toString(),
+          },
+          id: readLocationLinkId(location.id),
         })}
       />
     </div>

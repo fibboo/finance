@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import { z } from 'zod';
 
 export type CatalogPage = 'categories' | 'income_sources' | 'locations';
@@ -7,10 +8,21 @@ const DELETED_ON = 'on';
 const DELETED_OFF = 'off';
 
 const deletedFilterSchema = z.enum([DELETED_ON, DELETED_OFF]);
+const deletedFilterListeners = new Set<() => void>();
 
 function readStorageKey(page: CatalogPage): string {
   const storageKey = `deleted:${page}`;
   return storageKey;
+}
+
+function subscribe(listener: () => void): () => void {
+  deletedFilterListeners.add(listener);
+  window.addEventListener('storage', listener);
+
+  return () => {
+    deletedFilterListeners.delete(listener);
+    window.removeEventListener('storage', listener);
+  };
 }
 
 function readStoredIsDeletedShown(page: CatalogPage): boolean {
@@ -24,7 +36,14 @@ function readStoredIsDeletedShown(page: CatalogPage): boolean {
   }
 }
 
-function storeIsDeletedShown({
+export function useStoredIsDeletedShown(page: CatalogPage): boolean {
+  const isStoredDeletedShown = useSyncExternalStore(subscribe, () =>
+    readStoredIsDeletedShown(page),
+  );
+  return isStoredDeletedShown;
+}
+
+export function storeIsDeletedShown({
   page,
   isDeletedShown,
 }: Readonly<{ page: CatalogPage; isDeletedShown: boolean }>): void {
@@ -33,31 +52,40 @@ function storeIsDeletedShown({
   } catch {
     return;
   }
+
+  deletedFilterListeners.forEach((listener) => {
+    listener();
+  });
 }
 
 export function readIsDeletedShown({
   searchParams,
-  page,
-}: Readonly<{ searchParams: URLSearchParams; page: CatalogPage }>): boolean {
+  isStoredDeletedShown,
+}: Readonly<{ searchParams: URLSearchParams; isStoredDeletedShown: boolean }>): boolean {
   const filterParam = deletedFilterSchema.safeParse(searchParams.get(DELETED_PARAM));
   const isDeletedShown = filterParam.success
     ? filterParam.data === DELETED_ON
-    : readStoredIsDeletedShown(page);
+    : isStoredDeletedShown;
 
   return isDeletedShown;
 }
 
+export function writeDeletedShown(searchParams: URLSearchParams): URLSearchParams {
+  const nextSearchParams = new URLSearchParams(searchParams);
+  nextSearchParams.set(DELETED_PARAM, DELETED_ON);
+
+  return nextSearchParams;
+}
+
 export function writeIsDeletedShown({
   searchParams,
-  page,
   isDeletedShown,
+  isStoredDeletedShown,
 }: Readonly<{
   searchParams: URLSearchParams;
-  page: CatalogPage;
   isDeletedShown: boolean;
+  isStoredDeletedShown: boolean;
 }>): URLSearchParams {
-  const isStoredDeletedShown = readStoredIsDeletedShown(page);
-  storeIsDeletedShown({ page, isDeletedShown });
   const nextSearchParams = new URLSearchParams(searchParams);
   if (!isDeletedShown) {
     nextSearchParams.set(DELETED_PARAM, DELETED_OFF);

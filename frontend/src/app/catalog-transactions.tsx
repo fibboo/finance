@@ -3,6 +3,7 @@ import { Link, Navigate, type To, useSearchParams } from 'react-router';
 
 import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
+import { writeDeletedShown } from '@/components/catalog-list/deleted-filter';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import {
   readLocationLinkId,
@@ -26,6 +27,7 @@ import styles from './catalog-transactions.module.css';
 type DictionaryItem = components['schemas']['DictionaryItem'];
 type Transaction = components['schemas']['Transaction'];
 type Account = components['schemas']['Account'];
+type Location = components['schemas']['Location'];
 
 const ACCOUNT_SECTION_PATHNAMES = {
   ASSET: '/accounts',
@@ -53,26 +55,34 @@ function readIsFilteredTransaction({
 }
 
 function readAccountSectionLink(account: Readonly<Account>): To {
+  const searchParams = writeSelectedAccount({
+    searchParams: new URLSearchParams(),
+    accountId: account.id,
+  });
   const accountSectionLink = {
     pathname: ACCOUNT_SECTION_PATHNAMES[account.kind],
-    search: writeSelectedAccount({
-      searchParams: new URLSearchParams(),
-      accountId: account.id,
-    }).toString(),
+    search: (account.status === 'DELETED'
+      ? writeDeletedShown(searchParams)
+      : searchParams
+    ).toString(),
   };
   return accountSectionLink;
 }
 
-function readLocationSectionLink(locationId: string): LocationLink {
+function readLocationSectionLink(location: Readonly<Location>): LocationLink {
+  const searchParams = writeSelectedLocation({
+    searchParams: new URLSearchParams(),
+    locationId: location.id,
+  });
   const locationSectionLink = {
     to: {
       pathname: '/locations',
-      search: writeSelectedLocation({
-        searchParams: new URLSearchParams(),
-        locationId,
-      }).toString(),
+      search: (location.status === 'DELETED'
+        ? writeDeletedShown(searchParams)
+        : searchParams
+      ).toString(),
     },
-    id: readLocationLinkId(locationId),
+    id: readLocationLinkId(location.id),
   };
   return locationSectionLink;
 }
@@ -160,10 +170,8 @@ export function CatalogTransactions({
             readAccountLink={(account) =>
               entryAccountIds.includes(account.id) ? undefined : readAccountSectionLink(account)
             }
-            readLocationLink={(locationId) =>
-              entryLocationIds.includes(locationId)
-                ? undefined
-                : readLocationSectionLink(locationId)
+            readLocationLink={(location) =>
+              entryLocationIds.includes(location.id) ? undefined : readLocationSectionLink(location)
             }
           />
         </div>
