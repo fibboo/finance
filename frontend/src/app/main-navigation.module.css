@@ -33,16 +33,6 @@
   cursor: pointer;
 }
 
-:root:has([data-back-to-top]) .addTransaction {
-  bottom: calc(100% + var(--space-3) + var(--size-back-to-top) + var(--space-2-5));
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .addTransaction {
-    transition: bottom var(--duration-fade) ease;
-  }
-}
-
 .addTransaction:hover {
   opacity: var(--opacity-hover);
 }
