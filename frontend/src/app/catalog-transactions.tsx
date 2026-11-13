@@ -13,6 +13,7 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 type CatalogTransactionsProps = Readonly<{
   name: string;
   description: string;
+  emptyText: string;
   filterQuery: Readonly<TransactionFilterQuery>;
   transactionsLink: To;
   transactionTypes: readonly DictionaryItem[] | undefined;
@@ -21,6 +22,7 @@ type CatalogTransactionsProps = Readonly<{
 export function CatalogTransactions({
   name,
   description,
+  emptyText,
   filterQuery,
   transactionsLink,
   transactionTypes,
@@ -45,6 +47,7 @@ export function CatalogTransactions({
         topTransactionId={undefined}
         label={`Transactions of ${name}`}
         isSelectable={false}
+        emptyState={<p className={styles['empty']}>{emptyText}</p>}
         header={
           <div className={styles['header']}>
             <div className={styles['heading']}>

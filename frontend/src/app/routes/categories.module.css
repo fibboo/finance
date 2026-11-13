@@ -30,11 +30,6 @@
 }
 
 @media (--desktop) {
-  .controls {
-    margin-bottom: calc(var(--space-4) * -1);
-    padding-bottom: var(--space-4);
-  }
-
   .categories {
     flex: 1 1 auto;
     min-height: 0;

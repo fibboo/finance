@@ -59,9 +59,18 @@ export function CatalogList({ label, groups, selection, renderActions }: Catalog
               const isChosen = entry.id === selection?.chosenEntryId;
               const isShownByDefault =
                 selection?.chosenEntryId === undefined && entry.id === selection?.defaultEntryId;
+              const deletedNote = isDeleted ? (
+                <>
+                  {' '}
+                  <span className="visually-hidden">(deleted)</span>
+                </>
+              ) : null;
               const name =
                 selection === undefined ? (
-                  entry.name
+                  <>
+                    {entry.name}
+                    {deletedNote}
+                  </>
                 ) : (
                   <Link
                     {...arrowKeySelection}
@@ -78,6 +87,7 @@ export function CatalogList({ label, groups, selection, renderActions }: Catalog
                     className={styles['nameLink']}
                   >
                     {entry.name}
+                    {deletedNote}
                   </Link>
                 );
               return (
@@ -90,10 +100,7 @@ export function CatalogList({ label, groups, selection, renderActions }: Catalog
                   </span>
                   <span className={styles['identity']}>
                     {isDeleted ? (
-                      <s className={styles['name']}>
-                        {name}
-                        <span className="visually-hidden"> (deleted)</span>
-                      </s>
+                      <s className={styles['name']}>{name}</s>
                     ) : (
                       <span className={styles['name']}>{name}</span>
                     )}

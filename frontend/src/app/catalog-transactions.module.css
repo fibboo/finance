@@ -34,6 +34,17 @@
   white-space: nowrap;
 }
 
+.empty {
+  min-height: max(100%, var(--size-empty-state-lg));
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-md);
+  text-align: center;
+  color: var(--color-muted);
+}
+
 .allLink {
   position: relative;
   flex: none;

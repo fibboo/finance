@@ -82,7 +82,7 @@ beforeAll(() => {
 const ROOT_FONT_SIZE = 16;
 
 function matchMinWidth(query: string): MediaQueryList {
-  const minWidthRem = /width >= (\d+)rem/.exec(query)?.[1];
+  const minWidthRem = /min-width: (\d+)rem/.exec(query)?.[1];
   const mediaQueryList = {
     matches: minWidthRem !== undefined && window.innerWidth >= Number(minWidthRem) * ROOT_FONT_SIZE,
     media: query,

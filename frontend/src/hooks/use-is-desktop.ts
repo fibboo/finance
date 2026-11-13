@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-const DESKTOP_MEDIA_QUERY = '(width >= 64rem)';
+const DESKTOP_MEDIA_QUERY = '(min-width: 64rem)';
 
 function subscribeToDesktop(onChange: () => void): () => void {
   const desktopMedia = window.matchMedia(DESKTOP_MEDIA_QUERY);

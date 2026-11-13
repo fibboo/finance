@@ -698,7 +698,9 @@ test('shows the transactions of the top category beside the list while none is c
     'href',
     `/transactions?category_ids=${groceries.id}`,
   );
-  expect(await within(transactions).findByText('Nothing here yet')).toBeInTheDocument();
+  expect(
+    await within(transactions).findByText('No transactions in this category yet'),
+  ).toBeInTheDocument();
   expect(requestedAccountIds).toEqual([groceries.id]);
   expect(screen.getByRole('link', { name: 'Groceries' })).not.toHaveAttribute('aria-current');
   expect(router.state.location.search).toBe('');
@@ -754,7 +756,7 @@ test('shows the transactions of the category whose name is chosen and moves the 
   expect(
     await screen.findByRole('region', { name: 'Transactions of Cigarettes' }),
   ).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Cigarettes' })).toHaveFocus();
+  expect(screen.getByRole('link', { name: 'Cigarettes (deleted)' })).toHaveFocus();
   expect(new URLSearchParams(router.state.location.search).get('account')).toBe(cigarettes.id);
 });
 

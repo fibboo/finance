@@ -228,6 +228,7 @@ export function Component() {
             description={['Category', shownGroup.heading, 'recent transactions'].join(
               DESCRIPTION_SEPARATOR,
             )}
+            emptyText="No transactions in this category yet"
             filterQuery={{ account_ids: [shownCategory.id] }}
             transactionsLink={readCategoryTransactionsLink(shownCategory.id)}
             transactionTypes={dictionaries?.transaction_types}
