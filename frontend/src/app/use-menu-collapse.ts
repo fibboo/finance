@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react';
+import { type RefObject, useEffect, useEffectEvent, useState, useSyncExternalStore } from 'react';
 import { useLocation, useMatches } from 'react-router';
 import { z } from 'zod';
 
@@ -92,16 +92,26 @@ export function useMenuCollapse({
     fullMenuMinWidth === undefined ? undefined : `(min-width: ${fullMenuMinWidth})`;
   const isCollapsedByWidth = useIsNarrowerThan(fullMenuQuery);
   const [menuForm, setMenuForm] = useState(readStoredMenuForm);
-  const [openOverPagePathname, setOpenOverPagePathname] = useState<string | null>(null);
-  const isOpenOverPage = isCollapsedByWidth && openOverPagePathname === pathname;
+  const [isOpenOverPage, setIsOpenOverPage] = useState(false);
+  const [openedOn, setOpenedOn] = useState({ pathname, isCollapsedByWidth });
+  if (openedOn.pathname !== pathname || openedOn.isCollapsedByWidth !== isCollapsedByWidth) {
+    setOpenedOn({ pathname, isCollapsedByWidth });
+    setIsOpenOverPage(false);
+  }
+  const isMenuOpenOverPage = isCollapsedByWidth && isOpenOverPage;
+  const readIsFocusInside = useEffectEvent((): boolean => {
+    const focusedElement = document.activeElement;
+    const isFocusInside = focusedElement !== null && readIsInside(focusedElement);
+    return isFocusInside;
+  });
 
   function closeMenuOverPage() {
-    setOpenOverPagePathname(null);
+    setIsOpenOverPage(false);
   }
 
   function toggleMenu() {
     if (isCollapsedByWidth) {
-      setOpenOverPagePathname(isOpenOverPage ? null : pathname);
+      setIsOpenOverPage(!isMenuOpenOverPage);
       return;
     }
 
@@ -111,43 +121,36 @@ export function useMenuCollapse({
   }
 
   useEffect(() => {
-    if (!isOpenOverPage || fullMenuQuery === undefined) {
+    if (!isMenuOpenOverPage) {
       return;
     }
 
-    const fullMenuMedia = window.matchMedia(fullMenuQuery);
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setOpenOverPagePathname(null);
-        menuToggleRef.current?.focus();
-      }
-    }
-
-    function handleWidthChange() {
-      if (fullMenuMedia.matches) {
-        setOpenOverPagePathname(null);
+        const isFocusInside = readIsFocusInside();
+        setIsOpenOverPage(false);
+        if (isFocusInside) {
+          menuToggleRef.current?.focus();
+        }
       }
     }
 
     document.addEventListener('keydown', handleKeyDown);
-    fullMenuMedia.addEventListener('change', handleWidthChange);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      fullMenuMedia.removeEventListener('change', handleWidthChange);
     };
-  }, [isOpenOverPage, fullMenuQuery, menuToggleRef]);
+  }, [isMenuOpenOverPage, menuToggleRef]);
 
   useOutsideClick({
-    isActive: isOpenOverPage,
+    isActive: isMenuOpenOverPage,
     readIsInside,
     onOutsideClick: closeMenuOverPage,
   });
 
   let menuState: MenuState = menuForm;
   if (isCollapsedByWidth) {
-    menuState = isOpenOverPage ? 'openOverPage' : 'collapsedByWidth';
+    menuState = isMenuOpenOverPage ? 'openOverPage' : 'collapsedByWidth';
   }
 
   return { menuState, toggleMenu, closeMenuOverPage };

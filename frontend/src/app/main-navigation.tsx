@@ -34,11 +34,11 @@ const MORE_SECTIONS = [
   },
 ] as const;
 const IS_EXPANDED_BY_MENU_STATE = {
-  full: undefined,
-  collapsed: undefined,
+  full: true,
+  collapsed: false,
   collapsedByWidth: false,
   openOverPage: true,
-} as const satisfies Record<MenuState, boolean | undefined>;
+} as const satisfies Record<MenuState, boolean>;
 
 type MainNavigationProps = Readonly<{
   menuState: MenuState;

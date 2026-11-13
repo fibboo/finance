@@ -424,3 +424,35 @@ test('leaves the menu collapsed on a page reached without choosing a section', a
   // assert
   expect(screen.getByRole('button', { name: 'Show the full menu' })).toBeInTheDocument();
 });
+
+test('leaves the focus on the page when Escape closes the menu over the page', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<AppLayout />, { handle: { fullMenuMinWidth: '90rem' } });
+  await user.click(screen.getByRole('button', { name: 'Show the full menu' }));
+  const accountMenuButton = await screen.findByRole('button', { name: 'Account menu' });
+  accountMenuButton.focus();
+
+  // act
+  await user.keyboard('{Escape}');
+
+  // assert
+  expect(accountMenuButton).toHaveFocus();
+});
