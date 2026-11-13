@@ -5,8 +5,8 @@
 Finances is a tool designed to help users manage and track their personal finances. It provides features for budgeting,
 expense tracking, and generating reports, making financial management simple and efficient.
 
-Tech Stack: Python, FastAPI, SQLAlchemy 2, Pydantic 2, PostgreSQL, Alembic, Docker, Pytest, Pytest x-dist on the
-backend; Vite, React 19, TypeScript, TanStack Query, React Router, Vitest and MSW on the frontend
+Tech Stack: Python, FastAPI, SQLAlchemy, Pydantic, PostgreSQL, Alembic, Docker, Pytest, Pytest x-dist on the
+backend; Vite, React, TypeScript, TanStack Query, React Router, Vitest and MSW on the frontend
 
 ## Agent setup
 
@@ -200,7 +200,7 @@ Redoc - [http://localhost:8000/redoc](http://localhost:8000/redoc)
 The `frontend` compose service runs the Vite dev server with `frontend/` mounted, so a saved file reloads the page. In
 production `frontend/Dockerfile` builds the bundle and serves it with nginx, which proxies `/api` to the backend.
 
-To work on the frontend outside Docker, install Node 22 or later and run from `frontend/`:
+To work on the frontend outside Docker, install the Node version that `engines` in `frontend/package.json` asks for and run from `frontend/`:
 
 ```bash
 npm ci

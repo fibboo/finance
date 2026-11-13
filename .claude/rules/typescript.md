@@ -18,7 +18,7 @@ These rules apply to new and changed code under `frontend/`. They give the TypeS
 
 - TypeScript stays on the 6.x line. typescript-eslint's type-aware linting does not run on TypeScript 7 until 7.1 ships its programmatic API, and the linting is worth more than the faster compiler. The move to 7 is its own issue.
 - Vite builds and type-strips. `tsc` only type-checks (`noEmit`), with `moduleResolution: "bundler"` and `isolatedModules`.
-- Node 22 or later, ESM only (`"type": "module"`).
+- ESM only (`"type": "module"`).
 
 ## Formatting and Linting
 
