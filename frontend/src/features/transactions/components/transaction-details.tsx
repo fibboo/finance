@@ -6,8 +6,8 @@ import type { components } from '@/lib/api-schema';
 import { readTransactionLinkId } from '../api/selected-transaction';
 import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
-import { TRANSACTION_ARROW_KEY_LIST } from './transaction-day-list';
 import { EditTransaction } from './edit-transaction';
+import { TRANSACTION_ARROW_KEY_LIST } from './transaction-arrow-keys';
 import { type ReadLocationLink, TransactionOverview } from './transaction-overview';
 import type { ReadAccountLink } from './transaction-postings';
 

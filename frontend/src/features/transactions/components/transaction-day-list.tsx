@@ -1,8 +1,9 @@
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
+import { TRANSACTION_ARROW_KEY_LIST } from './transaction-arrow-keys';
 import styles from './transaction-day-list.module.css';
-import { type ArrowKeySelectionProps, useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
+import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import { useToday } from '@/hooks/use-today';
 import { TransactionRow } from './transaction-row';
 import { readTransactionView, readWeekdayDateText } from './transaction-view';
@@ -61,11 +62,6 @@ function readDayTotal({
 }
 
 export type RowSelection = 'none' | 'keysInList' | 'keysOnPage';
-
-export const TRANSACTION_ARROW_KEY_LIST = {
-  'data-arrow-key-list': 'transactions',
-  'data-arrow-key-orientation': 'vertical',
-} as const satisfies ArrowKeySelectionProps;
 
 type TransactionDayListProps = Readonly<{
   transactions: readonly Transaction[];
