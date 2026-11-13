@@ -10,9 +10,9 @@ import { Page } from '@/components/page/page';
 import { SearchField } from '@/components/search-field/search-field';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
-import { writeSelectedLocation } from '@/features/locations/api/selected-location';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
+import { writeSelectedLocation } from '@/features/locations/api/selected-location';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,

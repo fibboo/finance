@@ -12,19 +12,25 @@ import { LOCATION_DELETE_TITLE, readLocationDeleteText } from './location-delete
 type Location = components['schemas']['Location'];
 
 type DeleteLocationProps = Readonly<{
+  locationId: string;
   location: Readonly<Location>;
   relatedQueryKeys: readonly QueryKey[];
   onDeleted: () => void;
 }>;
 
-export function DeleteLocation({ location, relatedQueryKeys, onDeleted }: DeleteLocationProps) {
+export function DeleteLocation({
+  locationId,
+  location,
+  relatedQueryKeys,
+  onDeleted,
+}: DeleteLocationProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const buttonId = useId();
   const deleteOptions = locationMutations.delete(relatedQueryKeys);
   const { mutate, isPending } = useMutation({
     ...deleteOptions,
-    onSuccess: async (deletedLocation, locationId, onMutateResult, context) => {
-      await deleteOptions.onSuccess?.(deletedLocation, locationId, onMutateResult, context);
+    onSuccess: async (deletedLocation, deletedLocationId, onMutateResult, context) => {
+      await deleteOptions.onSuccess?.(deletedLocation, deletedLocationId, onMutateResult, context);
       onDeleted();
     },
   });
@@ -56,7 +62,7 @@ export function DeleteLocation({ location, relatedQueryKeys, onDeleted }: Delete
           isPending={isPending}
           onCancel={closeConfirmation}
           onConfirm={() => {
-            mutate(location.id, {
+            mutate(locationId, {
               onSuccess: () => {
                 setIsConfirming(false);
               },

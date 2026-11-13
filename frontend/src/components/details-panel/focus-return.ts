@@ -1,13 +1,22 @@
 const DETAILS_SELECTOR = '[data-details]';
 
-export function focusReturnTarget(targetId: string): void {
+function focusTarget(targetId: string): boolean {
   const target = document.getElementById(targetId);
-  if (target !== null) {
-    target.focus();
+  target?.focus();
+  const isFocused = target !== null && document.activeElement === target;
+  return isFocused;
+}
+
+export function focusReturnTarget(targetId: string): void {
+  if (focusTarget(targetId)) {
     return;
   }
 
   requestAnimationFrame(() => {
+    if (focusTarget(targetId)) {
+      return;
+    }
+
     const shownDetails = [...document.querySelectorAll<HTMLElement>(DETAILS_SELECTOR)].find(
       (details) => details.getBoundingClientRect().height > 0,
     );

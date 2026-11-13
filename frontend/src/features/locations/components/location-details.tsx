@@ -124,6 +124,7 @@ export function LocationDetails({
                   />
                   <DeleteLocation
                     key={locationId}
+                    locationId={locationId}
                     location={location}
                     relatedQueryKeys={relatedQueryKeys}
                     onDeleted={onStatusChanged}
