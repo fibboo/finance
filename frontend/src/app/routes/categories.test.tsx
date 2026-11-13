@@ -460,5 +460,53 @@ test('shows the error notification when a restore is refused because the name is
 
   // assert
   expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
-  expect(within(variable).getByRole('button', { name: 'Restore' })).toBeEnabled();
+  expect(within(variable).getByRole('button', { name: 'Restore' })).toHaveAttribute(
+    'aria-disabled',
+    'false',
+  );
+});
+
+test('keeps the edit form closed after a saved category left the filtered list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let categories: components['schemas']['Account'][] = [groceries, rent];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const types = new URL(request.url).searchParams.getAll('category_types');
+      const items = categories.filter(
+        (category) => types.length === 0 || types.includes(category.category_type ?? ''),
+      );
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+    http.put(`http://localhost/api/accounting/accounts/${rent.id}`, () => {
+      const periodicRent = {
+        ...rent,
+        category_type: 'PERIODIC',
+      } satisfies components['schemas']['Account'];
+      categories = [groceries, periodicRent];
+      return HttpResponse.json(periodicRent);
+    }),
+  );
+  render(<Component />, { initialEntries: ['/categories?category_type=FIXED'] });
+  const fixed = await screen.findByRole('region', { name: 'Fixed' });
+  await user.click(within(fixed).getByRole('button', { name: 'Edit' }));
+  const form = await screen.findByRole('form', { name: 'Edit category' });
+  await user.click(within(form).getByRole('radio', { name: 'Periodic' }));
+  await user.click(within(form).getByRole('button', { name: 'Save changes' }));
+  await waitFor(() => {
+    expect(screen.queryByRole('form', { name: 'Edit category' })).not.toBeInTheDocument();
+  });
+
+  // act
+  await user.click(screen.getByRole('radio', { name: 'All' }));
+
+  // assert
+  expect(await screen.findByRole('region', { name: 'Periodic' })).toHaveTextContent('Rent');
+  expect(screen.queryByRole('form', { name: 'Edit category' })).not.toBeInTheDocument();
 });

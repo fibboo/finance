@@ -1,13 +1,19 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
+import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
 import { SearchField } from '@/components/search-field/search-field';
 import { Sheet } from '@/components/sheet/sheet';
+import { accountMutations } from '@/features/accounts/api/account-mutations';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { readAccountSearch, writeAccountSearch } from '@/features/accounts/api/account-search';
+import {
+  readCatalogDeleteButtonId,
+  readNeighbourCatalogRowLinkId,
+} from '@/features/accounts/api/catalog-row-focus';
 import {
   readCatalogFilters,
   readCategoryTypeOptions,
@@ -43,6 +49,8 @@ function readCategoryCount(
 export function Component() {
   const [isCreating, setIsCreating] = useState(false);
   const [editedCategoryId, setEditedCategoryId] = useState<string | undefined>(undefined);
+  const [confirmedCategoryId, setConfirmedCategoryId] = useState<string | undefined>(undefined);
+  const [restoredCategoryId, setRestoredCategoryId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readAccountSearch(searchParams);
   const searchField = useSearchField(search);
@@ -74,10 +82,15 @@ export function Component() {
   });
   const isNothingMatched = searchTerm !== undefined && categoryPage?.items.length === 0;
   const editedCategory = categoryPage?.items.find((category) => category.id === editedCategoryId);
+  const confirmedCategory = categoryPage?.items.find(
+    (category) => category.id === confirmedCategoryId,
+  );
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,
   ];
+  const categoryDelete = useMutation(accountMutations.delete(relatedQueryKeys));
+  const categoryRestore = useMutation(accountMutations.restore(relatedQueryKeys));
 
   function closeForm() {
     setIsCreating(false);
@@ -85,6 +98,11 @@ export function Component() {
 
   function closeEditForm() {
     setEditedCategoryId(undefined);
+  }
+
+  function closeConfirmation(categoryId: string) {
+    setConfirmedCategoryId(undefined);
+    document.getElementById(readCatalogDeleteButtonId(categoryId))?.focus();
   }
 
   return (
@@ -144,8 +162,6 @@ export function Component() {
             renderActions={(category) => (
               <CatalogRowActions
                 entry={category}
-                entityName="category"
-                entityNames="categories"
                 transactionsLink={{
                   pathname: '/transactions',
                   search: writeTransactionFilters({
@@ -155,10 +171,23 @@ export function Component() {
                     income_source_ids: [],
                   }).toString(),
                 }}
-                relatedQueryKeys={relatedQueryKeys}
-                searchFieldId={CATEGORY_SEARCH_FIELD_ID}
+                isRestorePending={categoryRestore.isPending}
+                isFocusedAfterRestore={category.id === restoredCategoryId}
+                onRestoreFocused={() => {
+                  setRestoredCategoryId(undefined);
+                }}
                 onEdit={() => {
                   setEditedCategoryId(category.id);
+                }}
+                onDelete={() => {
+                  setConfirmedCategoryId(category.id);
+                }}
+                onRestore={() => {
+                  categoryRestore.mutate(category.id, {
+                    onSuccess: () => {
+                      setRestoredCategoryId(category.id);
+                    },
+                  });
                 }}
               />
             )}
@@ -187,6 +216,28 @@ export function Component() {
             onBack={closeEditForm}
           />
         </Sheet>
+      )}
+      {confirmedCategory !== undefined && (
+        <DeleteConfirmation
+          title="Delete this category?"
+          text={`${confirmedCategory.name}. It leaves your categories and the pickers, and its past transactions keep showing it.`}
+          isPending={categoryDelete.isPending}
+          onCancel={() => {
+            closeConfirmation(confirmedCategory.id);
+          }}
+          onConfirm={() => {
+            const neighbourLinkId = readNeighbourCatalogRowLinkId(confirmedCategory.id);
+            categoryDelete.mutate(confirmedCategory.id, {
+              onSuccess: () => {
+                setConfirmedCategoryId(undefined);
+                document.getElementById(neighbourLinkId ?? CATEGORY_SEARCH_FIELD_ID)?.focus();
+              },
+              onError: () => {
+                closeConfirmation(confirmedCategory.id);
+              },
+            });
+          }}
+        />
       )}
     </Page>
   );

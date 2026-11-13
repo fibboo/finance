@@ -1,5 +1,3 @@
-import { type QueryKey, useMutation } from '@tanstack/react-query';
-import { useId, useState } from 'react';
 import { Link, type To } from 'react-router';
 
 import {
@@ -8,48 +6,35 @@ import {
   RESTORE_ICON_PATH,
   TRANSACTIONS_ICON_PATH,
 } from '@/components/action-button/action-icons';
-import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import type { components } from '@/lib/api-schema';
-import { readNeighbourLinkId } from '@/lib/neighbour-link';
 
-import { accountMutations } from '../api/account-mutations';
+import { readCatalogDeleteButtonId, readCatalogRowLinkId } from '../api/catalog-row-focus';
 import styles from './catalog-row-actions.module.css';
 
 type Account = components['schemas']['Account'];
 
-const ROW_LINK_ID_PREFIX = 'catalog-row-link-';
-
 type CatalogRowActionsProps = Readonly<{
   entry: Readonly<Account>;
-  entityName: string;
-  entityNames: string;
   transactionsLink: To;
-  relatedQueryKeys: readonly QueryKey[];
-  searchFieldId: string;
+  isRestorePending: boolean;
+  isFocusedAfterRestore: boolean;
+  onRestoreFocused: () => void;
   onEdit: () => void;
+  onDelete: () => void;
+  onRestore: () => void;
 }>;
 
 export function CatalogRowActions({
   entry,
-  entityName,
-  entityNames,
   transactionsLink,
-  relatedQueryKeys,
-  searchFieldId,
+  isRestorePending,
+  isFocusedAfterRestore,
+  onRestoreFocused,
   onEdit,
+  onDelete,
+  onRestore,
 }: CatalogRowActionsProps) {
-  const [isConfirming, setIsConfirming] = useState(false);
-  const [isFocusedOnRestore, setIsFocusedOnRestore] = useState(false);
-  const accountDelete = useMutation(accountMutations.delete(relatedQueryKeys));
-  const accountRestore = useMutation(accountMutations.restore(relatedQueryKeys));
-  const deleteButtonId = useId();
-  const rowLinkId = `${ROW_LINK_ID_PREFIX}${entry.id}`;
-
-  function closeConfirmation() {
-    setIsConfirming(false);
-    document.getElementById(deleteButtonId)?.focus();
-  }
-
+  const rowLinkId = readCatalogRowLinkId(entry.id);
   if (entry.status === 'DELETED') {
     return (
       <span className={styles['catalogRowActions']}>
@@ -58,14 +43,12 @@ export function CatalogRowActions({
           type="button"
           aria-label="Restore"
           title="Restore"
+          aria-disabled={isRestorePending}
           className={styles['action']}
-          disabled={accountRestore.isPending}
           onClick={() => {
-            accountRestore.mutate(entry.id, {
-              onSuccess: () => {
-                setIsFocusedOnRestore(true);
-              },
-            });
+            if (!isRestorePending) {
+              onRestore();
+            }
           }}
         >
           <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
@@ -80,8 +63,12 @@ export function CatalogRowActions({
     <span className={styles['catalogRowActions']}>
       <Link
         ref={(link) => {
-          if (isFocusedOnRestore) {
-            link?.focus();
+          if (link !== null && isFocusedAfterRestore) {
+            if (document.activeElement === document.body) {
+              link.focus();
+            }
+
+            onRestoreFocused();
           }
         }}
         id={rowLinkId}
@@ -89,9 +76,6 @@ export function CatalogRowActions({
         aria-label="Transactions"
         title="Transactions"
         className={styles['action']}
-        onBlur={() => {
-          setIsFocusedOnRestore(false);
-        }}
       >
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
           <path d={TRANSACTIONS_ICON_PATH} />
@@ -109,40 +93,17 @@ export function CatalogRowActions({
         </svg>
       </button>
       <button
-        id={deleteButtonId}
+        id={readCatalogDeleteButtonId(entry.id)}
         type="button"
         aria-label="Delete"
         title="Delete"
         className={`${styles['action'] ?? ''} ${styles['danger'] ?? ''}`}
-        onClick={() => {
-          setIsConfirming(true);
-        }}
+        onClick={onDelete}
       >
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
           <path d={DELETE_ICON_PATH} />
         </svg>
       </button>
-      {isConfirming && (
-        <DeleteConfirmation
-          title={`Delete this ${entityName}?`}
-          text={`${entry.name}. It leaves your ${entityNames} and the pickers, and its past transactions keep showing it.`}
-          isPending={accountDelete.isPending}
-          onCancel={closeConfirmation}
-          onConfirm={() => {
-            const neighbourLinkId = readNeighbourLinkId({
-              linkIdPrefix: ROW_LINK_ID_PREFIX,
-              linkId: rowLinkId,
-            });
-            accountDelete.mutate(entry.id, {
-              onSuccess: () => {
-                setIsConfirming(false);
-                document.getElementById(neighbourLinkId ?? searchFieldId)?.focus();
-              },
-              onError: closeConfirmation,
-            });
-          }}
-        />
-      )}
     </span>
   );
 }

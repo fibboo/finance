@@ -28,7 +28,7 @@
   opacity: var(--opacity-hover);
 }
 
-.action:disabled {
+.action[aria-disabled='true'] {
   opacity: var(--opacity-disabled);
   cursor: default;
 }

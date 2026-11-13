@@ -1,8 +1,8 @@
 import { type ReactNode, useId } from 'react';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
-import type { components } from '@/lib/api-schema';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
+import type { components } from '@/lib/api-schema';
 
 import type { CatalogGroup } from './catalog-grouping';
 import styles from './catalog-list.module.css';

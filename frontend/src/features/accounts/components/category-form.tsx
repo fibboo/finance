@@ -67,14 +67,18 @@ function readStartingValues(mode: CategoryFormMode): CategoryFormValues {
 }
 
 export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps) {
+  const startingValues = readStartingValues(mode);
   const { control, register, handleSubmit, setError, formState } = useForm<
     CategoryFormValues,
     unknown,
     CategoryFormOutput
   >({
     resolver: zodResolver(categoryFormSchema),
-    values: readStartingValues(mode),
-    resetOptions: { keepDirtyValues: true },
+    defaultValues: startingValues,
+    ...(mode.kind === 'edit' && {
+      values: startingValues,
+      resetOptions: { keepDirtyValues: true },
+    }),
   });
   const categoryType = useWatch({ control, name: 'category_type' });
 
