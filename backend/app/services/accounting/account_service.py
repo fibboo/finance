@@ -180,10 +180,11 @@ async def get_account(
     balance_date: date | None = None,
     excluded_transaction_id: UUID | None = None,
 ) -> Account:
-    account_db: AccountModel | None = await account_crud.get_or_none(
-        db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE
-    )
-    if account_db is None:
+    account_db: AccountModel | None = await account_crud.get_or_none(db=db, id=account_id, user_id=user_id)
+    if account_db is None or (
+        account_db.status == EntityStatusType.DELETED
+        and account_db.kind not in (AccountKind.EXPENSE, AccountKind.INCOME)
+    ):
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
     account: Account = Account.model_validate(account_db)
