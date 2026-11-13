@@ -22,6 +22,7 @@ from app.schemas.accounting.account import (
     AccountCreateRequest,
     AccountKind,
     AccountRequest,
+    AccountRestoreRequest,
     AccountUpdate,
     CategoryType,
     MONEY_ACCOUNT_KINDS,
@@ -274,7 +275,9 @@ async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -
     return account
 
 
-async def restore_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -> Account:
+async def restore_account(
+    *, db: AsyncSession, account_id: UUID, restore_data: AccountRestoreRequest | None, user_id: UUID
+) -> Account:
     account_db: AccountModel | None = await account_crud.get_or_none(
         db=db, id=account_id, user_id=user_id, status=EntityStatusType.DELETED, with_for_update=True
     )
@@ -282,6 +285,9 @@ async def restore_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) 
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
     obj_in: dict = {"status": EntityStatusType.ACTIVE.value}
+    if restore_data is not None and restore_data.name is not None:
+        obj_in["name"] = restore_data.name
+
     try:
         account_db: AccountModel = await account_crud.update_orm(
             db=db, obj_in=obj_in, id=account_id, user_id=user_id, status=EntityStatusType.DELETED
