@@ -1,19 +1,23 @@
-import { useId } from 'react';
+import { type ReactNode, useId } from 'react';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
+import type { components } from '@/lib/api-schema';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 
 import type { CatalogGroup } from './catalog-grouping';
 import styles from './catalog-list.module.css';
+
+type Account = components['schemas']['Account'];
 
 const ENTRY_SKELETON_COUNT = 4;
 
 type CatalogListProps = Readonly<{
   label: string;
   groups: readonly CatalogGroup[] | undefined;
+  renderActions: (entry: Readonly<Account>) => ReactNode;
 }>;
 
-export function CatalogList({ label, groups }: CatalogListProps) {
+export function CatalogList({ label, groups, renderActions }: CatalogListProps) {
   const headingId = useId();
   return (
     <section className={styles['catalogList']} aria-label={label} aria-busy={groups === undefined}>
@@ -65,6 +69,7 @@ export function CatalogList({ label, groups }: CatalogListProps) {
                         <span className={styles['description']}>{entry.description}</span>
                       )}
                   </span>
+                  {renderActions(entry)}
                 </li>
               );
             })}

@@ -16,9 +16,12 @@ import {
 import { CatalogFilters } from '@/features/accounts/components/catalog-filters';
 import { readCategoryGroups } from '@/features/accounts/components/catalog-grouping';
 import { CatalogList } from '@/features/accounts/components/catalog-list';
+import { CatalogRowActions } from '@/features/accounts/components/catalog-row-actions';
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
+import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
@@ -39,6 +42,7 @@ function readCategoryCount(
 
 export function Component() {
   const [isCreating, setIsCreating] = useState(false);
+  const [editedCategoryId, setEditedCategoryId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readAccountSearch(searchParams);
   const searchField = useSearchField(search);
@@ -69,9 +73,18 @@ export function Component() {
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && categoryPage?.items.length === 0;
+  const editedCategory = categoryPage?.items.find((category) => category.id === editedCategoryId);
+  const relatedQueryKeys = [
+    transactionQueries.feeds().queryKey,
+    transactionQueries.details().queryKey,
+  ];
 
   function closeForm() {
     setIsCreating(false);
+  }
+
+  function closeEditForm() {
+    setEditedCategoryId(undefined);
   }
 
   return (
@@ -128,16 +141,50 @@ export function Component() {
                 ? undefined
                 : readCategoryGroups({ categories: categoryPage.items, categoryTypes })
             }
+            renderActions={(category) => (
+              <CatalogRowActions
+                entry={category}
+                entityName="category"
+                entityNames="categories"
+                transactionsLink={{
+                  pathname: '/transactions',
+                  search: writeTransactionFilters({
+                    transaction_types: [],
+                    account_ids: [],
+                    category_ids: [category.id],
+                    income_source_ids: [],
+                  }).toString(),
+                }}
+                relatedQueryKeys={relatedQueryKeys}
+                searchFieldId={CATEGORY_SEARCH_FIELD_ID}
+                onEdit={() => {
+                  setEditedCategoryId(category.id);
+                }}
+              />
+            )}
           />
         )}
       </div>
       {isCreating && dictionaries !== undefined && (
         <Sheet label="New category" onClose={closeForm}>
           <CategoryForm
-            name=""
+            mode={{ kind: 'create', name: '', onCreated: closeForm }}
             categoryTypes={dictionaries.category_types}
-            onCreated={closeForm}
             onBack={closeForm}
+          />
+        </Sheet>
+      )}
+      {editedCategory !== undefined && dictionaries !== undefined && (
+        <Sheet label="Edit category" onClose={closeEditForm}>
+          <CategoryForm
+            mode={{
+              kind: 'edit',
+              category: editedCategory,
+              relatedQueryKeys,
+              onSaved: closeEditForm,
+            }}
+            categoryTypes={dictionaries.category_types}
+            onBack={closeEditForm}
           />
         </Sheet>
       )}
