@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, expect, test, vi } from 'vitest';
@@ -1028,3 +1028,52 @@ test('shows an empty state instead of the list when there are no categories', as
   expect(screen.getByText('Add what you spend on, like groceries or rent.')).toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Categories' })).not.toBeInTheDocument();
 });
+
+test.each([
+  { action: 'Edit', entry: groceries, role: 'form', sheetName: 'Edit category' },
+  { action: 'Delete', entry: groceries, role: 'alertdialog', sheetName: 'Delete this category?' },
+  { action: 'Restore', entry: cigarettes, role: 'form', sheetName: 'Restore category' },
+] as const)(
+  'keeps $sheetName closed when its category comes back after a search hid it',
+  async ({ action, entry, role, sheetName }) => {
+    // arrange
+    const user = userEvent.setup();
+    server.use(
+      http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+        const searchTerm = new URL(request.url).searchParams.get('search_term');
+        const items = searchTerm === null ? [entry] : [rent];
+        return HttpResponse.json({
+          items,
+          total: items.length,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Account_']);
+      }),
+      http.post('http://localhost/api/accounting/accounts/:id/restore', () =>
+        HttpResponse.json(
+          {
+            error_code: 'NAME_ALREADY_EXISTS',
+            message: 'This name is already taken',
+          } satisfies components['schemas']['ErrorResponse'],
+          { status: 409 },
+        ),
+      ),
+    );
+    const { router } = render(<Component />, { initialEntries: ['/categories'] });
+    const list = await screen.findByRole('region', { name: 'Variable' });
+    await user.click(await within(list).findByRole('button', { name: action }));
+    expect(await screen.findByRole(role, { name: sheetName })).toBeInTheDocument();
+    await act(() => router.navigate('/categories?search=Rent'));
+    await waitFor(() => {
+      expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
+    });
+
+    // act
+    await act(() => router.navigate(-1));
+
+    // assert
+    expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent(entry.name);
+    expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
+  },
+);

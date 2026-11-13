@@ -110,6 +110,17 @@ export function Component() {
     (incomeSource) =>
       incomeSource.id === renamedIncomeSourceId && incomeSource.status === 'DELETED',
   );
+  if (incomeSourcePage !== undefined) {
+    if (editedIncomeSourceId !== undefined && editedIncomeSource === undefined) {
+      setEditedIncomeSourceId(undefined);
+    }
+    if (confirmedIncomeSourceId !== undefined && confirmedIncomeSource === undefined) {
+      setConfirmedIncomeSourceId(undefined);
+    }
+    if (renamedIncomeSourceId !== undefined && renamedIncomeSource === undefined) {
+      setRenamedIncomeSourceId(undefined);
+    }
+  }
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,

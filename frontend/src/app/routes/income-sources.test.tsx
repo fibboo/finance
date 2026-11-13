@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, expect, test, vi } from 'vitest';
@@ -397,3 +397,47 @@ test('shows an empty state instead of the list when there are no income sources'
   ).toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Income sources' })).not.toBeInTheDocument();
 });
+
+test.each([
+  { action: 'Edit', entry: salary, role: 'form', sheetName: 'Edit income source' },
+  { action: 'Delete', entry: salary, role: 'alertdialog', sheetName: 'Delete this income source?' },
+  { action: 'Restore', entry: scholarship, role: 'form', sheetName: 'Restore income source' },
+] as const)(
+  'keeps $sheetName closed when its income source comes back after a search hid it',
+  async ({ action, entry, role, sheetName }) => {
+    // arrange
+    const user = userEvent.setup();
+    server.use(
+      http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+        const searchTerm = new URL(request.url).searchParams.get('search_term');
+        return HttpResponse.json(readAccountPage(searchTerm === null ? [entry] : [freelance]));
+      }),
+      http.post('http://localhost/api/accounting/accounts/:id/restore', () =>
+        HttpResponse.json(
+          {
+            error_code: 'NAME_ALREADY_EXISTS',
+            message: 'This name is already taken',
+          } satisfies components['schemas']['ErrorResponse'],
+          { status: 409 },
+        ),
+      ),
+    );
+    const { router } = render(<Component />, { initialEntries: ['/income-sources'] });
+    const list = await screen.findByRole('region', { name: 'Income sources' });
+    await user.click(await within(list).findByRole('button', { name: action }));
+    expect(await screen.findByRole(role, { name: sheetName })).toBeInTheDocument();
+    await act(() => router.navigate('/income-sources?search=Free'));
+    await waitFor(() => {
+      expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
+    });
+
+    // act
+    await act(() => router.navigate(-1));
+
+    // assert
+    expect(await screen.findByRole('region', { name: 'Income sources' })).toHaveTextContent(
+      entry.name,
+    );
+    expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
+  },
+);

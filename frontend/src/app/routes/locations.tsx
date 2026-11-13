@@ -113,6 +113,17 @@ export function Component() {
   const renamedLocation = locationPage?.items.find(
     (location) => location.id === renamedLocationId && location.status === 'DELETED',
   );
+  if (locationPage !== undefined) {
+    if (editedLocationId !== undefined && editedLocation === undefined) {
+      setEditedLocationId(undefined);
+    }
+    if (confirmedLocationId !== undefined && confirmedLocation === undefined) {
+      setConfirmedLocationId(undefined);
+    }
+    if (renamedLocationId !== undefined && renamedLocation === undefined) {
+      setRenamedLocationId(undefined);
+    }
+  }
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,

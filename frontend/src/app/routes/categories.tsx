@@ -122,6 +122,17 @@ export function Component() {
   const renamedCategory = categoryPage?.items.find(
     (category) => category.id === renamedCategoryId && category.status === 'DELETED',
   );
+  if (categoryPage !== undefined) {
+    if (editedCategoryId !== undefined && editedCategory === undefined) {
+      setEditedCategoryId(undefined);
+    }
+    if (confirmedCategoryId !== undefined && confirmedCategory === undefined) {
+      setConfirmedCategoryId(undefined);
+    }
+    if (renamedCategoryId !== undefined && renamedCategory === undefined) {
+      setRenamedCategoryId(undefined);
+    }
+  }
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,
