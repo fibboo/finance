@@ -1,0 +1,568 @@
+<title>Account Transactions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a board page of the app's own screens, phone boards side by side, desktop boards scaled to the page width. Tokens are the app's tokens.css. */
+:root {
+  --color-ground: #eeeeeb; --color-panel: #ffffff; --color-border: #e2e2de; --color-ink: #17181a;
+  --color-muted: #5a5d64; --color-accent: #1f7a55; --color-selected: #eaf3ee; --color-bone: #e4e4e0;
+  --color-band: #f4f4f1; --color-income-row: #e8f4ed; --color-danger: #b42318; --color-backdrop: rgb(10 11 13 / 0.45); --mark-tint: 13%;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-size-2xs: 0.6875rem; --font-size-xs: 0.75rem; --font-size-sm: 0.8125rem; --font-size-md: 0.875rem;
+  --font-size-base: 0.9375rem; --font-size-lg: 1rem; --font-size-xl: 1.125rem; --font-size-heading: 1.25rem;
+  --font-size-2xl: 1.5rem; --font-size-3xl: 1.75rem;
+  --space-0-5: 0.125rem; --space-1: 0.25rem; --space-1-5: 0.375rem; --space-2: 0.5rem; --space-2-5: 0.625rem;
+  --space-3: 0.75rem; --space-3-5: 0.875rem; --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem;
+  --radius-badge: 0.5rem; --radius-segment: 0.625rem; --radius-action: 0.875rem; --radius-panel: 1.25rem;
+  --radius-fab: 1.125rem; --radius-bar: 1.375rem; --radius-full: 999rem;
+  --size-border: 0.0625rem; --size-mark: 1.75rem; --size-sidebar: 14.5rem; --size-details: 22.5rem;
+  --size-bar: 3.75rem; --size-bar-item: 3.125rem; --size-fab: 2.875rem; --size-icon: 1.375rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+    --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-selected: #16241d; --color-bone: #24272b;
+    --color-band: #1e2125; --color-income-row: #14241c; --color-danger: #ff7a6b; --color-backdrop: rgb(0 0 0 / 0.6); --mark-tint: 20%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+  --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-selected: #16241d; --color-bone: #24272b;
+  --color-band: #1e2125; --color-income-row: #14241c; --color-danger: #ff7a6b; --color-backdrop: rgb(0 0 0 / 0.6); --mark-tint: 20%;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; scrollbar-width: none; }
+body { margin: 0; font-family: var(--font-sans); line-height: 1.5; color: var(--color-ink); background: var(--color-ground); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+
+.sheetPage { max-width: 84rem; margin: 0 auto; padding-block: var(--space-6) var(--space-8); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: var(--space-8); }
+.intro { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+.intro h1 { margin: 0; font-size: var(--font-size-3xl); letter-spacing: -0.02em; text-wrap: balance; }
+.intro p { margin: var(--space-2) 0 0; max-width: 46rem; color: var(--color-muted); }
+.themes { display: flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-panel); }
+.themes button { font: inherit; font-size: var(--font-size-sm); border: 0; cursor: pointer; padding: var(--space-1-5) var(--space-3); border-radius: var(--radius-full); color: var(--color-muted); background: transparent; }
+.themes button[aria-pressed="true"] { color: var(--color-ink); background: var(--color-band); font-weight: 600; }
+.themes button:focus-visible { outline: 2px solid var(--color-ink); }
+section > h2 { margin: 0; font-size: var(--font-size-xl); }
+section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-muted); max-width: 52rem; }
+.boards { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start; }
+.variant { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.variant.wide { width: 100%; }
+.variantHead { display: flex; flex-direction: column; gap: var(--space-0-5); max-width: 40rem; }
+.variantHead b { font-size: var(--font-size-lg); }
+.variantHead span { font-size: var(--font-size-sm); color: var(--color-muted); }
+.frame { width: 100%; overflow: hidden; border-radius: var(--radius-panel); outline: var(--size-border) solid var(--color-border); }
+.board { background: var(--color-ground); transform-origin: 0 0; position: relative; }
+.notes { margin: 0; padding-left: var(--space-5); color: var(--color-muted); font-size: var(--font-size-sm); display: flex; flex-direction: column; gap: var(--space-1); max-width: 52rem; }
+.notes b { color: var(--color-ink); font-weight: 600; }
+
+.ico { width: var(--size-icon); height: var(--size-icon); flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ico.sm { width: 1.125rem; height: 1.125rem; }
+
+/* phone */
+.phone { width: 390px; height: 844px; padding: var(--space-4) var(--space-4) 0; overflow: hidden; }
+.topBar { display: flex; justify-content: space-between; align-items: center; min-height: 2.75rem; }
+.pageTitle { margin: 0; font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.pageTitle small { margin-left: var(--space-2); font-size: var(--font-size-heading); color: var(--color-muted); font-weight: 500; letter-spacing: 0; }
+.avatar { width: 2.75rem; height: 2.75rem; border-radius: var(--radius-full); background: var(--color-panel); display: grid; place-items: center; font-weight: 600; font-size: var(--font-size-md); }
+.bar { position: absolute; left: var(--space-4); right: var(--space-4); bottom: var(--space-4); height: var(--size-bar); padding: 0 var(--space-1-5); border: var(--size-border) solid var(--color-border); border-radius: var(--radius-bar); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; background: var(--color-panel); box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.12); z-index: 3; }
+.barItem { height: var(--size-bar-item); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-0-5); font-size: var(--font-size-2xs); font-weight: 500; color: var(--color-muted); border-radius: var(--radius-segment); }
+.barItem.on { color: var(--color-ink); font-weight: 600; }
+.barItem.open { color: var(--color-ink); background: var(--color-ground); }
+.fab.floating { position: absolute; right: var(--space-4); bottom: calc(var(--size-bar) + var(--space-4) + var(--space-3)); width: var(--size-fab); height: var(--size-fab); border-radius: var(--radius-full); box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.25); z-index: 3; }
+.fab { justify-self: center; width: var(--size-fab); height: var(--size-fab); border-radius: var(--radius-fab); background: var(--color-ink); color: var(--color-ground); display: grid; place-items: center; }
+
+/* toolbar */
+.toolbar { display: flex; gap: var(--space-2-5); margin-top: var(--space-3); align-items: center; }
+.search { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-full); background: var(--color-panel); color: var(--color-muted); font-size: var(--font-size-md); }
+.newBtn { flex: none; display: flex; align-items: center; gap: var(--space-1-5); padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-full); background: var(--color-ink); color: var(--color-panel); font-weight: 500; font-size: var(--font-size-md); }
+.filters { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-1-5); margin-top: var(--space-2-5); align-items: center; }
+.chip { flex: none; display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); background: var(--color-panel); font-size: var(--font-size-sm); }
+.chip.on { background: var(--color-ink); color: var(--color-panel); }
+.chip b { font-weight: 600; }
+.seg { flex: none; display: flex; padding: var(--space-0-5); border-radius: var(--radius-full); background: var(--color-panel); font-size: var(--font-size-sm); }
+.seg span { padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); color: var(--color-muted); }
+.seg span.on { background: var(--color-ink); color: var(--color-panel); font-weight: 500; }
+.phone .filters .seg span { padding-inline: var(--space-2-5); }
+
+/* list */
+.panel { background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-2) var(--space-3-5) var(--space-3); margin-top: var(--space-3); }
+.alist { display: grid; grid-template-columns: var(--size-mark) minmax(0, 1fr); column-gap: var(--space-3); }
+.colHead { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 2.25rem; font-size: var(--font-size-xs); font-weight: 500; color: var(--color-muted); }
+.colHead span:first-child { grid-column: 2; }
+.groupHead { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; min-height: 2.25rem; margin: var(--space-1-5) calc(var(--space-2) * -1) 0; padding: 0 var(--space-2); border-radius: var(--radius-segment); background: var(--color-band); font-size: var(--font-size-sm); font-weight: 700; }
+.groupHead span { font-weight: 500; color: var(--color-muted); }
+.acc { --tint: transparent; grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 3.25rem; padding-block: var(--space-1-5); position: relative; isolation: isolate; }
+.acc + .acc { border-top: var(--size-border) solid var(--color-border); }
+.acc::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-segment); background: var(--tint); }
+.acc.selected::before { background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
+.text { min-width: 0; display: flex; flex-direction: column; }
+.title, .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title { font-size: var(--font-size-base); font-weight: 500; }
+.sub { font-size: var(--font-size-sm); color: var(--color-muted); line-height: 1.35; }
+.struck { text-decoration: line-through; color: var(--color-muted); }
+.mark { width: var(--size-mark); height: var(--size-mark); border-radius: var(--radius-full); display: grid; place-items: center; font-size: var(--font-size-sm); font-weight: 600; color: var(--color-muted); background: var(--color-bone); }
+.mark .ico { width: 1rem; height: 1rem; }
+.mark.deleted { opacity: 0.6; }
+
+/* details */
+.details { flex: 0 0 var(--size-details); background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+.aHead { display: flex; gap: var(--space-3); align-items: center; }
+.aHead .close { margin-left: auto; align-self: flex-start; color: var(--color-muted); }
+.mark.big { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-segment); font-size: var(--font-size-lg); }
+.meta { font-size: var(--font-size-sm); color: var(--color-muted); }
+.meta .badge { display: inline-block; margin-left: var(--space-1); padding: 0 var(--space-2); border-radius: var(--radius-full); background: var(--color-band); color: var(--color-ink); font-size: var(--font-size-xs); font-weight: 500; }
+.dTitle { margin: var(--space-0-5) 0 0; font-size: var(--font-size-heading); font-weight: 600; }
+.desc { margin: 0; font-size: var(--font-size-md); color: var(--color-muted); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-6); font-size: var(--font-size-md); }
+.facts dt { color: var(--color-muted); } .facts dd { margin: 0; }
+.actionHint { display: flex; align-items: center; gap: var(--space-2); justify-content: center; font-size: var(--font-size-sm); color: var(--color-muted); }
+.actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--space-2); margin-top: auto; }
+.actions span { min-height: 3.25rem; border-radius: var(--radius-action); background: var(--color-ground); display: flex; align-items: center; justify-content: center; gap: var(--space-2); font-size: var(--font-size-md); font-weight: 600; }
+.actions .danger { color: var(--color-danger); }
+
+/* phone sheet */
+.backdrop { position: absolute; inset: 0; background: var(--color-backdrop); z-index: 4; }
+.bsheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--color-panel); border-radius: 1.5rem 1.5rem 0 0; padding: var(--space-2) var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+.bsheet .handle { align-self: center; width: 2.5rem; height: 0.25rem; border-radius: var(--radius-full); background: var(--color-bone); }
+.bsheet.withBar { bottom: calc(var(--size-bar) + var(--space-6)); left: var(--space-4); right: var(--space-4); border-radius: var(--radius-panel); }
+.menuRows { display: flex; flex-direction: column; }
+.menuRow { display: flex; align-items: center; gap: var(--space-3); min-height: 3.25rem; padding: 0 var(--space-2); border-radius: var(--radius-segment); font-size: var(--font-size-base); font-weight: 500; }
+.menuRow + .menuRow { border-top: var(--size-border) solid var(--color-border); }
+.menuRow.on { background: var(--color-ground); font-weight: 600; }
+.menuRow .chev { margin-left: auto; color: var(--color-muted); }
+.popover { position: absolute; right: var(--space-4); bottom: calc(var(--size-bar) + var(--space-6)); z-index: 5; width: 13.5rem; padding: var(--space-1-5); border-radius: var(--radius-action); background: var(--color-panel); border: var(--size-border) solid var(--color-border); box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.18); }
+.popover .menuRow { min-height: 2.875rem; font-size: var(--font-size-md); }
+.popover .menuRow + .menuRow { border-top: 0; }
+
+/* form */
+.formHead { display: flex; align-items: center; gap: var(--space-3); }
+.formHead b { font-size: var(--font-size-xl); }
+.formHead .ico { color: var(--color-muted); }
+.field { display: flex; flex-direction: column; gap: var(--space-1-5); font-size: var(--font-size-sm); }
+.field > span:first-child { font-weight: 500; }
+.input { min-height: 3rem; display: flex; align-items: center; padding: 0 var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); font-size: var(--font-size-base); }
+.input.area { min-height: 4.5rem; align-items: flex-start; padding-top: var(--space-3); color: var(--color-muted); }
+.fieldHint { color: var(--color-muted); }
+.segField { display: grid; grid-template-columns: repeat(3, 1fr); padding: var(--space-1); border-radius: var(--radius-action); background: var(--color-ground); }
+.segField span { min-height: 2.5rem; display: grid; place-items: center; border-radius: var(--radius-segment); color: var(--color-muted); font-size: var(--font-size-md); }
+.segField span.on { background: var(--color-panel); color: var(--color-ink); font-weight: 600; }
+.submit { min-height: 3.25rem; border-radius: var(--radius-action); background: var(--color-ink); color: var(--color-panel); display: grid; place-items: center; font-weight: 600; }
+
+/* desktop */
+.desktop { width: 1280px; height: 800px; padding: var(--space-4); display: flex; gap: var(--space-6); overflow: hidden; }
+.sidebar { flex: none; width: var(--size-sidebar); align-self: flex-start; padding: var(--space-5) var(--space-4); border-radius: var(--radius-panel); background: var(--color-panel); display: flex; flex-direction: column; gap: var(--space-1); }
+.logo { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-1) var(--space-3); font-size: var(--font-size-xl); font-weight: 700; }
+.logo i { width: 0.6rem; height: 0.6rem; border-radius: 0.15rem; background: #2bb07f; }
+.addBtn { padding: var(--space-3); border-radius: var(--radius-action); background: var(--color-bone); text-align: center; font-weight: 600; margin-bottom: var(--space-2-5); }
+.nav { min-height: 2.75rem; padding: 0 var(--space-3); border-radius: var(--radius-action); color: var(--color-muted); display: flex; gap: var(--space-3); align-items: center; font-size: var(--font-size-base); }
+.nav.on { background: var(--color-ground); color: var(--color-ink); font-weight: 600; }
+.main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.desktop .topBar { min-height: 3rem; }
+.desktop .avatar { width: 3rem; height: 3rem; }
+.desktop .toolbar { margin-top: var(--space-4); }
+.desktop .search { flex: 0 1 20rem; }
+.content { display: flex; gap: var(--space-4); align-items: flex-start; margin-top: var(--space-3); min-height: 0; }
+.desktop .panel { margin-top: 0; padding: var(--space-2) var(--space-5) var(--space-4); flex: 1 1 auto; min-width: 0; }
+.desktop .alist { column-gap: var(--space-4); }
+.desktop .acc { min-height: 3.5rem; }
+.desktop .acc + .acc { border-top: 0; }
+.dialogWrap { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; }
+.dialog { width: 30rem; background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* row actions */
+.alist { grid-template-columns: var(--size-mark) minmax(0, 1fr) max-content; }
+.plain .acc { grid-template-columns: var(--size-mark) minmax(0, 1fr); column-gap: var(--space-3); }
+.rowActions { display: flex; justify-content: flex-end; gap: var(--space-0-5); }
+.rowAction { width: 2.75rem; height: 2.75rem; border-radius: var(--radius-segment); display: grid; place-items: center; color: var(--color-muted); }
+.rowAction.danger { color: var(--color-danger); }
+.desktop .rowAction { width: 2.5rem; height: 2.5rem; }
+/* recent transactions */
+.recent { flex: 0 0 26rem; background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-5) var(--space-5) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+.recentHead { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.list { display: grid; grid-template-columns: 0.5rem minmax(0, 1fr) max-content; column-gap: var(--space-2-5); }
+.dayHead, .row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.dayHead { min-height: 1.75rem; margin: var(--space-1) calc(var(--space-2) * -1); padding: 0 var(--space-2); border-radius: var(--radius-segment); background: var(--color-band); font-size: var(--font-size-xs); }
+.dayHead b { grid-column: 1 / -2; font-weight: 600; }
+.dayHead span { justify-self: end; color: var(--color-muted); }
+.row { min-height: 2.75rem; padding-block: var(--space-1-5); font-size: var(--font-size-sm); position: relative; isolation: isolate; }
+.row.income::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-segment); background: var(--color-income-row); }
+.row .title { font-size: var(--font-size-md); font-weight: 400; }
+.row .sub { font-size: var(--font-size-2xs); }
+.dot { width: 0.5rem; height: 0.5rem; border-radius: var(--radius-full); background: currentColor; }
+.amounts { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.amount { font-weight: 500; }
+.amount.in { color: var(--color-accent); }
+.orig { font-size: var(--font-size-2xs); color: var(--color-muted); }
+.chipRow { flex-wrap: nowrap; overflow: hidden; }
+.toTop { position: absolute; right: calc(var(--space-4) + (var(--size-fab) - 2.5rem) / 2); bottom: calc(var(--size-bar) + var(--space-4) + var(--space-3)); width: 2.5rem; height: 2.5rem; border-radius: var(--radius-full); background: var(--color-panel); border: var(--size-border) solid var(--color-border); display: grid; place-items: center; box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.15); z-index: 3; }
+.toTop .ico { width: 1.125rem; height: 1.125rem; }
+.phone:has(.toTop) .fab.floating { bottom: calc(var(--size-bar) + var(--space-4) + var(--space-3) + 2.5rem + var(--space-2-5)); }
+
+/* show deleted */
+.check { flex: none; display: flex; align-items: center; gap: var(--space-2); min-height: 2rem; padding: 0 var(--space-2); font-size: var(--font-size-sm); color: var(--color-muted); }
+.check i { width: 1.125rem; height: 1.125rem; border-radius: 0.3125rem; border: 0.09375rem solid var(--color-muted); display: grid; place-items: center; }
+.check.on { color: var(--color-ink); }
+.check.on i { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-panel); }
+.check .ico { width: 0.875rem; height: 0.875rem; stroke-width: 2.6; }
+.phone .filters { flex-wrap: nowrap; }
+.phone .check { padding-right: 0; }
+/* the right block is as tall as the list */
+.desktop .content { flex: 1 1 auto; align-items: stretch; margin-bottom: calc(var(--space-4) * -1); }
+.desktop .content > .panel, .desktop .recent { border-bottom-left-radius: 0; border-bottom-right-radius: 0; overflow: hidden; }
+
+/* deleted toggle */
+.toggle { flex: none; display: flex; align-items: center; gap: var(--space-2); min-height: 2rem; padding: 0 var(--space-1); font-size: var(--font-size-sm); color: var(--color-muted); }
+.toggle i { position: relative; width: 2.25rem; height: 1.375rem; border-radius: var(--radius-full); background: var(--color-bone); }
+.toggle i::after { content: ''; position: absolute; top: 0.1875rem; left: 0.1875rem; width: 1rem; height: 1rem; border-radius: var(--radius-full); background: var(--color-panel); }
+.toggle.on { color: var(--color-ink); }
+.toggle.on i { background: var(--color-ink); }
+.toggle.on i::after { left: auto; right: 0.1875rem; }
+/* transaction details */
+.detailsColumn { flex: 0 0 var(--size-details); display: flex; flex-direction: column; gap: var(--space-4); }
+.detailsColumn .details { flex: none; }
+.details .actions { margin-top: var(--space-2); }
+.bigAmount { font-size: 2.25rem; font-weight: 600; line-height: 1.1; letter-spacing: -0.03em; }
+.postings { padding: var(--space-1) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.postings h4 { margin: 0; padding: var(--space-2-5) 0 var(--space-1); font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); }
+.posting { min-height: 3.25rem; display: flex; align-items: center; gap: var(--space-3); }
+.posting .text { flex: 1 1 auto; }
+.posting .text > span:first-child { font-size: var(--font-size-base); }
+.link { text-decoration: underline; text-decoration-color: var(--color-border); text-underline-offset: 0.2em; }
+.row.selected::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-segment); background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
+.sheetDetails { flex: none; background: transparent; padding-top: var(--space-2); }
+
+/* restore under a new name */
+.input.invalid { outline: var(--size-border) solid var(--color-danger); }
+.fieldError { font-weight: 600; color: var(--color-danger); }
+
+/* catalog transaction details: three columns */
+.desktop.three .content > .panel { flex: 1 1 17.5rem; padding-inline: var(--space-4); }
+.desktop.three .detailsColumn { overflow: hidden; }
+.desktop.three .detailsColumn .details { padding: var(--space-5); gap: var(--space-3); }
+.desktop.w1440 { width: 1440px; height: 900px; }
+.balance { font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.actions.four span { min-height: 2.875rem; }
+.accMark { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-segment); display: grid; place-items: center; font-weight: 600; color: #fff; }
+
+/* collapsible menu */
+.sidebar .menuToggle { margin-top: var(--space-3); padding-top: var(--space-2); border-top: var(--size-border) solid var(--color-border); border-radius: 0; }
+.sidebar .menuToggle .nav { font-size: var(--font-size-md); }
+.sidebar.rail { width: 4.25rem; padding: var(--space-5) var(--space-2-5); align-items: stretch; }
+.sidebar.rail .logo { justify-content: center; padding: var(--space-1-5) 0 var(--space-4); }
+.sidebar.rail .addBtn { padding: 0; height: 2.75rem; display: grid; place-items: center; }
+.sidebar.rail .nav { padding: 0; justify-content: center; }
+.sidebar.floating { position: absolute; top: var(--space-4); left: var(--space-4); z-index: 4; box-shadow: 0 0.75rem 2.5rem rgb(0 0 0 / 0.35); outline: var(--size-border) solid var(--color-border); }
+.railSpace { flex: none; width: 4.25rem; }
+/* accounts with their recent transactions */
+.alist.accounts { grid-template-columns: var(--size-mark) minmax(0, 1fr) max-content; }
+.aMark { width: var(--size-mark); height: var(--size-mark); border-radius: var(--radius-badge); display: grid; place-items: center; font-size: var(--font-size-sm); font-weight: 600; color: var(--tone); background: color-mix(in oklab, var(--color-panel), var(--tone) 18%); }
+.colHead span:last-child { justify-self: end; }
+.groupHead.sum span { color: var(--color-ink); font-weight: 700; }
+.acc .amounts .amount { font-weight: 600; }
+.acc .amounts .orig { font-size: var(--font-size-sm); }
+.acc.selected::before { background: var(--color-selected); }
+.desktop.three.accountsPage .content > .panel { flex: 1 1 20rem; }
+</style>
+
+<div class="sheetPage">
+  <header class="intro">
+    <div>
+      <h1>Recent transactions of an account</h1>
+      <p>Desktop only. Accounts gets the block of Categories, Locations and Income sources: the recent transactions of the chosen account stand between the list and its details, the top account's while none is chosen. A row of the feed selects its transaction, the first one while none is chosen. Its details stand under the account details. A phone does not change.</p>
+    </div>
+    <div class="themes" role="group" aria-label="Theme">
+      <button type="button" data-theme-choice="">System</button>
+      <button type="button" data-theme-choice="light">Light</button>
+      <button type="button" data-theme-choice="dark">Dark</button>
+    </div>
+  </header>
+
+  <section>
+    <h2>1 · Accounts at 1280 px</h2>
+    <p class="lead">Under the account stand the details of the chosen transaction, as in Transactions: the amount, the postings, Edit and Delete. Its category, income source or other account is a link in the postings.</p>
+    <div class="boards" id="boardsB"></div>
+  </section>
+
+  <section>
+    <h2>2 · Accounts at 1440 px</h2>
+    <p class="lead">At 1440 px everything fits beside the full menu.</p>
+    <div class="boards" id="boardsFull"></div>
+  </section>
+
+  <section>
+    <h2>Rules</h2>
+    <ul class="notes">
+      <li><b>The chosen account.</b> The feed follows the account the details show: the chosen one, or the top one while none is chosen. Its heading names the kind and says "recent transactions", like the catalogs.</li>
+      <li><b>Narrow desktop.</b> Where three columns do not fit even beside the icons, the feed is left out and the page keeps its list and details, as today.</li>
+      <li><b>Links in the postings.</b> The other account of a transfer, the category or the income source opens as it does from the details in Transactions.</li>
+      <li><b>Rows.</b> A row of the feed is a link that chooses its transaction; the first one is shown while none is chosen, without writing the URL. All opens Transactions filtered by the account.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const ICONS = {
+    home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
+    transactions: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+    accounts: 'M6 6h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3M3 10h18M16 14.5h2',
+    categories: 'M3 12V4h8l10 10-8 8zM7.5 7.2a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6',
+    locations: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 7.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4',
+    income: 'M12 4v10M8 10l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3',
+    more: 'M5 12h.01M12 12h.01M19 12h.01',
+    add: 'M12 5v14M5 12h14',
+    edit: 'M4 20h4L19 9l-4-4L4 16z',
+    remove: 'M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3',
+    restore: 'M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4',
+    search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M20 20l-4-4',
+    close: 'M6 6l12 12M18 6 6 18',
+    chev: 'M9 6l6 6-6 6',
+    caret: 'M7 10l5 5 5-5',
+    back: 'M15 6l-6 6 6 6',
+    up: 'M12 19V5M6 11l6-6 6 6',
+    tick: 'M5 12.5l4.5 4.5L19 7.5',
+  };
+  const icon = (name, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[name]}"/></svg>`;
+
+  const SECTIONS = [
+    { key: 'home', name: 'Home' }, { key: 'transactions', name: 'Transactions' }, { key: 'accounts', name: 'Accounts' },
+    { key: 'categories', name: 'Categories' }, { key: 'locations', name: 'Locations' }, { key: 'income', name: 'Income sources' },
+  ];
+  const MORE = ['locations', 'income'];
+
+  const bar = (active, isOpen = false) => {
+    const item = (key, name) => `<span class="barItem${active === key ? ' on' : ''}">${icon(key)}<span>${name}</span></span>`;
+    const moreOn = MORE.includes(active);
+    return `<span class="fab floating">${icon('add')}</span><div class="bar">${item('home', 'Home')}${item('transactions', 'Transactions')}${item('accounts', 'Accounts')}${item('categories', 'Categories')}<span class="barItem${moreOn ? ' on' : ''}${isOpen ? ' open' : ''}">${icon('more')}<span>More</span></span></div>`;
+  };
+  const sidebar = (active) => `
+    <aside class="sidebar"><div class="logo"><i></i>finance</div><div class="addBtn">+ Add transaction</div>
+    ${SECTIONS.map((s) => `<div class="nav${s.key === active ? ' on' : ''}">${icon(s.key)}${s.name}</div>`).join('')}</aside>`;
+
+  const categories = {
+    Variable: [
+      { name: 'Groceries', description: 'Supermarkets and markets' },
+      { name: 'Coffee', description: null },
+      { name: 'Taxi', description: 'Bolt, Yandex Go' },
+      { name: 'Restaurants', description: 'Eating out with friends' },
+      { name: 'Cigarettes', description: 'Quit in March', deleted: true },
+    ],
+    Fixed: [
+      { name: 'Rent', description: 'Flat on Rustaveli, paid on the 5th', selected: true },
+      { name: 'Subscriptions', description: 'Spotify, iCloud, YouTube' },
+      { name: 'Mobile', description: null },
+      { name: 'Gym', description: null, deleted: true },
+    ],
+    Periodic: [
+      { name: 'Insurance', description: 'Car and health, yearly' },
+      { name: 'Gifts', description: null },
+    ],
+  };
+  const locations = [
+    { name: 'Spar', description: 'Near home', selected: true }, { name: 'Coffee Lab', description: 'Vake' },
+    { name: 'Carrefour', description: 'East Point mall' }, { name: 'Wendy\'s', description: null },
+    { name: 'Agrohub', description: 'Weekly groceries' }, { name: 'Pharmacy 24', description: null },
+    { name: 'Old market', description: 'Closed in spring', deleted: true },
+  ];
+  const incomeSources = [
+    { name: 'Salary', description: 'Main job, paid on the 1st', selected: true }, { name: 'Freelance', description: 'Design and code' },
+    { name: 'Dividends', description: 'IBKR portfolio' }, { name: 'Cashback', description: null },
+    { name: 'Scholarship', description: null, deleted: true },
+  ];
+
+  const mark = (entry, kind, deleted) => `<span class="mark${deleted ? ' deleted' : ''}">${kind === 'location' ? icon('locations') : entry.name[0]}</span>`;
+  const ROW_ACTIONS = {
+    category: [{ icon: 'transactions', label: 'Transactions' }, { icon: 'edit', label: 'Edit' }, { icon: 'remove', label: 'Delete', danger: true }],
+    income: [{ icon: 'transactions', label: 'Transactions' }, { icon: 'edit', label: 'Edit' }, { icon: 'remove', label: 'Delete', danger: true }],
+    location: [{ icon: 'transactions', label: 'Transactions' }, { icon: 'edit', label: 'Edit' }, { icon: 'remove', label: 'Delete', danger: true }],
+    deleted: [{ icon: 'restore', label: 'Restore' }],
+  };
+  const rowActions = (kind, deleted) => `<span class="rowActions">${(deleted ? ROW_ACTIONS.deleted : ROW_ACTIONS[kind]).map((a) => `<span class="rowAction${a.danger ? ' danger' : ''}" title="${a.label}">${icon(a.icon, 'sm')}</span>`).join('')}</span>`;
+  const row = (entry, { kind, isSelectable = true }) =>
+    `<div class="acc${entry.selected && isSelectable ? ' selected' : ''}">${mark(entry, kind, entry.deleted)}<span class="text"><span class="title${entry.deleted ? ' struck' : ''}">${entry.name}</span>${entry.description ? `<span class="sub">${entry.description}</span>` : ''}</span>${rowActions(kind, entry.deleted)}</div>`;
+  const activeOnly = (entries) => entries.filter((e) => !e.deleted);
+  const activeGroups = (groups) => Object.fromEntries(Object.entries(groups).map(([label, entries]) => [label, activeOnly(entries)]));
+  const grouped = (groups, opts) => `<div class="alist">${Object.entries(groups).map(([label, entries]) =>
+    `<div class="groupHead">${label}<span>${entries.length}</span></div>${entries.map((e) => row(e, opts)).join('')}`).join('')}</div>`;
+  const flat = (entries, opts) => `<div class="alist">${entries.map((e) => row(e, opts)).join('')}</div>`;
+
+  const toolbar = ({ placeholder, newLabel }) => `<div class="toolbar"><span class="search">${icon('search', 'sm')}${placeholder}</span><span class="newBtn">${icon('add', 'sm')}New<span class="desktopOnly" style="margin-left:calc(var(--space-1-5) * -1)">&nbsp;${newLabel}</span></span></div>`;
+  const statusSeg = (isShown) => `<span class="toggle${isShown ? ' on' : ''}"><i></i>Deleted</span>`;
+  const filtersB = (deleted, typeChosen = 'All') => `<div class="filters"><span class="seg">${['All', 'Variable', 'Fixed', 'Periodic'].map((t) => `<span class="${t === typeChosen ? 'on' : ''}">${t}</span>`).join('')}</span>${statusSeg(deleted)}</div>`;
+  const statusOnly = (deleted) => `<div class="filters">${statusSeg(deleted)}</div>`;
+
+  const money = (amount, currency = 'USD') => new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', signDisplay: 'exceptZero' }).format(amount);
+  const txRow = (t) => `<div class="row${t.income ? ' income' : ''}${t.selected ? ' selected' : ''}"><span class="dot" style="color:${t.color}"></span><span class="text"><span class="title">${t.title}</span><span class="sub">${t.sub}</span></span><span class="amounts"><span class="amount${t.income ? ' in' : ''}">${money(t.base)}</span>${t.orig ? `<span class="orig">${t.orig}</span>` : ''}</span></div>`;
+  const txList = (days) => `<div class="list">${days.map((d) => `<div class="dayHead"><b>${d.label}</b><span>${money(d.total)}</span></div>${d.rows.map(txRow).join('')}`).join('')}</div>`;
+  const recentPanel = ({ name, meta, days }) => `
+    <aside class="recent"><div class="recentHead"><div><div class="meta">${meta}</div><h4 class="dTitle">${name}</h4></div><span class="meta">All</span></div>${txList(days)}</aside>`;
+  const BLUE = '#4b8fd6';
+  const PURPLE = '#6b6fe0';
+  const RENT_MONTHS = [['Thu', '11', '0.8547', 1053], ['Mon', '10', '0.8571', 1050], ['Sat', '09', '0.8604', 1046], ['Wed', '08', '0.8475', 1062], ['Sun', '07', '0.8532', 1055], ['Fri', '06', '0.8612', 1045], ['Tue', '05', '0.8840', 1018], ['Sun', '04', '0.9120', 987], ['Thu', '03', '0.9245', 973], ['Thu', '02', '0.9610', 937]];
+  const rentDays = RENT_MONTHS.map(([day, month, eurRate, base]) => ({ label: `${day}, 05.${month}.2026`, total: -base, rows: [{ title: 'Rent', sub: `Main card · EUR · ${eurRate}`, base: -base, orig: '-€900.00', color: PURPLE }] }));
+  const SPAR_DAYS = [['Sun, 08.11', 42.1], ['Thu, 05.11', 61.35], ['Mon, 02.11', 38.2], ['Fri, 30.10', 27.9], ['Tue, 27.10', 54.6], ['Sat, 24.10', 19.45], ['Wed, 21.10', 73.1], ['Sun, 18.10', 33.8], ['Thu, 15.10', 48.25], ['Mon, 12.10', 22.7]];
+  const sparDays = SPAR_DAYS.map(([label, base]) => ({ label: `${label}.2026`, total: -base, rows: [{ title: 'Groceries', sub: 'Wallet · USD', base: -base, color: BLUE }] }));
+  const SALARY_MONTHS = [['Sun', '11', '0.8547', 3510], ['Thu', '10', '0.8571', 3500], ['Tue', '09', '0.8604', 3487], ['Sat', '08', '0.8475', 3540], ['Wed', '07', '0.8532', 3516], ['Mon', '06', '0.8612', 3484], ['Fri', '05', '0.8840', 3394], ['Wed', '04', '0.9120', 3289], ['Sun', '03', '0.9245', 3245], ['Sun', '02', '0.9610', 3122]];
+  const salaryDays = SALARY_MONTHS.map(([day, month, eurRate, base]) => ({ label: `${day}, 01.${month}.2026`, total: base, rows: [{ title: 'Salary', sub: `Main card · EUR · ${eurRate}`, base, orig: '€3,000.00', color: PURPLE, income: true }] }));
+
+  const desktopBoard = ({ active, title, count, toolbar: tb, filters, list, aside = '', overlay = '' }) => `
+    <div class="board desktop">${sidebar(active)}
+      <div class="main"><div class="topBar"><h3 class="pageTitle">${title}<small>${count}</small></h3><span class="avatar">FI</span></div>
+        ${tb}${filters}<div class="content"><div class="panel">${list}</div>${aside}</div></div>${overlay}
+    </div>`;
+  const phoneBoard = ({ active, title, count, toolbar: tb = '', filters = '', list, overlay = '', isOpen = false, extra = '' }) => `
+    <div class="board phone"><div class="topBar"><h3 class="pageTitle">${title}${count ? `<small>${count}</small>` : ''}</h3><span class="avatar">FI</span></div>
+      ${tb}${filters}<div class="panel">${list}</div>${extra}${overlay}${bar(active, isOpen)}</div>`;
+
+  const variant = ({ id, name, note, board, wide, width }) =>
+    `<div class="variant${wide ? ' wide' : ''}" id="${id}"><div class="variantHead"><b>${name}</b><span>${note}</span></div><div class="frame" data-board-width="${wide ? (width ?? 1280) : 390}">${board}</div></div>`;
+
+
+  ICONS.adjust = 'M4 7h10M18 7h2M4 17h2M10 17h10M14 4.5v5M6 14.5v5';
+  ICONS.collapse = 'M11 6l-6 6 6 6M19 6l-6 6 6 6';
+  ICONS.expand = 'M5 6l6 6-6 6M13 6l6 6-6 6';
+  const actionRow = (items, cls = '') => `<div class="actions ${cls}">${items.map((i) => `<span class="${i.danger ? 'danger' : ''}" title="${i.label}">${icon(i.icon)}</span>`).join('')}</div>`;
+  const transactionPanel = ({ meta, title, amount, sub, postings, location }) => `
+    <aside class="details">
+      <div class="aHead"><div><div class="meta">${meta}</div><h4 class="dTitle">${title}</h4></div></div>
+      <div><div class="bigAmount"${amount.startsWith('+') ? ' style="color:var(--color-accent)"' : ''}>${amount}</div>${sub ? `<div class="meta">${sub}</div>` : ''}</div>
+      <div class="postings"><h4>Postings</h4>
+        ${postings.map((p) => `<div class="posting"><span class="dot" style="color:${p.color ?? 'var(--color-muted)'}"></span><span class="text"><span${p.link ? ' class="link"' : ''}>${p.name}${p.link ? ' ›' : ''}</span><span class="sub">${p.sub}</span></span><span class="amount">${p.amount}</span></div>`).join('')}
+      </div>
+      ${location ? `<dl class="facts"><dt>Location</dt><dd>${location}</dd></dl>` : ''}
+      ${actionRow([{ icon: 'edit', label: 'Edit' }, { icon: 'remove', label: 'Delete', danger: true }])}
+    </aside>`;
+  const accountPanel = ({ name, color, meta, balance, sub }) => `
+    <aside class="details">
+      <div class="aHead"><span class="accMark" style="background:${color}">${name[0]}</span><div><div class="meta">${meta}</div><h4 class="dTitle">${name}</h4></div></div>
+      <div><div class="balance">${balance}</div>${sub ? `<div class="meta">${sub}</div>` : ''}</div>
+      ${actionRow([{ icon: 'adjust', label: 'Adjust balance' }, { icon: 'transactions', label: 'Transactions' }, { icon: 'edit', label: 'Edit' }, { icon: 'remove', label: 'Delete', danger: true }], 'four')}
+    </aside>`;
+  const mainCard = { name: 'Main card', color: PURPLE, meta: 'Asset · EUR', balance: '€4,120.00', sub: '$4,820.40 · rate 0.8547' };
+  const wallet = { name: 'Wallet', color: BLUE, meta: 'Asset · USD', balance: '$412.50' };
+  const withFirstSelected = (days) => days.map((d, i) => (i === 0 ? { ...d, rows: d.rows.map((r) => ({ ...r, selected: true })) } : d));
+  const SCREENS = {
+    categories: { title: 'Categories', count: '9', placeholder: 'Search categories', newLabel: 'category', filters: filtersB(true),
+      list: () => grouped(categories, { kind: 'category' }), name: 'Rent', meta: 'Category · Fixed · recent transactions', days: rentDays, account: mainCard,
+      transaction: { meta: 'Expense · Thu, 05.11.2026', title: 'Rent', amount: '-$1,053.00', sub: '-€900.00 · rate 0.8547', postings: [
+        { name: 'Main card', sub: 'Asset · EUR', amount: '-€900.00', color: PURPLE, link: true }, { name: 'Rent', sub: 'Expense · EUR', amount: '+€900.00' }] } },
+    locations: { title: 'Locations', count: '6', placeholder: 'Search locations', newLabel: 'location', filters: statusOnly(true),
+      list: () => flat(locations, { kind: 'location' }), name: 'Spar', meta: 'Location · recent transactions', days: sparDays, account: wallet,
+      transaction: { meta: 'Expense · Sun, 08.11.2026', title: 'Groceries', amount: '-$42.10', location: 'Spar', postings: [
+        { name: 'Wallet', sub: 'Asset · USD', amount: '-$42.10', color: BLUE, link: true }, { name: 'Groceries', sub: 'Expense · USD', amount: '+$42.10' }] } },
+    income: { title: 'Income sources', count: '4', placeholder: 'Search income sources', newLabel: 'income source', filters: statusOnly(true),
+      list: () => flat(incomeSources, { kind: 'income' }), name: 'Salary', meta: 'Income source · recent transactions', days: salaryDays, account: mainCard,
+      transaction: { meta: 'Income · Sun, 01.11.2026', title: 'Salary', amount: '+$3,510.00', sub: '€3,000.00 · rate 0.8547', postings: [
+        { name: 'Salary', sub: 'Income · EUR', amount: '-€3,000.00' }, { name: 'Main card', sub: 'Asset · EUR', amount: '+€3,000.00', color: PURPLE, link: true }] } },
+  };
+  ROW_ACTIONS.location = ROW_ACTIONS.income = ROW_ACTIONS.category = [{ icon: 'edit', label: 'Edit' }, { icon: 'remove', label: 'Delete', danger: true }];
+
+  const fullMenu = (cls = '', active = 'categories') => `
+    <aside class="sidebar ${cls}"><div class="logo"><i></i>finance</div><div class="addBtn">+ Add transaction</div>
+    ${SECTIONS.map((s) => `<div class="nav${s.key === active ? ' on' : ''}">${icon(s.key)}${s.name}</div>`).join('')}
+    <div class="menuToggle"><div class="nav" title="Collapse the menu">${icon('collapse')}Collapse</div></div></aside>`;
+  const railMenu = (active = 'categories') => `
+    <aside class="sidebar rail"><div class="logo"><i></i></div><div class="addBtn" title="Add transaction">${icon('add')}</div>
+    ${SECTIONS.map((s) => `<div class="nav${s.key === active ? ' on' : ''}" title="${s.name}">${icon(s.key)}</div>`).join('')}
+    <div class="menuToggle"><div class="nav" title="Show the full menu">${icon('expand')}</div></div></aside>`;
+  const ORANGE = '#e08a3c';
+  const GREEN = '#3fa66b';
+  const RED = '#d0584a';
+  const ACCOUNT_GROUPS = [
+    { label: 'Assets', total: '$9,968.90', accounts: [
+      { name: 'Main card', tone: PURPLE, sub: 'EUR · 0.8547', base: '$4,820.40', own: '€4,120.00', selected: true },
+      { name: 'Savings', tone: GREEN, sub: 'EUR · 0.8547', base: '$4,036.00', own: '€3,449.53' },
+      { name: 'Wallet', tone: BLUE, sub: 'USD', base: '$412.50' },
+      { name: 'Dinar card', tone: ORANGE, sub: 'RSD · 99.7983', base: '$700.00', own: 'RSD 69,858.81' },
+    ] },
+    { label: 'Liabilities', total: '-$1,180.00', accounts: [
+      { name: 'Credit card', tone: RED, sub: 'USD', base: '-$1,180.00' },
+    ] },
+  ];
+  const accountRow = (a) => `<div class="acc${a.selected ? ' selected' : ''}"><span class="aMark" style="--tone:${a.tone}">${a.name[0]}</span><span class="text"><span class="title">${a.name}</span><span class="sub">${a.sub}</span></span><span class="amounts"><span class="amount">${a.base}</span>${a.own ? `<span class="orig">${a.own}</span>` : ''}</span></div>`;
+  const accountList = () => `<div class="alist accounts"><div class="colHead"><span>Account</span><span>In USD</span></div>${ACCOUNT_GROUPS.map((g) => `<div class="groupHead sum">${g.label}<span>${g.total}</span></div>${g.accounts.map(accountRow).join('')}`).join('')}</div>`;
+  const MAIN_CARD_DAYS = [
+    { label: 'Sun, 08.11.2026', total: -24.15, rows: [
+      { title: 'Groceries', sub: 'Spar · EUR · 0.8547', base: -18.3, orig: '-€15.64', color: PURPLE },
+      { title: 'Coffee', sub: 'Coffee Lab · EUR · 0.8547', base: -5.85, orig: '-€5.00', color: PURPLE }] },
+    { label: 'Thu, 05.11.2026', total: -1053, rows: [
+      { title: 'Rent', sub: 'EUR · 0.8547', base: -1053, orig: '-€900.00', color: PURPLE }] },
+    { label: 'Tue, 03.11.2026', total: -300, rows: [
+      { title: 'To Wallet', sub: 'Transfer · EUR · 0.8547', base: -300, orig: '-€256.41', color: PURPLE }] },
+    { label: 'Sun, 01.11.2026', total: 3510, rows: [
+      { title: 'Salary', sub: 'EUR · 0.8547', base: 3510, orig: '€3,000.00', color: PURPLE, income: true }] },
+    { label: 'Fri, 30.10.2026', total: -42.6, rows: [
+      { title: 'Restaurants', sub: 'EUR · 0.8571', base: -42.6, orig: '-€36.51', color: PURPLE }] },
+    { label: 'Tue, 27.10.2026', total: -61.2, rows: [
+      { title: 'Groceries', sub: 'Carrefour · EUR · 0.8571', base: -61.2, orig: '-€52.45', color: PURPLE }] },
+    { label: 'Sat, 24.10.2026', total: -14.9, rows: [
+      { title: 'Subscriptions', sub: 'EUR · 0.8571', base: -14.9, orig: '-€12.77', color: PURPLE }] },
+    { label: 'Mon, 19.10.2026', total: -23.4, rows: [
+      { title: 'Taxi', sub: 'EUR · 0.8604', base: -23.4, orig: '-€20.13', color: PURPLE }] },
+  ];
+  const groceriesTransaction = transactionPanel({ meta: 'Expense · Sun, 08.11.2026', title: 'Groceries', amount: '-$18.30', sub: '-€15.64 · rate 0.8547', location: 'Spar', postings: [
+    { name: 'Main card', sub: 'Asset · EUR', amount: '-€15.64', color: PURPLE }, { name: 'Groceries', sub: 'Expense · EUR', amount: '+€15.64', link: true }] });
+  const transferTransaction = transactionPanel({ meta: 'Transfer · Tue, 03.11.2026', title: 'To Wallet', amount: '-$300.00', sub: '-€256.41 · rate 0.8547', postings: [
+    { name: 'Main card', sub: 'Asset · EUR', amount: '-€256.41', color: PURPLE }, { name: 'Wallet', sub: 'Asset · USD', amount: '+$300.00', color: BLUE, link: true }] });
+  const selectRow = (days, title) => {
+    let isFound = false;
+    return days.map((d) => ({ ...d, rows: d.rows.map((r) => {
+      const selected = !isFound && r.title === title;
+      isFound = isFound || selected;
+      return { ...r, selected };
+    }) }));
+  };
+  const accountsPage = ({ menu, cls = '', selectedTitle = 'Groceries', below }) => `
+    <div class="board desktop three accountsPage ${cls}">${menu}
+      <div class="main"><div class="topBar"><h3 class="pageTitle">Accounts<small>5</small></h3><span class="avatar">FI</span></div>
+        ${toolbar({ placeholder: 'Search accounts', newLabel: 'account' })}
+        <div class="content"><div class="panel">${accountList()}</div>${recentPanel({ name: 'Main card', meta: 'Account · Asset · recent transactions', days: selectRow(MAIN_CARD_DAYS, selectedTitle) })}<div class="detailsColumn">${accountPanel(mainCard)}${below}</div></div></div>
+    </div>`;
+
+  document.getElementById('boardsB').innerHTML = [
+    variant({ id: 'accounts-b-desktop', wide: true, name: 'Accounts, 1280 px', note: 'The first transaction is chosen by default; its details stand under Main card, and Groceries in its postings opens the category.', board: accountsPage({ menu: railMenu('accounts'), below: groceriesTransaction }) }),
+    variant({ id: 'accounts-b-transfer-desktop', wide: true, name: 'A transfer chosen, 1280 px', note: 'To Wallet is chosen; Wallet in its postings opens that account.', board: accountsPage({ menu: railMenu('accounts'), selectedTitle: 'To Wallet', below: transferTransaction }) }),
+  ].join('');
+  document.getElementById('boardsFull').innerHTML = variant({ id: 'accounts-transactions-wide-desktop', wide: true, width: 1440, name: 'Accounts, 1440 px', note: 'The full menu; the same columns.', board: accountsPage({ menu: fullMenu('', 'accounts'), cls: 'w1440', below: groceriesTransaction }) });
+
+  const params = new URLSearchParams(location.search);
+  const screen = params.get('screen');
+  if (screen) {
+    const board = document.querySelector(`#${screen} .board`);
+    document.documentElement.dataset.theme = params.get('theme') ?? 'dark';
+    document.body.replaceChildren(board);
+    document.body.style.width = 'max-content';
+    return;
+  }
+
+  const fitBoards = () => {
+    document.querySelectorAll('.frame').forEach((frame) => {
+      const board = frame.firstElementChild;
+      const width = Number(frame.dataset.boardWidth);
+      const available = frame.parentElement.clientWidth || width;
+      const scale = Math.min(1, available / width);
+      board.style.transform = `scale(${scale})`;
+      frame.style.width = `${width * scale}px`;
+      frame.style.height = `${board.offsetHeight * scale}px`;
+    });
+  };
+  new ResizeObserver(fitBoards).observe(document.querySelector('.sheetPage'));
+  document.fonts?.ready.then(fitBoards);
+  fitBoards();
+
+  const buttons = document.querySelectorAll('[data-theme-choice]');
+  const applyTheme = (choice) => {
+    if (choice) document.documentElement.dataset.theme = choice;
+    else delete document.documentElement.dataset.theme;
+    buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === choice)));
+    try { localStorage.setItem('account-transactions-theme', choice); } catch {}
+  };
+  buttons.forEach((button) => button.addEventListener('click', () => applyTheme(button.dataset.themeChoice)));
+  let saved = '';
+  try { saved = localStorage.getItem('account-transactions-theme') ?? ''; } catch {}
+  applyTheme(saved);
+})();
+</script>
