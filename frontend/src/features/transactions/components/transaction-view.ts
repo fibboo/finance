@@ -98,6 +98,14 @@ export function readTypeLabel({
   return type.label;
 }
 
+function readAdjustmentPosting({
+  debit,
+  credit,
+}: Readonly<{ debit: Posting; credit: Posting }>): Posting {
+  const posting = debit.account.kind === 'EQUITY' ? credit : debit;
+  return posting;
+}
+
 export type TransactionEntry = Readonly<{ role: 'From' | 'To'; posting: Posting }>;
 
 export function readTransactionEntries(transaction: Readonly<Transaction>): TransactionEntry[] {
@@ -111,7 +119,7 @@ export function readTransactionEntries(transaction: Readonly<Transaction>): Tran
     return entries;
   }
 
-  const posting = debit.account.kind === 'EQUITY' ? credit : debit;
+  const posting = readAdjustmentPosting({ debit, credit });
   const entries = [
     { role: Number(posting.amount) < 0 ? 'From' : 'To', posting },
   ] satisfies TransactionEntry[];
@@ -189,7 +197,7 @@ export function readTransactionView({
       return view;
     }
     case 'ADJUSTMENT': {
-      const posting = credit.account.kind === 'EQUITY' ? debit : credit;
+      const posting = readAdjustmentPosting({ debit, credit });
       const typeLabel = readTypeLabel({ transaction, transactionTypes });
       const view = {
         title: [typeLabel],
