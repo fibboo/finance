@@ -29,6 +29,7 @@ from app.schemas.accounting.account import (
     AccountCreateRequest,
     AccountKind,
     AccountRequest,
+    AccountRestoreRequest,
     AccountUpdate,
     CategoryType,
 )
@@ -617,7 +618,7 @@ async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession
 
     # Act
     account: Account = await account_service.restore_account(
-        db=db_transaction, account_id=account_created.id, user_id=user_id
+        db=db_transaction, account_id=account_created.id, restore_data=None, user_id=user_id
     )
     await db_transaction.commit()
 
@@ -639,7 +640,9 @@ async def test_restore_account_not_found(db_transaction: AsyncSession):
 
     # Act / Assert
     with pytest.raises(EntityNotFound) as exc:
-        await account_service.restore_account(db=db_transaction, account_id=account_id, user_id=user_id)
+        await account_service.restore_account(
+            db=db_transaction, account_id=account_id, restore_data=None, user_id=user_id
+        )
         await db_transaction.commit()
 
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
@@ -659,7 +662,9 @@ async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSes
 
     # Act / Assert
     with pytest.raises(EntityNotFound) as exc:
-        await account_service.restore_account(db=db_transaction, account_id=account_created.id, user_id=user_id)
+        await account_service.restore_account(
+            db=db_transaction, account_id=account_created.id, restore_data=None, user_id=user_id
+        )
         await db_transaction.commit()
 
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
@@ -685,7 +690,9 @@ async def test_restore_account_name_taken(db: AsyncSession, db_transaction: Asyn
 
     # Act / Assert
     with pytest.raises(NameAlreadyExists) as exc:
-        await account_service.restore_account(db=db_transaction, account_id=deleted_account.id, user_id=user_id)
+        await account_service.restore_account(
+            db=db_transaction, account_id=deleted_account.id, restore_data=None, user_id=user_id
+        )
         await db_transaction.commit()
 
     assert exc.value.status_code == status.HTTP_409_CONFLICT
@@ -696,6 +703,91 @@ async def test_restore_account_name_taken(db: AsyncSession, db_transaction: Asyn
 
     account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == deleted_account.id))
     assert account_db.status == EntityStatusType.DELETED
+
+
+async def test_restore_account_body_without_name_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
+    )
+    deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
+    await db.commit()
+    restore_data: AccountRestoreRequest = AccountRestoreRequest()
+
+    # Act
+    account: Account = await account_service.restore_account(
+        db=db_transaction, account_id=deleted_account.id, restore_data=restore_data, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert account.id == deleted_account.id
+    assert account.name == "Gym"
+    assert account.status == EntityStatusType.ACTIVE
+
+
+async def test_restore_account_new_name_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
+    )
+    deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
+    # The active account holds the old name, so only the new name lets the deleted one back
+    active_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await db.commit()
+    restore_data: AccountRestoreRequest = AccountRestoreRequest(name="Gym membership")
+
+    # Act
+    account: Account = await account_service.restore_account(
+        db=db_transaction, account_id=deleted_account.id, restore_data=restore_data, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert account.id == deleted_account.id
+    assert account.name == "Gym membership"
+    assert account.status == EntityStatusType.ACTIVE
+
+    request: AccountRequest = AccountRequest()
+    accounts: Page[Account] = await account_service.get_accounts(db=db, request=request, user_id=user_id)
+    assert {(account.id, account.name) for account in accounts.items} == {
+        (active_account.id, "Gym"),
+        (deleted_account.id, "Gym membership"),
+    }
+
+
+async def test_restore_account_new_name_taken(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
+    )
+    deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
+    taken_create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.EXPENSE, name="Gym membership", category_type=CategoryType.FIXED
+    )
+    await account_service.create_account(db=db, user_id=user_id, create_data=taken_create_data)
+    await db.commit()
+    restore_data: AccountRestoreRequest = AccountRestoreRequest(name="Gym membership")
+
+    # Act / Assert
+    with pytest.raises(NameAlreadyExists) as exc:
+        await account_service.restore_account(
+            db=db_transaction, account_id=deleted_account.id, restore_data=restore_data, user_id=user_id
+        )
+        await db_transaction.commit()
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.error_code == ErrorCodeType.NAME_ALREADY_EXISTS
+
+    account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == deleted_account.id))
+    assert account_db.status == EntityStatusType.DELETED
+    assert account_db.name == "Gym"
 
 
 @pytest.mark.parametrize(

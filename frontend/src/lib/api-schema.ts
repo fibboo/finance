@@ -64,7 +64,7 @@ export interface paths {
         put?: never;
         /**
          * Restore Account
-         * @description Restoring account is possible only if no active account has its name
+         * @description Restores the account under `name` if given, else its own name; no active account of its kind may hold that name
          */
         post: operations["restore_account_accounting_accounts__account_id__restore_post"];
         delete?: never;
@@ -647,6 +647,11 @@ export interface components {
          * @enum {string}
          */
         AccountKind: "ASSET" | "LIABILITY" | "EQUITY" | "INCOME" | "EXPENSE";
+        /** AccountRestoreRequest */
+        AccountRestoreRequest: {
+            /** Name */
+            name?: string | null;
+        };
         /** AccountUpdate */
         AccountUpdate: {
             /** Name */
@@ -1329,7 +1334,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AccountRestoreRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

@@ -11,6 +11,7 @@ from app.schemas.accounting.account import (
     Account,
     AccountCreateRequest,
     AccountRequest,
+    AccountRestoreRequest,
     AccountUpdate,
     AdjustmentRequest,
 )
@@ -94,11 +95,19 @@ async def delete_account(*, account_id: UUID, user_id: UUID = Depends(get_user_i
 
 
 @router.post("/{account_id}/restore")
-async def restore_account(*, account_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Account:
+async def restore_account(
+    *,
+    account_id: UUID,
+    restore_data: AccountRestoreRequest | None = None,
+    user_id: UUID = Depends(get_user_id),
+    db: DbTransaction,
+) -> Account:
     """
-    Restoring account is possible only if no active account has its name
+    Restores the account under `name` if given, else its own name; no active account of its kind may hold that name
     """
-    account: Account = await account_service.restore_account(db=db, account_id=account_id, user_id=user_id)
+    account: Account = await account_service.restore_account(
+        db=db, account_id=account_id, restore_data=restore_data, user_id=user_id
+    )
     return account
 
 

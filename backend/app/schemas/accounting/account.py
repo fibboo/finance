@@ -42,6 +42,7 @@ MONEY_ACCOUNT_KINDS: list[AccountKind] = [AccountKind.ASSET, AccountKind.LIABILI
 VISIBLE_ACCOUNT_KINDS: list[AccountKind] = [kind for kind in AccountKind if kind != AccountKind.EQUITY]
 
 AccountColor: TypeAlias = Annotated[str, StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$")]
+AccountName: TypeAlias = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)]
 
 
 class CategoryType(str, Enum):
@@ -60,7 +61,7 @@ CATEGORY_TYPE_LABELS: frozendict[CategoryType, str] = frozendict(
 
 
 class AccountBase(BaseModel):
-    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)]
+    name: AccountName
     description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=256)] | None = None
 
 
@@ -105,6 +106,10 @@ class AccountUpdate(AccountBase):
             raise ValueError("category_type can not be null")
 
         return self
+
+
+class AccountRestoreRequest(BaseModel):
+    name: AccountName | None = None
 
 
 class Account(AccountBase):
