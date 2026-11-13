@@ -88,23 +88,20 @@ export function CatalogTransactions({
     return null;
   }
 
-  if (
+  const isSelectedTransactionOfOtherEntry =
     isDetailsShown &&
     selectedTransaction !== undefined &&
-    !readIsFilteredTransaction({ transaction: selectedTransaction, filterQuery })
-  ) {
-    return (
-      <Navigate
-        to={{
-          search: writeSelectedTransaction({ searchParams, transactionId: undefined }).toString(),
-        }}
-        replace
-      />
-    );
-  }
-
+    !readIsFilteredTransaction({ transaction: selectedTransaction, filterQuery });
   return (
     <>
+      {isSelectedTransactionOfOtherEntry && (
+        <Navigate
+          to={{
+            search: writeSelectedTransaction({ searchParams, transactionId: undefined }).toString(),
+          }}
+          replace
+        />
+      )}
       <aside className={styles['catalogTransactions']}>
         <TransactionFeed
           feed={feed}

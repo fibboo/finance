@@ -30,7 +30,7 @@ The rules are in `.claude/rules/react.md` **Auth and Security**; `features/auth/
 - On desktop the details show the top row while nothing is chosen, without writing the URL, so that a shared link carries only what the user chose.
 - A phone has room for one sheet, so it shows the details whose param comes later in the URL. A link that opens an account from a transaction therefore moves the `account` param after the `transaction` one.
 - A desktop details column has room for the transaction and one entry beside it, so a location takes the account's place while its param comes after the `account` one. A location chosen before the transaction now shown, which is not that transaction's location, is ignored, as such an account is.
-- On Categories and Income sources the `account` param holds the chosen entry, so the transaction details beside a catalog feed never read or write it: they show the first money account of the transaction (`isEntryParamOwnedByPage`), and a link to an account opens that account in its own section. Locations do the same, so that the three catalogs behave alike.
+- On Categories and Income sources the `account` param holds the chosen entry, and on Locations the `location` one, so the transaction details beside a catalog feed never read or write either: they show the first money account of the transaction (`isEntryParamOwnedByPage`), and a link to an account or a location opens it in its own section. The three catalogs behave alike.
 - The `transaction` param is left out of the feed's query key, so choosing a row does not refetch the list.
 
 ## One component at every width
