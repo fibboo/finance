@@ -104,6 +104,7 @@ function SelectedAccount({
             account_ids: [accountId],
             category_ids: [],
             income_source_ids: [],
+            location_ids: [],
           }).toString(),
         }}
         isOnlyAccount={isOnlyAccount}

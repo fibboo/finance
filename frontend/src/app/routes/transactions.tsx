@@ -11,6 +11,7 @@ import { SearchField } from '@/components/search-field/search-field';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,
@@ -87,6 +88,10 @@ export function Component() {
   const { data: moneyAccounts } = useQuery(readAccountsQuery(MONEY_ACCOUNT_KINDS));
   const { data: categories } = useQuery(readAccountsQuery(['EXPENSE']));
   const { data: incomeSources } = useQuery(readAccountsQuery(['INCOME']));
+  const { data: locations } = useQuery({
+    ...locationQueries.list({ size: LOCATION_PAGE_SIZE, order: 'recent_use' }),
+    throwOnError: isThrownWithoutData,
+  });
   const accounts =
     moneyAccounts === undefined || categories === undefined || incomeSources === undefined
       ? undefined
@@ -136,6 +141,7 @@ export function Component() {
       {baseCurrency !== undefined &&
         dictionaries !== undefined &&
         accounts !== undefined &&
+        locations !== undefined &&
         filters !== undefined && (
           <FilterChips
             filters={filters}
@@ -144,7 +150,7 @@ export function Component() {
             baseCurrency={baseCurrency}
             transactionTypes={dictionaries.transaction_types}
             transactionOrders={dictionaries.transaction_orders}
-            accounts={accounts}
+            items={{ ...accounts, location_ids: locations.items }}
             onApply={(change, jumpDate) => {
               const nextFilters = { ...filters, ...change };
               const nextSearchParams = writeTransactionFilters(nextFilters);

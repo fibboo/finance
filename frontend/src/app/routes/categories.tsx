@@ -60,6 +60,7 @@ function readCategoryTransactionsLink(categoryId: string): To {
       account_ids: [],
       category_ids: [categoryId],
       income_source_ids: [],
+      location_ids: [],
     }).toString(),
   };
   return transactionsLink;

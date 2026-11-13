@@ -20,9 +20,11 @@ const SINGLE_PARAMS = [
   'order',
 ] as const;
 const ACCOUNT_ID_PARAMS = ['account_ids', 'category_ids', 'income_source_ids'] as const;
-const LIST_PARAMS = ['transaction_types', ...ACCOUNT_ID_PARAMS] as const;
+const LOCATION_ID_PARAM = 'location_ids';
+const LIST_PARAMS = ['transaction_types', ...ACCOUNT_ID_PARAMS, LOCATION_ID_PARAM] as const;
 
 export type AccountIdParam = (typeof ACCOUNT_ID_PARAMS)[number];
+export type ItemIdParam = AccountIdParam | typeof LOCATION_ID_PARAM;
 
 const transactionFiltersSchema = z.object({
   search: z.string().min(1).optional().catch(undefined),
@@ -46,6 +48,9 @@ const transactionFiltersSchema = z.object({
   account_ids: z.array(z.string()),
   category_ids: z.array(z.string()),
   income_source_ids: z.array(z.string()),
+  location_ids: z
+    .array(z.string())
+    .transform((locationIds) => locationIds.filter((id) => z.uuid().safeParse(id).success)),
 });
 
 export type TransactionFilters = Readonly<z.output<typeof transactionFiltersSchema>>;
@@ -160,6 +165,7 @@ export function readTransactionFilterQuery(filters: TransactionFilters): Transac
     }),
     ...(filters.order !== undefined && { orders: [filters.order] }),
     ...(accountIds.length > 0 && { account_ids: accountIds }),
+    ...(filters.location_ids.length > 0 && { location_ids: [...filters.location_ids] }),
   };
   return filterQuery;
 }
@@ -176,6 +182,7 @@ export function hasNarrowingFilters(filters: TransactionFilters): boolean {
     filters.transaction_types.length > 0 ||
     filters.base_currency_amount_from !== undefined ||
     filters.base_currency_amount_to !== undefined ||
-    ACCOUNT_ID_PARAMS.some((name) => filters[name].length > 0);
+    ACCOUNT_ID_PARAMS.some((name) => filters[name].length > 0) ||
+    filters.location_ids.length > 0;
   return isNarrowed;
 }

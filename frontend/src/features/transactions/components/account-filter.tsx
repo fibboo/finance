@@ -10,13 +10,14 @@ import styles from './account-filter.module.css';
 import { FilterActions } from './filter-actions';
 
 type Account = components['schemas']['Account'];
+type Location = components['schemas']['Location'];
 type AccountFilterFormInput = z.input<typeof accountFilterFormSchema>;
 
 type AccountFilterProps = Readonly<{
   title: string;
   emptyNote: string;
-  accounts: readonly Account[];
-  accountIds: readonly string[];
+  items: readonly (Account | Location)[];
+  itemIds: readonly string[];
   note: string | undefined;
   onApply: (accountIds: string[]) => void;
 }>;
@@ -24,17 +25,17 @@ type AccountFilterProps = Readonly<{
 export function AccountFilter({
   title,
   emptyNote,
-  accounts,
-  accountIds,
+  items,
+  itemIds,
   note,
   onApply,
 }: AccountFilterProps) {
   const { register, handleSubmit, setValue } = useForm<AccountFilterFormInput>({
     resolver: zodResolver(accountFilterFormSchema),
-    defaultValues: { account_ids: [...accountIds] },
+    defaultValues: { account_ids: [...itemIds] },
   });
 
-  if (accounts.length === 0) {
+  if (items.length === 0) {
     return <p className={styles['emptyNote']}>{emptyNote}</p>;
   }
 
@@ -50,23 +51,22 @@ export function AccountFilter({
     >
       <fieldset className={styles['accounts']}>
         <legend className="visually-hidden">{title}</legend>
-        {accounts.map((account) => {
-          const color = readMoneyAccountColor(account);
+        {items.map((item) => {
+          const color = 'kind' in item ? readMoneyAccountColor(item) : undefined;
+          const currency = 'currency' in item ? item.currency : null;
           return (
-            <label key={account.id} className={styles['account']}>
+            <label key={item.id} className={styles['account']}>
               <input
                 type="checkbox"
                 className={styles['checkbox']}
-                value={account.id}
+                value={item.id}
                 {...register('account_ids')}
               />
               {color !== undefined && (
                 <span className={styles['dot']} style={{ color }} aria-hidden="true" />
               )}
-              <span className={styles['name']}>{account.name}</span>
-              {account.currency !== null && (
-                <span className={styles['currency']}>{account.currency}</span>
-              )}
+              <span className={styles['name']}>{item.name}</span>
+              {currency !== null && <span className={styles['currency']}>{currency}</span>}
             </label>
           );
         })}
