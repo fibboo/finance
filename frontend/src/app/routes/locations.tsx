@@ -70,7 +70,7 @@ export function Component() {
   const search = readCatalogSearch(searchParams);
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
-  const isDeletedShown = readIsDeletedShown(searchParams);
+  const isDeletedShown = readIsDeletedShown({ searchParams, page: 'locations' });
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
     throwOnError: true,
@@ -162,6 +162,7 @@ export function Component() {
             setSearchParams(
               writeIsDeletedShown({
                 searchParams: listSearchParams,
+                page: 'locations',
                 isDeletedShown: nextIsDeletedShown,
               }),
               { replace: true },

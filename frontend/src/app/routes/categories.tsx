@@ -84,7 +84,7 @@ export function Component() {
     categoryTypes === undefined
       ? undefined
       : readCategoryTypeFilter({ searchParams, categoryTypes });
-  const isDeletedShown = readIsDeletedShown(searchParams);
+  const isDeletedShown = readIsDeletedShown({ searchParams, page: 'categories' });
   const { data: activeCategoryPage } = useQuery({
     ...accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: ['EXPENSE'], order: 'recent_use' }),
     throwOnError: isThrownWithoutData,
@@ -195,6 +195,7 @@ export function Component() {
               setSearchParams(
                 writeIsDeletedShown({
                   searchParams: listSearchParams,
+                  page: 'categories',
                   isDeletedShown: nextIsDeletedShown,
                 }),
                 { replace: true },

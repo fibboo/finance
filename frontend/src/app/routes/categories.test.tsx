@@ -213,6 +213,39 @@ test('requests the chosen type and only the active categories with Deleted off a
   expect(searchParams.get('deleted')).toBe('off');
 });
 
+test('opens with Deleted off when it was turned off on an earlier visit and stores turning it on', async () => {
+  // arrange
+  const user = userEvent.setup();
+  localStorage.setItem('deleted:categories', 'off');
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const statuses = new URL(request.url).searchParams.getAll('statuses');
+      const items = statuses.includes('DELETED')
+        ? [groceries, cigarettes, rent]
+        : [groceries, rent];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/categories'] });
+  const variable = await screen.findByRole('region', { name: 'Variable' });
+  expect(within(variable).queryByText('Cigarettes')).not.toBeInTheDocument();
+  expect(screen.getByRole('switch', { name: 'Deleted' })).not.toBeChecked();
+
+  // act
+  await user.click(screen.getByRole('switch', { name: 'Deleted' }));
+
+  // assert
+  expect(await within(variable).findByText('Cigarettes')).toBeInTheDocument();
+  expect(localStorage.getItem('deleted:categories')).toBe('on');
+  expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('on');
+});
+
 test('reads the type and the toggle from the URL and drops a type the dictionary lacks', async () => {
   // arrange
   const requestedQueries: URLSearchParams[] = [];

@@ -184,6 +184,32 @@ test('requests only the active income sources with Deleted off and keeps it in t
   expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('off');
 });
 
+test('opens with Deleted off when it was turned off on an earlier visit and stores turning it on', async () => {
+  // arrange
+  const user = userEvent.setup();
+  localStorage.setItem('deleted:income_sources', 'off');
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const statuses = new URL(request.url).searchParams.getAll('statuses');
+      const items = statuses.includes('DELETED') ? [salary, scholarship] : [salary];
+      return HttpResponse.json(readAccountPage(items));
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/income-sources'] });
+  const list = await screen.findByRole('region', { name: 'Income sources' });
+  expect(await within(list).findByText('Salary')).toBeInTheDocument();
+  expect(within(list).queryByText('Scholarship')).not.toBeInTheDocument();
+  expect(screen.getByRole('switch', { name: 'Deleted' })).not.toBeChecked();
+
+  // act
+  await user.click(screen.getByRole('switch', { name: 'Deleted' }));
+
+  // assert
+  expect(await within(list).findByText('Scholarship')).toBeInTheDocument();
+  expect(localStorage.getItem('deleted:income_sources')).toBe('on');
+  expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('on');
+});
+
 test('gives an active row Transactions, Edit and Delete and a deleted one Restore on a phone', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 390);
