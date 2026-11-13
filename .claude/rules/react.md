@@ -12,7 +12,7 @@ These rules apply to new and changed code under `frontend/`, together with `.cla
 
 ## Stack
 
-The frontend is a responsive, mobile-first single-page app. It is built from React 19 with the React Compiler, Vite and React Router 8 in data mode. TanStack Query 5 holds server state, and forms use React Hook Form with Zod 4. The API client is `openapi-fetch`, typed by `openapi-typescript` from the backend's OpenAPI schema. Styling is CSS Modules over CSS custom-property tokens. Tests run with Vitest, Testing Library, user-event and MSW. Every call goes to `/api`, which the dev server and the production web server proxy to the backend (`.claude/skills/add-module/SKILL.md`). A new library is added only when a current issue needs what none of these provide.
+The frontend is a responsive, mobile-first single-page app. It is built from React with the React Compiler, Vite and React Router in data mode. TanStack Query holds server state, and forms use React Hook Form with Zod. The API client is `openapi-fetch`, typed by `openapi-typescript` from the backend's OpenAPI schema. Styling is CSS Modules over CSS custom-property tokens. Tests run with Vitest, Testing Library, user-event and MSW. Every call goes to `/api`, which the dev server and the production web server proxy to the backend (`.claude/skills/add-module/SKILL.md`). A new library is added only when a current issue needs what none of these provide.
 
 ## Structure
 
