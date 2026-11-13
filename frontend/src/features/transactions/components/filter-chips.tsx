@@ -7,10 +7,10 @@ import {
   type ItemIdParam,
   type TransactionFilters,
 } from '../api/transaction-filters';
-import { ItemFilter } from './item-filter';
 import { AmountFilter } from './amount-filter';
 import styles from './filter-chips.module.css';
 import { FilterPanel } from './filter-panel';
+import { ItemFilter } from './item-filter';
 import { PeriodFilter } from './period-filter';
 import { SortFilter } from './sort-filter';
 import { TypeFilter } from './type-filter';
