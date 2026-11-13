@@ -55,6 +55,7 @@ function readIncomeSourceTransactionsLink(incomeSourceId: string): To {
       account_ids: [],
       category_ids: [],
       income_source_ids: [incomeSourceId],
+      location_ids: [],
     }).toString(),
   };
   return transactionsLink;
