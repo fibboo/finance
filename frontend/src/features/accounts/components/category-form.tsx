@@ -38,8 +38,6 @@ type CategoryFormProps = Readonly<{
   onBack: () => void;
 }>;
 
-const NAME_TAKEN_MESSAGE = 'An active category already has this name';
-
 const CATEGORY_TYPE_HINTS = {
   VARIABLE: 'Spending that changes from month to month, like groceries or taxis.',
   FIXED: 'The same amount every month, like rent or subscriptions.',
@@ -84,10 +82,11 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
     }),
   });
   const [categoryType, name] = useWatch({ control, name: ['category_type', 'name'] });
-  const { isNameTaken, isLookupPending } = useAccountNameTaken({
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind: 'EXPENSE',
     ownAccountId: mode.kind === 'edit' ? mode.category.id : undefined,
+    unchangedName: mode.kind === 'edit' ? mode.category.name : undefined,
   });
 
   function showFieldError({ field, message }: AccountFieldError) {
@@ -148,7 +147,7 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message ?? (isNameTaken ? NAME_TAKEN_MESSAGE : undefined)}
+        error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
       <SegmentedField
         legend="Type"

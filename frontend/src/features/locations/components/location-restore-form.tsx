@@ -25,8 +25,6 @@ type LocationRestoreFormProps = Readonly<{
   onBack: () => void;
 }>;
 
-const NAME_TAKEN_MESSAGE = 'An active location already has this name';
-
 export function LocationRestoreForm({
   location,
   relatedQueryKeys,
@@ -42,9 +40,10 @@ export function LocationRestoreForm({
     defaultValues: { name: location.name },
   });
   const name = useWatch({ control, name: 'name' });
-  const { isNameTaken, isLookupPending } = useLocationNameTaken({
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useLocationNameTaken({
     name,
     ownLocationId: location.id,
+    unchangedName: undefined,
   });
   const restore = useMutation(locationMutations.restore(relatedQueryKeys));
 
@@ -63,7 +62,7 @@ export function LocationRestoreForm({
               onSuccess: onRestored,
               onError: (error) => {
                 if (error instanceof ApiError && error.error_code === 'NAME_ALREADY_EXISTS') {
-                  setError('name', { message: NAME_TAKEN_MESSAGE });
+                  setError('name', { message: nameTakenMessage });
                 } else if (error instanceof ApiError) {
                   error.fieldErrors.forEach((fieldError) => {
                     setError(fieldError.field === 'name' ? 'name' : 'root.server', {
@@ -84,7 +83,7 @@ export function LocationRestoreForm({
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message ?? (isNameTaken ? NAME_TAKEN_MESSAGE : undefined)}
+        error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
     </EntityForm>
   );

@@ -59,8 +59,6 @@ const MONEY_ACCOUNT_KIND_COPY = {
   Record<MoneyAccountKind, Readonly<{ hint: string; descriptionPlaceholder: string }>>
 >;
 
-const NAME_TAKEN_MESSAGE = 'An active account already has this name';
-
 function readStartingValues({
   mode,
   baseCurrency,
@@ -123,10 +121,11 @@ export function MoneyAccountForm({
     resetOptions: { keepDirtyValues: true },
   });
   const [pickedColor, kind, name] = useWatch({ control, name: ['color', 'kind', 'name'] });
-  const { isNameTaken, isLookupPending } = useAccountNameTaken({
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind,
     ownAccountId: mode.kind === 'edit' ? mode.account.id : undefined,
+    unchangedName: mode.kind === 'edit' ? mode.account.name : undefined,
   });
   const { data: moneyAccounts } = useQuery(
     accountQueries.list({
@@ -216,7 +215,7 @@ export function MoneyAccountForm({
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message ?? (isNameTaken ? NAME_TAKEN_MESSAGE : undefined)}
+        error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
       {mode.kind === 'create' ? (
         <>

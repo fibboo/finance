@@ -27,11 +27,6 @@ type RestoreFormProps = Readonly<{
   onBack: () => void;
 }>;
 
-const NAME_TAKEN_MESSAGES_BY_ENTITY_NAME = {
-  category: 'An active category already has this name',
-  'income source': 'An active income source already has this name',
-} as const satisfies Readonly<Record<RestoredEntityName, string>>;
-
 export function RestoreForm({
   account,
   entityName,
@@ -39,7 +34,6 @@ export function RestoreForm({
   onRestored,
   onBack,
 }: RestoreFormProps) {
-  const nameTakenMessage = NAME_TAKEN_MESSAGES_BY_ENTITY_NAME[entityName];
   const { control, register, handleSubmit, setError, formState } = useForm<
     RestoreFormValues,
     unknown,
@@ -49,10 +43,11 @@ export function RestoreForm({
     defaultValues: { name: account.name },
   });
   const name = useWatch({ control, name: 'name' });
-  const { isNameTaken, isLookupPending } = useAccountNameTaken({
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind: account.kind,
     ownAccountId: account.id,
+    unchangedName: undefined,
   });
   const accountRestore = useAccountRestore({
     relatedQueryKeys,

@@ -33,8 +33,6 @@ type LocationFormProps = Readonly<{
   onBack: () => void;
 }>;
 
-const NAME_TAKEN_MESSAGE = 'An active location already has this name';
-
 function readStartingValues(mode: LocationFormMode): LocationFormValues {
   const startingValues =
     mode.kind === 'create'
@@ -58,9 +56,10 @@ export function LocationForm({ mode, onBack }: LocationFormProps) {
     }),
   });
   const name = useWatch({ control, name: 'name' });
-  const { isNameTaken, isLookupPending } = useLocationNameTaken({
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useLocationNameTaken({
     name,
     ownLocationId: mode.kind === 'edit' ? mode.location.id : undefined,
+    unchangedName: mode.kind === 'edit' ? mode.location.name : undefined,
   });
   const create = useMutation(locationMutations.create());
   const update = useMutation(
@@ -112,7 +111,7 @@ export function LocationForm({ mode, onBack }: LocationFormProps) {
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message ?? (isNameTaken ? NAME_TAKEN_MESSAGE : undefined)}
+        error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
       <TextField
         label="Description"

@@ -71,11 +71,14 @@ test.each([
   async ({ kindLabel, kind, currency, hint, placeholder }) => {
     // arrange
     let createdAccount: unknown = null;
-    const requestedKinds: string[][] = [];
+    const requestedColorKinds: string[][] = [];
     const onCreated = vi.fn();
     server.use(
       http.get('http://localhost/api/accounting/accounts', ({ request }) => {
-        requestedKinds.push(new URL(request.url).searchParams.getAll('kinds'));
+        const searchParams = new URL(request.url).searchParams;
+        if (!searchParams.has('search_term')) {
+          requestedColorKinds.push(searchParams.getAll('kinds'));
+        }
         return HttpResponse.json({
           items: [wallet, creditCard],
           total: 2,
@@ -121,7 +124,9 @@ test.each([
       'placeholder',
       placeholder,
     );
-    expect(requestedKinds).toContainEqual(['ASSET', 'LIABILITY']);
+    expect(new Set(requestedColorKinds.map((kinds) => kinds.join()))).toEqual(
+      new Set(['ASSET,LIABILITY']),
+    );
     expect(createdAccount).toEqual({
       name: 'Travel card',
       description: null,

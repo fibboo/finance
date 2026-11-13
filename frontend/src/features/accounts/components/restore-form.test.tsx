@@ -157,7 +157,7 @@ test('drops the reason and allows the restore once a free name is typed', async 
   expect(name).not.toHaveAccessibleDescription();
 });
 
-test('takes a name that an active category has in another case as free', async () => {
+test('says a name an active category has in another case is taken', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
@@ -191,9 +191,11 @@ test('takes a name that an active category has in another case as free', async (
 
   // assert
   await vi.waitFor(() => {
-    expect(screen.getByRole('button', { name: 'Restore category' })).toBeEnabled();
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
+      'An active category already has this name',
+    );
   });
-  expect(screen.getByRole('textbox', { name: 'Name' })).not.toHaveAccessibleDescription();
+  expect(screen.getByRole('button', { name: 'Restore category' })).toBeDisabled();
 });
 
 test('restores the category under the typed name', async () => {

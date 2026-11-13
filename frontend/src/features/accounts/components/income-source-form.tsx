@@ -34,8 +34,6 @@ type IncomeSourceFormProps = Readonly<{
   onBack: () => void;
 }>;
 
-const NAME_TAKEN_MESSAGE = 'An active income source already has this name';
-
 function readStartingValues(mode: IncomeSourceFormMode): AccountFormValues {
   const startingValues =
     mode.kind === 'create'
@@ -60,10 +58,11 @@ export function IncomeSourceForm({ mode, onBack }: IncomeSourceFormProps) {
   });
 
   const name = useWatch({ control, name: 'name' });
-  const { isNameTaken, isLookupPending } = useAccountNameTaken({
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind: 'INCOME',
     ownAccountId: mode.kind === 'edit' ? mode.incomeSource.id : undefined,
+    unchangedName: mode.kind === 'edit' ? mode.incomeSource.name : undefined,
   });
 
   function showFieldError({ field, message }: AccountFieldError) {
@@ -114,7 +113,7 @@ export function IncomeSourceForm({ mode, onBack }: IncomeSourceFormProps) {
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message ?? (isNameTaken ? NAME_TAKEN_MESSAGE : undefined)}
+        error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
       <TextField
         label="Description"
