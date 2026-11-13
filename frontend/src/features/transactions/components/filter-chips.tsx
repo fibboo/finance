@@ -7,7 +7,7 @@ import {
   type ItemIdParam,
   type TransactionFilters,
 } from '../api/transaction-filters';
-import { AccountFilter } from './account-filter';
+import { ItemFilter } from './item-filter';
 import { AmountFilter } from './amount-filter';
 import styles from './filter-chips.module.css';
 import { FilterPanel } from './filter-panel';
@@ -190,7 +190,7 @@ export function FilterChips({
             isActive={count > 0}
           >
             {(close) => (
-              <AccountFilter
+              <ItemFilter
                 title={itemFilter.title}
                 emptyNote={itemFilter.emptyNote}
                 items={items[itemFilter.name]}

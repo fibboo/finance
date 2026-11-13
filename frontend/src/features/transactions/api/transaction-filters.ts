@@ -23,6 +23,8 @@ const ACCOUNT_ID_PARAMS = ['account_ids', 'category_ids', 'income_source_ids'] a
 const LOCATION_ID_PARAM = 'location_ids';
 const LIST_PARAMS = ['transaction_types', ...ACCOUNT_ID_PARAMS, LOCATION_ID_PARAM] as const;
 
+const uuidSchema = z.uuid();
+
 export type AccountIdParam = (typeof ACCOUNT_ID_PARAMS)[number];
 export type ItemIdParam = AccountIdParam | typeof LOCATION_ID_PARAM;
 
@@ -50,7 +52,13 @@ const transactionFiltersSchema = z.object({
   income_source_ids: z.array(z.string()),
   location_ids: z
     .array(z.string())
-    .transform((locationIds) => locationIds.filter((id) => z.uuid().safeParse(id).success)),
+    .transform((locationIds) => [
+      ...new Set(
+        locationIds
+          .map((locationId) => locationId.toLowerCase())
+          .filter((locationId) => uuidSchema.safeParse(locationId).success),
+      ),
+    ]),
 });
 
 export type TransactionFilters = Readonly<z.output<typeof transactionFiltersSchema>>;

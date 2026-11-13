@@ -674,7 +674,7 @@ test('requests the checked locations in the order of their recent use', async ()
   });
 });
 
-test('filters by a location of the URL that is not in the list and drops an invalid one', async () => {
+test('filters by a location of the URL that is not in the list once and drops an invalid one', async () => {
   // arrange
   const deletedLocationId = '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d92';
   let requestedSearch = '';
@@ -693,7 +693,9 @@ test('filters by a location of the URL that is not in the list and drops an inva
 
   // act
   render(<Component />, {
-    initialEntries: [`/transactions?location_ids=market&location_ids=${deletedLocationId}`],
+    initialEntries: [
+      `/transactions?location_ids=market&location_ids=${deletedLocationId.toUpperCase()}&location_ids=${deletedLocationId}`,
+    ],
   });
 
   // assert
@@ -703,6 +705,38 @@ test('filters by a location of the URL that is not in the list and drops an inva
   expect(requestedSearch).toBe(
     `?location_ids=${deletedLocationId}&size=15&date_to=2026-10-20&page=1`,
   );
+});
+
+test('clears a location of the URL that is not in the list from the panel', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const deletedLocationId = '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d92';
+  const requestedLocationIds: string[][] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedLocationIds.push(new URL(request.url).searchParams.getAll('location_ids'));
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />, { initialEntries: [`/transactions?location_ids=${deletedLocationId}`] });
+  await user.click(await screen.findByRole('button', { name: 'Locations: Locations · 1' }));
+  const locationFilter = screen.getByRole('dialog', { name: 'Locations' });
+  expect(within(locationFilter).getByText('No locations yet.')).toBeInTheDocument();
+
+  // act
+  await user.click(within(locationFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: 'Locations' })).toHaveFocus();
+  await waitFor(() => {
+    expect(requestedLocationIds).toEqual([[deletedLocationId], []]);
+  });
 });
 
 test('shows a note instead of the list without locations', async () => {

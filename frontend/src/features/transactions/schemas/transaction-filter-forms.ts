@@ -57,6 +57,6 @@ export const amountFilterFormSchema = z
     },
   );
 
-export const accountFilterFormSchema = z.object({
-  account_ids: z.array(z.string()),
+export const itemFilterFormSchema = z.object({
+  item_ids: z.array(z.string()),
 });
