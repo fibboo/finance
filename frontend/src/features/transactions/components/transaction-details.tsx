@@ -18,6 +18,7 @@ type TransactionDetailsProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
+  readLocationLink: (locationId: string) => To;
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;
   editButtonId: string;
@@ -32,6 +33,7 @@ export function TransactionDetails({
   transactionTypes,
   accountKinds,
   readAccountLink,
+  readLocationLink,
   relatedQueryKeys,
   isShownByDefault,
   editButtonId,
@@ -70,6 +72,7 @@ export function TransactionDetails({
             transactionTypes={transactionTypes}
             accountKinds={accountKinds}
             readAccountLink={readAccountLink}
+            readLocationLink={readLocationLink}
             closeButton={closeButton}
             editAction={
               <EditTransaction id={editButtonId} transaction={transaction} onEdit={onEdit} />

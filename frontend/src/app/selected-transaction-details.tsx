@@ -28,6 +28,7 @@ type SelectedTransactionDetailsProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
   readAccountLink: (accountId: string) => To;
+  readLocationLink: (locationId: string) => To;
 }>;
 
 type SelectedTransactionProps = Readonly<{
@@ -37,6 +38,7 @@ type SelectedTransactionProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
+  readLocationLink: (locationId: string) => To;
 }>;
 
 function SelectedTransaction({
@@ -46,6 +48,7 @@ function SelectedTransaction({
   transactionTypes,
   accountKinds,
   readAccountLink,
+  readLocationLink,
 }: SelectedTransactionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [editedTransactionId, setEditedTransactionId] = useState<string | undefined>(undefined);
@@ -89,6 +92,7 @@ function SelectedTransaction({
         transactionTypes={transactionTypes}
         accountKinds={accountKinds}
         readAccountLink={readAccountLink}
+        readLocationLink={readLocationLink}
         relatedQueryKeys={relatedQueryKeys}
         isShownByDefault={isShownByDefault}
         editButtonId={editButtonId}
@@ -155,6 +159,7 @@ export function SelectedTransactionDetails({
   baseCurrency,
   defaultTransactionId,
   readAccountLink,
+  readLocationLink,
 }: SelectedTransactionDetailsProps) {
   const [searchParams] = useSearchParams();
   const selectedTransactionId = readSelectedTransactionId(searchParams);
@@ -173,6 +178,7 @@ export function SelectedTransactionDetails({
       transactionTypes={dictionaries.transaction_types}
       accountKinds={dictionaries.account_kinds}
       readAccountLink={readAccountLink}
+      readLocationLink={readLocationLink}
     />
   );
 }

@@ -1,9 +1,10 @@
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { type To, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 
 import { CatalogTransactions } from '@/app/catalog-transactions';
 import { LOCATION_ICON_PATH } from '@/app/location-icon';
+import { readLocationTransactionsLink } from '@/app/transactions-link';
 import { CatalogFilters } from '@/components/catalog-list/catalog-filters';
 import { CatalogList } from '@/components/catalog-list/catalog-list';
 import { CatalogRowActions } from '@/components/catalog-list/catalog-row-actions';
@@ -28,9 +29,12 @@ import {
   readSelectedLocationId,
   writeSelectedLocation,
 } from '@/features/locations/api/selected-location';
+import {
+  LOCATION_DELETE_TITLE,
+  readLocationDeleteText,
+} from '@/features/locations/components/location-delete-copy';
 import { LocationForm } from '@/features/locations/components/location-form';
 import { LocationRestoreForm } from '@/features/locations/components/location-restore-form';
-import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
@@ -51,20 +55,6 @@ function readLocationCount(
       ? undefined
       : { value: total, label: total === 1 ? 'location' : 'locations' };
   return locationCount;
-}
-
-function readLocationTransactionsLink(locationId: string): To {
-  const transactionsLink = {
-    pathname: '/transactions',
-    search: writeTransactionFilters({
-      transaction_types: [],
-      account_ids: [],
-      category_ids: [],
-      income_source_ids: [],
-      location_ids: [locationId],
-    }).toString(),
-  };
-  return transactionsLink;
 }
 
 export function Component() {
@@ -302,8 +292,8 @@ export function Component() {
       )}
       {confirmedLocation !== undefined && (
         <DeleteConfirmation
-          title="Delete this location?"
-          text={`${confirmedLocation.name}. It leaves your locations and the pickers, and its past transactions keep showing it.`}
+          title={LOCATION_DELETE_TITLE}
+          text={readLocationDeleteText(confirmedLocation.name)}
           isPending={locationDelete.isPending}
           onCancel={() => {
             closeConfirmation(confirmedLocation.id);
