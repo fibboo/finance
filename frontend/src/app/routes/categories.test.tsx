@@ -1174,6 +1174,52 @@ test('drops the chosen transaction when the type filter or Deleted changes the l
   });
 });
 
+test('drops a chosen transaction that is not of the shown category on a wide desktop', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    // Rent has left the list, so Groceries is shown
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${rentPayment.id}`, () =>
+      HttpResponse.json(rentPayment),
+    ),
+  );
+
+  // act
+  const { router } = render(<Component />, {
+    initialEntries: [`/categories?account=${rent.id}&transaction=${rentPayment.id}`],
+  });
+
+  // assert
+  expect(
+    await screen.findByRole('region', { name: 'Transactions of Groceries' }),
+  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+  expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
+});
+
 test('gives a phone plain names and no transactions of a category', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 390);

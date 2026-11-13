@@ -716,3 +716,25 @@ test('shows the chosen transaction of a location with its first money account wh
   expect(searchParams.get('account')).toBe(groceries.id);
   expect(searchParams.get('transaction')).toBeNull();
 });
+
+test('drops the chosen transaction when Deleted changes the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json(readLocationPage([spar, coffeeLab])),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/locations?location=${spar.id}&transaction=${sparPurchase.id}`],
+  });
+
+  // act
+  await user.click(await screen.findByRole('switch', { name: 'Deleted' }));
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+  expect(new URLSearchParams(router.state.location.search).get('location')).toBe(spar.id);
+});

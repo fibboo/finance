@@ -585,3 +585,25 @@ test('shows the chosen transaction of an income source with its money account an
     expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
   });
 });
+
+test('drops the chosen transaction when Deleted changes the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json(readAccountPage([salary, freelance])),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/income-sources?account=${salary.id}&transaction=${salaryPayment.id}`],
+  });
+
+  // act
+  await user.click(await screen.findByRole('switch', { name: 'Deleted' }));
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+  expect(new URLSearchParams(router.state.location.search).get('account')).toBe(salary.id);
+});
