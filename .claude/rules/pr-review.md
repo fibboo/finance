@@ -50,8 +50,8 @@ A settings finding covers a call the diff adds that passes a settings value into
 Each of the following is a finding when the diff adds it under `frontend/` (`.claude/rules/react.md`, `.claude/rules/typescript.md`):
 
 - a token written to `localStorage`, `sessionStorage` or a cookie that script can read, a `dangerouslySetInnerHTML`, or a URL from data placed in an `href` or `src` without checking its scheme. Grade it **P1**: it opens the app to token theft or script injection.
-- server data copied into `useState`, Context or a store (an edit form's starting values in React Hook Form are not this finding), a query key written by hand instead of taken from the feature's key factory, or a fetch outside TanStack Query other than the token refresh and session restore of the API client's auth middleware and the code exchanges in the loaders of the sign-in and link callback routes;
-- an effect that derives data, fetches, handles an event or resets state;
+- server data copied into `useState`, Context or a store (an edit form's starting values in React Hook Form are not this finding, nor is a value a component keeps by setting its own state during render as `react.md` **Components** allows), a query key written by hand instead of taken from the feature's key factory, or a fetch outside TanStack Query other than the token refresh and session restore of the API client's auth middleware and the code exchanges in the loaders of the sign-in and link callback routes;
+- an effect that derives data, fetches, handles an event or resets state (a component that sets its own state during render as `react.md` **Components** allows is not this finding);
 - a `useMemo`, `useCallback` or `memo` without the profile or the effect dependency that justifies it;
 - an inline `eslint-disable`, a `@ts-ignore` or `@ts-expect-error`, an `any`, a non-null assertion or an `as` cast other than `as const`;
 - an API type written by hand instead of taken from the generated schema, or a backend value set or label copied into a frontend constant (a map keyed by the generated union, of presentation or of UI copy that explains a value, is not this finding);

@@ -37,6 +37,7 @@ import { LocationForm } from '@/features/locations/components/location-form';
 import { LocationRestoreForm } from '@/features/locations/components/location-restore-form';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
+import { useListedEntry } from '@/hooks/use-listed-entry';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { ApiError } from '@/lib/api-error';
 import { isThrownWithoutData } from '@/lib/query-meta';
@@ -60,9 +61,6 @@ function readLocationCount(
 export function Component() {
   const isDesktop = useIsDesktop();
   const [isCreating, setIsCreating] = useState(false);
-  const [editedLocationId, setEditedLocationId] = useState<string | undefined>(undefined);
-  const [confirmedLocationId, setConfirmedLocationId] = useState<string | undefined>(undefined);
-  const [renamedLocationId, setRenamedLocationId] = useState<string | undefined>(undefined);
   const [focusedLocationId, setFocusedLocationId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readCatalogSearch(searchParams);
@@ -96,12 +94,10 @@ export function Component() {
   const selectedLocationId = readSelectedLocationId(searchParams);
   const chosenLocation = locationPage?.items.find((location) => location.id === selectedLocationId);
   const shownLocation = chosenLocation ?? (isNothingMatched ? undefined : locationPage?.items[0]);
-  const editedLocation = locationPage?.items.find((location) => location.id === editedLocationId);
-  const confirmedLocation = locationPage?.items.find(
-    (location) => location.id === confirmedLocationId,
-  );
-  const renamedLocation = locationPage?.items.find(
-    (location) => location.id === renamedLocationId && location.status === 'DELETED',
+  const [editedLocation, setEditedLocationId] = useListedEntry(locationPage?.items);
+  const [confirmedLocation, setConfirmedLocationId] = useListedEntry(locationPage?.items);
+  const [renamedLocation, setRenamedLocationId] = useListedEntry(
+    locationPage?.items.filter((location) => location.status === 'DELETED'),
   );
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,

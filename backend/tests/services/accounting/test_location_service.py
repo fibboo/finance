@@ -78,6 +78,24 @@ async def test_create_location_with_existing_name(db: AsyncSession, db_transacti
     assert len(transactions) == 1
 
 
+async def test_create_location_with_name_existing_in_another_case(db: AsyncSession, db_transaction: AsyncSession):
+    # arrange
+    user_id = uuid4()
+    existing_create = LocationCreateRequest(name="Old market")
+    await location_service.create_location(db=db, create_data=existing_create, user_id=user_id)
+    await db.commit()
+    location_create = LocationCreateRequest(name="OLD MARKET")
+
+    # act / assert
+    with pytest.raises(NameAlreadyExists) as exc:
+        await location_service.create_location(db=db_transaction, create_data=location_create, user_id=user_id)
+        await db_transaction.commit()
+
+    assert exc.value.error_code == ErrorCodeType.NAME_ALREADY_EXISTS
+    locations_db: list[LocationModel] = (await db.scalars(select(LocationModel))).all()
+    assert [location.name for location in locations_db] == ["Old market"]
+
+
 async def test_get_locations(db: AsyncSession):
     # Arrange
     user_id = uuid4()

@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, expect, onTestFinished, test } from 'vitest';
+import { beforeEach, expect, onTestFinished, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -138,6 +138,9 @@ test('creates an account from New account and lists it', async () => {
   await user.click(await screen.findByRole('button', { name: 'New account' }));
   const form = await screen.findByRole('form', { name: 'New account' });
   await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Travel card');
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Create account' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Create account' }));
@@ -584,6 +587,9 @@ test('edits an account from its details and lists it under the new name', async 
   const nameField = within(form).getByRole('textbox', { name: 'Name' });
   await user.clear(nameField);
   await user.type(nameField, 'Salary card');
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Save changes' }));

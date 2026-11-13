@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type QueryKey, useMutation } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { EntityForm } from '@/components/entity-form/entity-form';
 import { TextField } from '@/components/text-field/text-field';
@@ -8,6 +8,7 @@ import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
 import { locationMutations } from '../api/location-mutations';
+import { useLocationNameTaken } from '../hooks/use-location-name-taken';
 import {
   DESCRIPTION_MAX_LENGTH,
   type LocationFormOutput,
@@ -42,7 +43,7 @@ function readStartingValues(mode: LocationFormMode): LocationFormValues {
 
 export function LocationForm({ mode, onBack }: LocationFormProps) {
   const startingValues = readStartingValues(mode);
-  const { register, handleSubmit, setError, formState } = useForm<
+  const { control, register, handleSubmit, setError, formState } = useForm<
     LocationFormValues,
     unknown,
     LocationFormOutput
@@ -53,6 +54,12 @@ export function LocationForm({ mode, onBack }: LocationFormProps) {
       values: startingValues,
       resetOptions: { keepDirtyValues: true },
     }),
+  });
+  const name = useWatch({ control, name: 'name' });
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useLocationNameTaken({
+    name,
+    ownLocationId: mode.kind === 'edit' ? mode.location.id : undefined,
+    unchangedName: mode.kind === 'edit' ? mode.location.name : undefined,
   });
   const create = useMutation(locationMutations.create());
   const update = useMutation(
@@ -76,7 +83,7 @@ export function LocationForm({ mode, onBack }: LocationFormProps) {
     <EntityForm
       title={mode.kind === 'create' ? 'New location' : 'Edit location'}
       submitLabel={mode.kind === 'create' ? 'Create location' : 'Save changes'}
-      isSubmitDisabled={create.isPending || update.isPending}
+      isSubmitDisabled={isNameTaken || isLookupPending || create.isPending || update.isPending}
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
@@ -104,7 +111,7 @@ export function LocationForm({ mode, onBack }: LocationFormProps) {
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message}
+        error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
       <TextField
         label="Description"

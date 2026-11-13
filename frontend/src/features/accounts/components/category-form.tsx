@@ -9,6 +9,7 @@ import type { components } from '@/lib/api-schema';
 
 import type { AccountFieldError } from '../api/account-field-errors';
 import { useAccountCreate } from '../hooks/use-account-create';
+import { useAccountNameTaken } from '../hooks/use-account-name-taken';
 import { useAccountUpdate } from '../hooks/use-account-update';
 import {
   type CategoryFormOutput,
@@ -80,7 +81,13 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
       resetOptions: { keepDirtyValues: true },
     }),
   });
-  const categoryType = useWatch({ control, name: 'category_type' });
+  const [categoryType, name] = useWatch({ control, name: ['category_type', 'name'] });
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
+    name,
+    kind: 'EXPENSE',
+    ownAccountId: mode.kind === 'edit' ? mode.category.id : undefined,
+    unchangedName: mode.kind === 'edit' ? mode.category.name : undefined,
+  });
 
   function showFieldError({ field, message }: AccountFieldError) {
     setError(field, { message });
@@ -108,7 +115,9 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
     <EntityForm
       title={mode.kind === 'create' ? 'New category' : 'Edit category'}
       submitLabel={mode.kind === 'create' ? 'Create category' : 'Save changes'}
-      isSubmitDisabled={accountCreate.isPending || accountUpdate.isPending}
+      isSubmitDisabled={
+        isNameTaken || isLookupPending || accountCreate.isPending || accountUpdate.isPending
+      }
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
@@ -138,7 +147,7 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message}
+        error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
       <SegmentedField
         legend="Type"

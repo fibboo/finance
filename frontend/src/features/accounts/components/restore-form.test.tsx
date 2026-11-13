@@ -29,7 +29,22 @@ const NAME_TAKEN_RESPONSE = {
   message: 'Name already exists',
 } satisfies components['schemas']['ErrorResponse'];
 
-test('opens with the name of the category and the reason it was refused', () => {
+test('opens with the name of the category and the reason an active category holds it', async () => {
+  // arrange
+  let lookupQuery = new URLSearchParams();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      lookupQuery = new URL(request.url).searchParams;
+      return HttpResponse.json({
+        items: [{ ...cigarettes, id: '5a6b4c7d-1c2d-3e4f-8e9f-0a1b2c3d4e61', status: 'ACTIVE' }],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+
   // act
   render(
     <RestoreForm
@@ -44,14 +59,39 @@ test('opens with the name of the category and the reason it was refused', () => 
   // assert
   const name = screen.getByRole('textbox', { name: 'Name' });
   expect(name).toHaveValue('Cigarettes');
-  expect(name).toHaveAccessibleDescription('An active category already has this name');
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active category already has this name');
+  });
+  expect(screen.getByRole('button', { name: 'Restore category' })).toBeDisabled();
+  expect(lookupQuery.getAll('kinds')).toEqual(['EXPENSE']);
+  expect(lookupQuery.getAll('statuses')).toEqual(['ACTIVE']);
+  expect(lookupQuery.get('search_term')).toBe('cigarettes');
 });
 
-test('names an income source in the window and in the reason it was refused', () => {
+test('names an income source in the window and in the reason an active one holds the name', async () => {
+  // arrange
+  const scholarship = {
+    ...cigarettes,
+    kind: 'INCOME',
+    category_type: null,
+    name: 'Scholarship',
+  } satisfies components['schemas']['Account'];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [{ ...scholarship, id: '5a6b4c7d-1c2d-3e4f-8e9f-0a1b2c3d4e61', status: 'ACTIVE' }],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
   // act
   render(
     <RestoreForm
-      account={{ ...cigarettes, kind: 'INCOME', category_type: null, name: 'Scholarship' }}
+      account={scholarship}
       entityName="income source"
       relatedQueryKeys={[]}
       onRestored={vi.fn()}
@@ -61,9 +101,101 @@ test('names an income source in the window and in the reason it was refused', ()
 
   // assert
   expect(screen.getByRole('form', { name: 'Restore income source' })).toBeInTheDocument();
-  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
-    'An active income source already has this name',
+  await vi.waitFor(() => {
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
+      'An active income source already has this name',
+    );
+  });
+});
+
+test('drops the reason and allows the restore once a free name is typed', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const searchTerm = new URL(request.url).searchParams.get('search_term');
+      const items =
+        searchTerm === 'cigarettes'
+          ? [
+              {
+                ...cigarettes,
+                id: '5a6b4c7d-1c2d-3e4f-8e9f-0a1b2c3d4e61',
+                status: 'ACTIVE' as const,
+              },
+            ]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
   );
+  const user = userEvent.setup();
+  render(
+    <RestoreForm
+      account={cigarettes}
+      entityName="category"
+      relatedQueryKeys={[]}
+      onRestored={vi.fn()}
+      onBack={vi.fn()}
+    />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active category already has this name');
+  });
+
+  // act
+  await user.type(name, ' 2025');
+
+  // assert
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore category' })).toBeEnabled();
+  });
+  expect(name).not.toHaveAccessibleDescription();
+});
+
+test('says a name an active category has in another case is taken', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [
+          {
+            ...cigarettes,
+            name: 'cigarettes',
+            id: '5a6b4c7d-1c2d-3e4f-8e9f-0a1b2c3d4e61',
+            status: 'ACTIVE',
+          },
+        ],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
+  // act
+  render(
+    <RestoreForm
+      account={cigarettes}
+      entityName="category"
+      relatedQueryKeys={[]}
+      onRestored={vi.fn()}
+      onBack={vi.fn()}
+    />,
+  );
+
+  // assert
+  await vi.waitFor(() => {
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
+      'An active category already has this name',
+    );
+  });
+  expect(screen.getByRole('button', { name: 'Restore category' })).toBeDisabled();
 });
 
 test('restores the category under the typed name', async () => {
@@ -71,6 +203,15 @@ test('restores the category under the typed name', async () => {
   let restoreBody: unknown = null;
   const onRestored = vi.fn();
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.post(
       `http://localhost/api/accounting/accounts/${cigarettes.id}/restore`,
       async ({ request }) => {
@@ -96,6 +237,9 @@ test('restores the category under the typed name', async () => {
   const name = screen.getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, '  Cigarettes 2025 ');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore category' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Restore category' }));
@@ -111,6 +255,15 @@ test('keeps the window open with the reason under the name when the new name is 
   // arrange
   const onRestored = vi.fn();
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.post(`http://localhost/api/accounting/accounts/${cigarettes.id}/restore`, () =>
       HttpResponse.json(NAME_TAKEN_RESPONSE, { status: 409 }),
     ),
@@ -128,6 +281,9 @@ test('keeps the window open with the reason under the name when the new name is 
   const name = screen.getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Groceries');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore category' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Restore category' }));
@@ -144,6 +300,15 @@ test('keeps the window open with the reason under the name when the new name is 
 test('shows the message of the backend under the name when it refuses the name for another reason', async () => {
   // arrange
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.post(`http://localhost/api/accounting/accounts/${cigarettes.id}/restore`, () =>
       HttpResponse.json(
         {
@@ -172,6 +337,9 @@ test('shows the message of the backend under the name when it refuses the name f
   const name = screen.getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Smokes');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore category' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Restore category' }));
@@ -185,6 +353,17 @@ test('shows the message of the backend under the name when it refuses the name f
 test('shows the rule of the name instead of posting a name that is too short', async () => {
   // arrange
   const onRestored = vi.fn();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
   const user = userEvent.setup();
   render(
     <RestoreForm
@@ -198,6 +377,9 @@ test('shows the rule of the name instead of posting a name that is too short', a
   const name = screen.getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Ci');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore category' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Restore category' }));

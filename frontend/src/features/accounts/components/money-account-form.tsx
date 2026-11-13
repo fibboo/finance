@@ -14,6 +14,7 @@ import type { components } from '@/lib/api-schema';
 import type { AccountFieldError } from '../api/account-field-errors';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '../api/account-queries';
 import { useAccountCreate } from '../hooks/use-account-create';
+import { useAccountNameTaken } from '../hooks/use-account-name-taken';
 import { useAccountUpdate } from '../hooks/use-account-update';
 import {
   DESCRIPTION_MAX_LENGTH,
@@ -119,7 +120,13 @@ export function MoneyAccountForm({
     values: startingValues,
     resetOptions: { keepDirtyValues: true },
   });
-  const [pickedColor, kind] = useWatch({ control, name: ['color', 'kind'] });
+  const [pickedColor, kind, name] = useWatch({ control, name: ['color', 'kind', 'name'] });
+  const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
+    name,
+    kind,
+    ownAccountId: mode.kind === 'edit' ? mode.account.id : undefined,
+    unchangedName: mode.kind === 'edit' ? mode.account.name : undefined,
+  });
   const { data: moneyAccounts } = useQuery(
     accountQueries.list({
       kinds: [...MONEY_ACCOUNT_KINDS],
@@ -167,7 +174,13 @@ export function MoneyAccountForm({
     <EntityForm
       title={mode.kind === 'create' ? 'New account' : 'Edit account'}
       submitLabel={mode.kind === 'create' ? 'Create account' : 'Save changes'}
-      isSubmitDisabled={color === undefined || accountCreate.isPending || accountUpdate.isPending}
+      isSubmitDisabled={
+        color === undefined ||
+        isNameTaken ||
+        isLookupPending ||
+        accountCreate.isPending ||
+        accountUpdate.isPending
+      }
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
@@ -202,7 +215,7 @@ export function MoneyAccountForm({
         maxLength={NAME_MAX_LENGTH}
         isOptional={false}
         isMultiline={false}
-        error={formState.errors.name?.message}
+        error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
       {mode.kind === 'create' ? (
         <>
