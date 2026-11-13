@@ -497,11 +497,19 @@ async def test_get_account_deleted_category_or_income_source(
     assert account.description == "Quit in March"
     assert account.category_type == category_type
     assert account.status == EntityStatusType.DELETED
+    assert account.balance == Decimal("0")
+    assert account.base_currency_balance == Decimal("0.00")
+    assert account.base_currency_rate == Decimal("0")
 
 
-@pytest.mark.parametrize("kind", [AccountKind.ASSET, AccountKind.LIABILITY])
+@pytest.mark.parametrize(
+    ("kind", "currency"),
+    [(AccountKind.ASSET, "USD"), (AccountKind.LIABILITY, "USD"), (AccountKind.EQUITY, None)],
+)
 @pytest.mark.parametrize("balance_date", [None, date(2026, 3, 10)])
-async def test_get_account_deleted_money_account(db: AsyncSession, kind: AccountKind, balance_date: date | None):
+async def test_get_account_deleted_ledger_account(
+    db: AsyncSession, kind: AccountKind, currency: str | None, balance_date: date | None
+):
     # Arrange
     user_id: UUID = uuid4()
     account_db: AccountModel = await account_crud.create(
@@ -510,7 +518,7 @@ async def test_get_account_deleted_money_account(db: AsyncSession, kind: Account
             "kind": kind,
             "user_id": user_id,
             "name": "Old wallet",
-            "currency": "USD",
+            "currency": currency,
             "status": EntityStatusType.DELETED,
         },
         commit=True,
@@ -546,6 +554,8 @@ async def test_get_account_deleted_category_of_another_user(db: AsyncSession):
         await account_service.get_account(db=db, account_id=category_db.id, user_id=user_id)
 
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    search_params = {"id": category_db.id, "user_id": user_id}
+    assert exc.value.log_message == f"{AccountModel.__name__} not found by {search_params}"
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
