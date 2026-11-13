@@ -5,6 +5,7 @@ import { ActionButton } from '@/components/action-button/action-button';
 import { DELETE_ICON_PATH } from '@/components/action-button/action-icons';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { focusReturnTarget } from '@/components/details-panel/focus-return';
+import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -12,15 +13,31 @@ import { accountMutations } from '../api/account-mutations';
 import { accountQueries } from '../api/account-queries';
 import { ACCOUNT_SEARCH_FIELD_ID } from '../api/account-search';
 import { readNeighbourAccountLinkId } from '../api/selected-account';
+import { type DeleteCopy, readCatalogDeleteCopy } from './catalog-delete-copy';
 
 type Account = components['schemas']['Account'];
+
+function readDeleteCopy({
+  account,
+  currency,
+}: Readonly<{ account: Readonly<Account>; currency: string }>): DeleteCopy {
+  const deleteCopy = isMoneyAccountKind(account.kind)
+    ? {
+        label: 'Delete account',
+        title: 'Delete this account?',
+        text: `${account.name}, ${formatMoney({ amount: Number(account.balance), currency })}. It leaves your accounts and the pickers, and its past transactions keep showing it.`,
+      }
+    : readCatalogDeleteCopy(account);
+  return deleteCopy;
+}
 
 function readBlockingHint({
   account,
   isOnlyAccount,
 }: Readonly<{ account: Readonly<Account>; isOnlyAccount: boolean }>): string | undefined {
-  const blockingHint =
-    Number(account.balance) !== 0
+  const blockingHint = !isMoneyAccountKind(account.kind)
+    ? undefined
+    : Number(account.balance) !== 0
       ? 'Bring the balance to zero to delete.'
       : isOnlyAccount
         ? "Your only money account can't be deleted."
@@ -45,9 +62,19 @@ export function DeleteAccount({
 }: DeleteAccountProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const queryClient = useQueryClient();
-  const { mutate, isPending } = useMutation(accountMutations.delete(relatedQueryKeys));
+  const deleteOptions = accountMutations.delete(relatedQueryKeys);
+  const { mutate, isPending } = useMutation({
+    ...deleteOptions,
+    onSuccess: async (deletedAccount, accountId, onMutateResult, context) => {
+      await deleteOptions.onSuccess?.(deletedAccount, accountId, onMutateResult, context);
+      if (!isMoneyAccountKind(deletedAccount.kind)) {
+        onDeleted();
+      }
+    },
+  });
   const buttonId = useId();
   const blockingHint = readBlockingHint({ account, isOnlyAccount });
+  const deleteCopy = readDeleteCopy({ account, currency });
 
   function closeConfirmation() {
     setIsConfirming(false);
@@ -58,7 +85,7 @@ export function DeleteAccount({
     <>
       <ActionButton
         id={buttonId}
-        label="Delete account"
+        label={deleteCopy.label}
         iconPath={DELETE_ICON_PATH}
         isDanger
         action={{
@@ -71,14 +98,19 @@ export function DeleteAccount({
       />
       {isConfirming && (
         <DeleteConfirmation
-          title="Delete this account?"
-          text={`${account.name}, ${formatMoney({ amount: Number(account.balance), currency })}. It leaves your accounts and the pickers, and its past transactions keep showing it.`}
+          title={deleteCopy.title}
+          text={deleteCopy.text}
           isPending={isPending}
           onCancel={closeConfirmation}
           onConfirm={() => {
             const neighbourLinkId = readNeighbourAccountLinkId(account.id);
             mutate(account.id, {
               onSuccess: () => {
+                setIsConfirming(false);
+                if (!isMoneyAccountKind(account.kind)) {
+                  return;
+                }
+
                 onDeleted();
                 queryClient.removeQueries({
                   queryKey: accountQueries.detail(account.id).queryKey,

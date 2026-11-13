@@ -34,6 +34,7 @@ const category = {
 
 const accountKinds = [
   { key: 'ASSET', label: 'Asset' },
+  { key: 'EQUITY', label: 'Equity' },
   { key: 'EXPENSE', label: 'Expense' },
 ] satisfies components['schemas']['DictionaryItem'][];
 
@@ -51,10 +52,22 @@ test.each([
     text: 'Wallet, deletedAsset · USD',
   },
   {
-    kind: 'shows a category without a link',
+    kind: 'links a category to the address the route gives',
     account: category,
-    href: null,
+    href: '/accounts?account=1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
     text: 'GroceriesExpense',
+  },
+  {
+    kind: 'links a deleted category, struck through',
+    account: { ...category, status: 'DELETED' },
+    href: '/accounts?account=1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
+    text: 'Groceries, deletedExpense',
+  },
+  {
+    kind: 'shows the equity account without a link',
+    account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+    href: null,
+    text: 'AdjustmentsEquity',
   },
 ] satisfies {
   kind: string;

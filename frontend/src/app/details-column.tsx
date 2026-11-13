@@ -43,6 +43,7 @@ export function DetailsColumn({
         defaultAccountId={shownAccount.defaultAccountId}
         isKeptOpenOnDesktop
         isParamIgnored={shownAccount.isAccountParamStale}
+        isMoneyAccountOnly={false}
       />
     </div>
   );

@@ -1,8 +1,9 @@
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { type To, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 
 import { CatalogTransactions } from '@/app/catalog-transactions';
+import { readTransactionsLink } from '@/app/transactions-link';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
@@ -24,12 +25,12 @@ import { CatalogFilters } from '@/features/accounts/components/catalog-filters';
 import { readSelectedAccountId } from '@/features/accounts/api/selected-account';
 import { readCategoryGroups } from '@/features/accounts/components/catalog-grouping';
 import { CatalogList } from '@/features/accounts/components/catalog-list';
+import { readCatalogDeleteCopy } from '@/features/accounts/components/catalog-delete-copy';
 import { CatalogRowActions } from '@/features/accounts/components/catalog-row-actions';
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
 import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
-import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
@@ -50,20 +51,6 @@ function readCategoryCount(
       ? undefined
       : { value: total, label: total === 1 ? 'category' : 'categories' };
   return categoryCount;
-}
-
-function readCategoryTransactionsLink(categoryId: string): To {
-  const transactionsLink = {
-    pathname: '/transactions',
-    search: writeTransactionFilters({
-      transaction_types: [],
-      account_ids: [],
-      category_ids: [categoryId],
-      income_source_ids: [],
-      location_ids: [],
-    }).toString(),
-  };
-  return transactionsLink;
 }
 
 export function Component() {
@@ -208,7 +195,7 @@ export function Component() {
               renderActions={(category) => (
                 <CatalogRowActions
                   entry={category}
-                  transactionsLink={readCategoryTransactionsLink(category.id)}
+                  transactionsLink={readTransactionsLink(category)}
                   isRestorePending={categoryRestore.isPending}
                   isFocusRequested={category.id === focusedCategoryId}
                   onFocused={() => {
@@ -252,7 +239,7 @@ export function Component() {
             )}
             emptyText="No transactions in this category yet"
             filterQuery={{ account_ids: [shownCategory.id] }}
-            transactionsLink={readCategoryTransactionsLink(shownCategory.id)}
+            transactionsLink={readTransactionsLink(shownCategory)}
             transactionTypes={dictionaries?.transaction_types}
           />
         )}
@@ -300,8 +287,8 @@ export function Component() {
       )}
       {confirmedCategory !== undefined && (
         <DeleteConfirmation
-          title="Delete this category?"
-          text={`${confirmedCategory.name}. It leaves your categories and the pickers, and its past transactions keep showing it.`}
+          title={readCatalogDeleteCopy(confirmedCategory).title}
+          text={readCatalogDeleteCopy(confirmedCategory).text}
           isPending={categoryDelete.isPending}
           onCancel={() => {
             closeConfirmation(confirmedCategory.id);
