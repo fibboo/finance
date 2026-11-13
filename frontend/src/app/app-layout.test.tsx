@@ -164,3 +164,173 @@ test.each([
     expect(screen.getByRole('button', { name: 'Add transaction' })).toHaveFocus();
   }
 });
+
+test('collapses the menu to icons and shows it again', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<AppLayout />);
+  await user.click(screen.getByRole('button', { name: 'Collapse' }));
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Show the full menu' }));
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Collapse' })).toBeInTheDocument();
+});
+
+test('keeps the menu collapsed by hand on the next visit', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  const { unmount } = render(<AppLayout />);
+  await user.click(screen.getByRole('button', { name: 'Collapse' }));
+  unmount();
+
+  // act
+  render(<AppLayout />);
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Show the full menu' })).toBeInTheDocument();
+});
+
+test.each([
+  { innerWidth: 1024, toggleName: 'Show the full menu' },
+  { innerWidth: 1600, toggleName: 'Collapse' },
+])(
+  'shows $toggleName at $innerWidth px on a route that asks for 90rem beside the full menu',
+  ({ innerWidth, toggleName }) => {
+    // arrange
+    vi.stubGlobal('innerWidth', innerWidth);
+    server.use(
+      http.get('http://localhost/api/user/me', () =>
+        HttpResponse.json({
+          id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+          username: 'nikita',
+          avatar: null,
+          registration_provider: 'GOOGLE',
+          base_currency: 'EUR',
+          external_users: [],
+        } satisfies components['schemas']['User']),
+      ),
+      http.get('http://localhost/api/dictionaries/user', () =>
+        HttpResponse.json({
+          provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+        } satisfies components['schemas']['UserDictionaries']),
+      ),
+    );
+
+    // act
+    render(<AppLayout />, { handle: { fullMenuMinWidth: '90rem' } });
+
+    // assert
+    expect(screen.getByRole('button', { name: toggleName })).toBeInTheDocument();
+  },
+);
+
+test.each([
+  { closeWith: 'Collapse' },
+  { closeWith: 'Escape' },
+  { closeWith: 'a click outside' },
+  { closeWith: 'Transactions' },
+])('closes the full menu opened over the page on $closeWith', async ({ closeWith }) => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<AppLayout />, { handle: { fullMenuMinWidth: '90rem' } });
+  await user.click(screen.getByRole('button', { name: 'Show the full menu' }));
+
+  // act
+  if (closeWith === 'Collapse') {
+    await user.click(screen.getByRole('button', { name: 'Collapse' }));
+  } else if (closeWith === 'Escape') {
+    await user.keyboard('{Escape}');
+  } else if (closeWith === 'a click outside') {
+    await user.click(screen.getByRole('main'));
+  } else {
+    await user.click(screen.getByRole('link', { name: 'Transactions' }));
+  }
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Show the full menu' })).toBeInTheDocument();
+});
+
+test('keeps the full menu on a wide screen after it was opened over the page', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  const { unmount } = render(<AppLayout />, { handle: { fullMenuMinWidth: '90rem' } });
+  await user.click(screen.getByRole('button', { name: 'Show the full menu' }));
+  unmount();
+  vi.stubGlobal('innerWidth', 1600);
+
+  // act
+  render(<AppLayout />, { handle: { fullMenuMinWidth: '90rem' } });
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Collapse' })).toBeInTheDocument();
+});

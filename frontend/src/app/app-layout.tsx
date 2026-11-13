@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { Link, Outlet } from 'react-router';
 
 import styles from './app-layout.module.css';
 import { MainNavigation } from './main-navigation';
 import { NewTransaction } from './new-transaction';
+import { useMenuCollapse } from './use-menu-collapse';
 
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';
@@ -19,15 +21,28 @@ import { UserSummary } from '@/features/user/components/user-summary';
 export function AppLayout() {
   const isLogoShownOnPhone = useIsLogoShownOnPhone();
   const { data: userDictionaries } = useQuery(dictionaryQueries.user());
+  const logoRef = useRef<HTMLAnchorElement>(null);
+  const navigationRef = useRef<HTMLDivElement>(null);
+  const { menuState, toggleMenu, closeMenuOverPage } = useMenuCollapse({
+    readIsInside: (target) =>
+      logoRef.current?.contains(target) === true ||
+      navigationRef.current?.contains(target) === true,
+  });
+  const isMenuCollapsed = menuState === 'collapsed';
+  const logoLinkClassName = isLogoShownOnPhone ? styles['logoLinkOnPhone'] : styles['logoLink'];
 
   return (
-    <div className={styles['appLayout']}>
+    <div
+      className={menuState === 'full' ? styles['appLayout'] : styles['appLayoutWithCollapsedMenu']}
+    >
       <header className={styles['header']}>
         <Link
+          ref={logoRef}
           to="/"
-          className={isLogoShownOnPhone ? styles['logoLinkOnPhone'] : styles['logoLink']}
+          className={`${logoLinkClassName ?? ''} ${isMenuCollapsed ? (styles['logoLinkCollapsed'] ?? '') : ''}`}
+          onClick={closeMenuOverPage}
         >
-          <Logo />
+          <Logo nameClassName={isMenuCollapsed ? styles['collapsedLogoName'] : undefined} />
         </Link>
         <div className={styles['account']}>
           <AccountMenu avatar={<UserInitials />}>
@@ -45,8 +60,17 @@ export function AppLayout() {
           </AccountMenu>
         </div>
       </header>
-      <div className={styles['navigation']}>
-        <MainNavigation />
+      <div
+        ref={navigationRef}
+        className={
+          menuState === 'openOverPage' ? styles['navigationOverPage'] : styles['navigation']
+        }
+      >
+        <MainNavigation
+          menuState={menuState}
+          onMenuToggle={toggleMenu}
+          onSectionChoose={closeMenuOverPage}
+        />
       </div>
       <main className={styles['main']}>
         <Outlet />

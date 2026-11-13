@@ -35,6 +35,8 @@ The rules are in `.claude/rules/react.md` **Auth and Security**; `features/auth/
 
 A details view, a form and a filter panel are each one component that CSS turns from a bottom sheet on a phone into a panel, a dialog or a popover on desktop (`DetailsPanel`, `Sheet`). The app layout holds the screen height, so only a page's content scrolls. A route that pins rows above a scrolling list sets `--sticky-top` to their height, which the rows under them stick below and scroll clear of. A route shows the logo in the phone's top bar by exporting `handle = { isLogoShownOnPhone: true }`.
 
+A route whose columns do not fit beside the full desktop menu states the width they need through `handle = { fullMenuMinWidth: '<n>rem' }`, and below it the menu collapses to icons whatever the user chose (`use-menu-collapse.ts`). Only the page knows how many columns it shows, so the layout cannot work the width out with CSS alone. Opening the full menu over the page there is not stored, so that a look at the menu on a narrow window does not change the choice a wide one keeps.
+
 The transactions beside a catalog list are the stated exception, a secondary detail of the desktop: `hooks/use-is-desktop.ts` repeats the `--desktop` breakpoint of `styles/media.css` in script, because CSS can neither keep a hidden block from fetching its feed nor turn a link into text. The two values change together. On desktop that list scrolls inside its own block instead of the page, so that the transactions beside it keep the screen height.
 
 ## Transaction feed

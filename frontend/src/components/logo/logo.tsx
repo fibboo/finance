@@ -1,10 +1,14 @@
 import styles from './logo.module.css';
 
-export function Logo() {
+type LogoProps = Readonly<{
+  nameClassName?: string | undefined;
+}>;
+
+export function Logo({ nameClassName }: LogoProps) {
   return (
     <span className={styles['logo']}>
       <span className={styles['mark']} aria-hidden="true" />
-      finance
+      <span className={nameClassName}>finance</span>
     </span>
   );
 }
