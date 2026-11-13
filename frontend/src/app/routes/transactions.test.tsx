@@ -94,7 +94,11 @@ beforeEach(() => {
           { key: 'EQUITY', label: 'Equity' },
           { key: 'EXPENSE', label: 'Expense' },
         ],
-        category_types: [],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+          { key: 'PERIODIC', label: 'Periodic' },
+        ],
         transaction_types: [
           { key: 'EXPENSE', label: 'Expense' },
           { key: 'INCOME', label: 'Income' },
@@ -1271,7 +1275,7 @@ test('keeps the period open on a date after today', async () => {
   expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
 });
 
-test('shows the selected transaction with its postings, location and comment', async () => {
+test('shows the selected transaction with its From and To, location and comment', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/transactions', () =>
@@ -1316,10 +1320,13 @@ test('shows the selected transaction with its postings, location and comment', a
   // the amount of the transaction and of its Wallet posting
   expect(within(details).getAllByText('-€42.80')).toHaveLength(2);
   expect(within(details).getByText('≈ $46.70')).toBeInTheDocument();
-  // each posting: its account, kind and currency, amount and base-currency value
-  const postings = within(details).getAllByRole('listitem');
-  expect(postings[0]).toHaveTextContent('WalletAsset · USD-€42.80≈ -$46.70');
-  expect(postings[1]).toHaveTextContent('GroceriesExpense+€42.80≈ +$46.70');
+  // From the money account To the category: its mark, name, kind, amount and base-currency value
+  expect(within(details).getByRole('region', { name: 'From' })).toHaveTextContent(
+    'WWalletAsset · USDBalance $412.50-€42.80≈ -$46.70',
+  );
+  expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
+    'GGroceriesExpense · Variable+€42.80≈ +$46.70',
+  );
   // the money account and the category open beside the transaction
   expect(within(details).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
     'href',
@@ -1868,6 +1875,124 @@ test('marks the deleted account in the title and blocks Delete with its name', a
   expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
   expect(deleteButton).toHaveAccessibleDescription('Wallet is deleted.');
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+});
+
+test('collapses the valuation postings of a transfer into one exchange difference', async () => {
+  // arrange
+  const savings = {
+    ...wallet,
+    name: 'Savings',
+    id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a04',
+    currency: 'EUR',
+    balance: '300.00',
+  } satisfies components['schemas']['Account'];
+  const equity = {
+    ...category,
+    name: 'Adjustments',
+    kind: 'EQUITY',
+    category_type: null,
+  } satisfies components['schemas']['Account'];
+  const transfer = {
+    ...expense,
+    transaction_type: 'TRANSFER',
+    postings: [
+      { ...walletPosting, amount: '-62.39', base_amount: '-62.39' },
+      {
+        ...categoryPosting,
+        amount: '56.18',
+        currency: 'EUR',
+        base_amount: '62.39',
+        account: savings,
+      },
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a62',
+        amount: '0',
+        currency: 'EUR',
+        base_amount: '0.11',
+        account: savings,
+      },
+      {
+        id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a63',
+        amount: '0',
+        currency: 'USD',
+        base_amount: '-0.11',
+        account: equity,
+      },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [transfer],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(transfer),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(await within(details).findByRole('region', { name: 'From' })).toHaveTextContent(
+    'WWalletAsset · USDBalance $412.50-$62.39',
+  );
+  expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
+    'SSavingsAsset · EURBalance €300.00+€56.18≈ +$62.39',
+  );
+  expect(within(details).queryByText('Adjustments')).not.toBeInTheDocument();
+  // the exchange difference, then the empty location and comment
+  expect(within(details).getByText('Exchange difference').parentElement).toHaveTextContent(
+    'Exchange difference≈ +$0.11Location—Comment—',
+  );
+});
+
+test('shows an adjustment that grows the balance as one To block', async () => {
+  // arrange
+  const adjustment = {
+    ...expense,
+    transaction_type: 'ADJUSTMENT',
+    postings: [
+      {
+        ...categoryPosting,
+        amount: '-12.00',
+        base_amount: '-12.00',
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+      },
+      { ...walletPosting, amount: '12.00', base_amount: '12.00' },
+    ],
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [adjustment],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(adjustment),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(await within(details).findByRole('region', { name: 'To' })).toHaveTextContent(
+    'WWalletAsset · USDBalance $412.50+$12.00',
+  );
+  expect(within(details).queryByRole('region', { name: 'From' })).not.toBeInTheDocument();
+  expect(within(details).queryByText('Adjustments')).not.toBeInTheDocument();
 });
 
 test('keeps Delete open while only the category of the transaction is deleted', async () => {

@@ -1,0 +1,99 @@
+.transactionEntryBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.role {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3-5);
+  border-radius: var(--radius-action);
+  background: var(--color-ground);
+}
+
+.mark {
+  flex: none;
+  width: var(--size-account-mark-sm);
+  height: var(--size-account-mark-sm);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-muted);
+  background: var(--color-bone);
+}
+
+.moneyAccountMark {
+  width: var(--size-account-mark-lg);
+  height: var(--size-account-mark-lg);
+  border-radius: var(--radius-segment);
+  font-size: var(--font-size-base);
+  color: var(--color-on-account-mark);
+}
+
+.deletedMark {
+  opacity: var(--opacity-deleted-mark);
+}
+
+.identity {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.note {
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--color-muted);
+}
+
+.amounts {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.amount {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.entryLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--color-border);
+  text-underline-offset: var(--underline-offset-link);
+}
+
+.entryLink::after {
+  content: ' ›' / '';
+  color: var(--color-muted);
+}
+
+@media (hover: hover) {
+  .entryLink:hover {
+    text-decoration-color: currentColor;
+  }
+}

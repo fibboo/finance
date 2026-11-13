@@ -17,7 +17,7 @@ import { MovementForm } from '@/features/transactions/components/movement-form';
 import { TransactionDetails } from '@/features/transactions/components/transaction-details';
 import { TransactionForm } from '@/features/transactions/components/transaction-form';
 import type { ReadLocationLink } from '@/features/transactions/components/transaction-overview';
-import type { ReadAccountLink } from '@/features/transactions/components/transaction-postings';
+import type { ReadAccountLink } from '@/features/transactions/components/transaction-entry-block';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
@@ -39,6 +39,7 @@ type SelectedTransactionProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
+  categoryTypes: readonly DictionaryItem[];
   readAccountLink: ReadAccountLink;
   readLocationLink: ReadLocationLink;
 }>;
@@ -49,6 +50,7 @@ function SelectedTransaction({
   baseCurrency,
   transactionTypes,
   accountKinds,
+  categoryTypes,
   readAccountLink,
   readLocationLink,
 }: SelectedTransactionProps) {
@@ -93,6 +95,7 @@ function SelectedTransaction({
         baseCurrency={baseCurrency}
         transactionTypes={transactionTypes}
         accountKinds={accountKinds}
+        categoryTypes={categoryTypes}
         readAccountLink={readAccountLink}
         readLocationLink={readLocationLink}
         relatedQueryKeys={relatedQueryKeys}
@@ -179,6 +182,7 @@ export function SelectedTransactionDetails({
       baseCurrency={baseCurrency}
       transactionTypes={dictionaries.transaction_types}
       accountKinds={dictionaries.account_kinds}
+      categoryTypes={dictionaries.category_types}
       readAccountLink={readAccountLink}
       readLocationLink={readLocationLink}
     />
