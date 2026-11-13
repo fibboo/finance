@@ -444,6 +444,37 @@ async def test_restore_location_ok(
     assert [location.id for location in locations.items] == [created_location.id]
 
 
+async def test_restore_location_under_new_name_when_own_name_taken(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id = uuid4()
+    location_create = LocationCreateRequest(name="Test place")
+    deleted_location: Location = await location_service.create_location(
+        db=db, create_data=location_create, user_id=user_id
+    )
+    await location_service.delete_location(db=db, location_id=deleted_location.id, user_id=user_id)
+    active_location: Location = await location_service.create_location(
+        db=db, create_data=location_create, user_id=user_id
+    )
+    await db.commit()
+
+    # Act
+    location: Location = await location_service.restore_location(
+        db=db_transaction,
+        location_id=deleted_location.id,
+        restore_data=LocationRestoreRequest(name="New place"),
+        user_id=user_id,
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert location.id == deleted_location.id
+    assert location.name == "New place"
+    assert location.status == EntityStatusType.ACTIVE
+
+    locations: Page[Location] = await location_service.get_locations(db=db, request=LocationRequest(), user_id=user_id)
+    assert {location.id for location in locations.items} == {deleted_location.id, active_location.id}
+
+
 @pytest.mark.parametrize("location_status", [None, EntityStatusType.ACTIVE])
 async def test_restore_location_not_found(
     db: AsyncSession, db_transaction: AsyncSession, location_status: EntityStatusType | None
@@ -473,7 +504,6 @@ async def test_restore_location_not_found(
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-# the restored name is taken whether it is the location's own or a new one
 @pytest.mark.parametrize(
     "restore_data",
     [None, LocationRestoreRequest(name="Other place")],
@@ -488,6 +518,7 @@ async def test_restore_location_name_taken(
         db=db, create_data=location_create, user_id=user_id
     )
     await location_service.delete_location(db=db, location_id=deleted_location.id, user_id=user_id)
+    # active locations hold both the deleted location's own name and the new one
     await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
     await location_service.create_location(
         db=db, create_data=LocationCreateRequest(name="Other place"), user_id=user_id
