@@ -1,5 +1,4 @@
 import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
-import type { To } from 'react-router';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
 import type { components } from '@/lib/api-schema';
@@ -8,7 +7,9 @@ import { readTransactionLinkId } from '../api/selected-transaction';
 import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
 import { EditTransaction } from './edit-transaction';
-import { type LocationLink, TransactionOverview } from './transaction-overview';
+import { TRANSACTION_ARROW_KEY_LIST } from './transaction-arrow-keys';
+import { type ReadLocationLink, TransactionOverview } from './transaction-overview';
+import type { ReadAccountLink } from './transaction-postings';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
@@ -17,8 +18,8 @@ type TransactionDetailsProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
-  readAccountLink: (accountId: string) => To;
-  readLocationLink: (locationId: string) => LocationLink;
+  readAccountLink: ReadAccountLink;
+  readLocationLink: ReadLocationLink;
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;
   editButtonId: string;
@@ -59,6 +60,7 @@ export function TransactionDetails({
       isKeptOpenOnDesktop
       errorMessage="Couldn't load the transaction"
       returnFocusId={readTransactionLinkId(transactionId)}
+      arrowKeyList={TRANSACTION_ARROW_KEY_LIST}
       onRetry={() => {
         void refetch();
       }}

@@ -89,7 +89,7 @@ test.each([
       ]}
       baseCurrency="USD"
       accountKinds={accountKinds}
-      readAccountLink={(accountId) => ({ pathname: '/accounts', search: `account=${accountId}` })}
+      readAccountLink={(account) => ({ pathname: '/accounts', search: `account=${account.id}` })}
     />,
   );
 

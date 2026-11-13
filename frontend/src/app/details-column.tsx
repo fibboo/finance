@@ -38,8 +38,8 @@ export function DetailsColumn({
       <SelectedTransactionDetails
         baseCurrency={baseCurrency}
         defaultTransactionId={defaultTransactionId}
-        readAccountLink={(accountId) => ({
-          search: writeSelectedAccount({ searchParams, accountId }).toString(),
+        readAccountLink={(account) => ({
+          search: writeSelectedAccount({ searchParams, accountId: account.id }).toString(),
         })}
         readLocationLink={(locationId) => ({
           to: { search: writeSelectedLocation({ searchParams, locationId }).toString() },

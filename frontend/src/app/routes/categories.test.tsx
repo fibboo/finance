@@ -78,6 +78,21 @@ const rentPayment = {
   ],
 } satisfies components['schemas']['Transaction'];
 
+const earlierRentPayment = {
+  ...rentPayment,
+  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+  transaction_date: '2026-09-05',
+  base_currency_amount: '850.00',
+  postings: rentPayment.postings.map((posting) => ({
+    ...posting,
+    id: `${posting.id.slice(0, -1)}9`,
+    amount: posting.amount.replace('900', '850'),
+    base_amount: posting.base_amount.replace('900', '850'),
+  })),
+} satisfies components['schemas']['Transaction'];
+
+const [mainCardPosting] = rentPayment.postings;
+
 beforeEach(() => {
   // 768 px of jsdom's window over 52 px rows give pages of 15
   document.documentElement.style.fontSize = '16px';
@@ -301,8 +316,9 @@ test('creates a category from New category and lists it', async () => {
   expect(createdBody).toMatchObject({ name: 'Rent', kind: 'EXPENSE', category_type: 'FIXED' });
 });
 
-test('gives an active row Transactions, Edit and Delete and a deleted one Restore', async () => {
+test('gives an active row Transactions, Edit and Delete and a deleted one Restore on a phone', async () => {
   // arrange
+  vi.stubGlobal('innerWidth', 390);
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json({
@@ -337,6 +353,45 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
     within(cigarettesRow).queryByRole('link', { name: 'Transactions' }),
   ).not.toBeInTheDocument();
   expect(within(cigarettesRow).getAllByRole('button')).toHaveLength(1);
+});
+
+test('gives an active row Edit and Delete without Transactions on desktop', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, cigarettes],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: ['/categories'] });
+
+  // assert
+  const list = await screen.findByRole('region', { name: 'Variable' });
+  const [groceriesRow, cigarettesRow] = within(list).getAllByRole('listitem');
+  if (groceriesRow === undefined || cigarettesRow === undefined) {
+    throw new Error('Both entries have a row.');
+  }
+
+  expect(
+    within(groceriesRow).queryByRole('link', { name: 'Transactions' }),
+  ).not.toBeInTheDocument();
+  expect(
+    within(groceriesRow)
+      .getAllByRole('button')
+      .map((button) => button.title),
+  ).toEqual(['Edit', 'Delete']);
+  expect(
+    within(cigarettesRow)
+      .getAllByRole('button')
+      .map((button) => button.title),
+  ).toEqual(['Restore']);
 });
 
 test('edits a category from its row and lists the saved name', async () => {
@@ -422,9 +477,7 @@ test('deletes a category after the confirmation and moves the focus to the next 
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   expect(deletePath).toBe(`/api/accounting/accounts/${groceries.id}`);
   expect(
-    within(screen.getByRole('region', { name: 'Fixed' })).getByRole('link', {
-      name: 'Transactions',
-    }),
+    within(screen.getByRole('region', { name: 'Fixed' })).getByRole('button', { name: 'Edit' }),
   ).toHaveFocus();
 });
 
@@ -455,7 +508,7 @@ test('keeps the category when its deletion is cancelled and returns the focus to
   expect(within(variable).getByRole('button', { name: 'Delete' })).toHaveFocus();
 });
 
-test('restores a deleted category and moves the focus to its Transactions', async () => {
+test('restores a deleted category and moves the focus to its Edit', async () => {
   // arrange
   const user = userEvent.setup();
   let categories: components['schemas']['Account'][] = [groceries, cigarettes];
@@ -493,7 +546,7 @@ test('restores a deleted category and moves the focus to its Transactions', asyn
   expect(restorePath).toBe(`/api/accounting/accounts/${cigarettes.id}/restore`);
   expect(within(variable).queryByText('(deleted)', { exact: false })).not.toBeInTheDocument();
   await waitFor(() => {
-    expect(within(variable).getAllByRole('link', { name: 'Transactions' })[1]).toHaveFocus();
+    expect(within(variable).getAllByRole('button', { name: 'Edit' })[1]).toHaveFocus();
   });
 });
 
@@ -539,7 +592,7 @@ test('opens Restore category when a restore is refused because the name is taken
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
 
-test('restores a category under a new name, closes the window and moves the focus to its Transactions', async () => {
+test('restores a category under a new name, closes the window and moves the focus to its Edit', async () => {
   // arrange
   const user = userEvent.setup();
   let categories: components['schemas']['Account'][] = [groceries, cigarettes];
@@ -600,7 +653,7 @@ test('restores a category under a new name, closes the window and moves the focu
   expect(within(variable).getByText('Cigarettes 2025')).toBeInTheDocument();
   expect(within(variable).queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument();
   await waitFor(() => {
-    expect(within(variable).getAllByRole('link', { name: 'Transactions' })[1]).toHaveFocus();
+    expect(within(variable).getAllByRole('button', { name: 'Edit' })[1]).toHaveFocus();
   });
 });
 
@@ -960,6 +1013,7 @@ test('shows the transactions of the category whose name is chosen and moves the 
   // the day's total and the payment itself
   expect(await within(rentTransactions).findAllByText('-$900.00')).toHaveLength(2);
   expect(within(rentTransactions).getAllByRole('link')).toHaveLength(1);
+  expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Rent' })).toHaveAttribute('aria-current', 'true');
   expect(new URLSearchParams(router.state.location.search).get('account')).toBe(rent.id);
 
@@ -972,6 +1026,253 @@ test('shows the transactions of the category whose name is chosen and moves the 
   ).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Cigarettes (deleted)' })).toHaveFocus();
   expect(new URLSearchParams(router.state.location.search).get('account')).toBe(cigarettes.id);
+});
+
+test('shows the details of the top transaction beside the transactions of a category whose rows name the account on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+        ],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const items =
+        new URL(request.url).searchParams.getAll('account_ids').join() === rent.id
+          ? [rentPayment, earlierRentPayment]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get('http://localhost/api/accounting/transactions/:transactionId', ({ params }) =>
+      HttpResponse.json(
+        params['transactionId'] === rentPayment.id ? rentPayment : earlierRentPayment,
+      ),
+    ),
+  );
+  const { router } = render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
+
+  // assert
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(await within(transactionDetails).findAllByText('-$900.00')).not.toHaveLength(0);
+  expect(within(transactionDetails).getByRole('link', { name: 'Main card' })).toHaveAttribute(
+    'href',
+    `/accounts?account=${mainCardPosting?.account.id ?? ''}`,
+  );
+  // the category of the page is plain text in the postings
+  expect(within(transactionDetails).queryByRole('link', { name: 'Rent' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  expect(router.state.location.search).toBe(`?account=${rent.id}`);
+
+  // act
+  const rentTransactions = screen.getByRole('region', { name: 'Transactions of Rent' });
+  const [, earlierRow] = await within(rentTransactions).findAllByRole('link', {
+    name: 'Main card',
+  });
+  if (earlierRow === undefined) {
+    throw new Error('Both payments have a row.');
+  }
+
+  await user.click(earlierRow);
+
+  // assert
+  expect(await within(transactionDetails).findAllByText('-$850.00')).not.toHaveLength(0);
+  expect(new URLSearchParams(router.state.location.search).get('transaction')).toBe(
+    earlierRentPayment.id,
+  );
+  expect(new URLSearchParams(router.state.location.search).get('account')).toBe(rent.id);
+
+  // act
+  await user.keyboard('{ArrowUp}');
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBe(
+      rentPayment.id,
+    );
+  });
+  expect(new URLSearchParams(router.state.location.search).get('account')).toBe(rent.id);
+
+  // act
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+
+  await user.keyboard('{ArrowUp}');
+
+  // assert
+  expect(
+    await screen.findByRole('region', { name: 'Transactions of Groceries' }),
+  ).toBeInTheDocument();
+  expect(router.state.location.search).toBe(`?account=${groceries.id}`);
+});
+
+test('drops the chosen transaction when the type filter or Deleted changes the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/categories?account=${rent.id}&transaction=${rentPayment.id}`],
+  });
+
+  // act
+  await user.click(await screen.findByRole('radio', { name: 'Fixed' }));
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+  expect(new URLSearchParams(router.state.location.search).get('account')).toBe(rent.id);
+
+  // act
+  await router.navigate(`/categories?account=${rent.id}&transaction=${rentPayment.id}`);
+  await user.click(screen.getByRole('switch', { name: 'Deleted' }));
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+});
+
+test('keeps the chosen category when the keys are pressed in the details of a transaction the feed has not loaded', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+        ],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    // the feed's first page holds only the latest payment
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [rentPayment],
+        total: 2,
+        page: 1,
+        size: 15,
+        pages: 2,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${earlierRentPayment.id}`, () =>
+      HttpResponse.json(earlierRentPayment),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/categories?account=${rent.id}&transaction=${earlierRentPayment.id}`],
+  });
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await within(transactionDetails).findAllByText('-$850.00');
+  transactionDetails.focus();
+
+  // act
+  await user.keyboard('{ArrowUp}');
+
+  // assert
+  const searchParams = new URLSearchParams(router.state.location.search);
+  expect(searchParams.get('account')).toBe(rent.id);
+  expect(searchParams.get('transaction')).toBe(earlierRentPayment.id);
+});
+
+test('drops a chosen transaction that is not of the shown category on a wide desktop', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    // Rent has left the list, so Groceries is shown
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${rentPayment.id}`, () =>
+      HttpResponse.json(rentPayment),
+    ),
+  );
+
+  // act
+  const { router } = render(<Component />, {
+    initialEntries: [`/categories?account=${rent.id}&transaction=${rentPayment.id}`],
+  });
+
+  // assert
+  expect(
+    await screen.findByRole('region', { name: 'Transactions of Groceries' }),
+  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+  expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
 });
 
 test('gives a phone plain names and no transactions of a category', async () => {

@@ -2413,3 +2413,41 @@ test('opens the location of a transaction beside it and keeps the list', async (
   ).toBe(row);
   expect(feedRequestCount).toBe(1);
 });
+
+test('chooses the first row with the Down key in the details of a transaction the feed has not loaded', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const olderExpense = {
+    ...expense,
+    id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c99',
+    transaction_date: '2026-09-20',
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 2,
+        page: 1,
+        size: 15,
+        pages: 2,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${olderExpense.id}`, () =>
+      HttpResponse.json(olderExpense),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/transactions?transaction=${olderExpense.id}`],
+  });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Groceries' });
+  details.focus();
+
+  // act
+  await user.keyboard('{ArrowDown}');
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBe(expense.id);
+  });
+});

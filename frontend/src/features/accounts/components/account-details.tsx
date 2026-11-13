@@ -72,6 +72,7 @@ export function AccountDetails({
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}
       errorMessage="Couldn't load the account"
       returnFocusId={readAccountLinkId(accountId)}
+      arrowKeyList={undefined}
       onRetry={() => {
         void refetch();
       }}

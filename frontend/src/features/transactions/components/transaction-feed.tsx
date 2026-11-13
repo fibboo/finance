@@ -9,7 +9,7 @@ import { BackToTop } from './back-to-top';
 import { readFeedTransactions } from './feed-transactions';
 import { NoTransactions } from './no-transactions';
 import styles from './transaction-feed.module.css';
-import { TransactionDayList } from './transaction-day-list';
+import { type RowSelection, TransactionDayList } from './transaction-day-list';
 import { TransactionSkeletonRows } from './transaction-skeleton-rows';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -49,7 +49,8 @@ type TransactionFeedProps = Readonly<{
   label: string;
   header?: ReactNode;
   isGroupedByDay?: boolean;
-  isSelectable?: boolean;
+  selection?: RowSelection;
+  omittedAccountIds?: readonly string[];
   emptyState?: ReactNode;
   onReturnToToday?: () => void;
 }>;
@@ -62,7 +63,8 @@ export function TransactionFeed({
   label,
   header,
   isGroupedByDay = true,
-  isSelectable = true,
+  selection = 'keysOnPage',
+  omittedAccountIds = [],
   emptyState = <NoTransactions />,
   onReturnToToday,
 }: TransactionFeedProps) {
@@ -142,7 +144,8 @@ export function TransactionFeed({
               transactionTypes={transactionTypes}
               topTransactionId={topTransactionId}
               isGroupedByDay={isGroupedByDay}
-              isSelectable={isSelectable}
+              selection={selection}
+              omittedAccountIds={omittedAccountIds}
             />
             {isFetchingNextPage && <TransactionSkeletonRows count={LOADING_MORE_ROW_COUNT} />}
             {hasNextPage && !isFetchingNextPage && isFetchNextPageError && (

@@ -1,6 +1,7 @@
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
+import { TRANSACTION_ARROW_KEY_LIST } from './transaction-arrow-keys';
 import styles from './transaction-day-list.module.css';
 import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import { useToday } from '@/hooks/use-today';
@@ -60,13 +61,16 @@ function readDayTotal({
   return dayTotal;
 }
 
+export type RowSelection = 'none' | 'keysInList' | 'keysOnPage';
+
 type TransactionDayListProps = Readonly<{
   transactions: readonly Transaction[];
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   topTransactionId: string | undefined;
   isGroupedByDay: boolean;
-  isSelectable: boolean;
+  selection: RowSelection;
+  omittedAccountIds: readonly string[];
 }>;
 
 export function TransactionDayList({
@@ -75,11 +79,16 @@ export function TransactionDayList({
   transactionTypes,
   topTransactionId,
   isGroupedByDay,
-  isSelectable,
+  selection,
+  omittedAccountIds,
 }: TransactionDayListProps) {
   const today = useToday();
-  const arrowKeySelection = useArrowKeySelection({ list: 'transactions', orientation: 'vertical' });
-  const rowSelection = isSelectable ? arrowKeySelection : undefined;
+  const arrowKeySelection = useArrowKeySelection({
+    list: TRANSACTION_ARROW_KEY_LIST['data-arrow-key-list'],
+    orientation: TRANSACTION_ARROW_KEY_LIST['data-arrow-key-orientation'],
+    isFocusRequired: selection === 'keysInList',
+  });
+  const rowSelection = selection === 'none' ? undefined : arrowKeySelection;
   return (
     <div className={styles['transactionDayList']}>
       {isGroupedByDay ? (
@@ -114,6 +123,7 @@ export function TransactionDayList({
                   transactionTypes={transactionTypes}
                   isTop={transaction.id === topTransactionId}
                   arrowKeySelection={rowSelection}
+                  omittedAccountIds={omittedAccountIds}
                 />
               ))}
             </ul>
@@ -129,6 +139,7 @@ export function TransactionDayList({
               transactionTypes={transactionTypes}
               isTop={transaction.id === topTransactionId}
               arrowKeySelection={rowSelection}
+              omittedAccountIds={omittedAccountIds}
               dateLabel={readDayLabel({ transactionDate: transaction.transaction_date, today })}
             />
           ))}

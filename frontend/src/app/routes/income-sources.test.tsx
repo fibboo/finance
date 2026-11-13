@@ -39,6 +39,47 @@ const scholarship = {
   status: 'DELETED',
 } satisfies components['schemas']['Account'];
 
+const wallet = {
+  ...salary,
+  name: 'Wallet',
+  description: null,
+  id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
+  kind: 'ASSET',
+  balance: '1200.00',
+  currency: 'USD',
+  base_currency_balance: '1200.00',
+} satisfies components['schemas']['Account'];
+
+const salaryPayment = {
+  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c50',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  transaction_date: '2026-10-01',
+  comment: null,
+  base_currency_amount: '1200.00',
+  location: null,
+  income_period: null,
+  transaction_type: 'INCOME',
+  status: 'ACTIVE',
+  created_at: '2026-10-01T09:00:00Z',
+  updated_at: '2026-10-01T09:00:00Z',
+  postings: [
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a70',
+      amount: '1200.00',
+      currency: 'USD',
+      base_amount: '1200.00',
+      account: wallet,
+    },
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a71',
+      amount: '-1200.00',
+      currency: 'USD',
+      base_amount: '-1200.00',
+      account: salary,
+    },
+  ],
+} satisfies components['schemas']['Transaction'];
+
 function readAccountPage(
   items: readonly components['schemas']['Account'][],
 ): components['schemas']['Page_Account_'] {
@@ -143,8 +184,9 @@ test('requests only the active income sources with Deleted off and keeps it in t
   expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('off');
 });
 
-test('gives an active row Transactions, Edit and Delete and a deleted one Restore', async () => {
+test('gives an active row Transactions, Edit and Delete and a deleted one Restore on a phone', async () => {
   // arrange
+  vi.stubGlobal('innerWidth', 390);
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json(readAccountPage([salary, scholarship])),
@@ -170,6 +212,38 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   expect(within(salaryRow).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   expect(within(scholarshipRow).getAllByRole('button')).toHaveLength(1);
   expect(within(scholarshipRow).getByRole('button', { name: 'Restore' })).toBeInTheDocument();
+});
+
+test('gives an active row Edit and Delete without Transactions on desktop', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json(readAccountPage([salary, scholarship])),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: ['/income-sources'] });
+
+  // assert
+  const list = await screen.findByRole('region', { name: 'Income sources' });
+  await within(list).findByText('Salary');
+  const [salaryRow, scholarshipRow] = within(list).getAllByRole('listitem');
+  if (salaryRow === undefined || scholarshipRow === undefined) {
+    throw new Error('Both entries have a row.');
+  }
+
+  expect(within(salaryRow).queryByRole('link', { name: 'Transactions' })).not.toBeInTheDocument();
+  expect(
+    within(salaryRow)
+      .getAllByRole('button')
+      .map((button) => button.title),
+  ).toEqual(['Edit', 'Delete']);
+  expect(
+    within(scholarshipRow)
+      .getAllByRole('button')
+      .map((button) => button.title),
+  ).toEqual(['Restore']);
 });
 
 test('creates an income source from New income source and lists it', async () => {
@@ -441,3 +515,95 @@ test.each([
     expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
   },
 );
+
+test('shows the chosen transaction of an income source with the source as plain text and drops it when another income source is chosen on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'INCOME', label: 'Income' },
+        ],
+        category_types: [],
+        transaction_types: [{ key: 'INCOME', label: 'Income' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json(readAccountPage([salary, freelance])),
+    ),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const items =
+        new URL(request.url).searchParams.getAll('account_ids').join() === salary.id
+          ? [salaryPayment]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${salaryPayment.id}`, () =>
+      HttpResponse.json(salaryPayment),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/income-sources?account=${salary.id}&transaction=${salaryPayment.id}`],
+  });
+
+  // assert
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(await within(transactionDetails).findByRole('link', { name: 'Wallet' })).toHaveAttribute(
+    'href',
+    `/accounts?account=${wallet.id}`,
+  );
+  expect(
+    within(transactionDetails).queryByRole('link', { name: 'Salary' }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  const salaryTransactions = screen.getByRole('region', { name: 'Transactions of Salary' });
+  // the row names the money account, since every row of the feed is of Salary
+  expect(
+    await within(salaryTransactions).findByRole('link', { current: true }),
+  ).toHaveAccessibleName('Wallet');
+
+  // act
+  await user.click(screen.getByRole('link', { name: 'Freelance' }));
+
+  // assert
+  expect(
+    await screen.findByRole('region', { name: 'Transactions of Freelance' }),
+  ).toBeInTheDocument();
+  expect(router.state.location.search).toBe(`?account=${freelance.id}`);
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
+  });
+});
+
+test('drops the chosen transaction when Deleted changes the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json(readAccountPage([salary, freelance])),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/income-sources?account=${salary.id}&transaction=${salaryPayment.id}`],
+  });
+
+  // act
+  await user.click(await screen.findByRole('switch', { name: 'Deleted' }));
+
+  // assert
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
+  });
+  expect(new URLSearchParams(router.state.location.search).get('account')).toBe(salary.id);
+});

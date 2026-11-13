@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { CatalogTransactions } from '@/app/catalog-transactions';
+import { CATALOG_FULL_MENU_MIN_WIDTH, CatalogTransactions } from '@/app/catalog-transactions';
 import { CATEGORY_ICON_PATH } from '@/app/category-icon';
 import { readTransactionsLink } from '@/app/transactions-link';
 import { readCatalogInitial } from '@/components/catalog-list/catalog-entry';
@@ -39,6 +39,7 @@ import { readCategoryGroups } from '@/features/accounts/components/catalog-group
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { useListedEntry } from '@/hooks/use-listed-entry';
@@ -48,6 +49,8 @@ import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
 
 import styles from './categories.module.css';
+
+export const handle = { fullMenuMinWidth: CATALOG_FULL_MENU_MIN_WIDTH };
 
 const CATEGORY_SEARCH_FIELD_ID = 'category-search';
 const DESCRIPTION_SEPARATOR = ' · ';
@@ -67,6 +70,7 @@ export function Component() {
   const [isCreating, setIsCreating] = useState(false);
   const [focusedCategoryId, setFocusedCategoryId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
+  const listSearchParams = writeSelectedTransaction({ searchParams, transactionId: undefined });
   const search = readCatalogSearch(searchParams);
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
@@ -153,10 +157,13 @@ export function Component() {
             term={search}
             isFocusedOnMount={searchField.isFocusedOnMount}
             onSearch={(nextSearch) => {
-              setSearchParams(writeCatalogSearch({ searchParams, search: nextSearch }), {
-                replace: true,
-                state: TYPED_SEARCH_STATE,
-              });
+              setSearchParams(
+                writeCatalogSearch({ searchParams: listSearchParams, search: nextSearch }),
+                {
+                  replace: true,
+                  state: TYPED_SEARCH_STATE,
+                },
+              );
             }}
           />
           <NewButton
@@ -175,7 +182,10 @@ export function Component() {
               chosenKey: categoryType,
               onChoose: (nextCategoryType) => {
                 setSearchParams(
-                  writeCategoryTypeFilter({ searchParams, categoryType: nextCategoryType }),
+                  writeCategoryTypeFilter({
+                    searchParams: listSearchParams,
+                    categoryType: nextCategoryType,
+                  }),
                   { replace: true },
                 );
               },
@@ -183,7 +193,10 @@ export function Component() {
             isDeletedShown={isDeletedShown}
             onDeletedShownChange={(nextIsDeletedShown) => {
               setSearchParams(
-                writeIsDeletedShown({ searchParams, isDeletedShown: nextIsDeletedShown }),
+                writeIsDeletedShown({
+                  searchParams: listSearchParams,
+                  isDeletedShown: nextIsDeletedShown,
+                }),
                 { replace: true },
               );
             }}
@@ -197,9 +210,12 @@ export function Component() {
               entityNames="categories"
               onClear={() => {
                 searchField.focusAfterClear();
-                setSearchParams(writeCatalogSearch({ searchParams, search: '' }), {
-                  replace: true,
-                });
+                setSearchParams(
+                  writeCatalogSearch({ searchParams: listSearchParams, search: '' }),
+                  {
+                    replace: true,
+                  },
+                );
               }}
             />
           ) : hasNoEntries ? (
@@ -219,7 +235,7 @@ export function Component() {
                       defaultEntryId: shownCategory?.id,
                       readEntryLink: (categoryId) => ({
                         search: writeSelectedAccount({
-                          searchParams,
+                          searchParams: listSearchParams,
                           accountId: categoryId,
                         }).toString(),
                       }),
@@ -231,7 +247,7 @@ export function Component() {
               renderActions={(category) => (
                 <CatalogRowActions
                   entry={category}
-                  transactionsLink={readTransactionsLink(category)}
+                  transactionsLink={isDesktop ? undefined : readTransactionsLink(category)}
                   isRestorePending={categoryRestore.isPending}
                   isFocusRequested={category.id === focusedCategoryId}
                   onFocused={() => {

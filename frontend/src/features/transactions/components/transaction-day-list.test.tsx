@@ -203,7 +203,8 @@ test('groups the transactions by day with each day total in the base currency', 
       ]}
       topTransactionId={undefined}
       isGroupedByDay
-      isSelectable
+      selection="keysOnPage"
+      omittedAccountIds={[]}
     />,
   );
 
@@ -249,7 +250,8 @@ test('names the day again after midnight', () => {
       ]}
       topTransactionId={undefined}
       isGroupedByDay
-      isSelectable
+      selection="keysOnPage"
+      omittedAccountIds={[]}
     />,
   );
   expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
@@ -308,7 +310,8 @@ test('moves the selection through the rows of every day with the arrow keys', as
       ]}
       topTransactionId={undefined}
       isGroupedByDay
-      isSelectable
+      selection="keysOnPage"
+      omittedAccountIds={[]}
     />,
   );
   await user.tab();

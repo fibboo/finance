@@ -1,21 +1,40 @@
 import { useSyncExternalStore } from 'react';
 
-const DESKTOP_MEDIA_QUERY = '(min-width: 64rem)';
+type MediaStore = Readonly<{
+  subscribe: (onChange: () => void) => () => void;
+  readIsMatched: () => boolean;
+}>;
 
-function subscribeToDesktop(onChange: () => void): () => void {
-  const desktopMedia = window.matchMedia(DESKTOP_MEDIA_QUERY);
-  desktopMedia.addEventListener('change', onChange);
-  return () => {
-    desktopMedia.removeEventListener('change', onChange);
-  };
+function createMediaStore(query: string): MediaStore {
+  function subscribe(onChange: () => void): () => void {
+    const media = window.matchMedia(query);
+    media.addEventListener('change', onChange);
+    return () => {
+      media.removeEventListener('change', onChange);
+    };
+  }
+
+  function readIsMatched(): boolean {
+    const isMatched = window.matchMedia(query).matches;
+    return isMatched;
+  }
+
+  const mediaStore = { subscribe, readIsMatched };
+  return mediaStore;
 }
 
-function readIsDesktop(): boolean {
-  const isDesktop = window.matchMedia(DESKTOP_MEDIA_QUERY).matches;
-  return isDesktop;
-}
+const DESKTOP_MEDIA = createMediaStore('(min-width: 64rem)');
+const WIDE_DESKTOP_MEDIA = createMediaStore('(min-width: 76.75rem)');
 
 export function useIsDesktop(): boolean {
-  const isDesktop = useSyncExternalStore(subscribeToDesktop, readIsDesktop);
+  const isDesktop = useSyncExternalStore(DESKTOP_MEDIA.subscribe, DESKTOP_MEDIA.readIsMatched);
   return isDesktop;
+}
+
+export function useIsWideDesktop(): boolean {
+  const isWideDesktop = useSyncExternalStore(
+    WIDE_DESKTOP_MEDIA.subscribe,
+    WIDE_DESKTOP_MEDIA.readIsMatched,
+  );
+  return isWideDesktop;
 }

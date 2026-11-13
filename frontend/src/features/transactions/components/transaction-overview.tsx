@@ -6,13 +6,15 @@ import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import styles from './transaction-overview.module.css';
-import { TransactionPostings } from './transaction-postings';
+import { type ReadAccountLink, TransactionPostings } from './transaction-postings';
 import { TransactionTextParts } from './transaction-text-parts';
 import { readTransactionView, readTypeLabel, readWeekdayDateText } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 export type LocationLink = Readonly<{ to: To; id: string }>;
+
+export type ReadLocationLink = (locationId: string) => LocationLink | undefined;
 
 function readBaseAmount({
   transaction,
@@ -32,8 +34,8 @@ type TransactionOverviewProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
-  readAccountLink: (accountId: string) => To;
-  readLocationLink: (locationId: string) => LocationLink;
+  readAccountLink: ReadAccountLink;
+  readLocationLink: ReadLocationLink;
   closeButton: ReactNode;
   editAction: ReactNode;
   deleteAction: ReactNode;
@@ -53,6 +55,8 @@ export function TransactionOverview({
   const titleId = useId();
   const view = readTransactionView({ transaction, transactionTypes });
   const baseAmount = readBaseAmount({ transaction, baseAmount: view.baseAmount });
+  const locationLink =
+    transaction.location === null ? undefined : readLocationLink(transaction.location.id);
   return (
     <article aria-labelledby={titleId} className={styles['transactionOverview']}>
       <div className={styles['header']} data-sheet-drag-area>
@@ -93,13 +97,13 @@ export function TransactionOverview({
             <>
               <dt className={styles['term']}>Location</dt>
               <dd className={styles['value']}>
-                <Link
-                  {...readLocationLink(transaction.location.id)}
-                  preventScrollReset
-                  className={styles['locationLink']}
-                >
-                  {transaction.location.name}
-                </Link>
+                {locationLink === undefined ? (
+                  transaction.location.name
+                ) : (
+                  <Link {...locationLink} preventScrollReset className={styles['locationLink']}>
+                    {transaction.location.name}
+                  </Link>
+                )}
               </dd>
             </>
           )}

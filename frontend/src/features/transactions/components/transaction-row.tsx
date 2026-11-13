@@ -25,6 +25,7 @@ type TransactionRowProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   isTop: boolean;
   arrowKeySelection: ArrowKeySelectionProps | undefined;
+  omittedAccountIds?: readonly string[] | undefined;
   dateLabel?: string | undefined;
 }>;
 
@@ -43,6 +44,7 @@ export function TransactionRow({
   transactionTypes,
   isTop,
   arrowKeySelection,
+  omittedAccountIds = [],
   dateLabel,
 }: TransactionRowProps) {
   const [searchParams] = useSearchParams();
@@ -54,9 +56,15 @@ export function TransactionRow({
   const rateText = isForeign
     ? readRateText({ amount: view.amount, baseAmount: view.baseAmount })
     : undefined;
+  const isEntryInTitle = view.rowTitle.some(
+    (part) => typeof part !== 'string' && omittedAccountIds.includes(part.id),
+  );
+  const rowTitle = isEntryInTitle ? view.accountNames : view.rowTitle;
+  const accountNames = isEntryInTitle ? [] : view.accountNames;
+  const locationName = isEntryInTitle ? transaction.location?.name : undefined;
   const title = (
     <>
-      <TransactionTextParts text={view.rowTitle} />
+      <TransactionTextParts text={rowTitle} />
       {view.titleMarkedAccount !== null && (
         <>
           <span
@@ -108,14 +116,15 @@ export function TransactionRow({
               {DETAILS_SEPARATOR}
             </>
           )}
-          {view.accountNames.length > 0 && (
+          {accountNames.length > 0 && (
             <>
-              <TransactionTextParts text={view.accountNames} />
+              <TransactionTextParts text={accountNames} />
               {DETAILS_SEPARATOR}
             </>
           )}
           {view.currency}
           {rateText !== undefined && `${DETAILS_SEPARATOR}${rateText}`}
+          {locationName !== undefined && `${DETAILS_SEPARATOR}${locationName}`}
         </span>
       </span>
       <span className={styles['amounts']}>

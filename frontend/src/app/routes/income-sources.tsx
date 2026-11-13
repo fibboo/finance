@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { CatalogTransactions } from '@/app/catalog-transactions';
+import { CATALOG_FULL_MENU_MIN_WIDTH, CatalogTransactions } from '@/app/catalog-transactions';
 import { INCOME_SOURCE_ICON_PATH } from '@/app/income-source-icon';
 import { readTransactionsLink } from '@/app/transactions-link';
 import { readCatalogInitial } from '@/components/catalog-list/catalog-entry';
@@ -33,6 +33,7 @@ import { readCatalogDeleteCopy } from '@/features/accounts/components/catalog-de
 import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
 import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { useListedEntry } from '@/hooks/use-listed-entry';
@@ -42,6 +43,8 @@ import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
 
 import styles from './income-sources.module.css';
+
+export const handle = { fullMenuMinWidth: CATALOG_FULL_MENU_MIN_WIDTH };
 
 const INCOME_SOURCE_SEARCH_FIELD_ID = 'income-source-search';
 const INCOME_SOURCE_GROUP_KEY = 'INCOME';
@@ -61,6 +64,7 @@ export function Component() {
   const [isCreating, setIsCreating] = useState(false);
   const [focusedIncomeSourceId, setFocusedIncomeSourceId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
+  const listSearchParams = writeSelectedTransaction({ searchParams, transactionId: undefined });
   const search = readCatalogSearch(searchParams);
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
@@ -138,10 +142,13 @@ export function Component() {
             term={search}
             isFocusedOnMount={searchField.isFocusedOnMount}
             onSearch={(nextSearch) => {
-              setSearchParams(writeCatalogSearch({ searchParams, search: nextSearch }), {
-                replace: true,
-                state: TYPED_SEARCH_STATE,
-              });
+              setSearchParams(
+                writeCatalogSearch({ searchParams: listSearchParams, search: nextSearch }),
+                {
+                  replace: true,
+                  state: TYPED_SEARCH_STATE,
+                },
+              );
             }}
           />
           <NewButton
@@ -157,7 +164,10 @@ export function Component() {
           isDeletedShown={isDeletedShown}
           onDeletedShownChange={(nextIsDeletedShown) => {
             setSearchParams(
-              writeIsDeletedShown({ searchParams, isDeletedShown: nextIsDeletedShown }),
+              writeIsDeletedShown({
+                searchParams: listSearchParams,
+                isDeletedShown: nextIsDeletedShown,
+              }),
               { replace: true },
             );
           }}
@@ -170,9 +180,12 @@ export function Component() {
               entityNames="income sources"
               onClear={() => {
                 searchField.focusAfterClear();
-                setSearchParams(writeCatalogSearch({ searchParams, search: '' }), {
-                  replace: true,
-                });
+                setSearchParams(
+                  writeCatalogSearch({ searchParams: listSearchParams, search: '' }),
+                  {
+                    replace: true,
+                  },
+                );
               }}
             />
           ) : hasNoEntries ? (
@@ -192,7 +205,7 @@ export function Component() {
                       defaultEntryId: shownIncomeSource?.id,
                       readEntryLink: (incomeSourceId) => ({
                         search: writeSelectedAccount({
-                          searchParams,
+                          searchParams: listSearchParams,
                           accountId: incomeSourceId,
                         }).toString(),
                       }),
@@ -204,7 +217,7 @@ export function Component() {
               renderActions={(incomeSource) => (
                 <CatalogRowActions
                   entry={incomeSource}
-                  transactionsLink={readTransactionsLink(incomeSource)}
+                  transactionsLink={isDesktop ? undefined : readTransactionsLink(incomeSource)}
                   isRestorePending={incomeSourceRestore.isPending}
                   isFocusRequested={incomeSource.id === focusedIncomeSourceId}
                   onFocused={() => {

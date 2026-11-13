@@ -268,7 +268,10 @@ test.each([
       baseCurrency="USD"
       transactionTypes={transactionTypes}
       isTop={false}
-      arrowKeySelection={{ 'data-arrow-key-list': 'transactions' }}
+      arrowKeySelection={{
+        'data-arrow-key-list': 'transactions',
+        'data-arrow-key-orientation': 'vertical',
+      }}
     />,
   );
 
@@ -302,7 +305,10 @@ test.each([
       baseCurrency="USD"
       transactionTypes={transactionTypes}
       isTop={false}
-      arrowKeySelection={{ 'data-arrow-key-list': 'transactions' }}
+      arrowKeySelection={{
+        'data-arrow-key-list': 'transactions',
+        'data-arrow-key-orientation': 'vertical',
+      }}
     />,
     { initialEntries: [url] },
   );
@@ -314,4 +320,36 @@ test.each([
     '/transactions?order=base_currency_amount%3Adesc&transaction=5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c4d',
   );
   expect(link.getAttribute('aria-current')).toBe(current);
+});
+
+test('names the money account and the location instead of the entry every row of the feed has', async () => {
+  // act
+  render(
+    <TransactionRow
+      transaction={{
+        ...transaction,
+        location: {
+          id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
+          user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+          name: 'Spar',
+          description: null,
+          status: 'ACTIVE',
+          created_at: '2026-10-01T09:00:00Z',
+          updated_at: '2026-10-01T09:00:00Z',
+        },
+        postings: [
+          { ...posting, amount: '-42.80', base_amount: '-42.80', account: wallet },
+          { ...posting, amount: '42.80', base_amount: '42.80', account: category },
+        ],
+      }}
+      baseCurrency="USD"
+      transactionTypes={transactionTypes}
+      isTop={false}
+      arrowKeySelection={undefined}
+      omittedAccountIds={[category.id]}
+    />,
+  );
+
+  // assert
+  expect(await screen.findByRole('listitem')).toHaveTextContent('WalletUSD · Spar-$42.80');
 });
