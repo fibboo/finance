@@ -58,8 +58,10 @@ function readIsMovedByKey({
     focusOwner?.hasAttribute('data-details-panel') === true
       ? document.getElementById(focusOwner.getAttribute('data-return-focus-id') ?? '')
       : focusOwner;
-  const isMovedByKey =
-    focusedRow?.getAttribute('data-arrow-key-orientation') === orientation
+  const isRowMissing = focusOwner !== null && focusedRow === null;
+  const isMovedByKey = isRowMissing
+    ? false
+    : focusedRow?.getAttribute('data-arrow-key-orientation') === orientation
       ? focusedRow.getAttribute('data-arrow-key-list') === list
       : !isFocusRequired;
   return isMovedByKey;

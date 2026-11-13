@@ -1170,6 +1170,65 @@ test('drops the chosen transaction when the type filter or Deleted changes the l
   });
 });
 
+test('keeps the chosen category when the keys are pressed in the details of a transaction the feed has not loaded', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+        ],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    // the feed's first page holds only the latest payment
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [rentPayment],
+        total: 2,
+        page: 1,
+        size: 15,
+        pages: 2,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${earlierRentPayment.id}`, () =>
+      HttpResponse.json(earlierRentPayment),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [`/categories?account=${rent.id}&transaction=${earlierRentPayment.id}`],
+  });
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await within(transactionDetails).findAllByText('-$850.00');
+  transactionDetails.focus();
+
+  // act
+  await user.keyboard('{ArrowUp}');
+
+  // assert
+  const searchParams = new URLSearchParams(router.state.location.search);
+  expect(searchParams.get('account')).toBe(rent.id);
+  expect(searchParams.get('transaction')).toBe(earlierRentPayment.id);
+});
+
 test('drops a chosen transaction that is not of the shown category on a wide desktop', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 1280);
