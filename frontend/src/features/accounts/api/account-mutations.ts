@@ -8,6 +8,7 @@ import { accountQueries } from './account-queries';
 
 type Account = components['schemas']['Account'];
 type AccountCreateRequest = components['schemas']['AccountCreateRequest'];
+type AccountRestoreRequest = components['schemas']['AccountRestoreRequest'];
 type AccountUpdate = components['schemas']['AccountUpdate'];
 
 function readNameError(error: unknown): unknown {
@@ -58,13 +59,21 @@ async function deleteAccount(accountId: string): Promise<Account> {
   return deletedAccount;
 }
 
-async function restoreAccount(accountId: string): Promise<Account> {
-  const restoredAccount = readData(
-    await apiClient.POST('/accounting/accounts/{account_id}/restore', {
-      params: { path: { account_id: accountId } },
-    }),
-  );
-  return restoredAccount;
+async function restoreAccount({
+  account_id,
+  ...body
+}: Readonly<AccountRestoreRequest & { account_id: string }>): Promise<Account> {
+  try {
+    const restoredAccount = readData(
+      await apiClient.POST('/accounting/accounts/{account_id}/restore', {
+        params: { path: { account_id } },
+        body,
+      }),
+    );
+    return restoredAccount;
+  } catch (error) {
+    throw readNameError(error);
+  }
 }
 
 export const accountMutations = {
@@ -108,7 +117,7 @@ export const accountMutations = {
   restore(relatedQueryKeys: readonly QueryKey[]) {
     return mutationOptions({
       mutationFn: restoreAccount,
-      onSuccess: (_restoredAccount, _accountId, _onMutateResult, { client }) =>
+      onSuccess: (_restoredAccount, _restore, _onMutateResult, { client }) =>
         Promise.all(
           [accountQueries.all().queryKey, ...relatedQueryKeys].map((queryKey) =>
             client.invalidateQueries({ queryKey }),
