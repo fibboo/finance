@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router';
 
+import { LOCATION_ICON_PATH } from './location-icon';
 import styles from './main-navigation.module.css';
 import { MoreMenu } from './more-menu';
 import { type MenuState, readIsMenuCollapsed } from './use-menu-collapse';
@@ -24,14 +25,11 @@ const MORE_SECTIONS = [
   {
     name: 'Locations',
     path: '/locations',
-    isSoon: true,
-    iconPath:
-      'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 7.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4',
+    iconPath: LOCATION_ICON_PATH,
   },
   {
     name: 'Income sources',
     path: '/income-sources',
-    isSoon: false,
     iconPath: 'M12 4v10M8 10l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3',
   },
 ] as const;
@@ -103,43 +101,23 @@ export function MainNavigation({
       <MoreMenu
         isCurrent={isMoreSectionOpen}
         renderSections={(closeMenu) =>
-          MORE_SECTIONS.map((section) =>
-            section.isSoon ? (
-              <button
-                key={section.name}
-                type="button"
-                className={styles['moreSection']}
-                title={isCollapsed ? section.name : undefined}
-                disabled
-              >
-                <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-                  <path d={section.iconPath} />
-                </svg>
-                <span className={labelClassName}>{section.name}</span>{' '}
-                <span
-                  className={`${styles['soon'] ?? ''} ${isCollapsed ? 'visually-hidden-on-desktop' : ''}`}
-                >
-                  Soon
-                </span>
-              </button>
-            ) : (
-              <NavLink
-                key={section.name}
-                to={section.path}
-                className={styles['moreSection'] ?? ''}
-                title={isCollapsed ? section.name : undefined}
-                onClick={() => {
-                  closeMenu();
-                  onSectionChoose();
-                }}
-              >
-                <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-                  <path d={section.iconPath} />
-                </svg>
-                <span className={labelClassName}>{section.name}</span>
-              </NavLink>
-            ),
-          )
+          MORE_SECTIONS.map((section) => (
+            <NavLink
+              key={section.name}
+              to={section.path}
+              className={styles['moreSection'] ?? ''}
+              title={isCollapsed ? section.name : undefined}
+              onClick={() => {
+                closeMenu();
+                onSectionChoose();
+              }}
+            >
+              <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+                <path d={section.iconPath} />
+              </svg>
+              <span className={labelClassName}>{section.name}</span>
+            </NavLink>
+          ))
         }
       />
       <button

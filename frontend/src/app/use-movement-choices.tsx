@@ -110,7 +110,12 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
       },
       renderMoneyAccountForm,
       renderLocationForm(props: CreateFormProps) {
-        return <LocationForm {...props} />;
+        return (
+          <LocationForm
+            mode={{ kind: 'create', name: props.name, onCreated: props.onCreated }}
+            onBack={props.onBack}
+          />
+        );
       },
     },
   };

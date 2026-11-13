@@ -1,30 +1,38 @@
 import { type ReactNode, useId } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, type To } from 'react-router';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
-import type { components } from '@/lib/api-schema';
 
-import { readAccountLinkId, writeSelectedAccount } from '../api/selected-account';
-import type { CatalogGroup } from './catalog-grouping';
+import type { CatalogEntry, CatalogGroup } from './catalog-entry';
 import styles from './catalog-list.module.css';
-
-type Account = components['schemas']['Account'];
 
 const ENTRY_SKELETON_COUNT = 4;
 
-type CatalogListProps = Readonly<{
-  label: string;
-  groups: readonly CatalogGroup[] | undefined;
-  selection:
-    Readonly<{ chosenEntryId: string | undefined; defaultEntryId: string | undefined }> | undefined;
-  renderActions: (entry: Readonly<Account>) => ReactNode;
+type CatalogSelection = Readonly<{
+  chosenEntryId: string | undefined;
+  defaultEntryId: string | undefined;
+  readEntryLink: (entryId: string) => To;
+  readEntryLinkId: (entryId: string) => string;
 }>;
 
-export function CatalogList({ label, groups, selection, renderActions }: CatalogListProps) {
+type CatalogListProps<Entry extends CatalogEntry> = Readonly<{
+  label: string;
+  groups: readonly CatalogGroup<Entry>[] | undefined;
+  selection: CatalogSelection | undefined;
+  renderMark: (entry: Entry) => ReactNode;
+  renderActions: (entry: Entry) => ReactNode;
+}>;
+
+export function CatalogList<Entry extends CatalogEntry>({
+  label,
+  groups,
+  selection,
+  renderMark,
+  renderActions,
+}: CatalogListProps<Entry>) {
   const headingId = useId();
-  const [searchParams] = useSearchParams();
   const arrowKeySelection = useArrowKeySelection({
     list: 'catalog-entries',
     orientation: 'vertical',
@@ -77,13 +85,8 @@ export function CatalogList({ label, groups, selection, renderActions }: Catalog
                   <Link
                     {...arrowKeySelection}
                     data-shown-by-default={isShownByDefault ? '' : undefined}
-                    id={readAccountLinkId(entry.id)}
-                    to={{
-                      search: writeSelectedAccount({
-                        searchParams,
-                        accountId: entry.id,
-                      }).toString(),
-                    }}
+                    id={selection.readEntryLinkId(entry.id)}
+                    to={selection.readEntryLink(entry.id)}
                     preventScrollReset
                     aria-current={isChosen ? 'true' : undefined}
                     className={styles['nameLink']}
@@ -98,7 +101,7 @@ export function CatalogList({ label, groups, selection, renderActions }: Catalog
                   className={`${styles['entry'] ?? ''} ${isDeleted ? (styles['deleted'] ?? '') : ''} ${isChosen || isShownByDefault ? (styles['selected'] ?? '') : ''}`}
                 >
                   <span className={styles['mark']} aria-hidden="true">
-                    {entry.name.slice(0, 1).toUpperCase()}
+                    {renderMark(entry)}
                   </span>
                   <span className={styles['identity']}>
                     {isDeleted ? (

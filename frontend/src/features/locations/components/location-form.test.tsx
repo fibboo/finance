@@ -21,7 +21,12 @@ const carrefour = {
 
 test('opens with the name in focus', () => {
   // act
-  render(<LocationForm name="Carrefour" onCreated={vi.fn()} onBack={vi.fn()} />);
+  render(
+    <LocationForm
+      mode={{ kind: 'create', name: 'Carrefour', onCreated: vi.fn() }}
+      onBack={vi.fn()}
+    />,
+  );
 
   // assert
   expect(screen.getByRole('textbox', { name: 'Name' })).toHaveFocus();
@@ -45,7 +50,12 @@ test.each([
     );
     const onCreated = vi.fn();
     const user = userEvent.setup();
-    render(<LocationForm name={'a'.repeat(length)} onCreated={onCreated} onBack={vi.fn()} />);
+    render(
+      <LocationForm
+        mode={{ kind: 'create', name: 'a'.repeat(length), onCreated: onCreated }}
+        onBack={vi.fn()}
+      />,
+    );
 
     // act
     await user.click(screen.getByRole('button', { name: 'Create location' }));
@@ -73,7 +83,12 @@ test('shows a taken name at the Name field', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<LocationForm name="Central market" onCreated={vi.fn()} onBack={vi.fn()} />);
+  render(
+    <LocationForm
+      mode={{ kind: 'create', name: 'Central market', onCreated: vi.fn() }}
+      onBack={vi.fn()}
+    />,
+  );
 
   // act
   await user.click(screen.getByRole('button', { name: 'Create location' }));
@@ -102,7 +117,12 @@ test.each([
     );
     const onCreated = vi.fn();
     const user = userEvent.setup();
-    render(<LocationForm name="Carrefour" onCreated={onCreated} onBack={vi.fn()} />);
+    render(
+      <LocationForm
+        mode={{ kind: 'create', name: 'Carrefour', onCreated: onCreated }}
+        onBack={vi.fn()}
+      />,
+    );
     await user.type(screen.getByRole('textbox', { name: /^Description/ }), description);
 
     // act
@@ -118,3 +138,39 @@ test.each([
     expect(requestCount).toBe(createdCount);
   },
 );
+
+test('opens Edit location with the saved values and saves the changes', async () => {
+  // arrange
+  let updatedBody: unknown;
+  server.use(
+    http.put(`http://localhost/api/accounting/locations/${carrefour.id}`, async ({ request }) => {
+      updatedBody = await request.json();
+      return HttpResponse.json({
+        ...carrefour,
+        description: 'East Point mall',
+      } satisfies components['schemas']['Location']);
+    }),
+  );
+  const onSaved = vi.fn();
+  const user = userEvent.setup();
+  render(
+    <LocationForm
+      mode={{ kind: 'edit', location: carrefour, relatedQueryKeys: [], onSaved }}
+      onBack={vi.fn()}
+    />,
+  );
+  const description = screen.getByRole('textbox', { name: /^Description/ });
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Carrefour');
+  expect(description).toHaveValue('abc');
+  await user.clear(description);
+  await user.type(description, 'East Point mall');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await vi.waitFor(() => {
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+  expect(updatedBody).toEqual({ name: 'Carrefour', description: 'East Point mall' });
+});

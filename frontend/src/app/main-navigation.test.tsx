@@ -68,7 +68,10 @@ test('links Categories to its section', () => {
   expect(screen.getByRole('link', { name: 'Categories' })).toHaveAttribute('href', '/categories');
 });
 
-test('keeps Locations of More disabled until its screen exists', () => {
+test.each([
+  { name: 'Locations', path: '/locations' },
+  { name: 'Income sources', path: '/income-sources' },
+])('links $name of More to its section and marks it current there', ({ name, path }) => {
   // act
   render(
     <MainNavigation
@@ -77,28 +80,13 @@ test('keeps Locations of More disabled until its screen exists', () => {
       onMenuToggle={() => undefined}
       onSectionChoose={() => undefined}
     />,
+    { initialEntries: [path] },
   );
 
   // assert
-  expect(screen.getByRole('button', { name: 'Locations Soon' })).toBeDisabled();
-});
-
-test('links Income sources of More to its section and marks it current there', () => {
-  // act
-  render(
-    <MainNavigation
-      menuState="full"
-      menuToggleRef={{ current: null }}
-      onMenuToggle={() => undefined}
-      onSectionChoose={() => undefined}
-    />,
-    { initialEntries: ['/income-sources'] },
-  );
-
-  // assert
-  const incomeSources = screen.getByRole('link', { name: 'Income sources' });
-  expect(incomeSources).toHaveAttribute('href', '/income-sources');
-  expect(incomeSources).toHaveAttribute('aria-current', 'page');
+  const section = screen.getByRole('link', { name });
+  expect(section).toHaveAttribute('href', path);
+  expect(section).toHaveAttribute('aria-current', 'page');
 });
 
 test.each(['/accounts', '/income-sources'])(

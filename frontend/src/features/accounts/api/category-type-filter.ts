@@ -6,15 +6,8 @@ type CategoryType = components['schemas']['CategoryType'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
 const CATEGORY_TYPE_PARAM = 'category_type';
-const DELETED_PARAM = 'deleted';
-const DELETED_OFF = 'off';
 
 export type CategoryTypeOption = Readonly<{ key: CategoryType; label: string }>;
-
-export type CatalogFilters = Readonly<{
-  categoryType: CategoryType | undefined;
-  isDeletedShown: boolean;
-}>;
 
 export function readCategoryTypeOptions(
   categoryTypes: readonly DictionaryItem[],
@@ -26,40 +19,33 @@ export function readCategoryTypeOptions(
   return options;
 }
 
-export function readCatalogFilters({
+export function readCategoryTypeFilter({
   searchParams,
   categoryTypes,
 }: Readonly<{
   searchParams: URLSearchParams;
-  categoryTypes: readonly CategoryTypeOption[] | undefined;
-}>): CatalogFilters {
+  categoryTypes: readonly CategoryTypeOption[];
+}>): CategoryType | undefined {
   const categoryType = z
     .string()
     .nullable()
-    .transform((value) => categoryTypes?.find((type) => type.key === value)?.key)
+    .transform((value) => categoryTypes.find((type) => type.key === value)?.key)
     .parse(searchParams.get(CATEGORY_TYPE_PARAM));
-  const filters = {
-    categoryType,
-    isDeletedShown: searchParams.get(DELETED_PARAM) !== DELETED_OFF,
-  };
-  return filters;
+  return categoryType;
 }
 
-export function writeCatalogFilters({
+export function writeCategoryTypeFilter({
   searchParams,
-  filters,
-}: Readonly<{ searchParams: URLSearchParams; filters: CatalogFilters }>): URLSearchParams {
+  categoryType,
+}: Readonly<{
+  searchParams: URLSearchParams;
+  categoryType: CategoryType | undefined;
+}>): URLSearchParams {
   const nextSearchParams = new URLSearchParams(searchParams);
-  if (filters.categoryType === undefined) {
+  if (categoryType === undefined) {
     nextSearchParams.delete(CATEGORY_TYPE_PARAM);
   } else {
-    nextSearchParams.set(CATEGORY_TYPE_PARAM, filters.categoryType);
-  }
-
-  if (filters.isDeletedShown) {
-    nextSearchParams.delete(DELETED_PARAM);
-  } else {
-    nextSearchParams.set(DELETED_PARAM, DELETED_OFF);
+    nextSearchParams.set(CATEGORY_TYPE_PARAM, categoryType);
   }
 
   return nextSearchParams;

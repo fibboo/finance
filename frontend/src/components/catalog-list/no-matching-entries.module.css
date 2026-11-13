@@ -1,6 +1,6 @@
 @import '@/styles/media.css';
 
-.noMatchingAccounts {
+.noMatchingEntries {
   padding: var(--space-6) var(--space-4);
   border-radius: var(--radius-panel);
   display: flex;
@@ -66,7 +66,7 @@
 }
 
 @media (--desktop) {
-  .noMatchingAccounts {
+  .noMatchingEntries {
     flex: 1 1 auto;
     align-self: flex-start;
   }

@@ -1,14 +1,9 @@
+import type { CatalogGroup } from '@/components/catalog-list/catalog-entry';
 import type { components } from '@/lib/api-schema';
 
-import type { CategoryTypeOption } from '../api/catalog-filters';
+import type { CategoryTypeOption } from '../api/category-type-filter';
 
 type Account = components['schemas']['Account'];
-
-export type CatalogGroup = Readonly<{
-  key: string;
-  heading: string | undefined;
-  entries: readonly Account[];
-}>;
 
 export function readCategoryGroups({
   categories,
@@ -16,7 +11,7 @@ export function readCategoryGroups({
 }: Readonly<{
   categories: readonly Account[];
   categoryTypes: readonly CategoryTypeOption[];
-}>): readonly CatalogGroup[] {
+}>): readonly CatalogGroup<Account>[] {
   const groups = categoryTypes
     .map((type) => ({
       key: type.key,

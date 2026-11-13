@@ -4,20 +4,17 @@ import { useSearchParams } from 'react-router';
 
 import { SelectedAccountDetails } from '@/app/selected-account-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
+import { readCatalogSearch, writeCatalogSearch } from '@/components/catalog-list/catalog-search';
+import { NoMatchingEntries } from '@/components/catalog-list/no-matching-entries';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
 import { SearchField } from '@/components/search-field/search-field';
 import { Sheet } from '@/components/sheet/sheet';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
-import {
-  ACCOUNT_SEARCH_FIELD_ID,
-  readAccountSearch,
-  writeAccountSearch,
-} from '@/features/accounts/api/account-search';
+import { ACCOUNT_SEARCH_FIELD_ID } from '@/features/accounts/api/account-search';
 import { readTopAccountId } from '@/features/accounts/components/account-grouping';
 import { AccountGroups } from '@/features/accounts/components/account-groups';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
-import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
 import { currencyQueries } from '@/features/currencies/api/currency-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
@@ -39,7 +36,7 @@ export function Component() {
   const baseCurrency = useBaseCurrency();
   const [isCreating, setIsCreating] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const search = readAccountSearch(searchParams);
+  const search = readCatalogSearch(searchParams);
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
   const accountQuery = {
@@ -77,7 +74,7 @@ export function Component() {
           term={search}
           isFocusedOnMount={searchField.isFocusedOnMount}
           onSearch={(nextSearch) => {
-            setSearchParams(writeAccountSearch({ searchParams, search: nextSearch }), {
+            setSearchParams(writeCatalogSearch({ searchParams, search: nextSearch }), {
               replace: true,
               state: TYPED_SEARCH_STATE,
             });
@@ -96,11 +93,11 @@ export function Component() {
       {baseCurrency !== undefined && (
         <div className={styles['accounts']}>
           {isNothingMatched ? (
-            <NoMatchingAccounts
+            <NoMatchingEntries
               entityNames="accounts"
               onClear={() => {
                 searchField.focusAfterClear();
-                setSearchParams(writeAccountSearch({ searchParams, search: '' }), {
+                setSearchParams(writeCatalogSearch({ searchParams, search: '' }), {
                   replace: true,
                 });
               }}
