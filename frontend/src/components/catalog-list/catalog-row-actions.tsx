@@ -6,6 +6,7 @@ import {
   RESTORE_ICON_PATH,
   TRANSACTIONS_ICON_PATH,
 } from '@/components/action-button/action-icons';
+
 import type { CatalogEntry } from './catalog-entry';
 import styles from './catalog-row-actions.module.css';
 import { readCatalogDeleteButtonId, readCatalogRowLinkId } from './catalog-row-focus';

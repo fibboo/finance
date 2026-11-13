@@ -107,6 +107,8 @@ export const locationMutations = {
       mutationFn: restoreLocation,
       onSuccess: (_location, _locationId, _onMutateResult, { client }) =>
         invalidateLocationQueries({ client, relatedQueryKeys }),
+      onError: (_error, _locationId, _onMutateResult, { client }) =>
+        client.invalidateQueries({ queryKey: locationQueries.all().queryKey }),
     });
   },
 };
