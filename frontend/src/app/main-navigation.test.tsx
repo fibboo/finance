@@ -101,28 +101,32 @@ test('links Income sources of More to its section and marks it current there', (
   expect(incomeSources).toHaveAttribute('aria-current', 'page');
 });
 
-test('closes More and reports the choice when Income sources is chosen', async () => {
-  // arrange
-  const user = userEvent.setup();
-  const onSectionChoose = vi.fn();
-  const { router } = render(
-    <MainNavigation
-      menuState="full"
-      menuToggleRef={{ current: null }}
-      onMenuToggle={() => undefined}
-      onSectionChoose={onSectionChoose}
-    />,
-  );
-  await user.click(screen.getByRole('button', { name: 'More' }));
+test.each(['/accounts', '/income-sources'])(
+  'closes More and reports the choice when Income sources is chosen on %s',
+  async (path) => {
+    // arrange
+    const user = userEvent.setup();
+    const onSectionChoose = vi.fn();
+    const { router } = render(
+      <MainNavigation
+        menuState="full"
+        menuToggleRef={{ current: null }}
+        onMenuToggle={() => undefined}
+        onSectionChoose={onSectionChoose}
+      />,
+      { initialEntries: [path] },
+    );
+    await user.click(screen.getByRole('button', { name: 'More' }));
 
-  // act
-  await user.click(screen.getByRole('link', { name: 'Income sources' }));
+    // act
+    await user.click(screen.getByRole('link', { name: 'Income sources' }));
 
-  // assert
-  expect(router.state.location.pathname).toBe('/income-sources');
-  expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
-  expect(onSectionChoose).toHaveBeenCalledOnce();
-});
+    // assert
+    expect(router.state.location.pathname).toBe('/income-sources');
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+    expect(onSectionChoose).toHaveBeenCalledOnce();
+  },
+);
 
 test.each(['/locations', '/income-sources'])('marks More as current on %s', (path) => {
   // act

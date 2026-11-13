@@ -100,42 +100,48 @@ export function MainNavigation({
           <span className={labelClassName}>{section.name}</span>
         </NavLink>
       ))}
-      <MoreMenu isCurrent={isMoreSectionOpen}>
-        {MORE_SECTIONS.map((section) =>
-          section.isSoon ? (
-            <button
-              key={section.name}
-              type="button"
-              className={styles['moreSection']}
-              title={isCollapsed ? section.name : undefined}
-              disabled
-            >
-              <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-                <path d={section.iconPath} />
-              </svg>
-              <span className={labelClassName}>{section.name}</span>{' '}
-              <span
-                className={`${styles['soon'] ?? ''} ${isCollapsed ? 'visually-hidden-on-desktop' : ''}`}
+      <MoreMenu
+        isCurrent={isMoreSectionOpen}
+        renderSections={(closeMenu) =>
+          MORE_SECTIONS.map((section) =>
+            section.isSoon ? (
+              <button
+                key={section.name}
+                type="button"
+                className={styles['moreSection']}
+                title={isCollapsed ? section.name : undefined}
+                disabled
               >
-                Soon
-              </span>
-            </button>
-          ) : (
-            <NavLink
-              key={section.name}
-              to={section.path}
-              className={styles['moreSection'] ?? ''}
-              title={isCollapsed ? section.name : undefined}
-              onClick={onSectionChoose}
-            >
-              <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
-                <path d={section.iconPath} />
-              </svg>
-              <span className={labelClassName}>{section.name}</span>
-            </NavLink>
-          ),
-        )}
-      </MoreMenu>
+                <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+                  <path d={section.iconPath} />
+                </svg>
+                <span className={labelClassName}>{section.name}</span>{' '}
+                <span
+                  className={`${styles['soon'] ?? ''} ${isCollapsed ? 'visually-hidden-on-desktop' : ''}`}
+                >
+                  Soon
+                </span>
+              </button>
+            ) : (
+              <NavLink
+                key={section.name}
+                to={section.path}
+                className={styles['moreSection'] ?? ''}
+                title={isCollapsed ? section.name : undefined}
+                onClick={() => {
+                  closeMenu();
+                  onSectionChoose();
+                }}
+              >
+                <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+                  <path d={section.iconPath} />
+                </svg>
+                <span className={labelClassName}>{section.name}</span>
+              </NavLink>
+            ),
+          )
+        }
+      />
       <button
         ref={menuToggleRef}
         type="button"

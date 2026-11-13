@@ -1,5 +1,4 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
-import { useLocation } from 'react-router';
 
 import { useOutsideClick } from '@/hooks/use-outside-click';
 
@@ -10,13 +9,11 @@ const MORE_ICON_PATH = 'M5 12h.01M12 12h.01M19 12h.01';
 
 type MoreMenuProps = Readonly<{
   isCurrent: boolean;
-  children: ReactNode;
+  renderSections: (closeMenu: () => void) => ReactNode;
 }>;
 
-export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
-  const { pathname } = useLocation();
-  const [openPathname, setOpenPathname] = useState<string | undefined>(undefined);
-  const isOpen = openPathname === pathname;
+export function MoreMenu({ isCurrent, renderSections }: MoreMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sectionsId = useId();
@@ -28,7 +25,7 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setOpenPathname(undefined);
+        setIsOpen(false);
         buttonRef.current?.focus();
       }
     }
@@ -44,7 +41,7 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
     isActive: isOpen,
     readIsInside: (target) => menuRef.current?.contains(target) === true,
     onOutsideClick: () => {
-      setOpenPathname(undefined);
+      setIsOpen(false);
     },
   });
 
@@ -58,7 +55,7 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
         aria-controls={sectionsId}
         aria-current={isCurrent ? 'page' : undefined}
         onClick={() => {
-          setOpenPathname(isOpen ? undefined : pathname);
+          setIsOpen(!isOpen);
         }}
       >
         <svg className={navigationStyles['icon']} aria-hidden="true" viewBox="0 0 24 24">
@@ -67,7 +64,9 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
         <span className={navigationStyles['label']}>More</span>
       </button>
       <div id={sectionsId} className={isOpen ? styles['openSections'] : styles['sections']}>
-        {children}
+        {renderSections(() => {
+          setIsOpen(false);
+        })}
       </div>
     </div>
   );
