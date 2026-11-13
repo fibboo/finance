@@ -10,7 +10,6 @@ export function BackToTop({ onClick }: BackToTopProps) {
       type="button"
       className={styles['backToTop']}
       aria-label="Back to top"
-      data-back-to-top
       onClick={onClick}
     >
       <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
