@@ -1,10 +1,10 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { useMatches } from 'react-router';
+import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react';
+import { useLocation, useMatches } from 'react-router';
 import { z } from 'zod';
 
 import { useOutsideClick } from '@/hooks/use-outside-click';
 
-export type MenuState = 'full' | 'collapsed' | 'openOverPage';
+export type MenuState = 'full' | 'collapsed' | 'collapsedByWidth' | 'openOverPage';
 
 const menuFormSchema = z.enum(['full', 'collapsed']);
 
@@ -13,6 +13,7 @@ type MenuForm = z.infer<typeof menuFormSchema>;
 const STORAGE_KEY = 'menu';
 
 type UseMenuCollapseParams = Readonly<{
+  menuToggleRef: RefObject<HTMLButtonElement | null>;
   readIsInside: (target: Node) => boolean;
 }>;
 
@@ -21,6 +22,11 @@ type MenuCollapse = Readonly<{
   toggleMenu: () => void;
   closeMenuOverPage: () => void;
 }>;
+
+export function readIsMenuCollapsed(menuState: MenuState): boolean {
+  const isMenuCollapsed = menuState === 'collapsed' || menuState === 'collapsedByWidth';
+  return isMenuCollapsed;
+}
 
 function readFullMenuMinWidth(handle: unknown): string | undefined {
   const fullMenuMinWidth =
@@ -52,9 +58,7 @@ function storeMenuForm(menuForm: MenuForm): void {
   }
 }
 
-function useIsNarrowerThan(minWidth: string | undefined): boolean {
-  const query = minWidth === undefined ? undefined : `(min-width: ${minWidth})`;
-
+function useIsNarrowerThan(query: string | undefined): boolean {
   function subscribe(onChange: () => void): () => void {
     if (query === undefined) {
       return () => undefined;
@@ -76,22 +80,28 @@ function useIsNarrowerThan(minWidth: string | undefined): boolean {
   return isNarrower;
 }
 
-export function useMenuCollapse({ readIsInside }: UseMenuCollapseParams): MenuCollapse {
+export function useMenuCollapse({
+  menuToggleRef,
+  readIsInside,
+}: UseMenuCollapseParams): MenuCollapse {
+  const { pathname } = useLocation();
   const fullMenuMinWidth = useMatches()
     .map((match) => readFullMenuMinWidth(match.handle))
     .findLast((minWidth) => minWidth !== undefined);
-  const isCollapsedByWidth = useIsNarrowerThan(fullMenuMinWidth);
+  const fullMenuQuery =
+    fullMenuMinWidth === undefined ? undefined : `(min-width: ${fullMenuMinWidth})`;
+  const isCollapsedByWidth = useIsNarrowerThan(fullMenuQuery);
   const [menuForm, setMenuForm] = useState(readStoredMenuForm);
-  const [isOpenOverPage, setIsOpenOverPage] = useState(false);
-  const isMenuOpenOverPage = isCollapsedByWidth && isOpenOverPage;
+  const [openOverPagePathname, setOpenOverPagePathname] = useState<string | null>(null);
+  const isOpenOverPage = isCollapsedByWidth && openOverPagePathname === pathname;
 
   function closeMenuOverPage() {
-    setIsOpenOverPage(false);
+    setOpenOverPagePathname(null);
   }
 
   function toggleMenu() {
     if (isCollapsedByWidth) {
-      setIsOpenOverPage(!isOpenOverPage);
+      setOpenOverPagePathname(isOpenOverPage ? null : pathname);
       return;
     }
 
@@ -101,32 +111,43 @@ export function useMenuCollapse({ readIsInside }: UseMenuCollapseParams): MenuCo
   }
 
   useEffect(() => {
-    if (!isMenuOpenOverPage) {
+    if (!isOpenOverPage || fullMenuQuery === undefined) {
       return;
     }
 
+    const fullMenuMedia = window.matchMedia(fullMenuQuery);
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setIsOpenOverPage(false);
+        setOpenOverPagePathname(null);
+        menuToggleRef.current?.focus();
+      }
+    }
+
+    function handleWidthChange() {
+      if (fullMenuMedia.matches) {
+        setOpenOverPagePathname(null);
       }
     }
 
     document.addEventListener('keydown', handleKeyDown);
+    fullMenuMedia.addEventListener('change', handleWidthChange);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      fullMenuMedia.removeEventListener('change', handleWidthChange);
     };
-  }, [isMenuOpenOverPage]);
+  }, [isOpenOverPage, fullMenuQuery, menuToggleRef]);
 
   useOutsideClick({
-    isActive: isMenuOpenOverPage,
+    isActive: isOpenOverPage,
     readIsInside,
     onOutsideClick: closeMenuOverPage,
   });
 
   let menuState: MenuState = menuForm;
   if (isCollapsedByWidth) {
-    menuState = isOpenOverPage ? 'openOverPage' : 'collapsed';
+    menuState = isOpenOverPage ? 'openOverPage' : 'collapsedByWidth';
   }
 
   return { menuState, toggleMenu, closeMenuOverPage };

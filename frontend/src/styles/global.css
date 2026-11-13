@@ -77,4 +77,15 @@ a {
       white-space: nowrap;
     }
   }
+
+  @media (--desktop) {
+    .visually-hidden-on-desktop {
+      position: absolute;
+      width: var(--size-border);
+      height: var(--size-border);
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
 }

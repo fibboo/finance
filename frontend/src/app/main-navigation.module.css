@@ -151,8 +151,7 @@
     height: var(--size-icon-sm);
   }
 
-  .addLabel,
-  .soon {
+  .addLabel {
     position: static;
     width: auto;
     height: auto;
@@ -204,16 +203,5 @@
   .collapsedNavigation .addTransaction .icon {
     width: var(--size-icon);
     height: var(--size-icon);
-  }
-
-  .collapsedNavigation .label,
-  .collapsedNavigation .addLabel,
-  .collapsedNavigation .soon {
-    position: absolute;
-    width: var(--size-border);
-    height: var(--size-border);
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 }

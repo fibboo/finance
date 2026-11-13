@@ -9,6 +9,7 @@ test('marks Home as the current section', () => {
   render(
     <MainNavigation
       menuState="full"
+      menuToggleRef={{ current: null }}
       onMenuToggle={() => undefined}
       onSectionChoose={() => undefined}
     />,
@@ -23,6 +24,7 @@ test('links Transactions to its section', () => {
   render(
     <MainNavigation
       menuState="full"
+      menuToggleRef={{ current: null }}
       onMenuToggle={() => undefined}
       onSectionChoose={() => undefined}
     />,
@@ -40,6 +42,7 @@ test('links Accounts to its section', () => {
   render(
     <MainNavigation
       menuState="full"
+      menuToggleRef={{ current: null }}
       onMenuToggle={() => undefined}
       onSectionChoose={() => undefined}
     />,
@@ -54,6 +57,7 @@ test('links Categories to its section', () => {
   render(
     <MainNavigation
       menuState="full"
+      menuToggleRef={{ current: null }}
       onMenuToggle={() => undefined}
       onSectionChoose={() => undefined}
     />,
@@ -70,6 +74,7 @@ test.each(['Locations Soon', 'Income sources Soon'])(
     render(
       <MainNavigation
         menuState="full"
+        menuToggleRef={{ current: null }}
         onMenuToggle={() => undefined}
         onSectionChoose={() => undefined}
       />,
@@ -85,6 +90,7 @@ test.each(['/locations', '/income-sources'])('marks More as current on %s', (pat
   render(
     <MainNavigation
       menuState="full"
+      menuToggleRef={{ current: null }}
       onMenuToggle={() => undefined}
       onSectionChoose={() => undefined}
     />,
@@ -100,6 +106,7 @@ test('leaves More unmarked on a section of the bar', () => {
   render(
     <MainNavigation
       menuState="full"
+      menuToggleRef={{ current: null }}
       onMenuToggle={() => undefined}
       onSectionChoose={() => undefined}
     />,
@@ -117,6 +124,7 @@ test.each(['Home', 'Transactions', 'Accounts', 'Categories'])(
     render(
       <MainNavigation
         menuState="collapsed"
+        menuToggleRef={{ current: null }}
         onMenuToggle={() => undefined}
         onSectionChoose={() => undefined}
       />,
@@ -132,6 +140,7 @@ test('names Add transaction of the collapsed menu and titles it', () => {
   render(
     <MainNavigation
       menuState="collapsed"
+      menuToggleRef={{ current: null }}
       onMenuToggle={() => undefined}
       onSectionChoose={() => undefined}
     />,

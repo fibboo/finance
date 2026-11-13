@@ -5,7 +5,7 @@ import { Link, Outlet } from 'react-router';
 import styles from './app-layout.module.css';
 import { MainNavigation } from './main-navigation';
 import { NewTransaction } from './new-transaction';
-import { useMenuCollapse } from './use-menu-collapse';
+import { readIsMenuCollapsed, useMenuCollapse } from './use-menu-collapse';
 
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';
@@ -23,12 +23,14 @@ export function AppLayout() {
   const { data: userDictionaries } = useQuery(dictionaryQueries.user());
   const logoRef = useRef<HTMLAnchorElement>(null);
   const navigationRef = useRef<HTMLDivElement>(null);
+  const menuToggleRef = useRef<HTMLButtonElement>(null);
   const { menuState, toggleMenu, closeMenuOverPage } = useMenuCollapse({
+    menuToggleRef,
     readIsInside: (target) =>
       logoRef.current?.contains(target) === true ||
       navigationRef.current?.contains(target) === true,
   });
-  const isMenuCollapsed = menuState === 'collapsed';
+  const isMenuCollapsed = readIsMenuCollapsed(menuState);
   const logoLinkClassName = isLogoShownOnPhone ? styles['logoLinkOnPhone'] : styles['logoLink'];
 
   return (
@@ -42,7 +44,7 @@ export function AppLayout() {
           className={`${logoLinkClassName ?? ''} ${isMenuCollapsed ? (styles['logoLinkCollapsed'] ?? '') : ''}`}
           onClick={closeMenuOverPage}
         >
-          <Logo nameClassName={isMenuCollapsed ? styles['collapsedLogoName'] : undefined} />
+          <Logo nameClassName={isMenuCollapsed ? 'visually-hidden-on-desktop' : undefined} />
         </Link>
         <div className={styles['account']}>
           <AccountMenu avatar={<UserInitials />}>
@@ -68,6 +70,7 @@ export function AppLayout() {
       >
         <MainNavigation
           menuState={menuState}
+          menuToggleRef={menuToggleRef}
           onMenuToggle={toggleMenu}
           onSectionChoose={closeMenuOverPage}
         />

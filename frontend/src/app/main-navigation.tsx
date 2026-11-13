@@ -1,8 +1,9 @@
+import type { RefObject } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router';
 
 import styles from './main-navigation.module.css';
 import { MoreMenu } from './more-menu';
-import type { MenuState } from './use-menu-collapse';
+import { type MenuState, readIsMenuCollapsed } from './use-menu-collapse';
 import { useOpenNewTransaction } from './use-open-new-transaction';
 
 const HOME_ICON_PATH = 'M4 11 12 4l8 7v9h-5v-6H9v6H4z';
@@ -32,15 +33,29 @@ const MORE_SECTIONS = [
     iconPath: 'M12 4v10M8 10l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3',
   },
 ] as const;
+const IS_EXPANDED_BY_MENU_STATE = {
+  full: undefined,
+  collapsed: undefined,
+  collapsedByWidth: false,
+  openOverPage: true,
+} as const satisfies Record<MenuState, boolean | undefined>;
 
 type MainNavigationProps = Readonly<{
   menuState: MenuState;
+  menuToggleRef: RefObject<HTMLButtonElement | null>;
   onMenuToggle: () => void;
   onSectionChoose: () => void;
 }>;
 
-export function MainNavigation({ menuState, onMenuToggle, onSectionChoose }: MainNavigationProps) {
-  const isCollapsed = menuState === 'collapsed';
+export function MainNavigation({
+  menuState,
+  menuToggleRef,
+  onMenuToggle,
+  onSectionChoose,
+}: MainNavigationProps) {
+  const isCollapsed = readIsMenuCollapsed(menuState);
+  const labelClassName = `${styles['label'] ?? ''} ${isCollapsed ? 'visually-hidden-on-desktop' : ''}`;
+
   const openNewTransaction = useOpenNewTransaction();
   const { pathname } = useLocation();
   const isMoreSectionOpen = MORE_SECTIONS.some(
@@ -64,7 +79,9 @@ export function MainNavigation({ menuState, onMenuToggle, onSectionChoose }: Mai
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
           <path d={ADD_ICON_PATH} />
         </svg>
-        <span className={`visually-hidden ${styles['addLabel'] ?? ''}`}>Add transaction</span>
+        <span className={`visually-hidden ${isCollapsed ? '' : (styles['addLabel'] ?? '')}`}>
+          Add transaction
+        </span>
       </button>
       {SECTIONS.map((section) => (
         <NavLink
@@ -78,7 +95,7 @@ export function MainNavigation({ menuState, onMenuToggle, onSectionChoose }: Mai
           <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
             <path d={section.iconPath} />
           </svg>
-          <span className={styles['label']}>{section.name}</span>
+          <span className={labelClassName}>{section.name}</span>
         </NavLink>
       ))}
       <MoreMenu isCurrent={isMoreSectionOpen}>
@@ -93,21 +110,27 @@ export function MainNavigation({ menuState, onMenuToggle, onSectionChoose }: Mai
             <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
               <path d={section.iconPath} />
             </svg>
-            <span className={styles['label']}>{section.name}</span>{' '}
-            <span className={styles['soon']}>Soon</span>
+            <span className={labelClassName}>{section.name}</span>{' '}
+            <span
+              className={`${styles['soon'] ?? ''} ${isCollapsed ? 'visually-hidden-on-desktop' : ''}`}
+            >
+              Soon
+            </span>
           </button>
         ))}
       </MoreMenu>
       <button
+        ref={menuToggleRef}
         type="button"
         className={styles['menuToggle']}
+        aria-expanded={IS_EXPANDED_BY_MENU_STATE[menuState]}
         title={isCollapsed ? 'Show the full menu' : undefined}
         onClick={onMenuToggle}
       >
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
           <path d={isCollapsed ? SHOW_ICON_PATH : COLLAPSE_ICON_PATH} />
         </svg>
-        <span className={styles['label']}>{isCollapsed ? 'Show the full menu' : 'Collapse'}</span>
+        <span className={labelClassName}>{isCollapsed ? 'Show the full menu' : 'Collapse'}</span>
       </button>
     </nav>
   );

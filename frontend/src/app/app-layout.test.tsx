@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { expect, test, vi } from 'vitest';
@@ -333,4 +333,94 @@ test('keeps the full menu on a wide screen after it was opened over the page', a
 
   // assert
   expect(screen.getByRole('button', { name: 'Collapse' })).toBeInTheDocument();
+});
+
+test('returns focus to Show the full menu after Escape closes the menu over the page', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<AppLayout />, { handle: { fullMenuMinWidth: '90rem' } });
+  await user.click(screen.getByRole('button', { name: 'Show the full menu' }));
+  screen.getByRole('link', { name: 'Accounts' }).focus();
+
+  // act
+  await user.keyboard('{Escape}');
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Show the full menu' })).toHaveFocus();
+});
+
+test('marks the menu button as expanded while the full menu is open over the page', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<AppLayout />, { handle: { fullMenuMinWidth: '90rem' } });
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Show the full menu' }));
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Collapse' })).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('leaves the menu collapsed on a page reached without choosing a section', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  const { router } = render(<AppLayout />, { handle: { fullMenuMinWidth: '90rem' } });
+  await user.click(screen.getByRole('button', { name: 'Show the full menu' }));
+
+  // act
+  await act(() => router.navigate('/accounts'));
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Show the full menu' })).toBeInTheDocument();
 });
