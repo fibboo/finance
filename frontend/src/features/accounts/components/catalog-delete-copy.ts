@@ -2,7 +2,7 @@ import type { components } from '@/lib/api-schema';
 
 type Account = components['schemas']['Account'];
 
-type CatalogDeleteCopy = Readonly<{ label: string; title: string; text: string }>;
+export type DeleteCopy = Readonly<{ label: string; title: string; text: string }>;
 
 const ENTITY_NAMES_BY_KIND = {
   EXPENSE: { entityName: 'category', entityNames: 'categories' },
@@ -11,7 +11,7 @@ const ENTITY_NAMES_BY_KIND = {
 
 export function readCatalogDeleteCopy(
   account: Readonly<Pick<Account, 'kind' | 'name'>>,
-): CatalogDeleteCopy {
+): DeleteCopy {
   if (account.kind !== 'EXPENSE' && account.kind !== 'INCOME') {
     throw new Error(`The account kind ${account.kind} is not a catalog entry.`);
   }

@@ -1,5 +1,4 @@
 import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
-import { useId } from 'react';
 import type { To } from 'react-router';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
@@ -12,6 +11,7 @@ import { AccountOverview } from './account-overview';
 import { DeleteAccount } from './delete-account';
 import { RestoreAccount } from './restore-account';
 
+type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
 type AccountDetailsProps = Readonly<{
@@ -20,13 +20,15 @@ type AccountDetailsProps = Readonly<{
   accountKinds: readonly DictionaryItem[];
   categoryTypes: readonly DictionaryItem[];
   adjustBalanceLink: To;
-  transactionsLink: To;
+  readTransactionsLink: (account: Readonly<Account>) => To;
+  transactionsLinkId: string;
   isOnlyAccount: boolean;
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;
   isKeptOpenOnDesktop: boolean;
   onEdit: () => void;
   onDeleted: () => void;
+  onStatusChanged: () => void;
   onRestoreNameTaken: () => void;
   onClose: () => void;
   onChoose: () => void;
@@ -38,18 +40,19 @@ export function AccountDetails({
   accountKinds,
   categoryTypes,
   adjustBalanceLink,
-  transactionsLink,
+  readTransactionsLink,
+  transactionsLinkId,
   isOnlyAccount,
   relatedQueryKeys,
   isShownByDefault,
   isKeptOpenOnDesktop,
   onEdit,
   onDeleted,
+  onStatusChanged,
   onRestoreNameTaken,
   onClose,
   onChoose,
 }: AccountDetailsProps) {
-  const transactionsLinkId = useId();
   const {
     data: account,
     isError,
@@ -57,12 +60,6 @@ export function AccountDetails({
     isPlaceholderData,
     refetch,
   } = useQuery({ ...accountQueries.detail(accountId), placeholderData: keepPreviousData });
-
-  function focusTransactionsLink() {
-    requestAnimationFrame(() => {
-      document.getElementById(transactionsLinkId)?.focus();
-    });
-  }
 
   return (
     <DetailsPanel
@@ -88,7 +85,7 @@ export function AccountDetails({
             accountKinds={accountKinds}
             categoryTypes={categoryTypes}
             adjustBalanceLink={adjustBalanceLink}
-            transactionsLink={transactionsLink}
+            transactionsLink={readTransactionsLink(account)}
             transactionsLinkId={transactionsLinkId}
             closeButton={closeButton}
             statusAction={
@@ -97,7 +94,7 @@ export function AccountDetails({
                   key={accountId}
                   accountId={accountId}
                   relatedQueryKeys={relatedQueryKeys}
-                  onRestored={focusTransactionsLink}
+                  onRestored={onStatusChanged}
                   onNameTaken={onRestoreNameTaken}
                 />
               ) : (
@@ -107,7 +104,7 @@ export function AccountDetails({
                   currency={account.currency ?? baseCurrency}
                   isOnlyAccount={isOnlyAccount}
                   relatedQueryKeys={relatedQueryKeys}
-                  onDeleted={isMoneyAccountKind(account.kind) ? onDeleted : focusTransactionsLink}
+                  onDeleted={isMoneyAccountKind(account.kind) ? onDeleted : onStatusChanged}
                 />
               )
             }

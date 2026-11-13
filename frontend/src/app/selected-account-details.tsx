@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router';
+import { useEffect, useId, useState } from 'react';
+import { Navigate, type To, useSearchParams } from 'react-router';
 
 import { Sheet } from '@/components/sheet/sheet';
 
@@ -35,16 +35,19 @@ const EDIT_SHEET_LABELS = {
   INCOME: 'Edit income source',
 } as const;
 
-function readTransactionsSearch(account: Readonly<Account> | undefined): string {
-  const accountIds = account === undefined ? [] : [account.id];
-  const transactionsSearch = writeTransactionFilters({
-    transaction_types: [],
-    account_ids: account?.kind === 'EXPENSE' || account?.kind === 'INCOME' ? [] : accountIds,
-    category_ids: account?.kind === 'EXPENSE' ? accountIds : [],
-    income_source_ids: account?.kind === 'INCOME' ? accountIds : [],
-    location_ids: [],
-  }).toString();
-  return transactionsSearch;
+function readTransactionsLink(account: Readonly<Account>): To {
+  const accountIds = [account.id];
+  const transactionsLink = {
+    pathname: '/transactions',
+    search: writeTransactionFilters({
+      transaction_types: [],
+      account_ids: account.kind === 'EXPENSE' || account.kind === 'INCOME' ? [] : accountIds,
+      category_ids: account.kind === 'EXPENSE' ? accountIds : [],
+      income_source_ids: account.kind === 'INCOME' ? accountIds : [],
+      location_ids: [],
+    }).toString(),
+  };
+  return transactionsLink;
 }
 
 type SelectedAccountDetailsProps = Readonly<{
@@ -135,6 +138,7 @@ function SelectedAccount({
   const [searchParams, setSearchParams] = useSearchParams();
   const [editedAccountId, setEditedAccountId] = useState<string | undefined>(undefined);
   const [renamedAccountId, setRenamedAccountId] = useState<string | undefined>(undefined);
+  const transactionsLinkId = useId();
   const isEditing = editedAccountId === accountId;
   if (editedAccountId !== undefined && !isEditing) {
     setEditedAccountId(undefined);
@@ -181,6 +185,12 @@ function SelectedAccount({
     setRenamedAccountId(undefined);
   }
 
+  function focusTransactionsLink() {
+    requestAnimationFrame(() => {
+      document.getElementById(transactionsLinkId)?.focus();
+    });
+  }
+
   function dropSelectedAccount({ isReplaced }: Readonly<{ isReplaced: boolean }>) {
     setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
       preventScrollReset: true,
@@ -198,7 +208,8 @@ function SelectedAccount({
         adjustBalanceLink={{
           search: writeNewAdjustment({ searchParams, accountId }).toString(),
         }}
-        transactionsLink={{ pathname: '/transactions', search: readTransactionsSearch(account) }}
+        readTransactionsLink={readTransactionsLink}
+        transactionsLinkId={transactionsLinkId}
         isOnlyAccount={isOnlyAccount}
         relatedQueryKeys={relatedQueryKeys}
         isShownByDefault={isShownByDefault}
@@ -209,6 +220,7 @@ function SelectedAccount({
         onDeleted={() => {
           dropSelectedAccount({ isReplaced: true });
         }}
+        onStatusChanged={focusTransactionsLink}
         onRestoreNameTaken={() => {
           setRenamedAccountId(accountId);
         }}
@@ -250,7 +262,10 @@ function SelectedAccount({
               account={account}
               entityName={account.kind === 'EXPENSE' ? 'category' : 'income source'}
               relatedQueryKeys={relatedQueryKeys}
-              onRestored={closeRestoreForm}
+              onRestored={() => {
+                closeRestoreForm();
+                focusTransactionsLink();
+              }}
               onBack={closeRestoreForm}
             />
           </Sheet>

@@ -13,11 +13,9 @@ import { accountMutations } from '../api/account-mutations';
 import { accountQueries } from '../api/account-queries';
 import { ACCOUNT_SEARCH_FIELD_ID } from '../api/account-search';
 import { readNeighbourAccountLinkId } from '../api/selected-account';
-import { readCatalogDeleteCopy } from './catalog-delete-copy';
+import { type DeleteCopy, readCatalogDeleteCopy } from './catalog-delete-copy';
 
 type Account = components['schemas']['Account'];
-
-type DeleteCopy = Readonly<{ label: string; title: string; text: string }>;
 
 function readDeleteCopy({
   account,

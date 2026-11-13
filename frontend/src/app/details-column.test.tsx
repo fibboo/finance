@@ -331,3 +331,67 @@ test('opens Restore category when a restore from the details is refused because 
     'An active category already has this name',
   );
 });
+
+test('restores a category under a new name from its details and moves the focus to its Transactions', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let category: components['schemas']['Account'] = { ...groceries, status: 'DELETED' };
+  const restoreBodies: unknown[] = [];
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${groceries.id}`, () =>
+      HttpResponse.json(category),
+    ),
+    http.post(
+      `http://localhost/api/accounting/accounts/${groceries.id}/restore`,
+      async ({ request }) => {
+        const body: unknown = await request.json();
+        restoreBodies.push(body);
+        if (restoreBodies.length === 1) {
+          return HttpResponse.json(
+            {
+              error_code: 'NAME_ALREADY_EXISTS',
+              message: 'This name is already taken',
+            } satisfies components['schemas']['ErrorResponse'],
+            { status: 409 },
+          );
+        }
+        category = { ...groceries, name: 'Groceries 2025' };
+        return HttpResponse.json(category);
+      },
+    ),
+  );
+  render(
+    <DetailsColumn
+      baseCurrency="USD"
+      defaultTransactionId={undefined}
+      shownAccount={{
+        chosenAccountId: groceries.id,
+        defaultAccountId: wallet.id,
+        isAccountParamStale: false,
+        isAccountOpenedLast: true,
+      }}
+      accountCount={1}
+      isAccountFirst={false}
+    />,
+    { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
+  );
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await user.click(await within(details).findByRole('button', { name: 'Restore' }));
+  const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
+  const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
+  await user.clear(name);
+  await user.type(name, 'Groceries 2025');
+
+  // act
+  await user.click(within(restoreForm).getByRole('button', { name: 'Restore category' }));
+
+  // assert
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries 2025' }),
+  ).toBeInTheDocument();
+  expect(restoreBodies).toEqual([{}, { name: 'Groceries 2025' }]);
+  expect(screen.queryByRole('form', { name: 'Restore category' })).not.toBeInTheDocument();
+  await waitFor(() => {
+    expect(within(details).getByRole('link', { name: 'Transactions' })).toHaveFocus();
+  });
+});
