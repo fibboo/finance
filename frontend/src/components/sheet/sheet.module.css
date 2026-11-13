@@ -68,11 +68,12 @@
   }
 
   .sheet {
-    inset: 50% auto auto 50%;
+    inset: 0;
     width: var(--size-dialog);
+    height: fit-content;
     max-height: calc(100dvh - var(--space-12));
+    margin: auto;
     border-radius: var(--radius-panel);
-    transform: translate(-50%, -50%);
   }
 
   .content {
