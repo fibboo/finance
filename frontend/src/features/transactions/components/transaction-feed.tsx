@@ -49,6 +49,7 @@ type TransactionFeedProps = Readonly<{
   label: string;
   header?: ReactNode;
   isGroupedByDay?: boolean;
+  isSelectable?: boolean;
   emptyState?: ReactNode;
   onReturnToToday?: () => void;
 }>;
@@ -61,6 +62,7 @@ export function TransactionFeed({
   label,
   header,
   isGroupedByDay = true,
+  isSelectable = true,
   emptyState = <NoTransactions />,
   onReturnToToday,
 }: TransactionFeedProps) {
@@ -140,6 +142,7 @@ export function TransactionFeed({
               transactionTypes={transactionTypes}
               topTransactionId={topTransactionId}
               isGroupedByDay={isGroupedByDay}
+              isSelectable={isSelectable}
             />
             {isFetchingNextPage && <TransactionSkeletonRows count={LOADING_MORE_ROW_COUNT} />}
             {hasNextPage && !isFetchingNextPage && isFetchNextPageError && (

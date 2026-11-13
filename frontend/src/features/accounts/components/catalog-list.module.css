@@ -40,6 +40,8 @@
 }
 
 .entry {
+  position: relative;
+  isolation: isolate;
   min-height: var(--size-option-lg);
   padding-block: var(--space-1-5);
   display: flex;
@@ -49,6 +51,24 @@
 
 .entry + .entry {
   border-top: var(--size-border) solid var(--color-border);
+}
+
+.selected::before {
+  content: '';
+  position: absolute;
+  inset: var(--space-1) calc(var(--space-2) * -1);
+  z-index: -1;
+  border-radius: var(--radius-segment);
+  background: color-mix(in oklab, var(--color-panel), var(--color-ink) var(--mix-selected-row));
+}
+
+.entry:has(.nameLink:focus-visible)::after {
+  content: '';
+  position: absolute;
+  inset: var(--space-1) calc(var(--space-2) * -1);
+  border-radius: var(--radius-segment);
+  box-shadow: inset 0 0 0 var(--size-focus-row) var(--color-focus-row);
+  pointer-events: none;
 }
 
 .mark {
@@ -70,6 +90,7 @@
 }
 
 .identity {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -90,6 +111,21 @@
 
 .deleted .name {
   color: var(--color-muted);
+}
+
+.nameLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.nameLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.nameLink:focus-visible {
+  outline: none;
 }
 
 .description {

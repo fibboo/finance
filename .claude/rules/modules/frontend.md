@@ -35,9 +35,11 @@ The rules are in `.claude/rules/react.md` **Auth and Security**; `features/auth/
 
 A details view, a form and a filter panel are each one component that CSS turns from a bottom sheet on a phone into a panel, a dialog or a popover on desktop (`DetailsPanel`, `Sheet`). The app layout holds the screen height, so only a page's content scrolls. A route that pins rows above a scrolling list sets `--sticky-top` to their height, which the rows under them stick below and scroll clear of. A route shows the logo in the phone's top bar by exporting `handle = { isLogoShownOnPhone: true }`.
 
+The transactions beside a catalog list are the stated exception, a secondary detail of the desktop: `hooks/use-is-desktop.ts` repeats the `--desktop` breakpoint of `styles/media.css` in script, because CSS can neither keep a hidden block from fetching its feed nor turn a link into text. The two values change together. On desktop that list scrolls inside its own block instead of the page, so that the transactions beside it keep the screen height.
+
 ## Transaction feed
 
-The feed is an infinite query whose page holds the rows the screen height fits. The Transactions section keeps the day it opened on (`isOpeningDayKept`), so that paging stays consistent across midnight, while the recent transactions of Home follow the local today. The feed drops a transaction that a shifted page repeats. A jump to a date anchors the feed there: one query pages down from the date and a second, oldest first, pages up towards today, while `use-anchor-scroll.ts` keeps the scroll position when rows are added above.
+The feed is an infinite query whose page holds the rows the screen height fits. The Transactions section keeps the day it opened on (`isOpeningDayKept`), so that paging stays consistent across midnight, while the recent transactions of Home follow the local today. The feed drops a transaction that a shifted page repeats. A jump to a date anchors the feed there: one query pages down from the date and a second, oldest first, pages up towards today, while `use-anchor-scroll.ts` keeps the scroll position when rows are added above. The feed beside a catalog list renders its rows without links (`isSelectable`), since that page has no transaction details and its arrow keys move the catalog rows.
 
 ## Transaction forms
 
@@ -52,4 +54,4 @@ One module per format, which every use goes through: `lib/format-money.ts` (two 
 
 ## Boot screen and tests
 
-`BootScreen` repeats the markup `frontend/index.html` shows in `#root` before any script loads, so the two change together. The Vitest setup in `src/test/` starts the MSW server and stubs what jsdom lacks (`navigator.locks`, an `IntersectionObserver` that reports every observed element in view, the scroll methods), and signs out after each test.
+`BootScreen` repeats the markup `frontend/index.html` shows in `#root` before any script loads, so the two change together. The Vitest setup in `src/test/` starts the MSW server and stubs what jsdom lacks (`navigator.locks`, an `IntersectionObserver` that reports every observed element in view, a `matchMedia` that answers a minimum width from the window's width, the scroll methods), and signs out after each test.

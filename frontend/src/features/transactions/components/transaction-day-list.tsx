@@ -66,6 +66,7 @@ type TransactionDayListProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   topTransactionId: string | undefined;
   isGroupedByDay: boolean;
+  isSelectable: boolean;
 }>;
 
 export function TransactionDayList({
@@ -74,9 +75,11 @@ export function TransactionDayList({
   transactionTypes,
   topTransactionId,
   isGroupedByDay,
+  isSelectable,
 }: TransactionDayListProps) {
   const today = useToday();
   const arrowKeySelection = useArrowKeySelection({ list: 'transactions', orientation: 'vertical' });
+  const rowSelection = isSelectable ? arrowKeySelection : undefined;
   return (
     <div className={styles['transactionDayList']}>
       {isGroupedByDay ? (
@@ -110,7 +113,7 @@ export function TransactionDayList({
                   baseCurrency={baseCurrency}
                   transactionTypes={transactionTypes}
                   isTop={transaction.id === topTransactionId}
-                  arrowKeySelection={arrowKeySelection}
+                  arrowKeySelection={rowSelection}
                 />
               ))}
             </ul>
@@ -125,7 +128,7 @@ export function TransactionDayList({
               baseCurrency={baseCurrency}
               transactionTypes={transactionTypes}
               isTop={transaction.id === topTransactionId}
-              arrowKeySelection={arrowKeySelection}
+              arrowKeySelection={rowSelection}
               dateLabel={readDayLabel({ transactionDate: transaction.transaction_date, today })}
             />
           ))}

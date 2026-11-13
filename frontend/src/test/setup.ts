@@ -79,6 +79,23 @@ beforeAll(() => {
   });
 });
 
+const ROOT_FONT_SIZE = 16;
+
+function matchMinWidth(query: string): MediaQueryList {
+  const minWidthRem = /width >= (\d+)rem/.exec(query)?.[1];
+  const mediaQueryList = {
+    matches: minWidthRem !== undefined && window.innerWidth >= Number(minWidthRem) * ROOT_FONT_SIZE,
+    media: query,
+    onchange: null,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => false,
+  };
+  return mediaQueryList;
+}
+
 const previouslyFocusedElements = new WeakMap<HTMLDialogElement, Element | null>();
 
 function cancelOpenDialog(event: KeyboardEvent) {
@@ -116,6 +133,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', IntersectionObserverStub);
+  vi.stubGlobal('matchMedia', matchMinWidth);
   Object.defineProperty(Element.prototype, 'scrollIntoView', {
     configurable: true,
     writable: true,

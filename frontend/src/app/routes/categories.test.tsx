@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, expect, test } from 'vitest';
+import { beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -40,8 +40,68 @@ const rent = {
   category_type: 'FIXED',
 } satisfies components['schemas']['Account'];
 
+const rentPayment = {
+  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  transaction_date: '2026-10-05',
+  comment: null,
+  base_currency_amount: '900.00',
+  location: null,
+  income_period: null,
+  transaction_type: 'EXPENSE',
+  status: 'ACTIVE',
+  created_at: '2026-10-05T09:00:00Z',
+  updated_at: '2026-10-05T09:00:00Z',
+  postings: [
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+      amount: '-900.00',
+      currency: 'USD',
+      base_amount: '-900.00',
+      account: {
+        ...groceries,
+        name: 'Main card',
+        description: null,
+        id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
+        kind: 'ASSET',
+        currency: 'USD',
+        category_type: null,
+      },
+    },
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+      amount: '900.00',
+      currency: 'USD',
+      base_amount: '900.00',
+      account: rent,
+    },
+  ],
+} satisfies components['schemas']['Transaction'];
+
 beforeEach(() => {
+  // 768 px of jsdom's window over 52 px rows give pages of 15
+  document.documentElement.style.fontSize = '16px';
+  document.documentElement.style.setProperty('--size-transaction-row', '3.25rem');
   server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'USD',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
@@ -51,7 +111,7 @@ beforeEach(() => {
           { key: 'FIXED', label: 'Fixed' },
           { key: 'PERIODIC', label: 'Periodic' },
         ],
-        transaction_types: [],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
     ),
@@ -270,7 +330,9 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   expect(within(groceriesRow).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   expect(within(groceriesRow).queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument();
   expect(within(cigarettesRow).getByRole('button', { name: 'Restore' })).toBeInTheDocument();
-  expect(within(cigarettesRow).queryByRole('link')).not.toBeInTheDocument();
+  expect(
+    within(cigarettesRow).queryByRole('link', { name: 'Transactions' }),
+  ).not.toBeInTheDocument();
   expect(within(cigarettesRow).getAllByRole('button')).toHaveLength(1);
 });
 
@@ -596,4 +658,134 @@ test('keeps the edit form of another category open when an earlier save finishes
   });
   expect(groceriesForm).toBeInTheDocument();
   expect(within(groceriesForm).getByRole('textbox', { name: 'Name' })).toHaveValue('Groceries');
+});
+
+test('shows the transactions of the top category beside the list while none is chosen', async () => {
+  // arrange
+  const requestedAccountIds: string[] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [rent, groceries],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedAccountIds.push(new URL(request.url).searchParams.getAll('account_ids').join());
+      return HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+
+  // act
+  const { router } = render(<Component />, { initialEntries: ['/categories'] });
+
+  // assert
+  const transactions = await screen.findByRole('region', { name: 'Transactions of Groceries' });
+  expect(within(transactions).getByRole('heading', { name: 'Groceries' })).toBeInTheDocument();
+  expect(
+    within(transactions).getByText('Category · Variable · recent transactions'),
+  ).toBeInTheDocument();
+  expect(within(transactions).getByRole('link', { name: 'All' })).toHaveAttribute(
+    'href',
+    `/transactions?category_ids=${groceries.id}`,
+  );
+  expect(await within(transactions).findByText('Nothing here yet')).toBeInTheDocument();
+  expect(requestedAccountIds).toEqual([groceries.id]);
+  expect(screen.getByRole('link', { name: 'Groceries' })).not.toHaveAttribute('aria-current');
+  expect(router.state.location.search).toBe('');
+});
+
+test('shows the transactions of the category whose name is chosen and moves the choice with the arrow keys', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, cigarettes, rent],
+        total: 3,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const items =
+        new URL(request.url).searchParams.getAll('account_ids').join() === rent.id
+          ? [rentPayment]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/categories'] });
+
+  // act
+  await user.click(await screen.findByRole('link', { name: 'Rent' }));
+
+  // assert
+  const rentTransactions = await screen.findByRole('region', { name: 'Transactions of Rent' });
+  expect(
+    within(rentTransactions).getByText('Category · Fixed · recent transactions'),
+  ).toBeInTheDocument();
+  // the day's total and the payment itself
+  expect(await within(rentTransactions).findAllByText('-$900.00')).toHaveLength(2);
+  expect(within(rentTransactions).getAllByRole('link')).toHaveLength(1);
+  expect(screen.getByRole('link', { name: 'Rent' })).toHaveAttribute('aria-current', 'true');
+  expect(new URLSearchParams(router.state.location.search).get('account')).toBe(rent.id);
+
+  // act
+  await user.keyboard('{ArrowUp}');
+
+  // assert
+  expect(
+    await screen.findByRole('region', { name: 'Transactions of Cigarettes' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Cigarettes' })).toHaveFocus();
+  expect(new URLSearchParams(router.state.location.search).get('account')).toBe(cigarettes.id);
+});
+
+test('gives a phone plain names and no transactions of a category', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 390);
+  let transactionRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () => {
+      transactionRequestCount += 1;
+      return HttpResponse.json(null, { status: 400 });
+    }),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
+
+  // assert
+  const variable = await screen.findByRole('region', { name: 'Variable' });
+  expect(within(variable).getByText('Groceries')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Groceries' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Rent' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: /^Transactions of/ })).not.toBeInTheDocument();
+  expect(transactionRequestCount).toBe(0);
 });
