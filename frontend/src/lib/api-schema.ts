@@ -192,7 +192,7 @@ export interface paths {
         put?: never;
         /**
          * Restore Location
-         * @description Restoring location is possible only if no active location has its name
+         * @description Restores the location under `name` if given, else its own name; no active location may hold that name
          */
         post: operations["restore_location_accounting_locations__location_id__restore_post"];
         delete?: never;
@@ -827,6 +827,11 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
+        };
+        /** LocationRestoreRequest */
+        LocationRestoreRequest: {
+            /** Name */
+            name?: string | null;
         };
         /** LocationUpdate */
         LocationUpdate: {
@@ -1710,7 +1715,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LocationRestoreRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

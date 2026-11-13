@@ -15,6 +15,7 @@ from app.schemas.accounting.location import (
     LocationCreate,
     LocationCreateRequest,
     LocationRequest,
+    LocationRestoreRequest,
     LocationUpdate,
 )
 from app.schemas.base import EntityStatusType
@@ -94,8 +95,13 @@ async def delete_location(*, db: AsyncSession, location_id: UUID, user_id: UUID)
     return location
 
 
-async def restore_location(*, db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
+async def restore_location(
+    *, db: AsyncSession, location_id: UUID, restore_data: LocationRestoreRequest | None, user_id: UUID
+) -> Location:
     obj_in: dict = {"status": EntityStatusType.ACTIVE.value}
+    if restore_data is not None and restore_data.name is not None:
+        obj_in["name"] = restore_data.name
+
     try:
         location_db: LocationModel | None = await location_crud.update_orm(
             db=db, obj_in=obj_in, id=location_id, user_id=user_id, status=EntityStatusType.DELETED

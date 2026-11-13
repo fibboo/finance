@@ -6,7 +6,13 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import DbTransaction, get_db, get_onboarded_user_id, get_user_id
-from app.schemas.accounting.location import Location, LocationCreateRequest, LocationRequest, LocationUpdate
+from app.schemas.accounting.location import (
+    Location,
+    LocationCreateRequest,
+    LocationRequest,
+    LocationRestoreRequest,
+    LocationUpdate,
+)
 from app.services.accounting import location_service
 
 router = APIRouter()
@@ -63,9 +69,17 @@ async def delete_location(*, location_id: UUID, user_id: UUID = Depends(get_user
 
 
 @router.post("/{location_id}/restore")
-async def restore_location(*, location_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Location:
+async def restore_location(
+    *,
+    location_id: UUID,
+    restore_data: LocationRestoreRequest | None = None,
+    user_id: UUID = Depends(get_user_id),
+    db: DbTransaction,
+) -> Location:
     """
-    Restoring location is possible only if no active location has its name
+    Restores the location under `name` if given, else its own name; no active location may hold that name
     """
-    location: Location = await location_service.restore_location(db=db, location_id=location_id, user_id=user_id)
+    location: Location = await location_service.restore_location(
+        db=db, location_id=location_id, restore_data=restore_data, user_id=user_id
+    )
     return location

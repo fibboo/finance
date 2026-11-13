@@ -24,6 +24,7 @@ from app.schemas.accounting.location import (
     LocationCreate,
     LocationCreateRequest,
     LocationRequest,
+    LocationRestoreRequest,
     LocationUpdate,
 )
 from app.schemas.accounting.posting import PostingCreate
@@ -406,7 +407,20 @@ async def test_create_location_name_of_deleted_location(db: AsyncSession, db_tra
     assert len(locations) == 2
 
 
-async def test_restore_location_ok(db: AsyncSession, db_transaction: AsyncSession):
+@pytest.mark.parametrize(
+    "restore_data, expected_name",
+    [
+        (None, "Test place"),
+        (LocationRestoreRequest(), "Test place"),
+        (LocationRestoreRequest(name="  New place  "), "New place"),
+    ],
+)
+async def test_restore_location_ok(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    restore_data: LocationRestoreRequest | None,
+    expected_name: str,
+):
     # Arrange
     user_id = uuid4()
     created_location: Location = await location_service.create_location(
@@ -417,13 +431,13 @@ async def test_restore_location_ok(db: AsyncSession, db_transaction: AsyncSessio
 
     # Act
     location: Location = await location_service.restore_location(
-        db=db_transaction, location_id=created_location.id, user_id=user_id
+        db=db_transaction, location_id=created_location.id, restore_data=restore_data, user_id=user_id
     )
     await db_transaction.commit()
 
     # Assert
     assert location.id == created_location.id
-    assert location.name == created_location.name
+    assert location.name == expected_name
     assert location.status == EntityStatusType.ACTIVE
 
     locations: Page[Location] = await location_service.get_locations(db=db, request=LocationRequest(), user_id=user_id)
@@ -445,7 +459,9 @@ async def test_restore_location_not_found(
 
     # Act
     with pytest.raises(EntityNotFound) as exc:
-        await location_service.restore_location(db=db_transaction, location_id=location_id, user_id=user_id)
+        await location_service.restore_location(
+            db=db_transaction, location_id=location_id, restore_data=None, user_id=user_id
+        )
         await db_transaction.commit()
 
     # Assert
@@ -457,7 +473,14 @@ async def test_restore_location_not_found(
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-async def test_restore_location_name_taken(db: AsyncSession, db_transaction: AsyncSession):
+# the restored name is taken whether it is the location's own or a new one
+@pytest.mark.parametrize(
+    "restore_data",
+    [None, LocationRestoreRequest(name="Other place")],
+)
+async def test_restore_location_name_taken(
+    db: AsyncSession, db_transaction: AsyncSession, restore_data: LocationRestoreRequest | None
+):
     # Arrange
     user_id = uuid4()
     location_create = LocationCreateRequest(name="Test place")
@@ -466,11 +489,16 @@ async def test_restore_location_name_taken(db: AsyncSession, db_transaction: Asy
     )
     await location_service.delete_location(db=db, location_id=deleted_location.id, user_id=user_id)
     await location_service.create_location(db=db, create_data=location_create, user_id=user_id)
+    await location_service.create_location(
+        db=db, create_data=LocationCreateRequest(name="Other place"), user_id=user_id
+    )
     await db.commit()
 
     # Act
     with pytest.raises(NameAlreadyExists) as exc:
-        await location_service.restore_location(db=db_transaction, location_id=deleted_location.id, user_id=user_id)
+        await location_service.restore_location(
+            db=db_transaction, location_id=deleted_location.id, restore_data=restore_data, user_id=user_id
+        )
         await db_transaction.commit()
 
     # Assert
