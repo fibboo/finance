@@ -510,3 +510,90 @@ test('keeps the edit form closed after a saved category left the filtered list',
   expect(await screen.findByRole('region', { name: 'Periodic' })).toHaveTextContent('Rent');
   expect(screen.queryByRole('form', { name: 'Edit category' })).not.toBeInTheDocument();
 });
+
+test('moves the focus to Restore of the row when its deletion fails because it is already deleted', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let categories: components['schemas']['Account'][] = [groceries, rent];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: categories,
+        total: categories.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.delete(`http://localhost/api/accounting/accounts/${groceries.id}`, () => {
+      categories = [{ ...groceries, status: 'DELETED' }, rent];
+      return HttpResponse.json(
+        { message: 'Account not found' } satisfies components['schemas']['ErrorResponse'],
+        { status: 404 },
+      );
+    }),
+  );
+  render(<Component />, { initialEntries: ['/categories'] });
+  const variable = await screen.findByRole('region', { name: 'Variable' });
+  await user.click(within(variable).getByRole('button', { name: 'Delete' }));
+  const confirmation = screen.getByRole('alertdialog', { name: 'Delete this category?' });
+
+  // act
+  await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+  await waitFor(() => {
+    expect(within(variable).getByRole('button', { name: 'Restore' })).toHaveFocus();
+  });
+  expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
+});
+
+test('keeps the edit form of another category open when an earlier save finishes', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let categories: components['schemas']['Account'][] = [groceries, rent];
+  let finishSave = (): void => undefined;
+  const saveFinished = new Promise<void>((resolve) => {
+    finishSave = resolve;
+  });
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: categories,
+        total: categories.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.put(`http://localhost/api/accounting/accounts/${rent.id}`, async () => {
+      await saveFinished;
+      const flat = { ...rent, name: 'Flat' } satisfies components['schemas']['Account'];
+      categories = [groceries, flat];
+      return HttpResponse.json(flat);
+    }),
+  );
+  render(<Component />, { initialEntries: ['/categories'] });
+  const fixed = await screen.findByRole('region', { name: 'Fixed' });
+  await user.click(within(fixed).getByRole('button', { name: 'Edit' }));
+  const rentForm = await screen.findByRole('form', { name: 'Edit category' });
+  await user.click(within(rentForm).getByRole('button', { name: 'Save changes' }));
+  await user.click(within(rentForm).getByRole('button', { name: 'Back' }));
+  await user.click(
+    within(screen.getByRole('region', { name: 'Variable' })).getByRole('button', { name: 'Edit' }),
+  );
+  const groceriesForm = await screen.findByRole('form', { name: 'Edit category' });
+
+  // act
+  finishSave();
+
+  // assert
+  await waitFor(() => {
+    expect(screen.getByRole('region', { name: 'Fixed' })).toHaveTextContent('Flat');
+  });
+  expect(groceriesForm).toBeInTheDocument();
+  expect(within(groceriesForm).getByRole('textbox', { name: 'Name' })).toHaveValue('Groceries');
+});

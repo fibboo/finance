@@ -17,8 +17,8 @@ type CatalogRowActionsProps = Readonly<{
   entry: Readonly<Account>;
   transactionsLink: To;
   isRestorePending: boolean;
-  isFocusedAfterRestore: boolean;
-  onRestoreFocused: () => void;
+  isFocusRequested: boolean;
+  onFocused: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onRestore: () => void;
@@ -28,17 +28,29 @@ export function CatalogRowActions({
   entry,
   transactionsLink,
   isRestorePending,
-  isFocusedAfterRestore,
-  onRestoreFocused,
+  isFocusRequested,
+  onFocused,
   onEdit,
   onDelete,
   onRestore,
 }: CatalogRowActionsProps) {
   const rowLinkId = readCatalogRowLinkId(entry.id);
+
+  function focusWhenRequested(control: HTMLElement | null) {
+    if (control !== null && isFocusRequested) {
+      if (document.activeElement === document.body) {
+        control.focus();
+      }
+
+      onFocused();
+    }
+  }
+
   if (entry.status === 'DELETED') {
     return (
       <span className={styles['catalogRowActions']}>
         <button
+          ref={focusWhenRequested}
           id={rowLinkId}
           type="button"
           aria-label="Restore"
@@ -62,15 +74,7 @@ export function CatalogRowActions({
   return (
     <span className={styles['catalogRowActions']}>
       <Link
-        ref={(link) => {
-          if (link !== null && isFocusedAfterRestore) {
-            if (document.activeElement === document.body) {
-              link.focus();
-            }
-
-            onRestoreFocused();
-          }
-        }}
+        ref={focusWhenRequested}
         id={rowLinkId}
         to={transactionsLink}
         aria-label="Transactions"

@@ -50,7 +50,7 @@ export function Component() {
   const [isCreating, setIsCreating] = useState(false);
   const [editedCategoryId, setEditedCategoryId] = useState<string | undefined>(undefined);
   const [confirmedCategoryId, setConfirmedCategoryId] = useState<string | undefined>(undefined);
-  const [restoredCategoryId, setRestoredCategoryId] = useState<string | undefined>(undefined);
+  const [focusedCategoryId, setFocusedCategoryId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readAccountSearch(searchParams);
   const searchField = useSearchField(search);
@@ -172,9 +172,9 @@ export function Component() {
                   }).toString(),
                 }}
                 isRestorePending={categoryRestore.isPending}
-                isFocusedAfterRestore={category.id === restoredCategoryId}
-                onRestoreFocused={() => {
-                  setRestoredCategoryId(undefined);
+                isFocusRequested={category.id === focusedCategoryId}
+                onFocused={() => {
+                  setFocusedCategoryId(undefined);
                 }}
                 onEdit={() => {
                   setEditedCategoryId(category.id);
@@ -185,7 +185,7 @@ export function Component() {
                 onRestore={() => {
                   categoryRestore.mutate(category.id, {
                     onSuccess: () => {
-                      setRestoredCategoryId(category.id);
+                      setFocusedCategoryId(category.id);
                     },
                   });
                 }}
@@ -237,12 +237,8 @@ export function Component() {
                 document.getElementById(neighbourLinkId ?? CATEGORY_SEARCH_FIELD_ID)?.focus();
               },
               onError: () => {
-                const returnTarget =
-                  document.getElementById(readCatalogDeleteButtonId(confirmedCategory.id)) ??
-                  document.getElementById(neighbourLinkId ?? CATEGORY_SEARCH_FIELD_ID) ??
-                  document.getElementById(CATEGORY_SEARCH_FIELD_ID);
-                setConfirmedCategoryId(undefined);
-                returnTarget?.focus();
+                closeConfirmation(confirmedCategory.id);
+                setFocusedCategoryId(confirmedCategory.id);
               },
             });
           }}
