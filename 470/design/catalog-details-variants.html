@@ -1,0 +1,576 @@
+<title>Catalog Details Column</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: доска вариантов из экранов самого приложения, десктоп 1440 × 780 масштабируется по ширине страницы. Токены — из tokens.css приложения. */
+:root {
+  --color-ground: #eeeeeb; --color-panel: #ffffff; --color-border: #e2e2de; --color-ink: #17181a;
+  --color-muted: #5a5d64; --color-accent: #1f7a55; --color-bone: #e4e4e0; --color-band: #f4f4f1;
+  --color-danger: #b42318; --color-note: #fff4d6; --color-note-ink: #6b4e00;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-size-2xs: 0.6875rem; --font-size-xs: 0.75rem; --font-size-sm: 0.8125rem; --font-size-md: 0.875rem;
+  --font-size-base: 0.9375rem; --font-size-lg: 1rem; --font-size-xl: 1.125rem; --font-size-heading: 1.25rem; --font-size-3xl: 1.75rem;
+  --space-0-5: 0.125rem; --space-1: 0.25rem; --space-1-5: 0.375rem; --space-2: 0.5rem; --space-2-5: 0.625rem;
+  --space-3: 0.75rem; --space-3-5: 0.875rem; --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem;
+  --radius-segment: 0.625rem; --radius-action: 0.875rem; --radius-panel: 1.25rem; --radius-full: 999rem;
+  --size-border: 0.0625rem; --size-mark: 1.75rem; --size-sidebar: 14.5rem; --size-details: 22.5rem; --size-icon: 1.375rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+    --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-bone: #24272b; --color-band: #1e2125;
+    --color-danger: #ff7a6b; --color-note: #2b2410; --color-note-ink: #f1d68a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+  --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-bone: #24272b; --color-band: #1e2125;
+  --color-danger: #ff7a6b; --color-note: #2b2410; --color-note-ink: #f1d68a; color-scheme: dark;
+}
+* { box-sizing: border-box; scrollbar-width: none; }
+body { margin: 0; font-family: var(--font-sans); line-height: 1.5; color: var(--color-ink); background: var(--color-ground); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+
+.sheetPage { max-width: 84rem; margin: 0 auto; padding-block: var(--space-6) var(--space-8); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: var(--space-8); }
+.intro { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+.intro h1 { margin: 0; font-size: var(--font-size-3xl); letter-spacing: -0.02em; text-wrap: balance; }
+.intro p { margin: var(--space-2) 0 0; max-width: 48rem; color: var(--color-muted); }
+.themes { display: flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-panel); }
+.themes button { font: inherit; font-size: var(--font-size-sm); border: 0; cursor: pointer; padding: var(--space-1-5) var(--space-3); border-radius: var(--radius-full); color: var(--color-muted); background: transparent; }
+.themes button[aria-pressed="true"] { color: var(--color-ink); background: var(--color-band); font-weight: 600; }
+.themes button:focus-visible { outline: 2px solid var(--color-ink); }
+section { display: flex; flex-direction: column; gap: var(--space-3); }
+section > h2 { margin: 0; font-size: var(--font-size-xl); text-wrap: balance; }
+section > h2 .tag { margin-left: var(--space-2); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-full); background: var(--color-band); font-size: var(--font-size-xs); font-weight: 600; vertical-align: middle; }
+.notes { margin: 0; padding-left: var(--space-5); color: var(--color-muted); font-size: var(--font-size-md); display: flex; flex-direction: column; gap: var(--space-1); max-width: 56rem; }
+.notes b { color: var(--color-ink); font-weight: 600; }
+.common { padding: var(--space-3) var(--space-4); border-radius: var(--radius-action); background: var(--color-note); color: var(--color-note-ink); font-size: var(--font-size-md); max-width: 56rem; }
+.boards { display: flex; flex-direction: column; gap: var(--space-4); }
+.caption { font-size: var(--font-size-sm); color: var(--color-muted); }
+.frame { width: 100%; overflow: hidden; border-radius: var(--radius-panel); outline: var(--size-border) solid var(--color-border); }
+.board { background: var(--color-ground); transform-origin: 0 0; position: relative; }
+
+.ico { width: var(--size-icon); height: var(--size-icon); flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ico.sm { width: 1.125rem; height: 1.125rem; }
+
+/* desktop board */
+.desktop { width: 1440px; height: 780px; padding: var(--space-4); display: flex; gap: var(--space-6); overflow: hidden; }
+.sidebar { flex: none; width: var(--size-sidebar); align-self: flex-start; padding: var(--space-5) var(--space-4); border-radius: var(--radius-panel); background: var(--color-panel); display: flex; flex-direction: column; gap: var(--space-1); }
+.logo { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-1) var(--space-3); font-size: var(--font-size-xl); font-weight: 700; }
+.logo i { width: 0.6rem; height: 0.6rem; border-radius: 0.15rem; background: var(--color-accent); }
+.addBtn { padding: var(--space-3); border-radius: var(--radius-action); background: var(--color-bone); text-align: center; font-weight: 600; margin-bottom: var(--space-2-5); }
+.nav { min-height: 2.75rem; padding: 0 var(--space-3); border-radius: var(--radius-action); color: var(--color-muted); display: flex; gap: var(--space-3); align-items: center; font-size: var(--font-size-base); }
+.nav.on { background: var(--color-ground); color: var(--color-ink); font-weight: 600; }
+.menuToggle { margin-top: var(--space-3); padding-top: var(--space-2); border-top: var(--size-border) solid var(--color-border); }
+.main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.topBar { display: flex; justify-content: space-between; align-items: center; min-height: 3rem; }
+.pageTitle { margin: 0; font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.pageTitle small { margin-left: var(--space-2); font-size: var(--font-size-heading); color: var(--color-muted); font-weight: 500; }
+.avatar { width: 3rem; height: 3rem; border-radius: var(--radius-full); background: var(--color-panel); display: grid; place-items: center; font-weight: 600; font-size: var(--font-size-md); }
+.toolbar { display: flex; gap: var(--space-2-5); margin-top: var(--space-4); align-items: center; }
+.search { flex: 0 1 20rem; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-full); background: var(--color-panel); color: var(--color-muted); font-size: var(--font-size-md); }
+.newBtn { flex: none; display: flex; align-items: center; gap: var(--space-1-5); padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-full); background: var(--color-ink); color: var(--color-panel); font-weight: 500; font-size: var(--font-size-md); }
+.filters { display: flex; gap: var(--space-2); margin-top: var(--space-2-5); align-items: center; }
+.seg { display: flex; padding: var(--space-0-5); border-radius: var(--radius-full); background: var(--color-panel); font-size: var(--font-size-sm); }
+.seg span { padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); color: var(--color-muted); }
+.seg span.on { background: var(--color-ink); color: var(--color-panel); font-weight: 500; }
+.toggle { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-sm); }
+.toggle i { position: relative; width: 2.25rem; height: 1.375rem; border-radius: var(--radius-full); background: var(--color-ink); }
+.toggle i::after { content: ''; position: absolute; top: 0.1875rem; right: 0.1875rem; width: 1rem; height: 1rem; border-radius: var(--radius-full); background: var(--color-panel); }
+.content { flex: 1 1 auto; min-height: 0; display: flex; gap: var(--space-4); align-items: stretch; margin-top: var(--space-3); margin-bottom: calc(var(--space-4) * -1); }
+.panel { flex: 1 1 17.5rem; min-width: 0; background: var(--color-panel); border-radius: var(--radius-panel) var(--radius-panel) 0 0; padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden; }
+
+/* catalog list */
+.alist { display: grid; grid-template-columns: var(--size-mark) minmax(0, 1fr) max-content; column-gap: var(--space-4); }
+.groupHead { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; min-height: 2.25rem; margin: var(--space-1-5) calc(var(--space-2) * -1) 0; padding: 0 var(--space-2); border-radius: var(--radius-segment); background: var(--color-band); font-size: var(--font-size-sm); font-weight: 700; }
+.groupHead span { font-weight: 500; color: var(--color-muted); }
+.acc { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 3.5rem; padding-block: var(--space-1-5); position: relative; isolation: isolate; }
+.acc.selected::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-segment); background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
+.text { min-width: 0; display: flex; flex-direction: column; }
+.title, .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title { font-size: var(--font-size-base); font-weight: 500; }
+.sub { font-size: var(--font-size-sm); color: var(--color-muted); line-height: 1.35; }
+.struck { text-decoration: line-through; color: var(--color-muted); }
+.mark { width: var(--size-mark); height: var(--size-mark); border-radius: var(--radius-full); display: grid; place-items: center; font-size: var(--font-size-sm); font-weight: 600; color: var(--color-muted); background: var(--color-bone); }
+.rowActions { display: flex; gap: var(--space-0-5); }
+.rowAction { width: 2.5rem; height: 2.5rem; display: grid; place-items: center; color: var(--color-muted); }
+.rowAction.danger { color: var(--color-danger); }
+
+/* feed */
+.recent { flex: 0 1 26rem; min-width: 0; background: var(--color-panel); border-radius: var(--radius-panel) var(--radius-panel) 0 0; padding: var(--space-5) var(--space-5) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); overflow: hidden; }
+.recentHead { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.list { display: grid; grid-template-columns: 0.5rem minmax(0, 1fr) max-content; column-gap: var(--space-2-5); }
+.dayHead, .row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.dayHead { min-height: 1.75rem; margin: var(--space-1) calc(var(--space-2) * -1); padding: 0 var(--space-2); border-radius: var(--radius-segment); background: var(--color-band); font-size: var(--font-size-xs); }
+.dayHead b { grid-column: 1 / -2; font-weight: 600; }
+.dayHead span { justify-self: end; color: var(--color-muted); }
+.row { min-height: 2.75rem; padding-block: var(--space-1-5); font-size: var(--font-size-sm); position: relative; isolation: isolate; }
+.row.selected::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-segment); background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
+.row .title { font-size: var(--font-size-md); font-weight: 400; }
+.row .sub { font-size: var(--font-size-2xs); }
+.dot { width: 0.5rem; height: 0.5rem; border-radius: var(--radius-full); background: currentColor; flex: none; }
+.amounts { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.amount { font-weight: 500; }
+.orig { font-size: var(--font-size-2xs); color: var(--color-muted); }
+
+/* details column */
+.detailsColumn { flex: 0 0 var(--size-details); min-height: 0; display: flex; flex-direction: column; gap: var(--space-4); position: relative; }
+.detailsColumn.scrolls { overflow: hidden; }
+.details { flex: none; background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+.aHead { display: flex; gap: var(--space-3); align-items: center; }
+.meta { font-size: var(--font-size-sm); color: var(--color-muted); }
+.dTitle { margin: var(--space-0-5) 0 0; font-size: var(--font-size-heading); font-weight: 600; }
+.bigAmount { font-size: 2.25rem; font-weight: 600; line-height: 1.1; letter-spacing: -0.03em; }
+.postings { padding: var(--space-1) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.postings h4 { margin: 0; padding: var(--space-2-5) 0 var(--space-1); font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); }
+.posting { min-height: 3.25rem; display: flex; align-items: center; gap: var(--space-3); }
+.posting .text { flex: 1 1 auto; }
+.link { text-decoration: underline; text-decoration-color: var(--color-border); text-underline-offset: 0.2em; }
+.plainName { color: var(--color-ink); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-6); font-size: var(--font-size-md); margin: 0; }
+.facts dt { color: var(--color-muted); } .facts dd { margin: 0; text-align: right; }
+.actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--space-2); margin-top: var(--space-1); }
+.actions span { min-height: 2.875rem; border-radius: var(--radius-action); background: var(--color-ground); display: flex; align-items: center; justify-content: center; }
+.actions .danger { color: var(--color-danger); }
+.balance { font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.accMark { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-segment); display: grid; place-items: center; font-weight: 600; color: #fff; flex: none; }
+.fade { position: absolute; left: 0; right: 0; bottom: 0; height: 5rem; background: linear-gradient(to bottom, transparent, var(--color-ground)); pointer-events: none; }
+.scrollHint { position: absolute; left: 50%; bottom: var(--space-3); transform: translateX(-50%); display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); background: var(--color-panel); border: var(--size-border) solid var(--color-border); font-size: var(--font-size-xs); color: var(--color-muted); }
+.compactAcc { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-panel); background: var(--color-panel); }
+.compactAcc .text { flex: 1 1 auto; }
+.compactAcc .bal { font-weight: 600; font-size: var(--font-size-lg); white-space: nowrap; }
+.compactAcc .chev { color: var(--color-muted); }
+.backRow { display: flex; align-items: center; gap: var(--space-1); font-size: var(--font-size-sm); color: var(--color-muted); }
+.callout { position: absolute; z-index: 6; max-width: 15rem; padding: var(--space-2) var(--space-3); border-radius: var(--radius-segment); background: var(--color-note); color: var(--color-note-ink); font-size: var(--font-size-xs); line-height: 1.4; box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.18); }
+.accBlock { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.accBlock .text { flex: 1 1 auto; }
+.accBlock .bal { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.accBlock .bal b { font-size: var(--font-size-lg); font-weight: 600; }
+.blockLabel { font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); }
+/* phone */
+.phone { width: 390px; height: 844px; padding: var(--space-4) var(--space-4) 0; overflow: hidden; display: block; }
+.phone .topBar { min-height: 2.75rem; }
+.phone .avatar { width: 2.75rem; height: 2.75rem; }
+.phone .toolbar { margin-top: var(--space-3); }
+.phone .search { flex: 1 1 auto; }
+.phone .panel { border-radius: var(--radius-panel); margin-top: var(--space-3); padding: var(--space-2) var(--space-3-5) var(--space-3); }
+.bar { position: absolute; left: var(--space-4); right: var(--space-4); bottom: var(--space-4); height: 3.75rem; padding: 0 var(--space-1-5); border: var(--size-border) solid var(--color-border); border-radius: 1.375rem; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; background: var(--color-panel); z-index: 3; }
+.barItem { height: 3.125rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-0-5); font-size: var(--font-size-2xs); font-weight: 500; color: var(--color-muted); }
+.barItem.on { color: var(--color-ink); font-weight: 600; }
+.backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / 0.5); z-index: 4; }
+.bsheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--color-panel); border-radius: 1.5rem 1.5rem 0 0; padding: var(--space-2) var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
+.bsheet .handle { align-self: center; width: 2.5rem; height: 0.25rem; border-radius: var(--radius-full); background: var(--color-bone); }
+.bsheet .details { padding: 0; background: transparent; }
+.phoneRow { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start; }
+.phoneFrame { width: 390px; max-width: 100%; overflow: hidden; border-radius: var(--radius-panel); outline: var(--size-border) solid var(--color-border); }
+.accBal { text-align: right; font-weight: 600; white-space: nowrap; }
+.feedWide { flex: 1 1 auto; }
+.chips { display: flex; gap: var(--space-1-5); margin-top: var(--space-2-5); }
+.chip { padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); background: var(--color-panel); font-size: var(--font-size-sm); }
+.amount.in { color: var(--color-accent); }
+.headActions { display: flex; gap: var(--space-1); margin-top: var(--space-2); }
+.headActions span { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-segment); background: var(--color-ground); display: grid; place-items: center; }
+.headActions .danger { color: var(--color-danger); }
+.headBal { margin-top: var(--space-1); font-size: var(--font-size-heading); font-weight: 600; }
+/* rail menu and export at 1280 px */
+:root.w1280 .desktop { width: 1280px; height: 800px; }
+.sidebar.rail { width: 4.25rem; padding: var(--space-5) var(--space-2-5); align-items: stretch; }
+.sidebar.rail .logo { justify-content: center; padding: var(--space-1-5) 0 var(--space-4); }
+.sidebar.rail .addBtn { padding: 0; height: 2.75rem; display: grid; place-items: center; }
+.sidebar.rail .nav { padding: 0; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="sheetPage">
+  <header class="intro">
+    <div>
+      <h1>Колонка деталей рядом с лентой каталога</h1>
+      <p>Categories, Income sources и Locations на десктопе. Сейчас под транзакцией стоит полная панель счёта, и на окне высотой около 780 px она обрезается. Ниже четыре варианта третьей колонки на одном и том же экране: Categories, 1440 × 780, полное меню.</p>
+    </div>
+    <div class="themes" role="group" aria-label="Тема">
+      <button type="button" data-theme-choice="">Системная</button>
+      <button type="button" data-theme-choice="light">Светлая</button>
+      <button type="button" data-theme-choice="dark">Тёмная</button>
+    </div>
+  </header>
+
+  <p class="common"><b>Во всех вариантах.</b> Запись страницы в проводках не кликабельна: на Categories категория (здесь Rent) — простой текст, на Income sources — источник дохода, на Locations — строка Location. Ссылки на другие сущности ведут в их раздел: счёт → Accounts, локация на Categories → Locations.</p>
+
+  <section>
+    <h2>E · Одна карточка на всех страницах <span class="tag">новый</span></h2>
+    <p class="common"><b>Карточка одинаковая везде.</b> Тип и дата, сумма, From, To, Location, Comment, кнопки транзакции. У расхода From — счёт, To — категория. У дохода From — источник, To — счёт. У перевода оба блока — счета. У счёта в блоке виден текущий баланс. Запись самой страницы стоит на своём месте, но без ссылки. Всё остальное открывается на месте карточки, а «‹ Транзакция» возвращает обратно.</p>
+    <ul class="notes">
+      <li><b>Что открывается на месте.</b> Categories: счёт и локация. Income sources: счёт. Locations: счёт и категория. Accounts: категория или источник, локация, второй счёт перевода. Transactions и Home: всё — категория или источник, локация, счета.</li>
+      <li><b>Лента.</b> Из строк убрана запись страницы, ведь других в этой ленте нет. На Categories и Income sources в заголовке строки счёт, на Locations — категория, на Accounts — категория или источник.</li>
+    </ul>
+    <div class="boards">
+      <div class="caption">Categories — карточка транзакции Rent</div>
+      <div class="frame" data-board-width="1440" id="boardE"></div>
+      <div class="caption">Categories — нажали Main card ›: панель счёта на месте</div>
+      <div class="frame" data-board-width="1440" id="boardE2"></div>
+      <div class="caption">Categories — нажали Landlord ›: панель локации на месте</div>
+      <div class="frame" data-board-width="1440" id="boardE2b"></div>
+      <div class="caption">Income sources — карточка дохода, Salary без ссылки</div>
+      <div class="frame" data-board-width="1440" id="boardE7"></div>
+      <div class="caption">Locations — Spar без ссылки, лента без локации</div>
+      <div class="frame" data-board-width="1440" id="boardE3"></div>
+      <div class="caption">Locations — нажали Groceries ›: панель категории на месте</div>
+      <div class="frame" data-board-width="1440" id="boardE3b"></div>
+      <div class="caption">Accounts (#443) — баланс и действия счёта в шапке ленты, Main card в карточке без ссылки</div>
+      <div class="frame" data-board-width="1440" id="boardE4"></div>
+      <div class="caption">Transactions — та же карточка, все ссылки активны</div>
+      <div class="frame" data-board-width="1440" id="boardE5"></div>
+      <div class="caption">Телефон, Transactions — один лист с той же карточкой и тот же лист после нажатия Main card ›</div>
+      <div class="phoneRow"><div class="phoneFrame" id="phoneE6a"></div><div class="phoneFrame" id="phoneE6b"></div></div>
+    </div>
+    <ul class="notes">
+      <li><b>Home</b> устроен как Transactions: та же карточка рядом с последними транзакциями.</li>
+      <li><b>Accounts.</b> Сейчас детали счёта занимают правую колонку. В E они переезжают в шапку ленты: баланс и четыре действия. Правая колонка отдаётся карточке. На узком десктопе, где лента не помещается, Accounts остаётся как сейчас.</li>
+      <li><b>Телефон.</b> Вместо второго листа один лист: ссылка меняет его содержимое, «‹ Транзакция» возвращает обратно, закрытие листа закрывает всё. На страницах каталогов ленты на телефоне по-прежнему нет.</li>
+      <li><b>Баланс в блоке счёта</b> — текущий остаток, а не остаток на дату транзакции.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Перевод с удалённым счётом и курсовой разницей</h2>
+    <p class="common">Та же транзакция, что на вашем скриншоте, по новым правилам. Название осталось в шапке. From и To показывают сумму своей проводки и её оценку в базовой валюте. Две проводки курсовой разницы (Credit EUR €0.00 ≈ +$0.11 и Adjustments ≈ −$0.11) свёрнуты в одну строку «Exchange difference». Удалённый счёт зачёркнут и не открывается. Location у перевода пустая, но строка остаётся, чтобы структура была одинаковой.</p>
+    <div class="phoneRow">
+      <div><div class="caption">На Transactions — Freelance открывается на месте</div><div class="phoneFrame" style="width:auto" id="cardTransfer"></div></div>
+      <div><div class="caption">На Accounts при выбранном Freelance — он без ссылки</div><div class="phoneFrame" style="width:auto" id="cardTransferAccounts"></div></div>
+    </div>
+    <ul class="notes">
+      <li><b>Баланс счёта</b> теперь второй строкой под именем (Balance $1,204.50), а справа в блоке сумма проводки. Так карточка показывает все данные проводок и при этом не растёт.</li>
+      <li><b>Почему не четыре строки, как сейчас.</b> Нулевая проводка Credit EUR и Adjustments (Equity) — это переоценка, а не движение денег. Одной строкой их разница видна, а счёт Equity никуда не ведёт.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>#437 до новой карточки</h2>
+    <p class="common">#437 выходит раньше новой карточки. Три колонки, лента без записи страницы, в третьей колонке нынешние детали транзакции без панели счёта. Запись страницы в проводках без ссылки, остальные ссылки ведут в свой раздел. Новую карточку и открытие на месте принесут следующие задачи.</p>
+    <div class="boards">
+      <div class="caption">Categories</div><div class="frame" data-board-width="1440" id="board437c"></div>
+      <div class="caption">Income sources</div><div class="frame" data-board-width="1440" id="board437i"></div>
+      <div class="caption">Locations</div><div class="frame" data-board-width="1440" id="board437l"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>A · Только транзакция</h2>
+    <div class="boards"><div class="frame" data-board-width="1440" id="boardA"></div></div>
+    <ul class="notes">
+      <li><b>Что меняется.</b> Панели счёта на этих страницах нет. Счёт открывается по ссылке Main card › в проводках, в разделе Accounts.</li>
+      <li><b>Плюсы.</b> Всегда помещается, ничего не обрезается. Меньше кода: колонке деталей не нужна ветка для счёта, а флагу «параметр account принадлежит странице» почти нечего делать.</li>
+      <li><b>Минусы.</b> Баланс счёта не виден без перехода. Расходится с согласованным макетом, где счёт стоял под транзакцией.</li>
+      <li><b>Клик по Main card ›.</b> Открывается раздел Accounts с выбранным Main card: его детали справа, список счетов слева. Это обычный переход по ссылке, поэтому «Назад» в браузере возвращает на Categories с той же категорией и той же транзакцией: оба выбора лежат в URL (<code>?account=Rent&amp;transaction=…</code>).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>B · Колонка прокручивается</h2>
+    <div class="boards"><div class="frame" data-board-width="1440" id="boardB"></div></div>
+    <ul class="notes">
+      <li><b>Что меняется.</b> Обе панели полной высоты, колонка прокручивается целиком, как на странице Transactions. Внизу затухание и подсказка, что ниже есть ещё.</li>
+      <li><b>Плюсы.</b> Ближе всего к согласованному макету, правка только в CSS.</li>
+      <li><b>Минусы.</b> На невысоком окне счёт почти всегда за краем. Видимой полосы прокрутки нет по правилу проекта, остаётся только затухание.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>C · Компактная карточка счёта</h2>
+    <div class="boards"><div class="frame" data-board-width="1440" id="boardC"></div></div>
+    <ul class="notes">
+      <li><b>Что меняется.</b> Под транзакцией одна строка: цвет и имя счёта, вид и валюта, баланс, стрелка. Вся строка — ссылка в Accounts. Без описания и без четырёх кнопок.</li>
+      <li><b>Плюсы.</b> Баланс виден сразу и помещается почти всегда.</li>
+      <li><b>Минусы.</b> Новый маленький компонент. Действия счёта (корректировка, правка, удаление) только в Accounts.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Клавиатура · ← и → <span class="tag">отдельная задача</span></h2>
+    <ul class="notes">
+      <li><b>→ из списка записей</b> переводит фокус в ленту, на выбранную транзакцию, а если её нет — на первую (ту, что показана по умолчанию). Выбор не меняется, URL тоже.</li>
+      <li><b>← из ленты</b> возвращает фокус на выбранную запись в списке, а если её нет — на первую.</li>
+      <li><b>↑ и ↓</b> двигают тот список, где сейчас фокус: в ленте выбирают транзакцию, в списке — запись (как уже сделано).</li>
+      <li><b>Без фокуса в списках</b> (фокус на странице) → ставит фокус в ленту, ← — в список записей.</li>
+      <li><b>Где не работает.</b> В полях ввода, в открытой форме или окне подтверждения, на телефоне и на узком десктопе, где строки ленты — простой текст и переходить некуда.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>D · По очереди</h2>
+    <div class="boards">
+      <div class="caption">D1 — выбрана транзакция</div>
+      <div class="frame" data-board-width="1440" id="boardD1"></div>
+      <div class="caption">D2 — нажали Main card › в проводках</div>
+      <div class="frame" data-board-width="1440" id="boardD2"></div>
+    </div>
+    <ul class="notes">
+      <li><b>Что меняется.</b> В колонке одна панель. Ссылка на счёт в проводках заменяет транзакцию полной панелью счёта, а строка «‹ Транзакция» возвращает обратно.</li>
+      <li><b>Плюсы.</b> Полная панель счёта со всеми действиями, без ухода со страницы.</li>
+      <li><b>Минусы.</b> Новое состояние в URL и шаг «назад». Ссылка на счёт ведёт себя здесь иначе, чем на Transactions и Home.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const ICONS = {
+    home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
+    transactions: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+    accounts: 'M6 6h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3M3 10h18M16 14.5h2',
+    categories: 'M3 12V4h8l10 10-8 8zM7.5 7.2a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6',
+    locations: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 7.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4',
+    income: 'M12 4v10M8 10l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3',
+    add: 'M12 5v14M5 12h14',
+    edit: 'M4 20h4L19 9l-4-4L4 16z',
+    remove: 'M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3',
+    restore: 'M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4',
+    search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M20 20l-4-4',
+    chev: 'M9 6l6 6-6 6',
+    back: 'M15 6l-6 6 6 6',
+    down: 'M6 9l6 6 6-6',
+    adjust: 'M4 7h10M18 7h2M4 17h2M10 17h10M14 4.5v5M6 14.5v5',
+    collapse: 'M11 6l-6 6 6 6M19 6l-6 6 6 6',
+  };
+  const icon = (name, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[name]}"/></svg>`;
+  const SECTIONS = [['home', 'Home'], ['transactions', 'Transactions'], ['accounts', 'Accounts'], ['categories', 'Categories'], ['locations', 'Locations'], ['income', 'Income sources']];
+  const PARAMS = new URLSearchParams(location.search);
+  const IS_RAIL = PARAMS.get('rail') === '1';
+  if (PARAMS.get('w') === '1280') document.documentElement.classList.add('w1280');
+  const menu = IS_RAIL
+    ? `<aside class="sidebar rail"><div class="logo"><i></i></div><div class="addBtn">${icon('add')}</div>
+    ${SECTIONS.map(([k]) => `<div class="nav${k === 'categories' ? ' on' : ''}">${icon(k)}</div>`).join('')}
+    <div class="menuToggle"><div class="nav">${icon('chev')}</div></div></aside>`
+    : `<aside class="sidebar"><div class="logo"><i></i>finance</div><div class="addBtn">+ Add transaction</div>
+    ${SECTIONS.map(([k, n]) => `<div class="nav${k === 'categories' ? ' on' : ''}">${icon(k)}${n}</div>`).join('')}
+    <div class="menuToggle"><div class="nav">${icon('collapse')}Collapse</div></div></aside>`;
+
+  const groups = {
+    Variable: [['Groceries', 'Supermarkets and markets'], ['Coffee'], ['Taxi', 'Bolt, Yandex Go'], ['Restaurants', 'Eating out with friends'], ['Cigarettes', 'Quit in March', 'deleted']],
+    Fixed: [['Rent', 'Flat on Rustaveli, paid on the 5th', 'selected'], ['Subscriptions', 'Spotify, iCloud, YouTube'], ['Mobile'], ['Gym', null, 'deleted']],
+  };
+  const rowActions = (deleted) => `<span class="rowActions">${deleted
+    ? `<span class="rowAction">${icon('restore', 'sm')}</span>`
+    : `<span class="rowAction">${icon('edit', 'sm')}</span><span class="rowAction danger">${icon('remove', 'sm')}</span>`}</span>`;
+  const catalog = `<div class="alist">${Object.entries(groups).map(([label, entries]) =>
+    `<div class="groupHead">${label}<span>${entries.length}</span></div>${entries.map(([name, desc, state]) =>
+      `<div class="acc${state === 'selected' ? ' selected' : ''}"><span class="mark">${name[0]}</span><span class="text"><span class="title${state === 'deleted' ? ' struck' : ''}">${name}</span>${desc ? `<span class="sub">${desc}</span>` : ''}</span>${rowActions(state === 'deleted')}</div>`).join('')}`).join('')}</div>`;
+
+  const PURPLE = '#6b6fe0';
+  const MONTHS = [['Thu', '11', '0.8547', 1053], ['Mon', '10', '0.8571', 1050], ['Sat', '09', '0.8604', 1046], ['Wed', '08', '0.8475', 1062], ['Sun', '07', '0.8532', 1055], ['Fri', '06', '0.8612', 1045], ['Tue', '05', '0.8840', 1018], ['Sun', '04', '0.9120', 987]];
+  const money = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', signDisplay: 'exceptZero' }).format(n);
+  const feed = `<aside class="recent"><div class="recentHead"><div><div class="meta">Category · Fixed · recent transactions</div><h4 class="dTitle">Rent</h4></div><span class="meta">All</span></div>
+    <div class="list">${MONTHS.map(([d, m, rate, base], i) => `<div class="dayHead"><b>${d}, 05.${m}.2026</b><span>${money(-base)}</span></div>
+      <div class="row${i === 0 ? ' selected' : ''}"><span class="dot" style="color:${PURPLE}"></span><span class="text"><span class="title">Rent</span><span class="sub">Main card · EUR · ${rate}</span></span><span class="amounts"><span class="amount">${money(-base)}</span><span class="orig">-€900.00</span></span></div>`).join('')}</div></aside>`;
+
+  const actionRow = (items) => `<div class="actions">${items.map(([ic, danger]) => `<span class="${danger ? 'danger' : ''}">${icon(ic)}</span>`).join('')}</div>`;
+  const transaction = `<aside class="details">
+      <div><div class="meta">Expense · Thu, 05.11.2026</div><h4 class="dTitle">Rent</h4></div>
+      <div><div class="bigAmount">-$1,053.00</div><div class="meta">-€900.00 · rate 0.8547</div></div>
+      <div class="postings"><h4>Postings</h4>
+        <div class="posting"><span class="dot" style="color:${PURPLE}"></span><span class="text"><span class="link">Main card ›</span><span class="sub">Asset · EUR</span></span><span class="amount">-€900.00</span></div>
+        <div class="posting"><span class="dot" style="color:var(--color-muted)"></span><span class="text"><span class="plainName">Rent</span><span class="sub">Expense · EUR</span></span><span class="amount">+€900.00</span></div>
+      </div>
+      <dl class="facts"><dt>Location</dt><dd class="link">Spar ›</dd><dt>Comment</dt><dd>November rent</dd></dl>
+      ${actionRow([['edit'], ['remove', true]])}
+    </aside>`;
+  const account = (back = '') => `<aside class="details">${back}
+      <div class="aHead"><span class="accMark" style="background:${PURPLE}">M</span><div><div class="meta">Asset · EUR</div><h4 class="dTitle">Main card</h4></div></div>
+      <div><div class="balance">€4,120.00</div><div class="meta">$4,820.40 · rate 0.8547</div></div>
+      <div class="meta">Salary card, Bank of Georgia</div>
+      ${actionRow([['adjust'], ['transactions'], ['edit'], ['remove', true]])}
+    </aside>`;
+  const compact = `<a class="compactAcc"><span class="accMark" style="background:${PURPLE}">M</span><span class="text"><span class="title">Main card</span><span class="sub">Asset · EUR</span></span><span class="bal">€4,120.00</span>${icon('chev', 'sm chev')}</a>`;
+  const callout = (text, style) => `<div class="callout" style="${style}">${text}</div>`;
+
+  const board = (column, extra = '') => `<div class="board desktop">${menu}
+    <div class="main"><div class="topBar"><h3 class="pageTitle">Categories<small>9</small></h3><span class="avatar">TE</span></div>
+      <div class="toolbar"><span class="search">${icon('search', 'sm')}Search categories</span><span class="newBtn">${icon('add', 'sm')}New category</span></div>
+      <div class="filters"><span class="seg"><span class="on">All</span><span>Variable</span><span>Fixed</span><span>Periodic</span></span><span class="toggle"><i></i>Deleted</span></div>
+      <div class="content"><div class="panel">${catalog}</div>${feed}${column}</div></div>${extra}</div>`;
+
+  const LOCATIONS_BY_MONTH = ['Bank transfer', 'Bank transfer', 'Landlord', 'Bank transfer', 'Landlord', 'Bank transfer', 'Bank transfer', 'Landlord'];
+  const feedE = `<aside class="recent"><div class="recentHead"><div><div class="meta">Category · Fixed · recent transactions</div><h4 class="dTitle">Rent</h4></div><span class="meta">All</span></div>
+    <div class="list">${MONTHS.map(([d, m, rate, base], i) => `<div class="dayHead"><b>${d}, 05.${m}.2026</b><span>${money(-base)}</span></div>
+      <div class="row${i === 0 ? ' selected' : ''}"><span class="dot" style="color:${PURPLE}"></span><span class="text"><span class="title">Main card</span><span class="sub">EUR · ${rate} · ${LOCATIONS_BY_MONTH[i]}</span></span><span class="amounts"><span class="amount">${money(-base)}</span><span class="orig">-€900.00</span></span></div>`).join('')}</div></aside>`;
+  const transactionE = `<aside class="details">
+      <div><div class="meta">Expense · Thu, 05.11.2026</div><h4 class="dTitle">Rent</h4></div>
+      <div><div class="bigAmount">-$1,053.00</div><div class="meta">-€900.00 · rate 0.8547</div></div>
+      <div class="blockLabel">From</div>
+      <div class="accBlock"><span class="accMark" style="background:${PURPLE}">M</span><span class="text"><span class="title link">Main card ›</span><span class="sub">Asset · EUR</span></span><span class="bal"><b>€4,120.00</b><span class="meta">$4,820.40</span></span></div>
+      <dl class="facts"><dt>Location</dt><dd class="link">Landlord ›</dd><dt>Comment</dt><dd>November rent</dd></dl>
+      ${actionRow([['edit'], ['remove', true]])}
+    </aside>`;
+  const boardE = (column) => board(column).replace(feed, feedE);
+  const PLAIN_NOTE = callout('Rent — не ссылка: это запись, открытая на странице', 'right:28px;top:368px');
+  document.getElementById('boardE').innerHTML = board(`<div class="detailsColumn">${transactionE}</div>`, callout('Баланс — текущий остаток счёта; клик открывает панель счёта на месте', 'right:28px;top:430px')).replace(feed, feedE);
+  document.getElementById('boardA').innerHTML = board(`<div class="detailsColumn">${transaction}</div>`, PLAIN_NOTE);
+  document.getElementById('boardB').innerHTML = board(`<div class="detailsColumn scrolls">${transaction}${account()}<div class="fade"></div><span class="scrollHint">${icon('down', 'sm')}Счёт ниже</span></div>`);
+  document.getElementById('boardC').innerHTML = board(`<div class="detailsColumn">${transaction}${compact}</div>`, callout('Вся строка ведёт в Accounts с этим счётом', 'right:28px;top:700px'));
+  document.getElementById('boardD1').innerHTML = board(`<div class="detailsColumn">${transaction}</div>`, callout('Нажатие заменяет транзакцию счётом', 'right:28px;top:320px'));
+  document.getElementById('boardD2').innerHTML = board(`<div class="detailsColumn">${account(`<div class="backRow">${icon('back', 'sm')}Транзакция</div>`)}</div>`);
+
+  const BLUE = '#4b8fd6';
+  const GREEN = '#2bb07f';
+  const NAV_PHONE = [['home', 'Home'], ['transactions', 'Transactions'], ['accounts', 'Accounts'], ['categories', 'Categories']];
+  const menuFor = (active) => menu.replace('nav on', 'nav').replace(`<div class="nav">${icon(active)}`, `<div class="nav on">${icon(active)}`);
+  const page = ({ active, title, count, search, newLabel, filters, content }) => `<div class="board desktop">${menuFor(active)}
+    <div class="main"><div class="topBar"><h3 class="pageTitle">${title}<small>${count}</small></h3><span class="avatar">TE</span></div>
+      <div class="toolbar"><span class="search">${icon('search', 'sm')}${search}</span><span class="newBtn">${icon('add', 'sm')}${newLabel}</span></div>
+      ${filters}<div class="content">${content}</div></div></div>`;
+  const feedRows = (days) => `<div class="list">${days.map((d, i) => `<div class="dayHead"><b>${d.day}</b><span>${d.total}</span></div>
+      <div class="row${i === 0 ? ' selected' : ''}"><span class="dot" style="color:${d.color}"></span><span class="text"><span class="title">${d.title}</span><span class="sub">${d.sub}</span></span><span class="amounts"><span class="amount${d.income ? ' in' : ''}">${d.amount}</span>${d.orig ? `<span class="orig">${d.orig}</span>` : ''}</span></div>`).join('')}</div>`;
+  const feedBox = ({ meta, name, head = '', days, wide = false }) => `<aside class="recent${wide ? ' feedWide' : ''}">${name ? `<div class="recentHead"><div><div class="meta">${meta}</div><h4 class="dTitle">${name}</h4>${head}</div><span class="meta">All</span></div>` : ''}${feedRows(days)}</aside>`;
+  const back = `<div class="backRow">${icon('back', 'sm')}Транзакция</div>`;
+
+  // one card for every page: the entry of the page is plain, everything else opens in place
+  const ENTITIES = {
+    mainCard: { kind: 'account', label: 'Main card', sub: 'Asset · EUR', mark: 'M', color: PURPLE, bal: '€4,120.00', baseBal: '$4,820.40' },
+    wallet: { kind: 'account', label: 'Wallet', sub: 'Asset · USD', mark: 'W', color: BLUE, bal: '$412.50' },
+    rent: { kind: 'category', label: 'Rent', sub: 'Expense · Fixed', mark: 'R' },
+    groceries: { kind: 'category', label: 'Groceries', sub: 'Expense · Variable', mark: 'G' },
+    salary: { kind: 'income', label: 'Salary', sub: 'Income', mark: 'S' },
+    freelance: { kind: 'account', label: 'Freelance', sub: 'Asset · USD', bal: '$1,204.50', mark: 'F', color: '#a35ccf' },
+    creditEur: { kind: 'account', label: 'Credit EUR', sub: 'Liability · EUR', mark: 'C', color: '#d6774b', isDeleted: true },
+  };
+  const entityName = (e, isOwn) => e.isDeleted ? `<s class="struck">${e.label}</s>` : isOwn ? e.label : `<span class="link">${e.label} ›</span>`;
+  const entityBlock = ({ role, key, amount, base }, own) => {
+    const e = ENTITIES[key];
+    const sub = e.bal ? `${e.sub}</span><span class="sub">Balance ${e.bal}` : e.sub;
+    return `<div class="blockLabel">${role}</div>
+      <div class="accBlock">${e.color ? `<span class="accMark" style="background:${e.color}${e.isDeleted ? ';opacity:0.55' : ''}">${e.mark}</span>` : `<span class="mark">${e.mark}</span>`}<span class="text"><span class="title">${entityName(e, own === key)}</span><span class="sub">${sub}</span></span><span class="bal"><b>${amount}</b>${base ? `<span class="meta">${base}</span>` : ''}</span></div>`;
+  };
+  const hint = (ic, text) => `<div class="meta" style="display:flex;gap:var(--space-2);align-items:center;justify-content:center">${icon(ic, 'sm')}${text}</div>`;
+  const card = ({ meta, title, amount, amountSub, from, to, location, comment, own, extraFacts = [], hints = [] }) => `<aside class="details">
+      <div><div class="meta">${meta}</div><h4 class="dTitle">${title}</h4></div>
+      <div><div class="bigAmount"${amount.startsWith('+') ? ' style="color:var(--color-accent)"' : ''}>${amount}</div>${amountSub ? `<div class="meta">${amountSub}</div>` : ''}</div>
+      ${entityBlock({ role: 'From', ...from }, own)}
+      ${entityBlock({ role: 'To', ...to }, own)}
+      <dl class="facts">${extraFacts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}<dt>Location</dt><dd${own === 'location' || !location ? '' : ' class="link"'}>${location ?? '—'}${own === 'location' || !location ? '' : ' ›'}</dd><dt>Comment</dt><dd>${comment ?? '—'}</dd></dl>
+      ${hints.join('')}
+      ${actionRow([['edit'], ['remove', true]])}
+    </aside>`;
+  const rentCard = (own) => card({ meta: 'Expense · Thu, 05.11.2026', title: 'Rent', amount: '-$1,053.00', amountSub: '-€900.00 · rate 0.8547', from: { key: 'mainCard', amount: '-€900.00', base: '≈ -$1,053.00' }, to: { key: 'rent', amount: '+€900.00', base: '≈ +$1,053.00' }, location: 'Landlord', comment: 'November rent', own });
+  const groceriesCard = (own) => card({ meta: 'Expense · Sun, 08.11.2026', title: 'Groceries', amount: '-$42.10', from: { key: 'wallet', amount: '-$42.10' }, to: { key: 'groceries', amount: '+$42.10' }, location: 'Spar', comment: 'Milk, bread', own });
+  const salaryCard = (own) => card({ meta: 'Income · Sun, 01.11.2026', title: 'Salary', amount: '+$3,510.00', amountSub: '+€3,000.00 · rate 0.8547', from: { key: 'salary', amount: '-€3,000.00', base: '≈ -$3,510.00' }, to: { key: 'mainCard', amount: '+€3,000.00', base: '≈ +$3,510.00' }, comment: 'October', own });
+  const transferCard = (own) => card({ meta: 'Transfer · Tue, 10.11.2026', title: 'Transfer Freelance → <s class="struck">Credit EUR</s>', amount: '$62.39',
+    from: { key: 'freelance', amount: '-$62.39' }, to: { key: 'creditEur', amount: '+€56.18', base: '≈ +$62.39' },
+    extraFacts: [['Exchange difference', '≈ +$0.11']], comment: undefined, own,
+    hints: [hint('edit', 'Credit EUR is deleted, so this transaction can&#39;t be edited'), hint('remove', 'Credit EUR is deleted.')] });
+  const locationPanel = (name, desc) => `<aside class="details">${back}
+      <div class="aHead"><span class="mark">${icon('locations', 'sm')}</span><div><div class="meta">Location</div><h4 class="dTitle">${name}</h4></div></div>
+      <div class="meta">${desc}</div>
+      ${actionRow([['transactions'], ['edit'], ['remove', true]])}
+    </aside>`;
+  const categoryPanel = `<aside class="details">${back}
+      <div class="aHead"><span class="mark">G</span><div><div class="meta">Expense · Variable</div><h4 class="dTitle">Groceries</h4></div></div>
+      <div class="meta">Supermarkets and markets</div>
+      ${actionRow([['transactions'], ['edit'], ['remove', true]])}
+    </aside>`;
+  const column = (inner) => `<div class="detailsColumn">${inner}</div>`;
+
+  // categories
+  document.getElementById('boardE').innerHTML = board(column(rentCard('rent')), callout('Rent — запись страницы: без ссылки. Main card и Landlord открываются на месте', 'right:28px;top:620px')).replace(feed, feedE);
+  document.getElementById('boardE2').innerHTML = board(column(account(back))).replace(feed, feedE);
+  document.getElementById('boardE2b').innerHTML = board(column(locationPanel('Landlord', 'Flat on Rustaveli'))).replace(feed, feedE);
+
+  // locations
+  const LOCS = [['Spar', 'Near home', true], ['Coffee Lab', 'Vake'], ['Carrefour', 'East Point mall'], ['Wendy&#39;s'], ['Agrohub', 'Weekly groceries'], ['Pharmacy 24']];
+  const locList = `<div class="alist">${LOCS.map(([n, d, sel]) => `<div class="acc${sel ? ' selected' : ''}"><span class="mark">${icon('locations', 'sm')}</span><span class="text"><span class="title">${n}</span>${d ? `<span class="sub">${d}</span>` : ''}</span>${rowActions(false)}</div>`).join('')}</div>`;
+  const SPAR = [['Sun, 08.11.2026', 'Groceries', 42.1], ['Thu, 05.11.2026', 'Household', 18.4], ['Mon, 02.11.2026', 'Groceries', 38.2], ['Fri, 30.10.2026', 'Groceries', 27.9], ['Tue, 27.10.2026', 'Household', 54.6], ['Sat, 24.10.2026', 'Groceries', 19.45], ['Wed, 21.10.2026', 'Groceries', 73.1], ['Sun, 18.10.2026', 'Groceries', 33.8]];
+  const sparDays = SPAR.map(([day, cat, v]) => ({ day, total: money(-v), title: cat, sub: 'Wallet · USD', amount: money(-v), color: BLUE }));
+  const locationsPage = (col) => page({ active: 'locations', title: 'Locations', count: '6', search: 'Search locations', newLabel: 'New location',
+    filters: '<div class="filters"><span class="toggle"><i></i>Deleted</span></div>',
+    content: `<div class="panel">${locList}</div>${feedBox({ meta: 'Location · recent transactions', name: 'Spar', days: sparDays })}${col}` });
+  document.getElementById('boardE3').innerHTML = locationsPage(column(groceriesCard('location')));
+  document.getElementById('boardE3b').innerHTML = locationsPage(column(categoryPanel));
+
+  // income sources
+  const SOURCES = [['Salary', 'Main job, paid on the 1st', true], ['Freelance', 'Design and code'], ['Dividends', 'IBKR portfolio'], ['Cashback'], ['Scholarship', null, 'deleted']];
+  const sourceList = `<div class="alist">${SOURCES.map(([n, d, state]) => `<div class="acc${state === true ? ' selected' : ''}"><span class="mark">${n[0]}</span><span class="text"><span class="title${state === 'deleted' ? ' struck' : ''}">${n}</span>${d ? `<span class="sub">${d}</span>` : ''}</span>${rowActions(state === 'deleted')}</div>`).join('')}</div>`;
+  const SALARY = [['Sun', '11', '0.8547', 3510], ['Thu', '10', '0.8571', 3500], ['Tue', '09', '0.8604', 3487], ['Sat', '08', '0.8475', 3540], ['Wed', '07', '0.8532', 3516], ['Mon', '06', '0.8612', 3484], ['Fri', '05', '0.8840', 3394], ['Wed', '04', '0.9120', 3289]];
+  const salaryDays = SALARY.map(([d, m, rate, base]) => ({ day: `${d}, 01.${m}.2026`, total: money(base), title: 'Main card', sub: `EUR · ${rate}`, amount: money(base), orig: '+€3,000.00', color: PURPLE, income: true }));
+  document.getElementById('boardE7').innerHTML = page({ active: 'income', title: 'Income sources', count: '4', search: 'Search income sources', newLabel: 'New income source',
+    filters: '<div class="filters"><span class="toggle"><i></i>Deleted</span></div>',
+    content: `<div class="panel">${sourceList}</div>${feedBox({ meta: 'Income source · recent transactions', name: 'Salary', days: salaryDays })}${column(salaryCard('salary'))}` });
+
+  // accounts
+  const ACCS = [['Assets', [['M', PURPLE, 'Main card', 'Asset · EUR', '€4,120.00', true], ['W', BLUE, 'Wallet', 'Asset · USD', '$412.50'], ['S', GREEN, 'Savings', 'Asset · EUR', '€12,300.00']]], ['Liabilities', [['C', '#d6604b', 'Credit card', 'Liability · USD', '-$640.00']]]];
+  const accList = `<div class="alist">${ACCS.map(([g, items]) => `<div class="groupHead">${g}<span>${items.length}</span></div>${items.map(([m, c, n, sub, bal, sel]) => `<div class="acc${sel ? ' selected' : ''}"><span class="accMark" style="background:${c};width:1.75rem;height:1.75rem;font-size:0.8rem">${m}</span><span class="text"><span class="title">${n}</span><span class="sub">${sub}</span></span><span class="accBal">${bal}</span></div>`).join('')}`).join('')}</div>`;
+  const MAIN = [['Thu, 05.11.2026', 'Rent', 'Landlord · 0.8547', '-€900.00', '-$1,053.00'], ['Wed, 04.11.2026', 'Groceries', 'Spar · 0.8547', '-€42.10', '-$49.26'], ['Sun, 01.11.2026', 'Salary', '0.8547', '+€3,000.00', '+$3,510.00', true], ['Sat, 31.10.2026', 'Transfer → Wallet', '0.8560', '-€200.00', '-$233.64'], ['Tue, 27.10.2026', 'Restaurants', 'Coffee Lab · 0.8571', '-€35.00', '-$40.84'], ['Fri, 23.10.2026', 'Groceries', 'Agrohub · 0.8580', '-€61.20', '-$71.33']];
+  const mainDays = MAIN.map(([day, title, sub, amount, orig, income]) => ({ day, total: orig, title, sub, amount, orig, income, color: income ? GREEN : 'var(--color-muted)' }));
+  const accHead = `<div class="headBal">€4,120.00 <span class="meta">$4,820.40 · rate 0.8547</span></div><div class="headActions">${['adjust', 'transactions', 'edit'].map((i) => `<span>${icon(i, 'sm')}</span>`).join('')}<span class="danger">${icon('remove', 'sm')}</span></div>`;
+  document.getElementById('boardE4').innerHTML = page({ active: 'accounts', title: 'Accounts', count: '4', search: 'Search accounts', newLabel: 'New account',
+    filters: '<div class="filters"><span class="toggle"><i></i>Deleted</span></div>',
+    content: `<div class="panel">${accList}</div>${feedBox({ meta: 'Asset · EUR · recent transactions', name: 'Main card', head: accHead, days: mainDays })}${column(rentCard('mainCard'))}` });
+
+  // transactions
+  const ALL = [['Thu, 05.11.2026', 'Rent', 'Main card · EUR · 0.8547', '-$1,053.00', '-€900.00', PURPLE], ['Wed, 04.11.2026', 'Groceries', 'Main card · EUR · 0.8547', '-$49.26', '-€42.10', PURPLE], ['Tue, 03.11.2026', 'Coffee', 'Wallet · USD', '-$4.50', '', BLUE], ['Sun, 01.11.2026', 'Salary', 'Main card · EUR · 0.8547', '+$3,510.00', '+€3,000.00', PURPLE, true], ['Sat, 31.10.2026', 'Transfer', 'Main card → Wallet', '-$233.64', '', PURPLE], ['Fri, 30.10.2026', 'Groceries', 'Wallet · USD · Spar', '-$27.90', '', BLUE], ['Tue, 27.10.2026', 'Restaurants', 'Main card · EUR · Coffee Lab', '-$40.84', '-€35.00', PURPLE]];
+  const allDays = ALL.map(([day, title, sub, amount, orig, color, income]) => ({ day, total: amount, title, sub, amount, orig, color, income }));
+  document.getElementById('boardE5').innerHTML = page({ active: 'transactions', title: 'Transactions', count: '1,284', search: 'Search transactions', newLabel: 'New transaction',
+    filters: '<div class="chips"><span class="chip">Type</span><span class="chip">Accounts</span><span class="chip">Categories</span><span class="chip">Period</span></div>',
+    content: `${feedBox({ days: allDays, wide: true })}${column(rentCard(undefined))}` });
+
+  // phone
+  const phoneBar = `<div class="bar">${NAV_PHONE.map(([k, n]) => `<span class="barItem${k === 'transactions' ? ' on' : ''}">${icon(k)}<span>${n}</span></span>`).join('')}<span class="barItem">${icon('chev')}<span>More</span></span></div>`;
+  const phone = (sheet) => `<div class="board phone"><div class="topBar"><h3 class="pageTitle">Transactions</h3><span class="avatar">TE</span></div>
+      <div class="toolbar"><span class="search">${icon('search', 'sm')}Search transactions</span></div>
+      <div class="panel">${feedRows(allDays.slice(0, 6))}</div>${phoneBar}<div class="backdrop"></div><div class="bsheet"><span class="handle"></span>${sheet}</div></div>`;
+  document.getElementById('phoneE6a').innerHTML = phone(rentCard(undefined));
+  document.getElementById('phoneE6b').innerHTML = phone(account(back));
+  document.getElementById('cardTransfer').innerHTML = `<div class="board" style="width:360px;padding:16px">${transferCard(undefined)}</div>`;
+  document.getElementById('cardTransferAccounts').innerHTML = `<div class="board" style="width:360px;padding:16px">${transferCard('freelance')}</div>`;
+
+  const oldPanel = ({ meta, title, amount, sub, postings, location }) => `<aside class="details">
+      <div><div class="meta">${meta}</div><h4 class="dTitle">${title}</h4></div>
+      <div><div class="bigAmount"${amount.startsWith('+') ? ' style="color:var(--color-accent)"' : ''}>${amount}</div>${sub ? `<div class="meta">${sub}</div>` : ''}</div>
+      <div class="postings"><h4>Postings</h4>
+        ${postings.map(([name, pSub, pAmount, color, isLink]) => `<div class="posting"><span class="dot" style="color:${color ?? 'var(--color-muted)'}"></span><span class="text"><span class="${isLink ? 'link' : 'plainName'}">${name}${isLink ? ' ›' : ''}</span><span class="sub">${pSub}</span></span><span class="amount">${pAmount}</span></div>`).join('')}
+      </div>
+      <dl class="facts">${location ? `<dt>Location</dt><dd${location[1] ? ' class="link"' : ''}>${location[0]}${location[1] ? ' ›' : ''}</dd>` : ''}<dt>Comment</dt><dd>${location?.[2] ?? 'November rent'}</dd></dl>
+      ${actionRow([['edit'], ['remove', true]])}
+    </aside>`;
+  document.getElementById('board437c').innerHTML = board(column(oldPanel({ meta: 'Expense · Thu, 05.11.2026', title: 'Rent', amount: '-$1,053.00', sub: '-€900.00 · rate 0.8547',
+    postings: [['Main card', 'Asset · EUR', '-€900.00', PURPLE, true], ['Rent', 'Expense · EUR', '+€900.00']], location: ['Landlord', true, 'November rent'] }))).replace(feed, feedE);
+  document.getElementById('board437i').innerHTML = page({ active: 'income', title: 'Income sources', count: '4', search: 'Search income sources', newLabel: 'New income source',
+    filters: '<div class="filters"><span class="toggle"><i></i>Deleted</span></div>',
+    content: `<div class="panel">${sourceList}</div>${feedBox({ meta: 'Income source · recent transactions', name: 'Salary', days: salaryDays })}${column(oldPanel({ meta: 'Income · Sun, 01.11.2026', title: 'Salary', amount: '+$3,510.00', sub: '+€3,000.00 · rate 0.8547',
+      postings: [['Salary', 'Income · EUR', '-€3,000.00'], ['Main card', 'Asset · EUR', '+€3,000.00', PURPLE, true]], location: ['—', false, 'October'] }))}` });
+  document.getElementById('board437l').innerHTML = locationsPage(column(oldPanel({ meta: 'Expense · Sun, 08.11.2026', title: 'Groceries', amount: '-$42.10',
+    postings: [['Wallet', 'Asset · USD', '-$42.10', BLUE, true], ['Groceries', 'Expense · USD', '+$42.10', undefined, true]], location: ['Spar', false, 'Milk, bread'] })));
+
+  const exportedScreen = PARAMS.get('screen');
+  if (exportedScreen) {
+    const exported = document.querySelector(`#${exportedScreen} .board`);
+    document.documentElement.dataset.theme = PARAMS.get('theme') ?? 'dark';
+    exported.style.transform = 'none';
+    document.body.replaceChildren(exported);
+    document.body.style.width = 'max-content';
+    document.body.style.margin = '0';
+    return;
+  }
+
+  const fit = () => document.querySelectorAll('.frame').forEach((frame) => {
+    const b = frame.firstElementChild;
+    const width = Number(frame.dataset.boardWidth);
+    const scale = Math.min(1, (frame.parentElement.clientWidth || width) / width);
+    b.style.transform = `scale(${scale})`;
+    frame.style.height = `${b.offsetHeight * scale}px`;
+  });
+  new ResizeObserver(fit).observe(document.querySelector('.sheetPage'));
+  document.fonts?.ready.then(fit);
+  fit();
+
+  const buttons = document.querySelectorAll('[data-theme-choice]');
+  const applyTheme = (choice) => {
+    if (choice) document.documentElement.dataset.theme = choice; else delete document.documentElement.dataset.theme;
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeChoice === choice)));
+    try { localStorage.setItem('catalog-column-theme', choice); } catch {}
+  };
+  buttons.forEach((b) => b.addEventListener('click', () => applyTheme(b.dataset.themeChoice)));
+  let saved = '';
+  try { saved = localStorage.getItem('catalog-column-theme') ?? ''; } catch {}
+  applyTheme(saved);
+})();
+</script>
