@@ -136,7 +136,11 @@ function SelectedAccount({
                 transactionQueries.feeds().queryKey,
                 transactionQueries.details().queryKey,
               ],
-              onSaved: closeEditForm,
+              onSaved: () => {
+                setEditedAccountId((openAccountId) =>
+                  openAccountId === accountId ? undefined : openAccountId,
+                );
+              },
             }}
             accountKinds={accountKinds}
             currencies={currencies}

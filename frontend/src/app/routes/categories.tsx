@@ -210,7 +210,11 @@ export function Component() {
               kind: 'edit',
               category: editedCategory,
               relatedQueryKeys,
-              onSaved: closeEditForm,
+              onSaved: () => {
+                setEditedCategoryId((openCategoryId) =>
+                  openCategoryId === editedCategory.id ? undefined : openCategoryId,
+                );
+              },
             }}
             categoryTypes={dictionaries.category_types}
             onBack={closeEditForm}
@@ -233,7 +237,12 @@ export function Component() {
                 document.getElementById(neighbourLinkId ?? CATEGORY_SEARCH_FIELD_ID)?.focus();
               },
               onError: () => {
-                closeConfirmation(confirmedCategory.id);
+                const returnTarget =
+                  document.getElementById(readCatalogDeleteButtonId(confirmedCategory.id)) ??
+                  document.getElementById(neighbourLinkId ?? CATEGORY_SEARCH_FIELD_ID) ??
+                  document.getElementById(CATEGORY_SEARCH_FIELD_ID);
+                setConfirmedCategoryId(undefined);
+                returnTarget?.focus();
               },
             });
           }}
