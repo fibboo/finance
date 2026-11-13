@@ -1,7 +1,8 @@
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { type To, useSearchParams } from 'react-router';
 
+import { CatalogTransactions } from '@/app/catalog-transactions';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
@@ -20,6 +21,7 @@ import {
   writeCatalogFilters,
 } from '@/features/accounts/api/catalog-filters';
 import { CatalogFilters } from '@/features/accounts/components/catalog-filters';
+import { readSelectedAccountId } from '@/features/accounts/api/selected-account';
 import { readCategoryGroups } from '@/features/accounts/components/catalog-grouping';
 import { CatalogList } from '@/features/accounts/components/catalog-list';
 import { CatalogRowActions } from '@/features/accounts/components/catalog-row-actions';
@@ -28,6 +30,7 @@ import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-a
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
+import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
@@ -35,6 +38,7 @@ import { readSearchTerm } from '@/lib/search-term';
 import styles from './categories.module.css';
 
 const CATEGORY_SEARCH_FIELD_ID = 'category-search';
+const DESCRIPTION_SEPARATOR = ' · ';
 
 function readCategoryCount(
   total: number | undefined,
@@ -46,7 +50,21 @@ function readCategoryCount(
   return categoryCount;
 }
 
+function readCategoryTransactionsLink(categoryId: string): To {
+  const transactionsLink = {
+    pathname: '/transactions',
+    search: writeTransactionFilters({
+      transaction_types: [],
+      account_ids: [],
+      category_ids: [categoryId],
+      income_source_ids: [],
+    }).toString(),
+  };
+  return transactionsLink;
+}
+
 export function Component() {
+  const isDesktop = useIsDesktop();
   const [isCreating, setIsCreating] = useState(false);
   const [editedCategoryId, setEditedCategoryId] = useState<string | undefined>(undefined);
   const [confirmedCategoryId, setConfirmedCategoryId] = useState<string | undefined>(undefined);
@@ -81,6 +99,19 @@ export function Component() {
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && categoryPage?.items.length === 0;
+  const groups =
+    categoryPage === undefined || categoryTypes === undefined || isNothingMatched
+      ? undefined
+      : readCategoryGroups({ categories: categoryPage.items, categoryTypes });
+  const selectedCategoryId = readSelectedAccountId(searchParams);
+  const chosenGroup = groups?.find((group) =>
+    group.entries.some((category) => category.id === selectedCategoryId),
+  );
+  const chosenCategory = chosenGroup?.entries.find(
+    (category) => category.id === selectedCategoryId,
+  );
+  const shownGroup = chosenGroup ?? groups?.[0];
+  const shownCategory = chosenCategory ?? shownGroup?.entries[0];
   const editedCategory = categoryPage?.items.find((category) => category.id === editedCategoryId);
   const confirmedCategory = categoryPage?.items.find(
     (category) => category.id === confirmedCategoryId,
@@ -143,54 +174,64 @@ export function Component() {
         )}
       </div>
       <div className={styles['categories']}>
-        {isNothingMatched ? (
-          <NoMatchingAccounts
-            entityNames="categories"
-            onClear={() => {
-              searchField.focusAfterClear();
-              setSearchParams(writeAccountSearch({ searchParams, search: '' }), { replace: true });
-            }}
-          />
-        ) : (
-          <CatalogList
-            label="Categories"
-            groups={
-              categoryPage === undefined || categoryTypes === undefined
-                ? undefined
-                : readCategoryGroups({ categories: categoryPage.items, categoryTypes })
-            }
-            renderActions={(category) => (
-              <CatalogRowActions
-                entry={category}
-                transactionsLink={{
-                  pathname: '/transactions',
-                  search: writeTransactionFilters({
-                    transaction_types: [],
-                    account_ids: [],
-                    category_ids: [category.id],
-                    income_source_ids: [],
-                  }).toString(),
-                }}
-                isRestorePending={categoryRestore.isPending}
-                isFocusRequested={category.id === focusedCategoryId}
-                onFocused={() => {
-                  setFocusedCategoryId(undefined);
-                }}
-                onEdit={() => {
-                  setEditedCategoryId(category.id);
-                }}
-                onDelete={() => {
-                  setConfirmedCategoryId(category.id);
-                }}
-                onRestore={() => {
-                  categoryRestore.mutate(category.id, {
-                    onSuccess: () => {
-                      setFocusedCategoryId(category.id);
-                    },
-                  });
-                }}
-              />
+        <div className={styles['list']}>
+          {isNothingMatched ? (
+            <NoMatchingAccounts
+              entityNames="categories"
+              onClear={() => {
+                searchField.focusAfterClear();
+                setSearchParams(writeAccountSearch({ searchParams, search: '' }), {
+                  replace: true,
+                });
+              }}
+            />
+          ) : (
+            <CatalogList
+              label="Categories"
+              groups={groups}
+              selection={
+                isDesktop
+                  ? { chosenEntryId: chosenCategory?.id, defaultEntryId: shownCategory?.id }
+                  : undefined
+              }
+              renderActions={(category) => (
+                <CatalogRowActions
+                  entry={category}
+                  transactionsLink={readCategoryTransactionsLink(category.id)}
+                  isRestorePending={categoryRestore.isPending}
+                  isFocusRequested={category.id === focusedCategoryId}
+                  onFocused={() => {
+                    setFocusedCategoryId(undefined);
+                  }}
+                  onEdit={() => {
+                    setEditedCategoryId(category.id);
+                  }}
+                  onDelete={() => {
+                    setConfirmedCategoryId(category.id);
+                  }}
+                  onRestore={() => {
+                    categoryRestore.mutate(category.id, {
+                      onSuccess: () => {
+                        setFocusedCategoryId(category.id);
+                      },
+                    });
+                  }}
+                />
+              )}
+            />
+          )}
+        </div>
+        {isDesktop && shownGroup !== undefined && shownCategory !== undefined && (
+          <CatalogTransactions
+            key={shownCategory.id}
+            name={shownCategory.name}
+            description={['Category', shownGroup.heading, 'recent transactions'].join(
+              DESCRIPTION_SEPARATOR,
             )}
+            emptyText="No transactions in this category yet"
+            filterQuery={{ account_ids: [shownCategory.id] }}
+            transactionsLink={readCategoryTransactionsLink(shownCategory.id)}
+            transactionTypes={dictionaries?.transaction_types}
           />
         )}
       </div>

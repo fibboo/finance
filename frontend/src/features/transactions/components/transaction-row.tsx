@@ -24,7 +24,7 @@ type TransactionRowProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   isTop: boolean;
-  arrowKeySelection: ArrowKeySelectionProps;
+  arrowKeySelection: ArrowKeySelectionProps | undefined;
   dateLabel?: string | undefined;
 }>;
 
@@ -48,12 +48,27 @@ export function TransactionRow({
   const [searchParams] = useSearchParams();
   const view = readTransactionView({ transaction, transactionTypes });
   const selectedTransactionId = readSelectedTransactionId(searchParams);
-  const isSelected = selectedTransactionId === transaction.id;
+  const isSelected = arrowKeySelection !== undefined && selectedTransactionId === transaction.id;
   const isShownByDefault = selectedTransactionId === undefined && isTop;
   const isForeign = view.currency !== baseCurrency;
   const rateText = isForeign
     ? readRateText({ amount: view.amount, baseAmount: view.baseAmount })
     : undefined;
+  const title = (
+    <>
+      <TransactionTextParts text={view.rowTitle} />
+      {view.titleMarkedAccount !== null && (
+        <>
+          <span
+            className={styles['titleDot']}
+            style={{ color: readAccountColor(view.titleMarkedAccount) }}
+            aria-hidden="true"
+          />
+          <TransactionTextParts text={[view.titleMarkedAccount]} />
+        </>
+      )}
+    </>
+  );
   return (
     <li
       className={`${styles['transactionRow'] ?? ''} ${styles[transaction.transaction_type.toLowerCase()] ?? ''} ${isSelected ? (styles['selected'] ?? '') : ''} ${isShownByDefault ? (styles['shownByDefault'] ?? '') : ''}`}
@@ -65,32 +80,26 @@ export function TransactionRow({
       />
       <span className={styles['text']}>
         <span className={styles['title']}>
-          <Link
-            {...arrowKeySelection}
-            data-shown-by-default={isShownByDefault ? '' : undefined}
-            id={readTransactionLinkId(transaction.id)}
-            to={{
-              search: writeSelectedTransaction({
-                searchParams,
-                transactionId: transaction.id,
-              }).toString(),
-            }}
-            preventScrollReset
-            aria-current={isSelected ? 'true' : undefined}
-            className={styles['link']}
-          >
-            <TransactionTextParts text={view.rowTitle} />
-            {view.titleMarkedAccount !== null && (
-              <>
-                <span
-                  className={styles['titleDot']}
-                  style={{ color: readAccountColor(view.titleMarkedAccount) }}
-                  aria-hidden="true"
-                />
-                <TransactionTextParts text={[view.titleMarkedAccount]} />
-              </>
-            )}
-          </Link>
+          {arrowKeySelection === undefined ? (
+            title
+          ) : (
+            <Link
+              {...arrowKeySelection}
+              data-shown-by-default={isShownByDefault ? '' : undefined}
+              id={readTransactionLinkId(transaction.id)}
+              to={{
+                search: writeSelectedTransaction({
+                  searchParams,
+                  transactionId: transaction.id,
+                }).toString(),
+              }}
+              preventScrollReset
+              aria-current={isSelected ? 'true' : undefined}
+              className={styles['link']}
+            >
+              {title}
+            </Link>
+          )}
         </span>
         <span className={styles['details']}>
           {dateLabel !== undefined && (
