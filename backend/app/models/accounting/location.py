@@ -13,16 +13,6 @@ LOCATION_UNIQUE_NAME_INDEX = "location_unique_user_id_name"
 
 class Location(Base):
     __tablename__ = "locations"
-    __table_args__ = (
-        Index(
-            LOCATION_UNIQUE_NAME_INDEX,
-            "user_id",
-            "name",
-            unique=True,
-            postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}'"),
-        ),
-    )
-
     id: Mapped[UUID] = mapped_column(  # noqa: A003
         DB_UUID, primary_key=True, server_default=func.uuidv7(monotonic=True)
     )
@@ -46,3 +36,12 @@ class Location(Base):
 
     def __repr__(self):
         return f"<Location (id={self.id}, name={self.name})>"
+
+
+Index(
+    LOCATION_UNIQUE_NAME_INDEX,
+    Location.user_id,
+    func.lower(Location.name),
+    unique=True,
+    postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}'"),
+)

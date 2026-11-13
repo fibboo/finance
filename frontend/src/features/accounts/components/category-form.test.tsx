@@ -208,7 +208,7 @@ test('says a name an active category holds while it is typed and keeps Create ca
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       lookupQuery = new URL(request.url).searchParams;
-      const items = lookupQuery.get('search_term') === 'Groceries' ? [groceries] : [];
+      const items = lookupQuery.get('search_term') === 'groceries' ? [groceries] : [];
       return HttpResponse.json({
         items,
         total: items.length,

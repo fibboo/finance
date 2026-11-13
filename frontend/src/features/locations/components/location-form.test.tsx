@@ -242,7 +242,7 @@ test('says a name an active location holds while it is typed and keeps Create lo
   server.use(
     http.get('http://localhost/api/accounting/locations', ({ request }) => {
       lookupQuery = new URL(request.url).searchParams;
-      const items = lookupQuery.get('search_term') === 'Carrefour' ? [carrefour] : [];
+      const items = lookupQuery.get('search_term') === 'carrefour' ? [carrefour] : [];
       return HttpResponse.json({
         items,
         total: items.length,

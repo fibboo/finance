@@ -33,7 +33,8 @@ export function useAccountNameTaken({
   isLookupPending: boolean;
   nameTakenMessage: string;
 }> {
-  const searchTerm = name.trim() === unchangedName ? null : (readSearchTerm(name) ?? null);
+  const searchTerm =
+    name.trim() === unchangedName ? null : (readSearchTerm(name)?.toLowerCase() ?? null);
   const lookedUpSearchTerm = useDebouncedValue(searchTerm);
   const { data: accounts, isPending } = useQuery({
     ...accountQueries.list({
@@ -51,8 +52,7 @@ export function useAccountNameTaken({
     isNameTaken:
       isCurrentNameLookedUp &&
       (accounts?.items.some(
-        (account) =>
-          account.name.toLowerCase() === searchTerm?.toLowerCase() && account.id !== ownAccountId,
+        (account) => account.name.toLowerCase() === searchTerm && account.id !== ownAccountId,
       ) ??
         false),
     isLookupPending: searchTerm !== null && (!isCurrentNameLookedUp || isPending),

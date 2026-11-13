@@ -22,7 +22,8 @@ export function useLocationNameTaken({
   isLookupPending: boolean;
   nameTakenMessage: string;
 }> {
-  const searchTerm = name.trim() === unchangedName ? null : (readSearchTerm(name) ?? null);
+  const searchTerm =
+    name.trim() === unchangedName ? null : (readSearchTerm(name)?.toLowerCase() ?? null);
   const lookedUpSearchTerm = useDebouncedValue(searchTerm);
   const { data: locations, isPending } = useQuery({
     ...locationQueries.list({
@@ -39,9 +40,7 @@ export function useLocationNameTaken({
     isNameTaken:
       isCurrentNameLookedUp &&
       (locations?.items.some(
-        (location) =>
-          location.name.toLowerCase() === searchTerm?.toLowerCase() &&
-          location.id !== ownLocationId,
+        (location) => location.name.toLowerCase() === searchTerm && location.id !== ownLocationId,
       ) ??
         false),
     isLookupPending: searchTerm !== null && (!isCurrentNameLookedUp || isPending),

@@ -54,7 +54,7 @@ test('opens with the name of the location and the reason an active location hold
   });
   expect(screen.getByRole('button', { name: 'Restore location' })).toBeDisabled();
   expect(lookupQuery.getAll('statuses')).toEqual(['ACTIVE']);
-  expect(lookupQuery.get('search_term')).toBe('Old market');
+  expect(lookupQuery.get('search_term')).toBe('old market');
 });
 
 test('drops the reason and allows the restore once a free name is typed', async () => {
@@ -63,7 +63,7 @@ test('drops the reason and allows the restore once a free name is typed', async 
     http.get('http://localhost/api/accounting/locations', ({ request }) => {
       const searchTerm = new URL(request.url).searchParams.get('search_term');
       const items =
-        searchTerm === 'Old market'
+        searchTerm === 'old market'
           ? [
               {
                 ...oldMarket,

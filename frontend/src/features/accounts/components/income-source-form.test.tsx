@@ -270,7 +270,7 @@ test('says a name an active income source holds while it is typed and keeps Crea
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       lookupQuery = new URL(request.url).searchParams;
-      const items = lookupQuery.get('search_term') === 'Salary' ? [salary] : [];
+      const items = lookupQuery.get('search_term') === 'salary' ? [salary] : [];
       return HttpResponse.json({
         items,
         total: items.length,

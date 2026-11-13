@@ -388,7 +388,7 @@ test('says an asset name is taken while it is typed and frees it for a liability
           : [wallet, creditCard].filter(
               (account) =>
                 searchParams.getAll('kinds').includes(account.kind) &&
-                account.name.includes(searchParams.get('search_term') ?? ''),
+                account.name.toLowerCase().includes(searchParams.get('search_term') ?? ''),
             );
       return HttpResponse.json({
         items,

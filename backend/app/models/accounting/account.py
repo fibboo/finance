@@ -17,14 +17,6 @@ ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_kind_name"
 class Account(Base):
     __tablename__ = "accounts"
     __table_args__ = (
-        Index(
-            ACCOUNT_UNIQUE_NAME_INDEX,
-            "user_id",
-            "kind",
-            "name",
-            unique=True,
-            postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}'"),
-        ),
         CheckConstraint(
             f"(currency IS NOT NULL) = (kind IN ('{AccountKind.ASSET.value}', '{AccountKind.LIABILITY.value}'))",
             name="account_currency_by_kind",
@@ -76,3 +68,13 @@ class Account(Base):
 
     def __repr__(self):
         return f"<Account (id={self.id}, name={self.name}, balance={self.balance})>"
+
+
+Index(
+    ACCOUNT_UNIQUE_NAME_INDEX,
+    Account.user_id,
+    Account.kind,
+    func.lower(Account.name),
+    unique=True,
+    postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}'"),
+)

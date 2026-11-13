@@ -65,7 +65,7 @@ test('opens with the name of the category and the reason an active category hold
   expect(screen.getByRole('button', { name: 'Restore category' })).toBeDisabled();
   expect(lookupQuery.getAll('kinds')).toEqual(['EXPENSE']);
   expect(lookupQuery.getAll('statuses')).toEqual(['ACTIVE']);
-  expect(lookupQuery.get('search_term')).toBe('Cigarettes');
+  expect(lookupQuery.get('search_term')).toBe('cigarettes');
 });
 
 test('names an income source in the window and in the reason an active one holds the name', async () => {
@@ -114,7 +114,7 @@ test('drops the reason and allows the restore once a free name is typed', async 
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const searchTerm = new URL(request.url).searchParams.get('search_term');
       const items =
-        searchTerm === 'Cigarettes'
+        searchTerm === 'cigarettes'
           ? [
               {
                 ...cigarettes,
