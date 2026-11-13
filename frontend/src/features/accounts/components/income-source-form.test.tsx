@@ -42,7 +42,9 @@ test('creates an income source without a color', async () => {
     }),
   );
   const user = userEvent.setup();
-  render(<IncomeSourceForm name="Freelance" onCreated={onCreated} onBack={vi.fn()} />);
+  render(
+    <IncomeSourceForm mode={{ kind: 'create', name: 'Freelance', onCreated }} onBack={vi.fn()} />,
+  );
 
   // act
   await user.click(screen.getByRole('button', { name: 'Create income source' }));
@@ -77,7 +79,12 @@ test.each([
     );
     const onCreated = vi.fn();
     const user = userEvent.setup();
-    render(<IncomeSourceForm name={'a'.repeat(length)} onCreated={onCreated} onBack={vi.fn()} />);
+    render(
+      <IncomeSourceForm
+        mode={{ kind: 'create', name: 'a'.repeat(length), onCreated }}
+        onBack={vi.fn()}
+      />,
+    );
 
     // act
     await user.click(screen.getByRole('button', { name: 'Create income source' }));
@@ -105,7 +112,12 @@ test('shows a taken name at the Name field', async () => {
     ),
   );
   const user = userEvent.setup();
-  render(<IncomeSourceForm name="Salary" onCreated={vi.fn()} onBack={vi.fn()} />);
+  render(
+    <IncomeSourceForm
+      mode={{ kind: 'create', name: 'Salary', onCreated: vi.fn() }}
+      onBack={vi.fn()}
+    />,
+  );
 
   // act
   await user.click(screen.getByRole('button', { name: 'Create income source' }));
@@ -114,4 +126,80 @@ test('shows a taken name at the Name field', async () => {
   expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
     'Name already exists',
   );
+});
+
+test('saves the changed name and description of an edited income source', async () => {
+  // arrange
+  let updatedIncomeSource: unknown = null;
+  const onSaved = vi.fn();
+  server.use(
+    http.put(`http://localhost/api/accounting/accounts/${salary.id}`, async ({ request }) => {
+      updatedIncomeSource = await request.json();
+      return HttpResponse.json(salary satisfies components['schemas']['Account']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <IncomeSourceForm
+      mode={{
+        kind: 'edit',
+        incomeSource: { ...salary, description: 'Main job' },
+        relatedQueryKeys: [],
+        onSaved,
+      }}
+      onBack={vi.fn()}
+    />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+  const description = screen.getByRole('textbox', { name: /Description/ });
+  expect(screen.getByRole('form', { name: 'Edit income source' })).toBeInTheDocument();
+  expect(name).toHaveValue('Salary');
+  expect(description).toHaveValue('Main job');
+  await user.clear(name);
+  await user.type(name, 'Wages');
+  await user.clear(description);
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await vi.waitFor(() => {
+    expect(onSaved).toHaveBeenCalledOnce();
+  });
+  expect(updatedIncomeSource).toEqual({ name: 'Wages', description: null });
+});
+
+test('shows a name another income source has under the name field of the edit form', async () => {
+  // arrange
+  server.use(
+    http.put(`http://localhost/api/accounting/accounts/${salary.id}`, () =>
+      HttpResponse.json(
+        {
+          message: 'Name already exists',
+          error_code: 'NAME_ALREADY_EXISTS',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 409 },
+      ),
+    ),
+  );
+  const onSaved = vi.fn();
+  const user = userEvent.setup();
+  render(
+    <IncomeSourceForm
+      mode={{ kind: 'edit', incomeSource: salary, relatedQueryKeys: [], onSaved }}
+      onBack={vi.fn()}
+    />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+  await user.clear(name);
+  await user.type(name, 'Freelance');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
+    'Name already exists',
+  );
+  expect(onSaved).not.toHaveBeenCalled();
 });

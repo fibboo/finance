@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 
 import { useOutsideClick } from '@/hooks/use-outside-click';
 
@@ -13,7 +14,9 @@ type MoreMenuProps = Readonly<{
 }>;
 
 export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const { pathname } = useLocation();
+  const [openPathname, setOpenPathname] = useState<string | undefined>(undefined);
+  const isOpen = openPathname === pathname;
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sectionsId = useId();
@@ -25,7 +28,7 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setIsOpen(false);
+        setOpenPathname(undefined);
         buttonRef.current?.focus();
       }
     }
@@ -41,7 +44,7 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
     isActive: isOpen,
     readIsInside: (target) => menuRef.current?.contains(target) === true,
     onOutsideClick: () => {
-      setIsOpen(false);
+      setOpenPathname(undefined);
     },
   });
 
@@ -55,7 +58,7 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
         aria-controls={sectionsId}
         aria-current={isCurrent ? 'page' : undefined}
         onClick={() => {
-          setIsOpen(!isOpen);
+          setOpenPathname(isOpen ? undefined : pathname);
         }}
       >
         <svg className={navigationStyles['icon']} aria-hidden="true" viewBox="0 0 24 24">

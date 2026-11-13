@@ -33,7 +33,8 @@ test('opens with the name of the category and the reason it was refused', () => 
   // act
   render(
     <RestoreForm
-      category={cigarettes}
+      account={cigarettes}
+      entityName="category"
       relatedQueryKeys={[]}
       onRestored={vi.fn()}
       onBack={vi.fn()}
@@ -44,6 +45,25 @@ test('opens with the name of the category and the reason it was refused', () => 
   const name = screen.getByRole('textbox', { name: 'Name' });
   expect(name).toHaveValue('Cigarettes');
   expect(name).toHaveAccessibleDescription('An active category already has this name');
+});
+
+test('names an income source in the window and in the reason it was refused', () => {
+  // act
+  render(
+    <RestoreForm
+      account={{ ...cigarettes, kind: 'INCOME', category_type: null, name: 'Scholarship' }}
+      entityName="income source"
+      relatedQueryKeys={[]}
+      onRestored={vi.fn()}
+      onBack={vi.fn()}
+    />,
+  );
+
+  // assert
+  expect(screen.getByRole('form', { name: 'Restore income source' })).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
+    'An active income source already has this name',
+  );
 });
 
 test('restores the category under the typed name', async () => {
@@ -66,7 +86,8 @@ test('restores the category under the typed name', async () => {
   const user = userEvent.setup();
   render(
     <RestoreForm
-      category={cigarettes}
+      account={cigarettes}
+      entityName="category"
       relatedQueryKeys={[]}
       onRestored={onRestored}
       onBack={vi.fn()}
@@ -97,7 +118,8 @@ test('keeps the window open with the reason under the name when the new name is 
   const user = userEvent.setup();
   render(
     <RestoreForm
-      category={cigarettes}
+      account={cigarettes}
+      entityName="category"
       relatedQueryKeys={[]}
       onRestored={onRestored}
       onBack={vi.fn()}
@@ -140,7 +162,8 @@ test('shows the message of the backend under the name when it refuses the name f
   const user = userEvent.setup();
   render(
     <RestoreForm
-      category={cigarettes}
+      account={cigarettes}
+      entityName="category"
       relatedQueryKeys={[]}
       onRestored={vi.fn()}
       onBack={vi.fn()}
@@ -165,7 +188,8 @@ test('shows the rule of the name instead of posting a name that is too short', a
   const user = userEvent.setup();
   render(
     <RestoreForm
-      category={cigarettes}
+      account={cigarettes}
+      entityName="category"
       relatedQueryKeys={[]}
       onRestored={onRestored}
       onBack={vi.fn()}

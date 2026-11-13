@@ -31,12 +31,12 @@ export function readCatalogFilters({
   categoryTypes,
 }: Readonly<{
   searchParams: URLSearchParams;
-  categoryTypes: readonly CategoryTypeOption[];
+  categoryTypes: readonly CategoryTypeOption[] | undefined;
 }>): CatalogFilters {
   const categoryType = z
     .string()
     .nullable()
-    .transform((value) => categoryTypes.find((type) => type.key === value)?.key)
+    .transform((value) => categoryTypes?.find((type) => type.key === value)?.key)
     .parse(searchParams.get(CATEGORY_TYPE_PARAM));
   const filters = {
     categoryType,

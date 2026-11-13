@@ -1,11 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { QueryKey } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 
 import { EntityForm } from '@/components/entity-form/entity-form';
-import type { CreateFormProps } from '@/components/entity-picker/entity-picker';
 import { TextField } from '@/components/text-field/text-field';
+import type { components } from '@/lib/api-schema';
 
+import type { AccountFieldError } from '../api/account-field-errors';
 import { useAccountCreate } from '../hooks/use-account-create';
+import { useAccountUpdate } from '../hooks/use-account-update';
 import {
   type AccountFormOutput,
   accountFormSchema,
@@ -14,32 +17,81 @@ import {
   NAME_MAX_LENGTH,
 } from '../schemas/account-form';
 
-export function IncomeSourceForm({ name, onCreated, onBack }: CreateFormProps) {
+type Account = components['schemas']['Account'];
+
+type IncomeSourceFormMode =
+  | Readonly<{ kind: 'create'; name: string; onCreated: (id: string) => void }>
+  | Readonly<{
+      kind: 'edit';
+      incomeSource: Readonly<Account>;
+      relatedQueryKeys: readonly QueryKey[];
+      onSaved: () => void;
+    }>;
+
+type IncomeSourceFormProps = Readonly<{
+  mode: IncomeSourceFormMode;
+  onBack: () => void;
+}>;
+
+function readStartingValues(mode: IncomeSourceFormMode): AccountFormValues {
+  const startingValues =
+    mode.kind === 'create'
+      ? { name: mode.name, description: '' }
+      : { name: mode.incomeSource.name, description: mode.incomeSource.description ?? '' };
+  return startingValues;
+}
+
+export function IncomeSourceForm({ mode, onBack }: IncomeSourceFormProps) {
+  const startingValues = readStartingValues(mode);
   const { register, handleSubmit, setError, formState } = useForm<
     AccountFormValues,
     unknown,
     AccountFormOutput
   >({
     resolver: zodResolver(accountFormSchema),
-    defaultValues: { name, description: '' },
+    defaultValues: startingValues,
+    ...(mode.kind === 'edit' && {
+      values: startingValues,
+      resetOptions: { keepDirtyValues: true },
+    }),
   });
+
+  function showFieldError({ field, message }: AccountFieldError) {
+    setError(field, { message });
+  }
+
   const accountCreate = useAccountCreate({
-    onCreated,
-    onFieldError: ({ field, message }) => {
-      setError(field, { message });
+    onCreated: (id) => {
+      if (mode.kind === 'create') {
+        mode.onCreated(id);
+      }
     },
+    onFieldError: showFieldError,
+  });
+  const accountUpdate = useAccountUpdate({
+    relatedQueryKeys: mode.kind === 'edit' ? mode.relatedQueryKeys : [],
+    onSaved: () => {
+      if (mode.kind === 'edit') {
+        mode.onSaved();
+      }
+    },
+    onFieldError: showFieldError,
   });
 
   return (
     <EntityForm
-      title="New income source"
-      submitLabel="Create income source"
-      isSubmitDisabled={accountCreate.isPending}
+      title={mode.kind === 'create' ? 'New income source' : 'Edit income source'}
+      submitLabel={mode.kind === 'create' ? 'Create income source' : 'Save changes'}
+      isSubmitDisabled={accountCreate.isPending || accountUpdate.isPending}
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
-        void handleSubmit(({ name: sourceName, description }) => {
-          accountCreate.create({ name: sourceName, description, kind: 'INCOME' });
+        void handleSubmit(({ name, description }) => {
+          if (mode.kind === 'create') {
+            accountCreate.create({ name, description, kind: 'INCOME' });
+          } else {
+            accountUpdate.update({ account_id: mode.incomeSource.id, name, description });
+          }
         })(event);
       }}
     >

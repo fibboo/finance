@@ -286,7 +286,8 @@ export function Component() {
       {renamedCategory !== undefined && (
         <Sheet label="Restore category" onClose={closeRestoreForm}>
           <RestoreForm
-            category={renamedCategory}
+            account={renamedCategory}
+            entityName="category"
             relatedQueryKeys={relatedQueryKeys}
             onRestored={() => {
               closeRestoreForm();
