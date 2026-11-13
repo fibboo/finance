@@ -35,6 +35,7 @@ import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
+import { useListedEntry } from '@/hooks/use-listed-entry';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { ApiError } from '@/lib/api-error';
 import { isThrownWithoutData } from '@/lib/query-meta';
@@ -58,11 +59,6 @@ function readIncomeSourceCount(
 export function Component() {
   const isDesktop = useIsDesktop();
   const [isCreating, setIsCreating] = useState(false);
-  const [editedIncomeSourceId, setEditedIncomeSourceId] = useState<string | undefined>(undefined);
-  const [confirmedIncomeSourceId, setConfirmedIncomeSourceId] = useState<string | undefined>(
-    undefined,
-  );
-  const [renamedIncomeSourceId, setRenamedIncomeSourceId] = useState<string | undefined>(undefined);
   const [focusedIncomeSourceId, setFocusedIncomeSourceId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readCatalogSearch(searchParams);
@@ -100,27 +96,13 @@ export function Component() {
   );
   const shownIncomeSource =
     chosenIncomeSource ?? (isNothingMatched ? undefined : incomeSourcePage?.items[0]);
-  const editedIncomeSource = incomeSourcePage?.items.find(
-    (incomeSource) => incomeSource.id === editedIncomeSourceId,
+  const [editedIncomeSource, setEditedIncomeSourceId] = useListedEntry(incomeSourcePage?.items);
+  const [confirmedIncomeSource, setConfirmedIncomeSourceId] = useListedEntry(
+    incomeSourcePage?.items,
   );
-  const confirmedIncomeSource = incomeSourcePage?.items.find(
-    (incomeSource) => incomeSource.id === confirmedIncomeSourceId,
+  const [renamedIncomeSource, setRenamedIncomeSourceId] = useListedEntry(
+    incomeSourcePage?.items.filter((incomeSource) => incomeSource.status === 'DELETED'),
   );
-  const renamedIncomeSource = incomeSourcePage?.items.find(
-    (incomeSource) =>
-      incomeSource.id === renamedIncomeSourceId && incomeSource.status === 'DELETED',
-  );
-  if (incomeSourcePage !== undefined) {
-    if (editedIncomeSourceId !== undefined && editedIncomeSource === undefined) {
-      setEditedIncomeSourceId(undefined);
-    }
-    if (confirmedIncomeSourceId !== undefined && confirmedIncomeSource === undefined) {
-      setConfirmedIncomeSourceId(undefined);
-    }
-    if (renamedIncomeSourceId !== undefined && renamedIncomeSource === undefined) {
-      setRenamedIncomeSourceId(undefined);
-    }
-  }
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,

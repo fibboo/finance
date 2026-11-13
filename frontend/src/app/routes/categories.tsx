@@ -41,6 +41,7 @@ import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
+import { useListedEntry } from '@/hooks/use-listed-entry';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { ApiError } from '@/lib/api-error';
 import { isThrownWithoutData } from '@/lib/query-meta';
@@ -64,9 +65,6 @@ function readCategoryCount(
 export function Component() {
   const isDesktop = useIsDesktop();
   const [isCreating, setIsCreating] = useState(false);
-  const [editedCategoryId, setEditedCategoryId] = useState<string | undefined>(undefined);
-  const [confirmedCategoryId, setConfirmedCategoryId] = useState<string | undefined>(undefined);
-  const [renamedCategoryId, setRenamedCategoryId] = useState<string | undefined>(undefined);
   const [focusedCategoryId, setFocusedCategoryId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readCatalogSearch(searchParams);
@@ -115,24 +113,11 @@ export function Component() {
   );
   const shownGroup = chosenGroup ?? groups?.[0];
   const shownCategory = chosenCategory ?? shownGroup?.entries[0];
-  const editedCategory = categoryPage?.items.find((category) => category.id === editedCategoryId);
-  const confirmedCategory = categoryPage?.items.find(
-    (category) => category.id === confirmedCategoryId,
+  const [editedCategory, setEditedCategoryId] = useListedEntry(categoryPage?.items);
+  const [confirmedCategory, setConfirmedCategoryId] = useListedEntry(categoryPage?.items);
+  const [renamedCategory, setRenamedCategoryId] = useListedEntry(
+    categoryPage?.items.filter((category) => category.status === 'DELETED'),
   );
-  const renamedCategory = categoryPage?.items.find(
-    (category) => category.id === renamedCategoryId && category.status === 'DELETED',
-  );
-  if (categoryPage !== undefined) {
-    if (editedCategoryId !== undefined && editedCategory === undefined) {
-      setEditedCategoryId(undefined);
-    }
-    if (confirmedCategoryId !== undefined && confirmedCategory === undefined) {
-      setConfirmedCategoryId(undefined);
-    }
-    if (renamedCategoryId !== undefined && renamedCategory === undefined) {
-      setRenamedCategoryId(undefined);
-    }
-  }
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,
