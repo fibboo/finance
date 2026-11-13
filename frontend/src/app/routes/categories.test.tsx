@@ -590,6 +590,64 @@ test('restores a category under a new name, closes the window and moves the focu
   });
 });
 
+test('keeps Restore category closed after a category restored under a new name left the searched list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let categories: components['schemas']['Account'][] = [groceries, cigarettes];
+  let restoreCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const searchTerm = new URL(request.url).searchParams.get('search_term');
+      const items = categories.filter(
+        (category) =>
+          searchTerm === null || category.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+    http.post(`http://localhost/api/accounting/accounts/${cigarettes.id}/restore`, () => {
+      restoreCount += 1;
+      if (restoreCount === 1) {
+        return HttpResponse.json(
+          {
+            error_code: 'NAME_ALREADY_EXISTS',
+            message: 'This name is already taken',
+          } satisfies components['schemas']['ErrorResponse'],
+          { status: 409 },
+        );
+      }
+      const restored = {
+        ...cigarettes,
+        name: 'Smokes',
+        status: 'ACTIVE',
+      } satisfies components['schemas']['Account'];
+      categories = [groceries, restored];
+      return HttpResponse.json(restored);
+    }),
+  );
+  render(<Component />, { initialEntries: ['/categories?search=Cig'] });
+  const variable = await screen.findByRole('region', { name: 'Variable' });
+  await user.click(within(variable).getByRole('button', { name: 'Restore' }));
+  const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
+  const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
+  await user.clear(name);
+  await user.type(name, 'Smokes');
+  await user.click(within(restoreForm).getByRole('button', { name: 'Restore category' }));
+  expect(await screen.findByText('No categories match this search')).toBeInTheDocument();
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Clear search' }));
+
+  // assert
+  expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent('Smokes');
+  expect(screen.queryByRole('form', { name: 'Restore category' })).not.toBeInTheDocument();
+});
+
 test('closes Restore category on Back and leaves the category deleted', async () => {
   // arrange
   const user = userEvent.setup();

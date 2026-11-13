@@ -119,6 +119,46 @@ test('keeps the window open with the reason under the name when the new name is 
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
 
+test('shows the message of the backend under the name when it refuses the name for another reason', async () => {
+  // arrange
+  server.use(
+    http.post(`http://localhost/api/accounting/accounts/${cigarettes.id}/restore`, () =>
+      HttpResponse.json(
+        {
+          detail: [
+            {
+              loc: ['body', 'name'],
+              msg: 'Value error, name is not allowed',
+              type: 'value_error',
+            },
+          ],
+        },
+        { status: 422 },
+      ),
+    ),
+  );
+  const user = userEvent.setup();
+  render(
+    <RestoreForm
+      category={cigarettes}
+      relatedQueryKeys={[]}
+      onRestored={vi.fn()}
+      onBack={vi.fn()}
+    />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+  await user.clear(name);
+  await user.type(name, 'Smokes');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Restore category' }));
+
+  // assert
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('Value error, name is not allowed');
+  });
+});
+
 test('shows the rule of the name instead of posting a name that is too short', async () => {
   // arrange
   const onRestored = vi.fn();

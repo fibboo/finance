@@ -1,13 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type QueryKey, useMutation } from '@tanstack/react-query';
+import type { QueryKey } from '@tanstack/react-query';
 import { type FieldErrors, useForm } from 'react-hook-form';
 
 import { EntityForm } from '@/components/entity-form/entity-form';
 import { TextField } from '@/components/text-field/text-field';
 import type { components } from '@/lib/api-schema';
 
-import { readAccountFieldErrors } from '../api/account-field-errors';
-import { accountMutations } from '../api/account-mutations';
+import { useAccountRestore } from '../hooks/use-account-restore';
 import {
   NAME_MAX_LENGTH,
   type RestoreFormOutput,
@@ -39,32 +38,27 @@ export function RestoreForm({ category, relatedQueryKeys, onRestored, onBack }: 
     defaultValues: { name: category.name },
     errors: NAME_TAKEN_ERRORS,
   });
-  const restore = useMutation(accountMutations.restore(relatedQueryKeys));
+  const accountRestore = useAccountRestore({
+    relatedQueryKeys,
+    onRestored,
+    onNameTaken: () => {
+      setError('name', { message: NAME_TAKEN_MESSAGE });
+    },
+    onFieldError: ({ field, message }) => {
+      setError(field === 'name' ? 'name' : 'root.server', { message });
+    },
+  });
 
   return (
     <EntityForm
       title="Restore category"
       submitLabel="Restore category"
-      isSubmitDisabled={restore.isPending}
+      isSubmitDisabled={accountRestore.isPending}
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
       onSubmit={(event) => {
         void handleSubmit(({ name }) => {
-          restore.mutate(
-            { account_id: category.id, name },
-            {
-              onSuccess: onRestored,
-              onError: (error) => {
-                readAccountFieldErrors(error).forEach(({ field, message }) => {
-                  if (field === 'name') {
-                    setError('name', { message: NAME_TAKEN_MESSAGE });
-                  } else {
-                    setError('root.server', { message });
-                  }
-                });
-              },
-            },
-          );
+          accountRestore.restore({ account_id: category.id, name });
         })(event);
       }}
     >

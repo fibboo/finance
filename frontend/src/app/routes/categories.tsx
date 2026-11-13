@@ -119,7 +119,9 @@ export function Component() {
   const confirmedCategory = categoryPage?.items.find(
     (category) => category.id === confirmedCategoryId,
   );
-  const renamedCategory = categoryPage?.items.find((category) => category.id === renamedCategoryId);
+  const renamedCategory = categoryPage?.items.find(
+    (category) => category.id === renamedCategoryId && category.status === 'DELETED',
+  );
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,
