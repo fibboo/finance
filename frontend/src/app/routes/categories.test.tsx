@@ -1240,7 +1240,10 @@ test('drops a chosen transaction that is not of the shown category on a wide des
           { key: 'ASSET', label: 'Asset' },
           { key: 'EXPENSE', label: 'Expense' },
         ],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),

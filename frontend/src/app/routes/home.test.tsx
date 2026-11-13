@@ -138,7 +138,11 @@ beforeEach(() => {
           { key: 'ASSET', label: 'Asset' },
           { key: 'EXPENSE', label: 'Expense' },
         ],
-        category_types: [],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+          { key: 'PERIODIC', label: 'Periodic' },
+        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),

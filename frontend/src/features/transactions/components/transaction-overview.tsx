@@ -5,12 +5,20 @@ import { ActionBar } from '@/components/action-bar/action-bar';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
+import { DeletedAccountName } from './deleted-account-name';
+import { type ReadAccountLink, TransactionEntryBlock } from './transaction-entry-block';
 import styles from './transaction-overview.module.css';
-import { type ReadAccountLink, TransactionPostings } from './transaction-postings';
 import { TransactionTextParts } from './transaction-text-parts';
-import { readTransactionView, readTypeLabel, readWeekdayDateText } from './transaction-view';
+import {
+  readExchangeDifference,
+  readTransactionEntries,
+  readTransactionView,
+  readTypeLabel,
+  readWeekdayDateText,
+} from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
+type TransactionLocation = NonNullable<Transaction['location']>;
 type DictionaryItem = components['schemas']['DictionaryItem'];
 export type LocationLink = Readonly<{ to: To; id: string }>;
 
@@ -29,11 +37,36 @@ function readBaseAmount({
   return amount;
 }
 
+const EMPTY_FACT = '—';
+
+type LocationNameProps = Readonly<{
+  location: TransactionLocation;
+  readLocationLink: ReadLocationLink;
+}>;
+
+function LocationName({ location, readLocationLink }: LocationNameProps) {
+  if (location.status === 'DELETED') {
+    return <DeletedAccountName name={location.name} />;
+  }
+
+  const locationLink = readLocationLink(location.id);
+  if (locationLink === undefined) {
+    return location.name;
+  }
+
+  return (
+    <Link {...locationLink} preventScrollReset className={styles['locationLink']}>
+      {location.name}
+    </Link>
+  );
+}
+
 type TransactionOverviewProps = Readonly<{
   transaction: Readonly<Transaction>;
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
+  categoryTypes: readonly DictionaryItem[];
   readAccountLink: ReadAccountLink;
   readLocationLink: ReadLocationLink;
   closeButton: ReactNode;
@@ -46,6 +79,7 @@ export function TransactionOverview({
   baseCurrency,
   transactionTypes,
   accountKinds,
+  categoryTypes,
   readAccountLink,
   readLocationLink,
   closeButton,
@@ -55,8 +89,7 @@ export function TransactionOverview({
   const titleId = useId();
   const view = readTransactionView({ transaction, transactionTypes });
   const baseAmount = readBaseAmount({ transaction, baseAmount: view.baseAmount });
-  const locationLink =
-    transaction.location === null ? undefined : readLocationLink(transaction.location.id);
+  const exchangeDifference = readExchangeDifference(transaction);
   return (
     <article aria-labelledby={titleId} className={styles['transactionOverview']}>
       <div className={styles['header']} data-sheet-drag-area>
@@ -85,36 +118,41 @@ export function TransactionOverview({
           </span>
         )}
       </div>
-      <TransactionPostings
-        postings={transaction.postings}
-        baseCurrency={baseCurrency}
-        accountKinds={accountKinds}
-        readAccountLink={readAccountLink}
-      />
-      {(transaction.location !== null || transaction.comment !== null) && (
-        <dl className={styles['facts']}>
-          {transaction.location !== null && (
-            <>
-              <dt className={styles['term']}>Location</dt>
-              <dd className={styles['value']}>
-                {locationLink === undefined ? (
-                  transaction.location.name
-                ) : (
-                  <Link {...locationLink} preventScrollReset className={styles['locationLink']}>
-                    {transaction.location.name}
-                  </Link>
-                )}
-              </dd>
-            </>
+      {readTransactionEntries(transaction).map((entry) => (
+        <TransactionEntryBlock
+          key={entry.posting.id}
+          entry={entry}
+          baseCurrency={baseCurrency}
+          accountKinds={accountKinds}
+          categoryTypes={categoryTypes}
+          readAccountLink={readAccountLink}
+        />
+      ))}
+      <dl className={styles['facts']}>
+        {exchangeDifference !== undefined && (
+          <>
+            <dt className={styles['term']}>Exchange difference</dt>
+            <dd className={styles['value']}>
+              ≈{' '}
+              {formatMoney({
+                amount: exchangeDifference,
+                currency: baseCurrency,
+                signDisplay: 'exceptZero',
+              })}
+            </dd>
+          </>
+        )}
+        <dt className={styles['term']}>Location</dt>
+        <dd className={styles['value']}>
+          {transaction.location === null ? (
+            EMPTY_FACT
+          ) : (
+            <LocationName location={transaction.location} readLocationLink={readLocationLink} />
           )}
-          {transaction.comment !== null && (
-            <>
-              <dt className={styles['term']}>Comment</dt>
-              <dd className={styles['value']}>{transaction.comment}</dd>
-            </>
-          )}
-        </dl>
-      )}
+        </dd>
+        <dt className={styles['term']}>Comment</dt>
+        <dd className={styles['value']}>{transaction.comment ?? EMPTY_FACT}</dd>
+      </dl>
       <ActionBar>
         {editAction}
         {deleteAction}
