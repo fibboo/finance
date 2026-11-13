@@ -1,6 +1,8 @@
 import type { RefObject } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router';
 
+import { CATEGORY_ICON_PATH } from './category-icon';
+import { INCOME_SOURCE_ICON_PATH } from './income-source-icon';
 import { LOCATION_ICON_PATH } from './location-icon';
 import styles from './main-navigation.module.css';
 import { MoreMenu } from './more-menu';
@@ -11,7 +13,6 @@ const HOME_ICON_PATH = 'M4 11 12 4l8 7v9h-5v-6H9v6H4z';
 const TRANSACTIONS_ICON_PATH = 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01';
 const ACCOUNTS_ICON_PATH =
   'M6 6h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3M3 10h18M16 14.5h2';
-const CATEGORIES_ICON_PATH = 'M3 12V4h8l10 10-8 8zM7.5 7.2a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6';
 const ADD_ICON_PATH = 'M12 5v14M5 12h14';
 const COLLAPSE_ICON_PATH = 'M11 6l-6 6 6 6M19 6l-6 6 6 6';
 const SHOW_ICON_PATH = 'M5 6l6 6-6 6M13 6l6 6-6 6';
@@ -19,7 +20,7 @@ const SECTIONS = [
   { name: 'Home', path: '/', iconPath: HOME_ICON_PATH },
   { name: 'Transactions', path: '/transactions', iconPath: TRANSACTIONS_ICON_PATH },
   { name: 'Accounts', path: '/accounts', iconPath: ACCOUNTS_ICON_PATH },
-  { name: 'Categories', path: '/categories', iconPath: CATEGORIES_ICON_PATH },
+  { name: 'Categories', path: '/categories', iconPath: CATEGORY_ICON_PATH },
 ] as const;
 const MORE_SECTIONS = [
   {
@@ -30,7 +31,7 @@ const MORE_SECTIONS = [
   {
     name: 'Income sources',
     path: '/income-sources',
-    iconPath: 'M12 4v10M8 10l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3',
+    iconPath: INCOME_SOURCE_ICON_PATH,
   },
 ] as const;
 const IS_EXPANDED_BY_MENU_STATE = {

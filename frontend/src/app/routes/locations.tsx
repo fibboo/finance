@@ -13,6 +13,7 @@ import {
 } from '@/components/catalog-list/catalog-row-focus';
 import { readCatalogSearch, writeCatalogSearch } from '@/components/catalog-list/catalog-search';
 import { readIsDeletedShown, writeIsDeletedShown } from '@/components/catalog-list/deleted-filter';
+import { NoEntries } from '@/components/catalog-list/no-entries';
 import { NoMatchingEntries } from '@/components/catalog-list/no-matching-entries';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { NewButton } from '@/components/new-button/new-button';
@@ -97,6 +98,7 @@ export function Component() {
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && locationPage?.items.length === 0;
+  const hasNoEntries = searchTerm === undefined && locationPage?.items.length === 0;
   const groups =
     locationPage === undefined || isNothingMatched
       ? undefined
@@ -182,6 +184,12 @@ export function Component() {
                   replace: true,
                 });
               }}
+            />
+          ) : hasNoEntries ? (
+            <NoEntries
+              iconPath={LOCATION_ICON_PATH}
+              title="No locations yet"
+              text="Add the places you pay at, like a shop or a café."
             />
           ) : (
             <CatalogList

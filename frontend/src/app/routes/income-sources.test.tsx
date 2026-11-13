@@ -364,3 +364,22 @@ test('gives a phone plain names and no transactions of an income source', async 
   expect(screen.queryByRole('region', { name: /^Transactions of/ })).not.toBeInTheDocument();
   expect(transactionRequestCount).toBe(0);
 });
+
+test('shows an empty state instead of the list when there are no income sources', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json(readAccountPage([])),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: ['/income-sources'] });
+
+  // assert
+  expect(await screen.findByText('No income sources yet')).toBeInTheDocument();
+  expect(
+    screen.getByText('Add where your money comes from, like a salary or a client.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Income sources' })).not.toBeInTheDocument();
+});

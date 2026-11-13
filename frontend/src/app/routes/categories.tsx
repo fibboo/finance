@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { CatalogTransactions } from '@/app/catalog-transactions';
+import { CATEGORY_ICON_PATH } from '@/app/category-icon';
 import { readTransactionsLink } from '@/app/transactions-link';
 import { readCatalogInitial } from '@/components/catalog-list/catalog-entry';
 import { CatalogFilters } from '@/components/catalog-list/catalog-filters';
@@ -14,6 +15,7 @@ import {
 } from '@/components/catalog-list/catalog-row-focus';
 import { readCatalogSearch, writeCatalogSearch } from '@/components/catalog-list/catalog-search';
 import { readIsDeletedShown, writeIsDeletedShown } from '@/components/catalog-list/deleted-filter';
+import { NoEntries } from '@/components/catalog-list/no-entries';
 import { NoMatchingEntries } from '@/components/catalog-list/no-matching-entries';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { NewButton } from '@/components/new-button/new-button';
@@ -99,6 +101,7 @@ export function Component() {
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && categoryPage?.items.length === 0;
+  const hasNoEntries = searchTerm === undefined && categoryPage?.items.length === 0;
   const groups =
     categoryPage === undefined || categoryTypes === undefined || isNothingMatched
       ? undefined
@@ -202,6 +205,12 @@ export function Component() {
                   replace: true,
                 });
               }}
+            />
+          ) : hasNoEntries ? (
+            <NoEntries
+              iconPath={CATEGORY_ICON_PATH}
+              title="No categories yet"
+              text="Add what you spend on, like groceries or rent."
             />
           ) : (
             <CatalogList

@@ -1,0 +1,2 @@
+export const INCOME_SOURCE_ICON_PATH =
+  'M12 4v10M8 10l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3';
