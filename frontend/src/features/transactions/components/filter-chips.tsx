@@ -3,20 +3,21 @@ import { toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
 
 import {
-  type AccountIdParam,
   DEFAULT_ORDER,
+  type ItemIdParam,
   type TransactionFilters,
 } from '../api/transaction-filters';
-import { AccountFilter } from './account-filter';
 import { AmountFilter } from './amount-filter';
 import styles from './filter-chips.module.css';
 import { FilterPanel } from './filter-panel';
+import { ItemFilter } from './item-filter';
 import { PeriodFilter } from './period-filter';
 import { SortFilter } from './sort-filter';
 import { TypeFilter } from './type-filter';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 type Account = components['schemas']['Account'];
+type Location = components['schemas']['Location'];
 
 function readPeriodLabel(filters: TransactionFilters): string | undefined {
   const periodLabel =
@@ -67,15 +68,15 @@ function readAmountLabel({
   return amountLabel;
 }
 
-type AccountFilterConfig = Readonly<{
-  name: AccountIdParam;
+type ItemFilterConfig = Readonly<{
+  name: ItemIdParam;
   title: string;
   chipTitle: string;
   emptyNote: string;
-  excluded?: Readonly<{ name: AccountIdParam; note: string }>;
+  excluded?: Readonly<{ name: ItemIdParam; note: string }>;
 }>;
 
-const ACCOUNT_FILTERS: readonly AccountFilterConfig[] = [
+const ITEM_FILTERS: readonly ItemFilterConfig[] = [
   {
     name: 'account_ids',
     title: 'Accounts',
@@ -102,6 +103,12 @@ const ACCOUNT_FILTERS: readonly AccountFilterConfig[] = [
       note: 'Choosing income sources clears the categories filter.',
     },
   },
+  {
+    name: 'location_ids',
+    title: 'Locations',
+    chipTitle: 'Locations',
+    emptyNote: 'No locations yet.',
+  },
 ];
 
 type FilterChipsProps = Readonly<{
@@ -111,7 +118,7 @@ type FilterChipsProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   transactionOrders: readonly DictionaryItem[];
-  accounts: Readonly<Record<AccountIdParam, readonly Account[]>>;
+  items: Readonly<Record<ItemIdParam, readonly (Account | Location)[]>>;
   onApply: (change: Partial<TransactionFilters>, jumpDate?: string) => void;
   onJump: (monthEnd: string) => void;
 }>;
@@ -123,7 +130,7 @@ export function FilterChips({
   baseCurrency,
   transactionTypes,
   transactionOrders,
-  accounts,
+  items,
   onApply,
   onJump,
 }: FilterChipsProps) {
@@ -169,30 +176,30 @@ export function FilterChips({
           />
         )}
       </FilterPanel>
-      {ACCOUNT_FILTERS.map((accountFilter) => {
-        const count = filters[accountFilter.name].length;
-        const { excluded } = accountFilter;
+      {ITEM_FILTERS.map((itemFilter) => {
+        const count = filters[itemFilter.name].length;
+        const { excluded } = itemFilter;
         const isExcludedChosen = excluded !== undefined && filters[excluded.name].length > 0;
         return (
           <FilterPanel
-            key={accountFilter.name}
-            title={accountFilter.title}
+            key={itemFilter.name}
+            title={itemFilter.title}
             chipLabel={
-              count > 0 ? `${accountFilter.chipTitle} · ${String(count)}` : accountFilter.chipTitle
+              count > 0 ? `${itemFilter.chipTitle} · ${String(count)}` : itemFilter.chipTitle
             }
             isActive={count > 0}
           >
             {(close) => (
-              <AccountFilter
-                title={accountFilter.title}
-                emptyNote={accountFilter.emptyNote}
-                accounts={accounts[accountFilter.name]}
-                accountIds={filters[accountFilter.name]}
+              <ItemFilter
+                title={itemFilter.title}
+                emptyNote={itemFilter.emptyNote}
+                items={items[itemFilter.name]}
+                itemIds={filters[itemFilter.name]}
                 note={isExcludedChosen ? excluded.note : undefined}
-                onApply={(accountIds) => {
+                onApply={(itemIds) => {
                   onApply({
-                    [accountFilter.name]: accountIds,
-                    ...(isExcludedChosen && accountIds.length > 0 && { [excluded.name]: [] }),
+                    [itemFilter.name]: itemIds,
+                    ...(isExcludedChosen && itemIds.length > 0 && { [excluded.name]: [] }),
                   });
                   close();
                 }}

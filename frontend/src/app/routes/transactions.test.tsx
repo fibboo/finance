@@ -127,6 +127,17 @@ beforeEach(() => {
           } satisfies components['schemas']['Page_Account_'])
         : HttpResponse.json(null, { status: 400 });
     }),
+    http.get('http://localhost/api/accounting/locations', ({ request }) =>
+      new URL(request.url).searchParams.get('order') === 'recent_use'
+        ? HttpResponse.json({
+            items: [],
+            total: 0,
+            page: 1,
+            size: 100,
+            pages: 1,
+          } satisfies components['schemas']['Page_Location_'])
+        : HttpResponse.json(null, { status: 400 }),
+    ),
     // the details of the first money account of the shown transaction
     http.get('http://localhost/api/accounting/accounts/:accountId', ({ params }) =>
       params['accountId'] === wallet.id
@@ -603,6 +614,156 @@ test('shows a note instead of the list for a kind without accounts', async () =>
   expect(
     within(incomeSourceFilter).queryByRole('button', { name: 'Apply' }),
   ).not.toBeInTheDocument();
+});
+
+test('requests the checked locations in the order of their recent use', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const market = {
+    name: 'Market',
+    user_id: expense.user_id,
+    id: '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d90',
+    status: 'ACTIVE',
+    created_at: '2026-10-01T09:00:00Z',
+    updated_at: '2026-10-01T09:00:00Z',
+  } satisfies components['schemas']['Location'];
+  const bakery = {
+    ...market,
+    name: 'Bakery',
+    id: '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d91',
+  } satisfies components['schemas']['Location'];
+  const requestedLocationIds: string[][] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json({
+        items: [market, bakery],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Location_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedLocationIds.push(new URL(request.url).searchParams.getAll('location_ids'));
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await user.click(await screen.findByRole('button', { name: 'Locations' }));
+  const locationFilter = screen.getByRole('dialog', { name: 'Locations' });
+  const checkboxes = within(locationFilter).getAllByRole('checkbox');
+  // Market before Bakery, as the list answers, not by name
+  expect(checkboxes).toHaveLength(2);
+  expect(checkboxes[0]).toHaveAccessibleName('Market');
+  expect(checkboxes[1]).toHaveAccessibleName('Bakery');
+  await user.click(within(locationFilter).getByRole('checkbox', { name: 'Bakery' }));
+
+  // act
+  await user.click(within(locationFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: 'Locations: Locations · 1' })).toHaveFocus();
+  await waitFor(() => {
+    expect(requestedLocationIds).toEqual([[], [bakery.id]]);
+  });
+});
+
+test('filters by a location of the URL that is not in the list once and drops an invalid one', async () => {
+  // arrange
+  const deletedLocationId = '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d92';
+  let requestedSearch = '';
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedSearch = new URL(request.url).search;
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+
+  // act
+  render(<Component />, {
+    initialEntries: [
+      `/transactions?location_ids=market&location_ids=${deletedLocationId.toUpperCase()}&location_ids=${deletedLocationId}`,
+    ],
+  });
+
+  // assert
+  expect(
+    await screen.findByRole('button', { name: 'Locations: Locations · 1' }),
+  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(requestedSearch).toBe(
+      `?location_ids=${deletedLocationId}&size=15&date_to=2026-10-20&page=1`,
+    );
+  });
+});
+
+test('clears a location of the URL that is not in the list from the panel', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const deletedLocationId = '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d92';
+  const requestedLocationIds: string[][] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedLocationIds.push(new URL(request.url).searchParams.getAll('location_ids'));
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />, { initialEntries: [`/transactions?location_ids=${deletedLocationId}`] });
+  await user.click(await screen.findByRole('button', { name: 'Locations: Locations · 1' }));
+  const locationFilter = screen.getByRole('dialog', { name: 'Locations' });
+  expect(within(locationFilter).getByText('No locations yet.')).toBeInTheDocument();
+
+  // act
+  await user.click(within(locationFilter).getByRole('button', { name: 'Apply' }));
+
+  // assert
+  expect(await screen.findByRole('button', { name: 'Locations' })).toHaveFocus();
+  await waitFor(() => {
+    expect(requestedLocationIds).toEqual([[deletedLocationId], []]);
+  });
+});
+
+test('shows a note instead of the list without locations', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+
+  // act
+  await user.click(await screen.findByRole('button', { name: 'Locations' }));
+
+  // assert
+  const locationFilter = screen.getByRole('dialog', { name: 'Locations' });
+  expect(within(locationFilter).getByText('No locations yet.')).toBeInTheDocument();
+  expect(within(locationFilter).queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
 });
 
 test('requests the period typed in its dates', async () => {

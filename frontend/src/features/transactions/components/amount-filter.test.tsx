@@ -18,6 +18,7 @@ test('shows the amounts of the filter grouped and applies typed amounts as plain
         account_ids: [],
         category_ids: [],
         income_source_ids: [],
+        location_ids: [],
       }}
       baseCurrency="USD"
       onApply={onApply}
