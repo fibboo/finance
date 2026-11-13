@@ -27,11 +27,44 @@
   color: var(--color-muted);
 }
 
+.catalogMark {
+  flex: none;
+  width: var(--size-account-mark-lg);
+  height: var(--size-account-mark-lg);
+  border-radius: var(--radius-segment);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-avatar);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-muted);
+  background: var(--color-bone);
+}
+
+.deletedMark {
+  opacity: var(--opacity-deleted-mark);
+}
+
+.badge {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-ink);
+  background: var(--color-band);
+}
+
 .title {
   margin: 0;
   font-size: var(--font-size-heading);
   font-weight: var(--font-weight-bold);
   overflow-wrap: anywhere;
+}
+
+.deletedTitle {
+  color: var(--color-muted);
 }
 
 .amounts {

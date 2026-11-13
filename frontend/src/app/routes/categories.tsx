@@ -24,6 +24,7 @@ import { CatalogFilters } from '@/features/accounts/components/catalog-filters';
 import { readSelectedAccountId } from '@/features/accounts/api/selected-account';
 import { readCategoryGroups } from '@/features/accounts/components/catalog-grouping';
 import { CatalogList } from '@/features/accounts/components/catalog-list';
+import { readCatalogDeleteCopy } from '@/features/accounts/components/catalog-delete-copy';
 import { CatalogRowActions } from '@/features/accounts/components/catalog-row-actions';
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
@@ -300,8 +301,8 @@ export function Component() {
       )}
       {confirmedCategory !== undefined && (
         <DeleteConfirmation
-          title="Delete this category?"
-          text={`${confirmedCategory.name}. It leaves your categories and the pickers, and its past transactions keep showing it.`}
+          title={readCatalogDeleteCopy(confirmedCategory).title}
+          text={readCatalogDeleteCopy(confirmedCategory).text}
           isPending={categoryDelete.isPending}
           onCancel={() => {
             closeConfirmation(confirmedCategory.id);

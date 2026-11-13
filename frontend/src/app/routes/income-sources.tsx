@@ -19,6 +19,7 @@ import {
 import { readSelectedAccountId } from '@/features/accounts/api/selected-account';
 import { CatalogFilters } from '@/features/accounts/components/catalog-filters';
 import { CatalogList } from '@/features/accounts/components/catalog-list';
+import { readCatalogDeleteCopy } from '@/features/accounts/components/catalog-delete-copy';
 import { CatalogRowActions } from '@/features/accounts/components/catalog-row-actions';
 import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
@@ -289,8 +290,8 @@ export function Component() {
       )}
       {confirmedIncomeSource !== undefined && (
         <DeleteConfirmation
-          title="Delete this income source?"
-          text={`${confirmedIncomeSource.name}. It leaves your income sources and the pickers, and its past transactions keep showing it.`}
+          title={readCatalogDeleteCopy(confirmedIncomeSource).title}
+          text={readCatalogDeleteCopy(confirmedIncomeSource).text}
           isPending={incomeSourceDelete.isPending}
           onCancel={() => {
             closeConfirmation(confirmedIncomeSource.id);

@@ -40,19 +40,21 @@ type PostingAccountProps = Readonly<{
 }>;
 
 function PostingAccount({ account, readAccountLink }: PostingAccountProps) {
-  if (isDeletedAccount(account)) {
-    return <DeletedAccountName name={account.name} />;
-  }
-
-  if (isMoneyAccountKind(account.kind)) {
+  const isCatalogAccount = account.kind === 'EXPENSE' || account.kind === 'INCOME';
+  const name = isDeletedAccount(account) ? (
+    <DeletedAccountName name={account.name} />
+  ) : (
+    account.name
+  );
+  if (isCatalogAccount || (isMoneyAccountKind(account.kind) && !isDeletedAccount(account))) {
     return (
       <Link to={readAccountLink(account.id)} preventScrollReset className={styles['accountLink']}>
-        {account.name}
+        {name}
       </Link>
     );
   }
 
-  return account.name;
+  return name;
 }
 
 type TransactionPostingsProps = Readonly<{

@@ -1320,15 +1320,22 @@ test('shows the selected transaction with its postings, location and comment', a
   const postings = within(details).getAllByRole('listitem');
   expect(postings[0]).toHaveTextContent('WalletAsset · USD-€42.80≈ -$46.70');
   expect(postings[1]).toHaveTextContent('GroceriesExpense+€42.80≈ +$46.70');
-  // the money account opens beside the transaction, the category leads nowhere
+  // the money account and the category open beside the transaction
   expect(within(details).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
     'href',
     `/transactions?transaction=${expense.id}&account=${walletPosting.account.id}`,
   );
-  expect(within(details).queryByRole('link', { name: 'Groceries' })).not.toBeInTheDocument();
+  expect(within(details).getByRole('link', { name: 'Groceries' })).toHaveAttribute(
+    'href',
+    `/transactions?transaction=${expense.id}&account=${categoryPosting.account.id}`,
+  );
   expect(within(details).getByText('Tbilisi')).toBeInTheDocument();
   expect(within(details).getByText('Weekly shop')).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Groceries' })).toHaveAttribute('aria-current', 'true');
+  expect(
+    within(screen.getByRole('region', { name: 'Transactions' })).getByRole('link', {
+      name: 'Groceries',
+    }),
+  ).toHaveAttribute('aria-current', 'true');
 });
 
 test('opens the account of a posting beside the transaction and keeps the list', async () => {
@@ -1362,7 +1369,11 @@ test('opens the account of a posting beside the transaction and keeps the list',
     await within(accountDetails).findByRole('heading', { level: 2, name: 'Wallet' }),
   ).toBeInTheDocument();
   expect(screen.getByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Groceries' })).toHaveAttribute('aria-current', 'true');
+  expect(
+    within(screen.getByRole('region', { name: 'Transactions' })).getByRole('link', {
+      name: 'Groceries',
+    }),
+  ).toHaveAttribute('aria-current', 'true');
   expect(feedRequestCount).toBe(1);
 });
 
@@ -1450,7 +1461,11 @@ test('shows the details of the top row while no transaction is chosen', async ()
     await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
   ).toBeInTheDocument();
   expect(details).not.toHaveFocus();
-  expect(screen.getByRole('link', { name: 'Groceries' })).not.toHaveAttribute('aria-current');
+  expect(
+    within(screen.getByRole('region', { name: 'Transactions' })).getByRole('link', {
+      name: 'Groceries',
+    }),
+  ).not.toHaveAttribute('aria-current');
 });
 
 test('opens the details of a row and returns to the top row on Close', async () => {
@@ -1609,7 +1624,11 @@ test('shows the top row without a confirmation after the chosen transaction is d
   ).toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Cafes' })).not.toBeInTheDocument();
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Groceries' })).toHaveFocus();
+  expect(
+    within(screen.getByRole('region', { name: 'Transactions' })).getByRole('link', {
+      name: 'Groceries',
+    }),
+  ).toHaveFocus();
 });
 
 test('forgets the details of a transaction deleted after the details moved to another one', async () => {

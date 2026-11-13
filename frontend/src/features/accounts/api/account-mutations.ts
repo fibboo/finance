@@ -1,5 +1,6 @@
 import { hashKey, mutationOptions, type QueryKey } from '@tanstack/react-query';
 
+import { isMoneyAccountKind } from '@/lib/account-kinds';
 import { apiClient, readData } from '@/lib/api-client';
 import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
@@ -98,17 +99,20 @@ export const accountMutations = {
   delete(relatedQueryKeys: readonly QueryKey[]) {
     return mutationOptions({
       mutationFn: deleteAccount,
-      onSuccess: async (_deletedAccount, accountId, _onMutateResult, { client }) => {
+      onSuccess: async (deletedAccount, accountId, _onMutateResult, { client }) => {
         const deletedDetailKey = accountQueries.detail(accountId).queryKey;
         const deletedDetailHash = hashKey(deletedDetailKey);
+        const isDetailKept = !isMoneyAccountKind(deletedAccount.kind);
         await Promise.all([
           client.invalidateQueries({
             queryKey: accountQueries.all().queryKey,
-            predicate: (query) => query.queryHash !== deletedDetailHash,
+            predicate: (query) => isDetailKept || query.queryHash !== deletedDetailHash,
           }),
           ...relatedQueryKeys.map((queryKey) => client.invalidateQueries({ queryKey })),
         ]);
-        client.removeQueries({ queryKey: deletedDetailKey, exact: true, type: 'inactive' });
+        if (!isDetailKept) {
+          client.removeQueries({ queryKey: deletedDetailKey, exact: true, type: 'inactive' });
+        }
       },
       onError: (_error, _accountId, _onMutateResult, { client }) =>
         client.invalidateQueries({ queryKey: accountQueries.all().queryKey }),
