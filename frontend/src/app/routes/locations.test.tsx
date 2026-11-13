@@ -379,6 +379,35 @@ test('opens Restore location when a restore is refused because the name is taken
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
   expect(name).toHaveValue('Old market');
   expect(name).toHaveAccessibleDescription('An active location already has this name');
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+});
+
+test('shows the error notification when a restore fails for another reason', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json(readLocationPage([oldMarket])),
+    ),
+    http.post(`http://localhost/api/accounting/locations/${oldMarket.id}/restore`, () =>
+      HttpResponse.json(
+        {
+          error_code: 'ENTITY_NOT_FOUND',
+          message: 'Location not found',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 404 },
+      ),
+    ),
+  );
+  render(<Component />, { initialEntries: ['/locations'] });
+  const list = await screen.findByRole('region', { name: 'Locations' });
+
+  // act
+  await user.click(await within(list).findByRole('button', { name: 'Restore' }));
+
+  // assert
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+  expect(screen.queryByRole('form', { name: 'Restore location' })).not.toBeInTheDocument();
 });
 
 test('shows the transactions of the chosen location beside the list', async () => {

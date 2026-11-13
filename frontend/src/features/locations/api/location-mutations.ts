@@ -63,13 +63,17 @@ async function restoreLocation({
   location_id,
   ...body
 }: Readonly<LocationRestoreRequest & { location_id: string }>): Promise<Location> {
-  const restoredLocation = readData(
-    await apiClient.POST('/accounting/locations/{location_id}/restore', {
-      params: { path: { location_id } },
-      body,
-    }),
-  );
-  return restoredLocation;
+  try {
+    const restoredLocation = readData(
+      await apiClient.POST('/accounting/locations/{location_id}/restore', {
+        params: { path: { location_id } },
+        body,
+      }),
+    );
+    return restoredLocation;
+  } catch (error) {
+    throw readNameError(error);
+  }
 }
 
 async function invalidateLocationQueries({
