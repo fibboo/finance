@@ -6,6 +6,7 @@ import type { components } from '@/lib/api-schema';
 import { readTransactionLinkId } from '../api/selected-transaction';
 import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
+import { TRANSACTION_ARROW_KEY_LIST } from './transaction-day-list';
 import { EditTransaction } from './edit-transaction';
 import { type ReadLocationLink, TransactionOverview } from './transaction-overview';
 import type { ReadAccountLink } from './transaction-postings';
@@ -59,6 +60,7 @@ export function TransactionDetails({
       isKeptOpenOnDesktop
       errorMessage="Couldn't load the transaction"
       returnFocusId={readTransactionLinkId(transactionId)}
+      arrowKeyList={TRANSACTION_ARROW_KEY_LIST}
       onRetry={() => {
         void refetch();
       }}

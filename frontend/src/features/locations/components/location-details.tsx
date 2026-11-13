@@ -59,6 +59,7 @@ export function LocationDetails({
       isKeptOpenOnDesktop={false}
       errorMessage="Couldn't load the location"
       returnFocusId={readLocationLinkId(locationId)}
+      arrowKeyList={undefined}
       onRetry={() => {
         void refetch();
       }}

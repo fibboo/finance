@@ -3,7 +3,10 @@ import { NavigationType, useLocation, useNavigationType } from 'react-router';
 
 import { LoadError } from '@/components/load-error/load-error';
 import { Skeleton } from '@/components/skeleton/skeleton';
-import { readIsArrowKeySelection } from '@/hooks/use-arrow-key-selection';
+import {
+  type ArrowKeySelectionProps,
+  readIsArrowKeySelection,
+} from '@/hooks/use-arrow-key-selection';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './details-panel.module.css';
@@ -56,6 +59,7 @@ type DetailsPanelProps = Readonly<{
   isKeptOpenOnDesktop: boolean;
   errorMessage: string;
   returnFocusId: string;
+  arrowKeyList: ArrowKeySelectionProps | undefined;
   onRetry: () => void;
   onClose: () => void;
   onChoose: () => void;
@@ -72,6 +76,7 @@ export function DetailsPanel({
   isKeptOpenOnDesktop,
   errorMessage,
   returnFocusId,
+  arrowKeyList,
   onRetry,
   onClose,
   onChoose,
@@ -201,6 +206,7 @@ export function DetailsPanel({
         aria-label={label}
         data-details-panel={isShownByDefault ? undefined : true}
         data-return-focus-id={returnFocusId}
+        {...arrowKeyList}
         data-details
         aria-busy={(!isLoaded && isFetching) || isReplacing}
         tabIndex={-1}

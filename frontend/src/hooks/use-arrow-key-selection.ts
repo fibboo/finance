@@ -55,13 +55,11 @@ function readIsMovedByKey({
       ? target.closest('[data-arrow-key-list], [data-details-panel]')
       : null;
   const focusedRow =
-    focusOwner?.hasAttribute('data-details-panel') === true
-      ? document.getElementById(focusOwner.getAttribute('data-return-focus-id') ?? '')
-      : focusOwner;
-  const isRowMissing = focusOwner !== null && focusedRow === null;
-  const isMovedByKey = isRowMissing
-    ? false
-    : focusedRow?.getAttribute('data-arrow-key-orientation') === orientation
+    focusOwner === null || focusOwner.hasAttribute('data-arrow-key-list')
+      ? focusOwner
+      : document.getElementById(focusOwner.getAttribute('data-return-focus-id') ?? '');
+  const isMovedByKey =
+    focusedRow?.getAttribute('data-arrow-key-orientation') === orientation
       ? focusedRow.getAttribute('data-arrow-key-list') === list
       : !isFocusRequired;
   return isMovedByKey;

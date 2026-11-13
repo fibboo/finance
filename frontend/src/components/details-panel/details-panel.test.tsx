@@ -20,6 +20,7 @@ test('closes on a tap on the backdrop once the press is released', async () => {
       isKeptOpenOnDesktop={false}
       errorMessage="Could not load the transaction."
       returnFocusId="transaction-1"
+      arrowKeyList={undefined}
       onRetry={vi.fn()}
       onClose={onClose}
       onChoose={vi.fn()}
