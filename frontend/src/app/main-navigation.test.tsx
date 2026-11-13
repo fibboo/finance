@@ -6,7 +6,14 @@ import { render } from '@/test/render';
 
 test('marks Home as the current section', () => {
   // act
-  render(<MainNavigation />);
+  render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+  );
 
   // assert
   expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
@@ -14,7 +21,14 @@ test('marks Home as the current section', () => {
 
 test('links Transactions to its section', () => {
   // act
-  render(<MainNavigation />);
+  render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+  );
 
   // assert
   expect(screen.getByRole('link', { name: 'Transactions' })).toHaveAttribute(
@@ -25,7 +39,14 @@ test('links Transactions to its section', () => {
 
 test('links Accounts to its section', () => {
   // act
-  render(<MainNavigation />);
+  render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+  );
 
   // assert
   expect(screen.getByRole('link', { name: 'Accounts' })).toHaveAttribute('href', '/accounts');
@@ -33,7 +54,14 @@ test('links Accounts to its section', () => {
 
 test('links Categories to its section', () => {
   // act
-  render(<MainNavigation />);
+  render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+  );
 
   // assert
   expect(screen.getByRole('link', { name: 'Categories' })).toHaveAttribute('href', '/categories');
@@ -43,7 +71,14 @@ test.each(['Locations Soon', 'Income sources Soon'])(
   'keeps %s of More disabled until its screen exists',
   (name) => {
     // act
-    render(<MainNavigation />);
+    render(
+      <MainNavigation
+        menuState="full"
+        menuToggleRef={{ current: null }}
+        onMenuToggle={() => undefined}
+        onSectionChoose={() => undefined}
+      />,
+    );
 
     // assert
     expect(screen.getByRole('button', { name })).toBeDisabled();
@@ -52,7 +87,15 @@ test.each(['Locations Soon', 'Income sources Soon'])(
 
 test.each(['/locations', '/income-sources'])('marks More as current on %s', (path) => {
   // act
-  render(<MainNavigation />, { initialEntries: [path] });
+  render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+    { initialEntries: [path] },
+  );
 
   // assert
   expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-current', 'page');
@@ -60,8 +103,77 @@ test.each(['/locations', '/income-sources'])('marks More as current on %s', (pat
 
 test('leaves More unmarked on a section of the bar', () => {
   // act
-  render(<MainNavigation />, { initialEntries: ['/accounts'] });
+  render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+    { initialEntries: ['/accounts'] },
+  );
 
   // assert
   expect(screen.getByRole('button', { name: 'More' })).not.toHaveAttribute('aria-current');
 });
+
+test.each(['Home', 'Transactions', 'Accounts', 'Categories'])(
+  'names %s of the collapsed menu and titles it',
+  (name) => {
+    // act
+    render(
+      <MainNavigation
+        menuState="collapsed"
+        menuToggleRef={{ current: null }}
+        onMenuToggle={() => undefined}
+        onSectionChoose={() => undefined}
+      />,
+    );
+
+    // assert
+    expect(screen.getByRole('link', { name })).toHaveAttribute('title', name);
+  },
+);
+
+test('names Add transaction of the collapsed menu and titles it', () => {
+  // act
+  render(
+    <MainNavigation
+      menuState="collapsed"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+  );
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Add transaction' })).toHaveAttribute(
+    'title',
+    'Add transaction',
+  );
+});
+
+test.each([
+  { menuState: 'full', isExpanded: 'true' },
+  { menuState: 'collapsed', isExpanded: 'false' },
+] as const)(
+  'marks the menu button expanded as $isExpanded in the $menuState menu',
+  ({ menuState, isExpanded }) => {
+    // act
+    render(
+      <MainNavigation
+        menuState={menuState}
+        menuToggleRef={{ current: null }}
+        onMenuToggle={() => undefined}
+        onSectionChoose={() => undefined}
+      />,
+    );
+
+    // assert
+    expect(
+      screen.getByRole('button', {
+        name: menuState === 'full' ? 'Collapse' : 'Show the full menu',
+      }),
+    ).toHaveAttribute('aria-expanded', isExpanded);
+  },
+);

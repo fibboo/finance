@@ -7,14 +7,17 @@ import { createQueryClient } from '@/app/query-client';
 
 export function render(
   ui: ReactElement,
-  { initialEntries = ['/'] }: Readonly<{ initialEntries?: string[] }> = {},
+  {
+    initialEntries = ['/'],
+    handle,
+  }: Readonly<{ initialEntries?: string[]; handle?: Readonly<Record<string, unknown>> }> = {},
 ): RenderResult & Readonly<{ router: DataRouter }> {
   const queryClient = createQueryClient();
   queryClient.setDefaultOptions({
     ...queryClient.getDefaultOptions(),
     queries: { ...queryClient.getDefaultOptions().queries, retry: false },
   });
-  const router = createMemoryRouter([{ path: '*', element: ui }], { initialEntries });
+  const router = createMemoryRouter([{ path: '*', element: ui, handle }], { initialEntries });
   const renderResult = renderElement(
     <Providers queryClient={queryClient}>
       <RouterProvider router={router} />
