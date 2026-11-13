@@ -705,6 +705,29 @@ async def test_restore_account_name_taken(db: AsyncSession, db_transaction: Asyn
     assert account_db.status == EntityStatusType.DELETED
 
 
+async def test_restore_account_body_without_name_ok(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id: UUID = uuid4()
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
+    )
+    deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
+    await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
+    await db.commit()
+    restore_data: AccountRestoreRequest = AccountRestoreRequest()
+
+    # Act
+    account: Account = await account_service.restore_account(
+        db=db_transaction, account_id=deleted_account.id, restore_data=restore_data, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert account.id == deleted_account.id
+    assert account.name == "Gym"
+    assert account.status == EntityStatusType.ACTIVE
+
+
 async def test_restore_account_new_name_ok(db: AsyncSession, db_transaction: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()
@@ -716,7 +739,7 @@ async def test_restore_account_new_name_ok(db: AsyncSession, db_transaction: Asy
     # The active account holds the old name, so only the new name lets the deleted one back
     active_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
-    restore_data: AccountRestoreRequest = AccountRestoreRequest(name="  Gym membership  ")
+    restore_data: AccountRestoreRequest = AccountRestoreRequest(name="Gym membership")
 
     # Act
     account: Account = await account_service.restore_account(

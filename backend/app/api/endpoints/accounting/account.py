@@ -103,8 +103,7 @@ async def restore_account(
     db: DbTransaction,
 ) -> Account:
     """
-    Restores the account under `name` when the body gives one, and under its own name otherwise. Restoring is possible
-    only if no active account of the same kind holds that name.
+    Restores the account under `name` if given, else its own name; no active account of its kind may hold that name
     """
     account: Account = await account_service.restore_account(
         db=db, account_id=account_id, restore_data=restore_data, user_id=user_id

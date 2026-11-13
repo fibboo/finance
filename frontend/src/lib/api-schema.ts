@@ -64,8 +64,7 @@ export interface paths {
         put?: never;
         /**
          * Restore Account
-         * @description Restores the account under `name` when the body gives one, and under its own name otherwise. Restoring is possible
-         *     only if no active account of the same kind holds that name.
+         * @description Restores the account under `name` if given, else its own name; no active account of its kind may hold that name
          */
         post: operations["restore_account_accounting_accounts__account_id__restore_post"];
         delete?: never;
