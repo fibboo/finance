@@ -31,7 +31,9 @@ export interface paths {
         };
         /**
          * Get Account
-         * @description With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the sums that decide whether the account
+         * @description A deleted category or income source is answered with its status DELETED, while a deleted money account answers 404.
+         *
+         *     With `date`, `balance`, `base_currency_balance` and `base_currency_rate` are the sums that decide whether the account
          *     has a rate for a balance adjustment on that date: its postings up to that date, without the expenses still waiting
          *     for a value on it. An account outside the base currency with a rate of 0 or less has none, so its adjustment must
          *     carry `base_currency_amount`. With `excluded_transaction_id` next to `date`, the sums leave that transaction's
