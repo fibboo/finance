@@ -516,7 +516,7 @@ test.each([
   },
 );
 
-test('shows the chosen transaction of an income source with its money account and drops it when another income source is chosen on a wide desktop', async () => {
+test('shows the chosen transaction of an income source with the source as plain text and drops it when another income source is chosen on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
   vi.stubGlobal('innerWidth', 1280);
@@ -552,9 +552,6 @@ test('shows the chosen transaction of an income source with its money account an
     http.get(`http://localhost/api/accounting/transactions/${salaryPayment.id}`, () =>
       HttpResponse.json(salaryPayment),
     ),
-    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
-      HttpResponse.json(wallet),
-    ),
   );
   const { router } = render(<Component />, {
     initialEntries: [`/income-sources?account=${salary.id}&transaction=${salaryPayment.id}`],
@@ -562,16 +559,19 @@ test('shows the chosen transaction of an income source with its money account an
 
   // assert
   const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
-  expect(await within(transactionDetails).findByRole('link', { name: 'Salary' })).toHaveAttribute(
+  expect(await within(transactionDetails).findByRole('link', { name: 'Wallet' })).toHaveAttribute(
     'href',
-    `/income-sources?account=${salary.id}`,
+    `/accounts?account=${wallet.id}`,
   );
-  const accountDetails = await screen.findByRole('dialog', { name: 'Account details' });
-  expect(await within(accountDetails).findByText('Wallet')).toBeInTheDocument();
+  expect(
+    within(transactionDetails).queryByRole('link', { name: 'Salary' }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
   const salaryTransactions = screen.getByRole('region', { name: 'Transactions of Salary' });
+  // the row names the money account, since every row of the feed is of Salary
   expect(
     await within(salaryTransactions).findByRole('link', { current: true }),
-  ).toBeInTheDocument();
+  ).toHaveAccessibleName('Wallet');
 
   // act
   await user.click(screen.getByRole('link', { name: 'Freelance' }));

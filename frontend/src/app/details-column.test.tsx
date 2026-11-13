@@ -104,7 +104,6 @@ function ShownDetailsColumn() {
       shownAccount={shownAccount}
       accountCount={1}
       isAccountFirst={false}
-      isEntryParamOwnedByPage={false}
     />
   );
 }
@@ -186,7 +185,6 @@ test.each([
         }}
         accountCount={1}
         isAccountFirst={false}
-        isEntryParamOwnedByPage={false}
       />,
       { initialEntries: [`/transactions?transaction=${expense.id}&account=${account.id}`] },
     );
@@ -230,7 +228,6 @@ test('opens the category form to edit a category', async () => {
       }}
       accountCount={1}
       isAccountFirst={false}
-      isEntryParamOwnedByPage={false}
     />,
     { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
   );
@@ -273,7 +270,6 @@ test('keeps a deleted category open with Restore and moves the focus to its Tran
       }}
       accountCount={1}
       isAccountFirst={false}
-      isEntryParamOwnedByPage={false}
     />,
     { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
   );
@@ -323,7 +319,6 @@ test('restores a deleted category from its details', async () => {
       }}
       accountCount={1}
       isAccountFirst={false}
-      isEntryParamOwnedByPage={false}
     />,
     { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
   );
@@ -380,7 +375,6 @@ test('opens Restore category when a restore from the details is refused because 
       }}
       accountCount={1}
       isAccountFirst={false}
-      isEntryParamOwnedByPage={false}
     />,
     { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
   );
@@ -449,7 +443,6 @@ test('restores a category under a new name from its details and moves the focus 
       }}
       accountCount={1}
       isAccountFirst={false}
-      isEntryParamOwnedByPage={false}
     />,
     { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
   );

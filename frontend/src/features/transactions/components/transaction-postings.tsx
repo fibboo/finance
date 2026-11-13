@@ -13,7 +13,7 @@ import { isDeletedAccount } from './transaction-view';
 type Posting = components['schemas']['Posting'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
-export type ReadAccountLink = (account: Readonly<Posting['account']>) => To;
+export type ReadAccountLink = (account: Readonly<Posting['account']>) => To | undefined;
 
 function readKindLabel({
   posting,
@@ -48,9 +48,12 @@ function PostingAccount({ account, readAccountLink }: PostingAccountProps) {
   ) : (
     account.name
   );
-  if (isCatalogAccount || (isMoneyAccountKind(account.kind) && !isDeletedAccount(account))) {
+  const isLinked =
+    isCatalogAccount || (isMoneyAccountKind(account.kind) && !isDeletedAccount(account));
+  const accountLink = isLinked ? readAccountLink(account) : undefined;
+  if (accountLink !== undefined) {
     return (
-      <Link to={readAccountLink(account)} preventScrollReset className={styles['accountLink']}>
+      <Link to={accountLink} preventScrollReset className={styles['accountLink']}>
         {name}
       </Link>
     );

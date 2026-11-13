@@ -14,6 +14,8 @@ type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 export type LocationLink = Readonly<{ to: To; id: string }>;
 
+export type ReadLocationLink = (locationId: string) => LocationLink | undefined;
+
 function readBaseAmount({
   transaction,
   baseAmount,
@@ -33,7 +35,7 @@ type TransactionOverviewProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
   readAccountLink: ReadAccountLink;
-  readLocationLink: (locationId: string) => LocationLink;
+  readLocationLink: ReadLocationLink;
   closeButton: ReactNode;
   editAction: ReactNode;
   deleteAction: ReactNode;
@@ -53,6 +55,8 @@ export function TransactionOverview({
   const titleId = useId();
   const view = readTransactionView({ transaction, transactionTypes });
   const baseAmount = readBaseAmount({ transaction, baseAmount: view.baseAmount });
+  const locationLink =
+    transaction.location === null ? undefined : readLocationLink(transaction.location.id);
   return (
     <article aria-labelledby={titleId} className={styles['transactionOverview']}>
       <div className={styles['header']} data-sheet-drag-area>
@@ -93,13 +97,13 @@ export function TransactionOverview({
             <>
               <dt className={styles['term']}>Location</dt>
               <dd className={styles['value']}>
-                <Link
-                  {...readLocationLink(transaction.location.id)}
-                  preventScrollReset
-                  className={styles['locationLink']}
-                >
-                  {transaction.location.name}
-                </Link>
+                {locationLink === undefined ? (
+                  transaction.location.name
+                ) : (
+                  <Link {...locationLink} preventScrollReset className={styles['locationLink']}>
+                    {transaction.location.name}
+                  </Link>
+                )}
               </dd>
             </>
           )}

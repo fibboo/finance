@@ -1028,7 +1028,7 @@ test('shows the transactions of the category whose name is chosen and moves the 
   expect(new URLSearchParams(router.state.location.search).get('account')).toBe(cigarettes.id);
 });
 
-test('shows the details of the top transaction and its money account beside the transactions of a category on a wide desktop', async () => {
+test('shows the details of the top transaction beside the transactions of a category whose rows name the account on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
   vi.stubGlobal('innerWidth', 1280);
@@ -1075,9 +1075,6 @@ test('shows the details of the top transaction and its money account beside the 
         params['transactionId'] === rentPayment.id ? rentPayment : earlierRentPayment,
       ),
     ),
-    http.get('http://localhost/api/accounting/accounts/:accountId', () =>
-      HttpResponse.json(mainCardPosting?.account),
-    ),
   );
   const { router } = render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
 
@@ -1088,17 +1085,16 @@ test('shows the details of the top transaction and its money account beside the 
     'href',
     `/accounts?account=${mainCardPosting?.account.id ?? ''}`,
   );
-  expect(within(transactionDetails).getByRole('link', { name: 'Rent' })).toHaveAttribute(
-    'href',
-    `/categories?account=${rent.id}`,
-  );
-  const accountDetails = await screen.findByRole('dialog', { name: 'Account details' });
-  expect(await within(accountDetails).findByText('Main card')).toBeInTheDocument();
+  // the category of the page is plain text in the postings
+  expect(within(transactionDetails).queryByRole('link', { name: 'Rent' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
   expect(router.state.location.search).toBe(`?account=${rent.id}`);
 
   // act
   const rentTransactions = screen.getByRole('region', { name: 'Transactions of Rent' });
-  const [, earlierRow] = await within(rentTransactions).findAllByRole('link', { name: 'Rent' });
+  const [, earlierRow] = await within(rentTransactions).findAllByRole('link', {
+    name: 'Main card',
+  });
   if (earlierRow === undefined) {
     throw new Error('Both payments have a row.');
   }

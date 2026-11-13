@@ -115,7 +115,6 @@ export function Component() {
             defaultAccountId={topAccountId}
             isKeptOpenOnDesktop
             isParamIgnored={false}
-            isParamOwnedByPage={false}
             isMoneyAccountOnly
           />
         </div>

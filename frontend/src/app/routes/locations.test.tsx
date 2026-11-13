@@ -636,7 +636,7 @@ test.each([
   },
 );
 
-test('shows the chosen transaction of a location with its first money account whatever the account param and drops it when another location is chosen on a wide desktop', async () => {
+test('shows the chosen transaction of a location with the location as plain text and drops it when another location is chosen on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
   vi.stubGlobal('innerWidth', 1280);
@@ -675,9 +675,6 @@ test('shows the chosen transaction of a location with its first money account wh
     http.get(`http://localhost/api/accounting/transactions/${sparPurchase.id}`, () =>
       HttpResponse.json(sparPurchase),
     ),
-    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
-      HttpResponse.json(wallet),
-    ),
   );
   const { router } = render(<Component />, {
     initialEntries: [
@@ -695,16 +692,12 @@ test('shows the chosen transaction of a location with its first money account wh
     'href',
     `/categories?account=${groceries.id}`,
   );
-  expect(within(transactionDetails).getByRole('link', { name: 'Spar' })).toHaveAttribute(
-    'href',
-    `/locations?location=${spar.id}`,
-  );
+  expect(within(transactionDetails).getByText('Spar')).toBeInTheDocument();
+  expect(within(transactionDetails).queryByRole('link', { name: 'Spar' })).not.toBeInTheDocument();
   expect(screen.queryByRole('dialog', { name: 'Location details' })).not.toBeInTheDocument();
-  const accountDetails = await screen.findByRole('dialog', { name: 'Account details' });
-  expect(await within(accountDetails).findByText('Wallet')).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
 
   // act
-  await user.click(accountDetails);
   await user.click(screen.getByRole('link', { name: 'Coffee Lab' }));
 
   // assert
