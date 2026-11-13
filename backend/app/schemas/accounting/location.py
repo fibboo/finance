@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, TypeAlias
 from uuid import UUID
 
 from fastapi import Query
@@ -9,9 +9,11 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 from app.schemas.base import EntityStatusType, ListOrderType
 from app.utils import utils
 
+LocationName: TypeAlias = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)]
+
 
 class LocationBase(BaseModel):
-    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)]
+    name: LocationName
     description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=256)] | None = None
 
 
@@ -25,6 +27,10 @@ class LocationCreate(LocationBase):
 
 class LocationUpdate(LocationBase):
     pass
+
+
+class LocationRestoreRequest(BaseModel):
+    name: LocationName | None = None
 
 
 class Location(LocationCreate):
