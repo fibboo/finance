@@ -7,6 +7,10 @@ import {
   SELECTED_ACCOUNT_PARAM,
 } from '@/features/accounts/api/selected-account';
 import {
+  readSelectedLocationId,
+  SELECTED_LOCATION_PARAM,
+} from '@/features/locations/api/selected-location';
+import {
   readSelectedTransactionId,
   SELECTED_TRANSACTION_PARAM,
 } from '@/features/transactions/api/selected-transaction';
@@ -18,6 +22,8 @@ export type ShownAccount = Readonly<{
   defaultAccountId: string | undefined;
   isAccountParamStale: boolean;
   isAccountOpenedLast: boolean;
+  shownLocationId: string | undefined;
+  isLocationOpenedLast: boolean;
 }>;
 
 type ShownAccountOptions = Readonly<{
@@ -32,6 +38,16 @@ function readIsAccountOpenedLast(searchParams: URLSearchParams): boolean {
     (readSelectedTransactionId(searchParams) === undefined ||
       keys.indexOf(SELECTED_ACCOUNT_PARAM) > keys.indexOf(SELECTED_TRANSACTION_PARAM));
   return isAccountOpenedLast;
+}
+
+function readIsLocationAfter({
+  searchParams,
+  param,
+}: Readonly<{ searchParams: URLSearchParams; param: string }>): boolean {
+  const keys = [...searchParams.keys()];
+  const isLocationAfter =
+    !searchParams.has(param) || keys.indexOf(SELECTED_LOCATION_PARAM) > keys.indexOf(param);
+  return isLocationAfter;
 }
 
 export function useShownAccount({
@@ -58,11 +74,29 @@ export function useShownAccount({
     !isAccountOpenedLast &&
     shownTransaction !== undefined &&
     !shownTransaction.postings.some((posting) => posting.account.id === selectedAccountId);
+  const selectedLocationId = readSelectedLocationId(searchParams);
+  const isLocationOpenedAfterTransaction = readIsLocationAfter({
+    searchParams,
+    param: SELECTED_TRANSACTION_PARAM,
+  });
+  const isLocationParamStale =
+    !isLocationOpenedAfterTransaction &&
+    shownTransaction !== undefined &&
+    shownTransaction.location?.id !== selectedLocationId;
+  const shownLocationId =
+    isLocationParamStale ||
+    (selectedAccountId !== undefined &&
+      !isAccountParamStale &&
+      !readIsLocationAfter({ searchParams, param: SELECTED_ACCOUNT_PARAM }))
+      ? undefined
+      : selectedLocationId;
   const shownAccount = {
     chosenAccountId: isAccountParamStale ? undefined : selectedAccountId,
     defaultAccountId: transactionAccountId ?? lastTransactionAccountId ?? firstAccountId,
     isAccountParamStale,
     isAccountOpenedLast,
+    shownLocationId,
+    isLocationOpenedLast: shownLocationId !== undefined && isLocationOpenedAfterTransaction,
   };
   return shownAccount;
 }

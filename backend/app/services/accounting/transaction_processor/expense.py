@@ -29,7 +29,7 @@ class Expense(TransactionProcessor[MovementRequest]):
         await self._validate_transaction_from_account(data=data, from_account_db=from_account_db)
 
         await self._validate_counter_account(account_id=data.to_account_id, kind=AccountKind.EXPENSE)
-        await location_service.get_location(db=self.db, location_id=data.location_id, user_id=self.user_id)
+        await location_service.get_active_location(db=self.db, location_id=data.location_id, user_id=self.user_id)
 
         base_amount: Decimal | None = await self._get_debit_base_amount(
             account_db=from_account_db, amount=data.source_amount, transaction_date=data.transaction_date

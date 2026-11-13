@@ -19,3 +19,17 @@ export function readTransactionsLink(account: Readonly<Pick<Account, 'id' | 'kin
   };
   return transactionsLink;
 }
+
+export function readLocationTransactionsLink(locationId: string): To {
+  const transactionsLink = {
+    pathname: '/transactions',
+    search: writeTransactionFilters({
+      transaction_types: [],
+      account_ids: [],
+      category_ids: [],
+      income_source_ids: [],
+      location_ids: [locationId],
+    }).toString(),
+  };
+  return transactionsLink;
+}

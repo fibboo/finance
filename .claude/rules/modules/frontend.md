@@ -29,6 +29,7 @@ The rules are in `.claude/rules/react.md` **Auth and Security**; `features/auth/
 - A details param whose entity answers 404 is dropped.
 - On desktop the details show the top row while nothing is chosen, without writing the URL, so that a shared link carries only what the user chose.
 - A phone has room for one sheet, so it shows the details whose param comes later in the URL. A link that opens an account from a transaction therefore moves the `account` param after the `transaction` one.
+- A desktop details column has room for the transaction and one entry beside it, so a location takes the account's place while its param comes after the `account` one. A location chosen before the transaction now shown, which is not that transaction's location, is ignored, as such an account is.
 - The `transaction` param is left out of the feed's query key, so choosing a row does not refetch the list.
 
 ## One component at every width

@@ -3,6 +3,7 @@ import { queryOptions } from '@tanstack/react-query';
 import { apiClient, readData } from '@/lib/api-client';
 import type { components, operations } from '@/lib/api-schema';
 
+type Location = components['schemas']['Location'];
 type LocationPage = components['schemas']['Page_Location_'];
 type LocationListQuery = NonNullable<
   operations['get_locations_accounting_locations_get']['parameters']['query']
@@ -15,6 +16,15 @@ async function fetchLocations(query: Readonly<LocationListQuery>): Promise<Locat
   return locations;
 }
 
+async function fetchLocation(locationId: string): Promise<Location> {
+  const location = readData(
+    await apiClient.GET('/accounting/locations/{location_id}', {
+      params: { path: { location_id: locationId } },
+    }),
+  );
+  return location;
+}
+
 const LOCATIONS_KEY = ['locations'] as const;
 
 export const locationQueries = {
@@ -25,6 +35,12 @@ export const locationQueries = {
     return queryOptions({
       queryKey: [...LOCATIONS_KEY, 'list', query],
       queryFn: () => fetchLocations(query),
+    });
+  },
+  detail(locationId: string) {
+    return queryOptions({
+      queryKey: [...LOCATIONS_KEY, 'detail', locationId],
+      queryFn: () => fetchLocation(locationId),
     });
   },
 };

@@ -54,6 +54,16 @@ async def get_locations(*, db: AsyncSession, request: LocationRequest, user_id: 
 
 
 async def get_location(*, db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
+    location_db: LocationModel | None = await location_crud.get_or_none(db=db, id=location_id, user_id=user_id)
+
+    if location_db is None:
+        raise EntityNotFound(entity=LocationModel, search_params={"id": location_id, "user_id": user_id}, logger=logger)
+
+    location: Location = Location.model_validate(location_db)
+    return location
+
+
+async def get_active_location(*, db: AsyncSession, location_id: UUID, user_id: UUID) -> Location:
     location_db: LocationModel | None = await location_crud.get_or_none(
         db=db, id=location_id, user_id=user_id, status=EntityStatusType.ACTIVE
     )

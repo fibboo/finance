@@ -339,8 +339,24 @@ async def test_get_location_deleted(db: AsyncSession, db_transaction: AsyncSessi
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
 
     # Act
+    found_location: Location = await location_service.get_location(
+        db=db_transaction, location_id=location_db.id, user_id=user_id
+    )
+
+    # Assert
+    assert found_location.id == location_db.id
+    assert found_location.status == EntityStatusType.DELETED
+
+
+async def test_get_active_location_deleted(db: AsyncSession, db_transaction: AsyncSession):
+    # Arrange
+    user_id = uuid4()
+    location_create_data: dict = {"user_id": user_id, "name": "Test place", "status": EntityStatusType.DELETED}
+    location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
+
+    # Act
     with pytest.raises(EntityNotFound) as exc:
-        await location_service.get_location(db=db_transaction, location_id=location_db.id, user_id=user_id)
+        await location_service.get_active_location(db=db_transaction, location_id=location_db.id, user_id=user_id)
 
     # Assert
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND

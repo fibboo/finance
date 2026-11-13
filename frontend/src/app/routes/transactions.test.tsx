@@ -2357,3 +2357,59 @@ test('blocks Edit with the name of the deleted location of the transaction', asy
   );
   expect(screen.queryByRole('dialog', { name: 'Edit transaction' })).not.toBeInTheDocument();
 });
+
+test('opens the location of a transaction beside it and keeps the list', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const spar = {
+    name: 'Spar',
+    description: null,
+    id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
+    user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+    status: 'ACTIVE',
+    created_at: '2026-10-01T09:00:00Z',
+    updated_at: '2026-10-01T09:00:00Z',
+  } satisfies components['schemas']['Location'];
+  const expenseAtSpar = {
+    ...expense,
+    location: spar,
+  } satisfies components['schemas']['Transaction'];
+  let feedRequestCount = 0;
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () => {
+      feedRequestCount += 1;
+      return HttpResponse.json({
+        items: [expenseAtSpar],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
+      HttpResponse.json(expenseAtSpar),
+    ),
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+  );
+  render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  const row = await within(screen.getByRole('region', { name: 'Transactions' })).findByRole(
+    'link',
+    { name: 'Groceries' },
+  );
+
+  // act
+  await user.click(await within(details).findByRole('link', { name: 'Spar' }));
+
+  // assert
+  const locationDetails = await screen.findByRole('dialog', { name: 'Location details' });
+  expect(
+    await within(locationDetails).findByRole('heading', { level: 2, name: 'Spar' }),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getByRole('region', { name: 'Transactions' })).getByRole('link', {
+      name: 'Groceries',
+    }),
+  ).toBe(row);
+  expect(feedRequestCount).toBe(1);
+});

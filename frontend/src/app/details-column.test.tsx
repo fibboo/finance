@@ -8,6 +8,7 @@ import { render } from '@/test/render';
 import { server } from '@/test/setup';
 
 import { DetailsColumn } from './details-column';
+import { useShownAccount } from './use-shown-account';
 
 const wallet = {
   name: 'Wallet',
@@ -75,6 +76,38 @@ const expense = {
   ],
 } satisfies components['schemas']['Transaction'];
 
+const spar = {
+  name: 'Spar',
+  description: 'Near home',
+  id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  status: 'ACTIVE',
+  created_at: '2026-10-01T09:00:00Z',
+  updated_at: '2026-10-01T09:00:00Z',
+} satisfies components['schemas']['Location'];
+
+const expenseAtSpar = {
+  ...expense,
+  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+  location: spar,
+} satisfies components['schemas']['Transaction'];
+
+function ShownDetailsColumn() {
+  const shownAccount = useShownAccount({
+    defaultTransactionId: undefined,
+    firstAccountId: undefined,
+  });
+  return (
+    <DetailsColumn
+      baseCurrency="USD"
+      defaultTransactionId={undefined}
+      shownAccount={shownAccount}
+      accountCount={1}
+      isAccountFirst={false}
+    />
+  );
+}
+
 beforeEach(() => {
   server.use(
     http.get('http://localhost/api/user/me', () =>
@@ -102,6 +135,12 @@ beforeEach(() => {
     ),
     http.get(`http://localhost/api/accounting/transactions/${expense.id}`, () =>
       HttpResponse.json(expense),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${expenseAtSpar.id}`, () =>
+      HttpResponse.json(expenseAtSpar),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
+      HttpResponse.json(wallet),
     ),
   );
 });
@@ -141,6 +180,8 @@ test.each([
           defaultAccountId: wallet.id,
           isAccountParamStale: false,
           isAccountOpenedLast: true,
+          shownLocationId: undefined,
+          isLocationOpenedLast: false,
         }}
         accountCount={1}
         isAccountFirst={false}
@@ -182,6 +223,8 @@ test('opens the category form to edit a category', async () => {
         defaultAccountId: wallet.id,
         isAccountParamStale: false,
         isAccountOpenedLast: true,
+        shownLocationId: undefined,
+        isLocationOpenedLast: false,
       }}
       accountCount={1}
       isAccountFirst={false}
@@ -222,6 +265,8 @@ test('keeps a deleted category open with Restore and moves the focus to its Tran
         defaultAccountId: wallet.id,
         isAccountParamStale: false,
         isAccountOpenedLast: true,
+        shownLocationId: undefined,
+        isLocationOpenedLast: false,
       }}
       accountCount={1}
       isAccountFirst={false}
@@ -269,6 +314,8 @@ test('restores a deleted category from its details', async () => {
         defaultAccountId: wallet.id,
         isAccountParamStale: false,
         isAccountOpenedLast: true,
+        shownLocationId: undefined,
+        isLocationOpenedLast: false,
       }}
       accountCount={1}
       isAccountFirst={false}
@@ -323,6 +370,8 @@ test('opens Restore category when a restore from the details is refused because 
         defaultAccountId: wallet.id,
         isAccountParamStale: false,
         isAccountOpenedLast: true,
+        shownLocationId: undefined,
+        isLocationOpenedLast: false,
       }}
       accountCount={1}
       isAccountFirst={false}
@@ -389,6 +438,8 @@ test('restores a category under a new name from its details and moves the focus 
         defaultAccountId: wallet.id,
         isAccountParamStale: false,
         isAccountOpenedLast: true,
+        shownLocationId: undefined,
+        isLocationOpenedLast: false,
       }}
       accountCount={1}
       isAccountFirst={false}
@@ -416,5 +467,255 @@ test('restores a category under a new name from its details and moves the focus 
   expect(screen.queryByRole('form', { name: 'Restore category' })).not.toBeInTheDocument();
   await waitFor(() => {
     expect(within(details).getByRole('link', { name: 'Transactions' })).toHaveFocus();
+  });
+});
+
+test('opens the location of a transaction with Transactions, Edit and Delete', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+  );
+  const { router } = render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}`],
+  });
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+
+  // act
+  await user.click(await within(transactionDetails).findByRole('link', { name: 'Spar' }));
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Spar' }),
+  ).toBeInTheDocument();
+  expect(router.state.location.search).toBe(`?transaction=${expenseAtSpar.id}&location=${spar.id}`);
+  expect(within(details).getByText('Location')).toBeInTheDocument();
+  expect(within(details).getByText('Near home')).toBeInTheDocument();
+  expect(within(details).getByRole('link', { name: 'Transactions' })).toHaveAttribute(
+    'href',
+    `/transactions?location_ids=${spar.id}`,
+  );
+  expect(within(details).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  expect(within(details).getByRole('button', { name: 'Delete location' })).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+});
+
+test('shows the account in place of the location when the account was chosen after it', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+  );
+
+  // act
+  render(<ShownDetailsColumn />, {
+    initialEntries: [
+      `/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}&account=${wallet.id}`,
+    ],
+  });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Wallet' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Location details' })).not.toBeInTheDocument();
+});
+
+test('ignores a location chosen before a transaction at another location', async () => {
+  // act
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?location=${spar.id}&transaction=${expense.id}`],
+  });
+
+  // assert
+  expect(await screen.findByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
+  expect(await screen.findByRole('dialog', { name: 'Account details' })).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Location details' })).not.toBeInTheDocument();
+});
+
+test('drops a location that is not found', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () =>
+      HttpResponse.json(
+        {
+          error_code: 'ENTITY_NOT_FOUND',
+          message: 'Location not found',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 404 },
+      ),
+    ),
+  );
+
+  // act
+  const { router } = render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+  });
+
+  // assert
+  await waitFor(() => {
+    expect(router.state.location.search).toBe(`?transaction=${expenseAtSpar.id}`);
+  });
+  expect(screen.queryByRole('dialog', { name: 'Location details' })).not.toBeInTheDocument();
+});
+
+test('opens the location form to edit a location', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+  });
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+
+  // act
+  await user.click(await within(details).findByRole('button', { name: 'Edit' }));
+
+  // assert
+  const form = await screen.findByRole('form', { name: 'Edit location' });
+  expect(within(form).getByRole('textbox', { name: 'Name' })).toHaveValue('Spar');
+});
+
+test('keeps a deleted location open with Restore and moves the focus to its Transactions', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let location: components['schemas']['Location'] = spar;
+  let deletePath: string | undefined;
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () =>
+      HttpResponse.json(location),
+    ),
+    http.delete('http://localhost/api/accounting/locations/:locationId', ({ request }) => {
+      deletePath = new URL(request.url).pathname;
+      location = { ...spar, status: 'DELETED' };
+      return HttpResponse.json(location);
+    }),
+  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+  });
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+  await user.click(await within(details).findByRole('button', { name: 'Delete location' }));
+  const confirmation = screen.getByRole('alertdialog', { name: 'Delete this location?' });
+
+  // act
+  await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
+
+  // assert
+  expect(await within(details).findByRole('button', { name: 'Restore' })).toBeInTheDocument();
+  expect(deletePath).toBe(`/api/accounting/locations/${spar.id}`);
+  expect(within(details).getByText('Deleted')).toBeInTheDocument();
+  expect(within(details).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+  await waitFor(() => {
+    expect(within(details).getByRole('link', { name: 'Transactions' })).toHaveFocus();
+  });
+});
+
+test('restores a deleted location from its details', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let location: components['schemas']['Location'] = { ...spar, status: 'DELETED' };
+  let restorePath: string | undefined;
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () =>
+      HttpResponse.json(location),
+    ),
+    http.post('http://localhost/api/accounting/locations/:locationId/restore', ({ request }) => {
+      restorePath = new URL(request.url).pathname;
+      location = spar;
+      return HttpResponse.json(location);
+    }),
+  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+  });
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+  expect(await within(details).findByText('Deleted')).toBeInTheDocument();
+
+  // act
+  await user.click(within(details).getByRole('button', { name: 'Restore' }));
+
+  // assert
+  expect(await within(details).findByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  expect(restorePath).toBe(`/api/accounting/locations/${spar.id}/restore`);
+  expect(within(details).queryByText('Deleted')).not.toBeInTheDocument();
+});
+
+test('opens Restore location when a restore from the details is refused because the name is taken', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () =>
+      HttpResponse.json({ ...spar, status: 'DELETED' }),
+    ),
+    http.post(`http://localhost/api/accounting/locations/${spar.id}/restore`, () =>
+      HttpResponse.json(
+        {
+          error_code: 'NAME_ALREADY_EXISTS',
+          message: 'This name is already taken',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 409 },
+      ),
+    ),
+  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+  });
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+
+  // act
+  await user.click(await within(details).findByRole('button', { name: 'Restore' }));
+
+  // assert
+  expect(await screen.findByRole('form', { name: 'Restore location' })).toBeInTheDocument();
+});
+
+test('shows a location chosen before an account that the shown transaction does not touch', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+    http.get(`http://localhost/api/accounting/accounts/${salary.id}`, () =>
+      HttpResponse.json(salary),
+    ),
+  );
+
+  // act
+  render(<ShownDetailsColumn />, {
+    initialEntries: [
+      `/transactions?location=${spar.id}&account=${salary.id}&transaction=${expenseAtSpar.id}`,
+    ],
+  });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Spar' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+});
+
+test('returns the focus to the location of the transaction when its details close', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}`],
+  });
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await user.click(await within(transactionDetails).findByRole('link', { name: 'Spar' }));
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Spar' });
+
+  // act
+  await user.click(within(details).getByRole('button', { name: 'Close details' }));
+
+  // assert
+  await waitFor(() => {
+    expect(within(transactionDetails).getByRole('link', { name: 'Spar' })).toHaveFocus();
   });
 });

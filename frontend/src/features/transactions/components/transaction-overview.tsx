@@ -1,5 +1,5 @@
 import { type ReactNode, useId } from 'react';
-import type { To } from 'react-router';
+import { Link, type To } from 'react-router';
 
 import { ActionBar } from '@/components/action-bar/action-bar';
 import type { components } from '@/lib/api-schema';
@@ -12,6 +12,7 @@ import { readTransactionView, readTypeLabel, readWeekdayDateText } from './trans
 
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
+export type LocationLink = Readonly<{ to: To; id: string }>;
 
 function readBaseAmount({
   transaction,
@@ -32,6 +33,7 @@ type TransactionOverviewProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
+  readLocationLink: (locationId: string) => LocationLink;
   closeButton: ReactNode;
   editAction: ReactNode;
   deleteAction: ReactNode;
@@ -43,6 +45,7 @@ export function TransactionOverview({
   transactionTypes,
   accountKinds,
   readAccountLink,
+  readLocationLink,
   closeButton,
   editAction,
   deleteAction,
@@ -89,7 +92,15 @@ export function TransactionOverview({
           {transaction.location !== null && (
             <>
               <dt className={styles['term']}>Location</dt>
-              <dd className={styles['value']}>{transaction.location.name}</dd>
+              <dd className={styles['value']}>
+                <Link
+                  {...readLocationLink(transaction.location.id)}
+                  preventScrollReset
+                  className={styles['locationLink']}
+                >
+                  {transaction.location.name}
+                </Link>
+              </dd>
             </>
           )}
           {transaction.comment !== null && (
