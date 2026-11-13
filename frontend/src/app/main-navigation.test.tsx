@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react';
-import { expect, test } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { expect, test, vi } from 'vitest';
 
 import { MainNavigation } from '@/app/main-navigation';
 import { render } from '@/test/render';
@@ -67,21 +68,63 @@ test('links Categories to its section', () => {
   expect(screen.getByRole('link', { name: 'Categories' })).toHaveAttribute('href', '/categories');
 });
 
-test.each(['Locations Soon', 'Income sources Soon'])(
-  'keeps %s of More disabled until its screen exists',
-  (name) => {
-    // act
-    render(
+test('keeps Locations of More disabled until its screen exists', () => {
+  // act
+  render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+  );
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Locations Soon' })).toBeDisabled();
+});
+
+test('links Income sources of More to its section and marks it current there', () => {
+  // act
+  render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+    { initialEntries: ['/income-sources'] },
+  );
+
+  // assert
+  const incomeSources = screen.getByRole('link', { name: 'Income sources' });
+  expect(incomeSources).toHaveAttribute('href', '/income-sources');
+  expect(incomeSources).toHaveAttribute('aria-current', 'page');
+});
+
+test.each(['/accounts', '/income-sources'])(
+  'closes More and reports the choice when Income sources is chosen on %s',
+  async (path) => {
+    // arrange
+    const user = userEvent.setup();
+    const onSectionChoose = vi.fn();
+    const { router } = render(
       <MainNavigation
         menuState="full"
         menuToggleRef={{ current: null }}
         onMenuToggle={() => undefined}
-        onSectionChoose={() => undefined}
+        onSectionChoose={onSectionChoose}
       />,
+      { initialEntries: [path] },
     );
+    await user.click(screen.getByRole('button', { name: 'More' }));
+
+    // act
+    await user.click(screen.getByRole('link', { name: 'Income sources' }));
 
     // assert
-    expect(screen.getByRole('button', { name })).toBeDisabled();
+    expect(router.state.location.pathname).toBe('/income-sources');
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+    expect(onSectionChoose).toHaveBeenCalledOnce();
   },
 );
 

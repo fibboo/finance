@@ -9,10 +9,10 @@ const MORE_ICON_PATH = 'M5 12h.01M12 12h.01M19 12h.01';
 
 type MoreMenuProps = Readonly<{
   isCurrent: boolean;
-  children: ReactNode;
+  renderSections: (closeMenu: () => void) => ReactNode;
 }>;
 
-export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
+export function MoreMenu({ isCurrent, renderSections }: MoreMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +64,9 @@ export function MoreMenu({ isCurrent, children }: MoreMenuProps) {
         <span className={navigationStyles['label']}>More</span>
       </button>
       <div id={sectionsId} className={isOpen ? styles['openSections'] : styles['sections']}>
-        {children}
+        {renderSections(() => {
+          setIsOpen(false);
+        })}
       </div>
     </div>
   );

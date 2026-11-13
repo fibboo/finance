@@ -69,6 +69,11 @@ const routes: RouteObject[] = [
                     lazy: () => import('@/app/routes/categories'),
                   },
                   {
+                    path: 'income-sources',
+                    ErrorBoundary: RootErrorBoundary,
+                    lazy: () => import('@/app/routes/income-sources'),
+                  },
+                  {
                     path: 'auth/link-callback',
                     ErrorBoundary: RootErrorBoundary,
                     lazy: () => import('@/app/routes/link-callback'),

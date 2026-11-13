@@ -45,14 +45,16 @@ export function CatalogList({ label, groups, selection, renderActions }: Catalog
         <section
           key={group.key}
           className={styles['group']}
-          aria-labelledby={`${headingId}-${group.key}`}
+          aria-labelledby={group.heading === undefined ? undefined : `${headingId}-${group.key}`}
         >
-          <div className={styles['groupHeader']}>
-            <h2 id={`${headingId}-${group.key}`} className={styles['groupHeading']}>
-              {group.heading}
-            </h2>
-            <span className={styles['groupCount']}>{group.entries.length}</span>
-          </div>
+          {group.heading !== undefined && (
+            <div className={styles['groupHeader']}>
+              <h2 id={`${headingId}-${group.key}`} className={styles['groupHeading']}>
+                {group.heading}
+              </h2>
+              <span className={styles['groupCount']}>{group.entries.length}</span>
+            </div>
+          )}
           <ul className={styles['entries']}>
             {group.entries.map((entry) => {
               const isDeleted = entry.status === 'DELETED';

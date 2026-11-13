@@ -101,7 +101,12 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
     createForms: {
       renderCategoryForm,
       renderIncomeSourceForm(props: CreateFormProps) {
-        return <IncomeSourceForm {...props} />;
+        return (
+          <IncomeSourceForm
+            mode={{ kind: 'create', name: props.name, onCreated: props.onCreated }}
+            onBack={props.onBack}
+          />
+        );
       },
       renderMoneyAccountForm,
       renderLocationForm(props: CreateFormProps) {

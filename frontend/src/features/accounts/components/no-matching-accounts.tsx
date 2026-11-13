@@ -3,7 +3,7 @@ import styles from './no-matching-accounts.module.css';
 const SEARCH_ICON_PATH = 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14m9 16-3.5-3.5';
 
 type NoMatchingAccountsProps = Readonly<{
-  entityNames: 'accounts' | 'categories';
+  entityNames: 'accounts' | 'categories' | 'income sources';
   onClear: () => void;
 }>;
 

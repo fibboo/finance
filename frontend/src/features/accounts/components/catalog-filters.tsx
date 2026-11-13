@@ -7,33 +7,34 @@ import type {
 import styles from './catalog-filters.module.css';
 
 type CatalogFiltersProps = Readonly<{
-  categoryTypes: readonly CategoryTypeOption[];
+  categoryTypes: readonly CategoryTypeOption[] | undefined;
   filters: CatalogFilterValues;
   onChange: (filters: CatalogFilterValues) => void;
 }>;
 
 export function CatalogFilters({ categoryTypes, filters, onChange }: CatalogFiltersProps) {
   const name = useId();
-  const typeOptions = [{ key: undefined, label: 'All' }, ...categoryTypes];
   return (
     <div className={styles['catalogFilters']}>
-      <fieldset className={styles['segment']}>
-        <legend className="visually-hidden">Category type</legend>
-        {typeOptions.map((option) => (
-          <label key={option.key ?? 'ALL'} className={styles['option']}>
-            <input
-              type="radio"
-              name={name}
-              className={styles['input']}
-              checked={filters.categoryType === option.key}
-              onChange={() => {
-                onChange({ ...filters, categoryType: option.key });
-              }}
-            />
-            {option.label}
-          </label>
-        ))}
-      </fieldset>
+      {categoryTypes !== undefined && (
+        <fieldset className={styles['segment']}>
+          <legend className="visually-hidden">Category type</legend>
+          {[{ key: undefined, label: 'All' }, ...categoryTypes].map((option) => (
+            <label key={option.key ?? 'ALL'} className={styles['option']}>
+              <input
+                type="radio"
+                name={name}
+                className={styles['input']}
+                checked={filters.categoryType === option.key}
+                onChange={() => {
+                  onChange({ ...filters, categoryType: option.key });
+                }}
+              />
+              {option.label}
+            </label>
+          ))}
+        </fieldset>
+      )}
       <label className={styles['toggle']}>
         <input
           type="checkbox"

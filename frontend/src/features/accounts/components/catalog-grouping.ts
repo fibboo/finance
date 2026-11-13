@@ -6,7 +6,7 @@ type Account = components['schemas']['Account'];
 
 export type CatalogGroup = Readonly<{
   key: string;
-  heading: string;
+  heading: string | undefined;
   entries: readonly Account[];
 }>;
 
