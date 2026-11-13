@@ -24,6 +24,8 @@ export const accountFormSchema = z.object({
     .transform((description) => (description === '' ? null : description)),
 });
 
+export const restoreFormSchema = accountFormSchema.pick({ name: true });
+
 export const categoryFormSchema = accountFormSchema.extend({
   category_type: z.enum(categoryTypeValues),
 });
@@ -36,6 +38,8 @@ export const moneyAccountFormSchema = accountFormSchema.extend({
 
 export type AccountFormValues = z.input<typeof accountFormSchema>;
 export type AccountFormOutput = z.output<typeof accountFormSchema>;
+export type RestoreFormValues = z.input<typeof restoreFormSchema>;
+export type RestoreFormOutput = z.output<typeof restoreFormSchema>;
 export type CategoryFormValues = z.input<typeof categoryFormSchema>;
 export type CategoryFormOutput = z.output<typeof categoryFormSchema>;
 export type MoneyAccountFormValues = z.input<typeof moneyAccountFormSchema>;

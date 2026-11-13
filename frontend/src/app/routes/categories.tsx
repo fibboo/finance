@@ -27,11 +27,13 @@ import { CatalogList } from '@/features/accounts/components/catalog-list';
 import { CatalogRowActions } from '@/features/accounts/components/catalog-row-actions';
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
+import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
+import { ApiError } from '@/lib/api-error';
 import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
 
@@ -68,6 +70,7 @@ export function Component() {
   const [isCreating, setIsCreating] = useState(false);
   const [editedCategoryId, setEditedCategoryId] = useState<string | undefined>(undefined);
   const [confirmedCategoryId, setConfirmedCategoryId] = useState<string | undefined>(undefined);
+  const [renamedCategoryId, setRenamedCategoryId] = useState<string | undefined>(undefined);
   const [focusedCategoryId, setFocusedCategoryId] = useState<string | undefined>(undefined);
   const [searchParams, setSearchParams] = useSearchParams();
   const search = readAccountSearch(searchParams);
@@ -116,6 +119,7 @@ export function Component() {
   const confirmedCategory = categoryPage?.items.find(
     (category) => category.id === confirmedCategoryId,
   );
+  const renamedCategory = categoryPage?.items.find((category) => category.id === renamedCategoryId);
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,
@@ -129,6 +133,10 @@ export function Component() {
 
   function closeEditForm() {
     setEditedCategoryId(undefined);
+  }
+
+  function closeRestoreForm() {
+    setRenamedCategoryId(undefined);
   }
 
   function closeConfirmation(categoryId: string) {
@@ -210,11 +218,22 @@ export function Component() {
                     setConfirmedCategoryId(category.id);
                   }}
                   onRestore={() => {
-                    categoryRestore.mutate(category.id, {
-                      onSuccess: () => {
-                        setFocusedCategoryId(category.id);
+                    categoryRestore.mutate(
+                      { account_id: category.id },
+                      {
+                        onSuccess: () => {
+                          setFocusedCategoryId(category.id);
+                        },
+                        onError: (error) => {
+                          if (
+                            error instanceof ApiError &&
+                            error.error_code === 'NAME_ALREADY_EXISTS'
+                          ) {
+                            setRenamedCategoryId(category.id);
+                          }
+                        },
                       },
-                    });
+                    );
                   }}
                 />
               )}
@@ -259,6 +278,19 @@ export function Component() {
             }}
             categoryTypes={dictionaries.category_types}
             onBack={closeEditForm}
+          />
+        </Sheet>
+      )}
+      {renamedCategory !== undefined && (
+        <Sheet label="Restore category" onClose={closeRestoreForm}>
+          <RestoreForm
+            category={renamedCategory}
+            relatedQueryKeys={relatedQueryKeys}
+            onRestored={() => {
+              closeRestoreForm();
+              setFocusedCategoryId(renamedCategory.id);
+            }}
+            onBack={closeRestoreForm}
           />
         </Sheet>
       )}

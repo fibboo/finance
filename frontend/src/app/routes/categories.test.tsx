@@ -491,7 +491,7 @@ test('restores a deleted category and moves the focus to its Transactions', asyn
   });
 });
 
-test('shows the error notification when a restore is refused because the name is taken', async () => {
+test('opens Restore category when a restore is refused because the name is taken', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
@@ -521,11 +521,143 @@ test('shows the error notification when a restore is refused because the name is
   await user.click(within(variable).getByRole('button', { name: 'Restore' }));
 
   // assert
-  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
-  expect(within(variable).getByRole('button', { name: 'Restore' })).toHaveAttribute(
-    'aria-disabled',
-    'false',
+  const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
+  const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
+  expect(name).toHaveValue('Cigarettes');
+  expect(name).toHaveAccessibleDescription('An active category already has this name');
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+});
+
+test('restores a category under a new name, closes the window and moves the focus to its Transactions', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let categories: components['schemas']['Account'][] = [groceries, cigarettes];
+  const restoreBodies: unknown[] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: categories,
+        total: categories.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.post(
+      `http://localhost/api/accounting/accounts/${cigarettes.id}/restore`,
+      async ({ request }) => {
+        const body: unknown = await request.json();
+        restoreBodies.push(body);
+        if (restoreBodies.length === 1) {
+          return HttpResponse.json(
+            {
+              error_code: 'NAME_ALREADY_EXISTS',
+              message: 'This name is already taken',
+            } satisfies components['schemas']['ErrorResponse'],
+            { status: 409 },
+          );
+        }
+        const restored = {
+          ...cigarettes,
+          name: 'Cigarettes 2025',
+          status: 'ACTIVE',
+        } satisfies components['schemas']['Account'];
+        categories = [groceries, restored];
+        return HttpResponse.json(restored);
+      },
+    ),
   );
+  render(<Component />, { initialEntries: ['/categories'] });
+  const variable = await screen.findByRole('region', { name: 'Variable' });
+  await user.click(within(variable).getByRole('button', { name: 'Restore' }));
+  const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
+  const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
+  await user.clear(name);
+  await user.type(name, 'Cigarettes 2025');
+
+  // act
+  await user.click(within(restoreForm).getByRole('button', { name: 'Restore category' }));
+
+  // assert
+  await waitFor(() => {
+    expect(screen.queryByRole('form', { name: 'Restore category' })).not.toBeInTheDocument();
+  });
+  expect(restoreBodies).toEqual([{}, { name: 'Cigarettes 2025' }]);
+  expect(within(variable).getByText('Cigarettes 2025')).toBeInTheDocument();
+  expect(within(variable).queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument();
+  await waitFor(() => {
+    expect(within(variable).getAllByRole('link', { name: 'Transactions' })[1]).toHaveFocus();
+  });
+});
+
+test('closes Restore category on Back and leaves the category deleted', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [cigarettes],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.post(`http://localhost/api/accounting/accounts/${cigarettes.id}/restore`, () =>
+      HttpResponse.json(
+        {
+          error_code: 'NAME_ALREADY_EXISTS',
+          message: 'This name is already taken',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 409 },
+      ),
+    ),
+  );
+  render(<Component />, { initialEntries: ['/categories'] });
+  const variable = await screen.findByRole('region', { name: 'Variable' });
+  await user.click(within(variable).getByRole('button', { name: 'Restore' }));
+  const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
+
+  // act
+  await user.click(within(restoreForm).getByRole('button', { name: 'Back' }));
+
+  // assert
+  expect(screen.queryByRole('form', { name: 'Restore category' })).not.toBeInTheDocument();
+  expect(within(variable).getByRole('button', { name: 'Restore' })).toBeInTheDocument();
+});
+
+test('shows the error notification when a restore fails for another reason', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [cigarettes],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.post(`http://localhost/api/accounting/accounts/${cigarettes.id}/restore`, () =>
+      HttpResponse.json(
+        {
+          error_code: 'ENTITY_NOT_FOUND',
+          message: 'Account not found',
+        } satisfies components['schemas']['ErrorResponse'],
+        { status: 404 },
+      ),
+    ),
+  );
+  render(<Component />, { initialEntries: ['/categories'] });
+  const variable = await screen.findByRole('region', { name: 'Variable' });
+
+  // act
+  await user.click(within(variable).getByRole('button', { name: 'Restore' }));
+
+  // assert
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+  expect(screen.queryByRole('form', { name: 'Restore category' })).not.toBeInTheDocument();
 });
 
 test('keeps the edit form closed after a saved category left the filtered list', async () => {
