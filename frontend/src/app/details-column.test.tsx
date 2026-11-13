@@ -649,3 +649,50 @@ test('opens Restore location when a restore from the details is refused because 
   // assert
   expect(await screen.findByRole('form', { name: 'Restore location' })).toBeInTheDocument();
 });
+
+test('shows a location chosen before an account that the shown transaction does not touch', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+    http.get(`http://localhost/api/accounting/accounts/${salary.id}`, () =>
+      HttpResponse.json(salary),
+    ),
+  );
+
+  // act
+  render(<ShownDetailsColumn />, {
+    initialEntries: [
+      `/transactions?location=${spar.id}&account=${salary.id}&transaction=${expenseAtSpar.id}`,
+    ],
+  });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Spar' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+});
+
+test('returns the focus to the location of the transaction when its details close', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}`],
+  });
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  await user.click(await within(transactionDetails).findByRole('link', { name: 'Spar' }));
+  const details = await screen.findByRole('dialog', { name: 'Location details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Spar' });
+
+  // act
+  await user.click(within(details).getByRole('button', { name: 'Close details' }));
+
+  // assert
+  await waitFor(() => {
+    expect(within(transactionDetails).getByRole('link', { name: 'Spar' })).toHaveFocus();
+  });
+});

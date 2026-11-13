@@ -12,6 +12,7 @@ import { readTransactionView, readTypeLabel, readWeekdayDateText } from './trans
 
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
+export type LocationLink = Readonly<{ to: To; id: string }>;
 
 function readBaseAmount({
   transaction,
@@ -32,7 +33,7 @@ type TransactionOverviewProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
-  readLocationLink: (locationId: string) => To;
+  readLocationLink: (locationId: string) => LocationLink;
   closeButton: ReactNode;
   editAction: ReactNode;
   deleteAction: ReactNode;
@@ -93,7 +94,7 @@ export function TransactionOverview({
               <dt className={styles['term']}>Location</dt>
               <dd className={styles['value']}>
                 <Link
-                  to={readLocationLink(transaction.location.id)}
+                  {...readLocationLink(transaction.location.id)}
                   preventScrollReset
                   className={styles['locationLink']}
                 >

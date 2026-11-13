@@ -10,6 +10,7 @@ import { Page } from '@/components/page/page';
 import { SearchField } from '@/components/search-field/search-field';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
+import { writeSelectedLocation } from '@/features/locations/api/selected-location';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
@@ -72,9 +73,12 @@ export function Component() {
   const baseCurrency = useBaseCurrency();
   const today = useToday();
   const [searchParams, setSearchParams] = useSearchParams();
-  const listSearchParams = writeSelectedAccount({
-    searchParams: writeSelectedTransaction({ searchParams, transactionId: undefined }),
-    accountId: undefined,
+  const listSearchParams = writeSelectedLocation({
+    searchParams: writeSelectedAccount({
+      searchParams: writeSelectedTransaction({ searchParams, transactionId: undefined }),
+      accountId: undefined,
+    }),
+    locationId: undefined,
   });
   const listKey = readTransactionListKey(listSearchParams);
   const search = readTransactionSearch(searchParams);

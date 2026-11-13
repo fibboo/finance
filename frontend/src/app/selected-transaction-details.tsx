@@ -16,6 +16,7 @@ import { transactionQueries } from '@/features/transactions/api/transaction-quer
 import { MovementForm } from '@/features/transactions/components/movement-form';
 import { TransactionDetails } from '@/features/transactions/components/transaction-details';
 import { TransactionForm } from '@/features/transactions/components/transaction-form';
+import type { LocationLink } from '@/features/transactions/components/transaction-overview';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
@@ -28,7 +29,7 @@ type SelectedTransactionDetailsProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
   readAccountLink: (accountId: string) => To;
-  readLocationLink: (locationId: string) => To;
+  readLocationLink: (locationId: string) => LocationLink;
 }>;
 
 type SelectedTransactionProps = Readonly<{
@@ -38,7 +39,7 @@ type SelectedTransactionProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
-  readLocationLink: (locationId: string) => To;
+  readLocationLink: (locationId: string) => LocationLink;
 }>;
 
 function SelectedTransaction({

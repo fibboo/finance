@@ -86,6 +86,7 @@ export function useShownAccount({
   const shownLocationId =
     isLocationParamStale ||
     (selectedAccountId !== undefined &&
+      !isAccountParamStale &&
       !readIsLocationAfter({ searchParams, param: SELECTED_ACCOUNT_PARAM }))
       ? undefined
       : selectedLocationId;

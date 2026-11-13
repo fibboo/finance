@@ -1,24 +1,17 @@
-import { keepPreviousData, type QueryKey, useMutation, useQuery } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
+import { useId } from 'react';
 import type { To } from 'react-router';
 
 import { ActionBar } from '@/components/action-bar/action-bar';
 import { ActionButton } from '@/components/action-button/action-button';
-import {
-  DELETE_ICON_PATH,
-  EDIT_ICON_PATH,
-  RESTORE_ICON_PATH,
-  TRANSACTIONS_ICON_PATH,
-} from '@/components/action-button/action-icons';
-import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
+import { EDIT_ICON_PATH, TRANSACTIONS_ICON_PATH } from '@/components/action-button/action-icons';
 import { DetailsPanel } from '@/components/details-panel/details-panel';
-import { ApiError } from '@/lib/api-error';
 
-import { locationMutations } from '../api/location-mutations';
 import { locationQueries } from '../api/location-queries';
 import { readLocationLinkId } from '../api/selected-location';
-import { LOCATION_DELETE_TITLE, readLocationDeleteText } from './location-delete-copy';
+import { DeleteLocation } from './delete-location';
 import styles from './location-details.module.css';
+import { RestoreLocation } from './restore-location';
 
 type LocationDetailsProps = Readonly<{
   locationId: string;
@@ -48,8 +41,6 @@ export function LocationDetails({
   onChoose,
 }: LocationDetailsProps) {
   const titleId = useId();
-  const deleteButtonId = useId();
-  const [isConfirming, setIsConfirming] = useState(false);
   const {
     data: location,
     isError,
@@ -57,28 +48,6 @@ export function LocationDetails({
     isPlaceholderData,
     refetch,
   } = useQuery({ ...locationQueries.detail(locationId), placeholderData: keepPreviousData });
-  const deleteOptions = locationMutations.delete(relatedQueryKeys);
-  const locationDelete = useMutation({
-    ...deleteOptions,
-    onSuccess: async (deletedLocation, deletedLocationId, onMutateResult, context) => {
-      await deleteOptions.onSuccess?.(deletedLocation, deletedLocationId, onMutateResult, context);
-      onStatusChanged();
-    },
-  });
-  const restoreOptions = locationMutations.restore(relatedQueryKeys);
-  const locationRestore = useMutation({
-    ...restoreOptions,
-    onSuccess: async (restoredLocation, restore, onMutateResult, context) => {
-      await restoreOptions.onSuccess?.(restoredLocation, restore, onMutateResult, context);
-      onStatusChanged();
-    },
-  });
-
-  function closeConfirmation() {
-    setIsConfirming(false);
-    document.getElementById(deleteButtonId)?.focus();
-  }
-
   return (
     <DetailsPanel
       label="Location details"
@@ -138,33 +107,12 @@ export function LocationDetails({
                 action={{ kind: 'link', to: transactionsLink, isScrollKept: false }}
               />
               {location.status === 'DELETED' ? (
-                <ActionButton
-                  label="Restore"
-                  iconPath={RESTORE_ICON_PATH}
-                  isDanger={false}
-                  action={{
-                    kind: 'button',
-                    blockingHint: undefined,
-                    onClick: () => {
-                      if (locationRestore.isPending) {
-                        return;
-                      }
-
-                      locationRestore.mutate(
-                        { location_id: locationId },
-                        {
-                          onError: (error) => {
-                            if (
-                              error instanceof ApiError &&
-                              error.error_code === 'NAME_ALREADY_EXISTS'
-                            ) {
-                              onRestoreNameTaken();
-                            }
-                          },
-                        },
-                      );
-                    },
-                  }}
+                <RestoreLocation
+                  key={locationId}
+                  locationId={locationId}
+                  relatedQueryKeys={relatedQueryKeys}
+                  onRestored={onStatusChanged}
+                  onNameTaken={onRestoreNameTaken}
                 />
               ) : (
                 <>
@@ -174,38 +122,15 @@ export function LocationDetails({
                     isDanger={false}
                     action={{ kind: 'button', blockingHint: undefined, onClick: onEdit }}
                   />
-                  <ActionButton
-                    id={deleteButtonId}
-                    label="Delete location"
-                    iconPath={DELETE_ICON_PATH}
-                    isDanger
-                    action={{
-                      kind: 'button',
-                      blockingHint: undefined,
-                      onClick: () => {
-                        setIsConfirming(true);
-                      },
-                    }}
+                  <DeleteLocation
+                    key={locationId}
+                    location={location}
+                    relatedQueryKeys={relatedQueryKeys}
+                    onDeleted={onStatusChanged}
                   />
                 </>
               )}
             </ActionBar>
-            {isConfirming && (
-              <DeleteConfirmation
-                title={LOCATION_DELETE_TITLE}
-                text={readLocationDeleteText(location.name)}
-                isPending={locationDelete.isPending}
-                onCancel={closeConfirmation}
-                onConfirm={() => {
-                  locationDelete.mutate(locationId, {
-                    onSuccess: () => {
-                      setIsConfirming(false);
-                    },
-                    onError: closeConfirmation,
-                  });
-                }}
-              />
-            )}
           </article>
         )
       }

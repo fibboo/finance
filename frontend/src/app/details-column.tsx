@@ -1,7 +1,10 @@
 import { useSearchParams } from 'react-router';
 
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
-import { writeSelectedLocation } from '@/features/locations/api/selected-location';
+import {
+  readLocationLinkId,
+  writeSelectedLocation,
+} from '@/features/locations/api/selected-location';
 
 import styles from './details-column.module.css';
 import { SelectedAccountDetails } from './selected-account-details';
@@ -39,7 +42,8 @@ export function DetailsColumn({
           search: writeSelectedAccount({ searchParams, accountId }).toString(),
         })}
         readLocationLink={(locationId) => ({
-          search: writeSelectedLocation({ searchParams, locationId }).toString(),
+          to: { search: writeSelectedLocation({ searchParams, locationId }).toString() },
+          id: readLocationLinkId(locationId),
         })}
       />
     </div>

@@ -8,7 +8,7 @@ import { readTransactionLinkId } from '../api/selected-transaction';
 import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
 import { EditTransaction } from './edit-transaction';
-import { TransactionOverview } from './transaction-overview';
+import { type LocationLink, TransactionOverview } from './transaction-overview';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
@@ -18,7 +18,7 @@ type TransactionDetailsProps = Readonly<{
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
   readAccountLink: (accountId: string) => To;
-  readLocationLink: (locationId: string) => To;
+  readLocationLink: (locationId: string) => LocationLink;
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;
   editButtonId: string;
