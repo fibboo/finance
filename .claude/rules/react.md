@@ -24,7 +24,7 @@ The frontend is a responsive, mobile-first single-page app. It is built from Rea
 ## Components
 
 - Function components only, one exported component per file, named like the file in PascalCase (`account-list.tsx` exports `AccountList`).
-- Components and hooks are pure. Rendering never mutates props, state, refs or module variables, and gives the same output for the same input. The React Compiler depends on this.
+- Components and hooks are pure. Rendering never mutates props, state, refs or module variables, and gives the same output for the same input. The React Compiler depends on this. A component or hook may set its own state during render, behind a condition that stops once the state is adjusted, to adjust it to changed props or data.
 - Props are a `type` named `<Component>Props`, `readonly`, destructured in the signature.
 - Composition over prop drilling: pass `children` or an element prop instead of threading data through layers that do not use it. Context is for app-wide values that rarely change (the auth session, the theme), never for server data or state that changes often. The dictionaries are server data and are read through their query hook.
 - A list item's `key` is the entity's id, never the array index.
@@ -34,7 +34,7 @@ The frontend is a responsive, mobile-first single-page app. It is built from Rea
 ## Hooks and Effects
 
 - Hooks are called at the top level only (`react-hooks` rules), and a custom hook is named `use<Thing>` in a `use-<thing>.ts` file.
-- An effect only synchronizes with a system outside React (a browser API, a subscription, a non-React widget). It never derives data, fetches data, handles an event or resets state. Derived values are computed during render, event logic goes in the handler, and state is reset by changing the component's `key`.
+- An effect only synchronizes with a system outside React (a browser API, a subscription, a non-React widget). It never derives data, fetches data, handles an event or resets state. Derived values are computed during render, event logic goes in the handler, and state is reset by changing the component's `key`, or, when only part of the state follows the data, by setting it during render.
 - No `useMemo`, `useCallback` or `memo` by default; the React Compiler memoizes. One is added only when a profile shows the need or an effect dependency must keep its identity, and the PR says which.
 - A lint rule of `react-hooks` is never suppressed. Code the Compiler cannot handle is rewritten.
 
