@@ -34,6 +34,15 @@ test('creates an income source without a color', async () => {
   let createdAccount: unknown = null;
   const onCreated = vi.fn();
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
       createdAccount = await request.json();
       return HttpResponse.json(freelance satisfies components['schemas']['Account'], {
@@ -45,6 +54,9 @@ test('creates an income source without a color', async () => {
   render(
     <IncomeSourceForm mode={{ kind: 'create', name: 'Freelance', onCreated }} onBack={vi.fn()} />,
   );
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create income source' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Create income source' }));
@@ -70,6 +82,15 @@ test.each([
     // arrange
     let requestCount = 0;
     server.use(
+      http.get('http://localhost/api/accounting/accounts', () =>
+        HttpResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Account_']),
+      ),
       http.post('http://localhost/api/accounting/accounts', () => {
         requestCount += 1;
         return HttpResponse.json(freelance satisfies components['schemas']['Account'], {
@@ -85,6 +106,9 @@ test.each([
         onBack={vi.fn()}
       />,
     );
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create income source' })).toBeEnabled();
+    });
 
     // act
     await user.click(screen.getByRole('button', { name: 'Create income source' }));
@@ -101,6 +125,15 @@ test.each([
 test('shows a taken name at the Name field', async () => {
   // arrange
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.post('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json(
         {
@@ -118,6 +151,9 @@ test('shows a taken name at the Name field', async () => {
       onBack={vi.fn()}
     />,
   );
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create income source' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Create income source' }));
@@ -133,6 +169,15 @@ test('saves the changed name and description of an edited income source', async 
   let updatedIncomeSource: unknown = null;
   const onSaved = vi.fn();
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.put(`http://localhost/api/accounting/accounts/${salary.id}`, async ({ request }) => {
       updatedIncomeSource = await request.json();
       return HttpResponse.json(salary satisfies components['schemas']['Account']);
@@ -158,6 +203,9 @@ test('saves the changed name and description of an edited income source', async 
   await user.clear(name);
   await user.type(name, 'Wages');
   await user.clear(description);
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -172,6 +220,15 @@ test('saves the changed name and description of an edited income source', async 
 test('shows a name another income source has under the name field of the edit form', async () => {
   // arrange
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.put(`http://localhost/api/accounting/accounts/${salary.id}`, () =>
       HttpResponse.json(
         {
@@ -193,6 +250,9 @@ test('shows a name another income source has under the name field of the edit fo
   const name = screen.getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Freelance');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -202,4 +262,73 @@ test('shows a name another income source has under the name field of the edit fo
     'Name already exists',
   );
   expect(onSaved).not.toHaveBeenCalled();
+});
+
+test('says a name an active income source holds while it is typed and keeps Create income source disabled', async () => {
+  // arrange
+  let lookupQuery = new URLSearchParams();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      lookupQuery = new URL(request.url).searchParams;
+      const items = lookupQuery.get('search_term') === 'salary' ? [salary] : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <IncomeSourceForm mode={{ kind: 'create', name: '', onCreated: vi.fn() }} onBack={vi.fn()} />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+
+  // act
+  await user.type(name, 'Salary');
+
+  // assert
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active income source already has this name');
+  });
+  expect(screen.getByRole('button', { name: 'Create income source' })).toBeDisabled();
+  expect(lookupQuery.getAll('kinds')).toEqual(['INCOME']);
+  expect(lookupQuery.getAll('statuses')).toEqual(['ACTIVE']);
+  // a name that differs only by one letter is free
+  await user.type(name, 's');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create income source' })).toBeEnabled();
+  });
+  expect(name).not.toHaveAccessibleDescription();
+});
+
+test('leaves the edited income source out of the names it finds taken', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [salary],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
+  // act
+  render(
+    <IncomeSourceForm
+      mode={{ kind: 'edit', incomeSource: salary, relatedQueryKeys: [], onSaved: vi.fn() }}
+      onBack={vi.fn()}
+    />,
+  );
+
+  // assert
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+  expect(screen.getByRole('textbox', { name: 'Name' })).not.toHaveAccessibleDescription();
 });

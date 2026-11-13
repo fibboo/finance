@@ -56,6 +56,15 @@ test.each([
   let createdCategory: unknown = null;
   const onCreated = vi.fn();
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
       createdCategory = await request.json();
       return HttpResponse.json(coffee satisfies components['schemas']['Account'], {
@@ -72,6 +81,9 @@ test.each([
     />,
   );
   await user.click(screen.getByRole('radio', { name: type }));
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create category' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Create category' }));
@@ -94,6 +106,15 @@ test('saves the changed name, type and description of an edited category', async
   let updatedCategory: unknown = null;
   const onSaved = vi.fn();
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.put(`http://localhost/api/accounting/accounts/${groceries.id}`, async ({ request }) => {
       updatedCategory = await request.json();
       return HttpResponse.json(groceries satisfies components['schemas']['Account']);
@@ -122,6 +143,9 @@ test('saves the changed name, type and description of an edited category', async
   await user.type(name, 'Food');
   await user.click(screen.getByRole('radio', { name: 'Periodic' }));
   await user.clear(description);
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -140,6 +164,15 @@ test('saves the changed name, type and description of an edited category', async
 test('shows a name another category has under the name field of the edit form', async () => {
   // arrange
   server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
     http.put(`http://localhost/api/accounting/accounts/${groceries.id}`, () =>
       HttpResponse.json(
         {
@@ -158,10 +191,87 @@ test('shows a name another category has under the name field of the edit form', 
       onBack={vi.fn()}
     />,
   );
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
   // assert
   expect(await screen.findByText('This name is already taken')).toBeInTheDocument();
+});
+
+test('says a name an active category holds while it is typed and keeps Create category disabled', async () => {
+  // arrange
+  let lookupQuery = new URLSearchParams();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      lookupQuery = new URL(request.url).searchParams;
+      const items = lookupQuery.get('search_term') === 'groceries' ? [groceries] : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <CategoryForm
+      mode={{ kind: 'create', name: '', onCreated: vi.fn() }}
+      categoryTypes={categoryTypes}
+      onBack={vi.fn()}
+    />,
+  );
+  const name = screen.getByRole('textbox', { name: 'Name' });
+
+  // act
+  await user.type(name, 'Groceries');
+
+  // assert
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active category already has this name');
+  });
+  expect(screen.getByRole('button', { name: 'Create category' })).toBeDisabled();
+  expect(lookupQuery.getAll('kinds')).toEqual(['EXPENSE']);
+  expect(lookupQuery.getAll('statuses')).toEqual(['ACTIVE']);
+  // a name that differs only by one letter is free
+  await user.type(name, 's');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create category' })).toBeEnabled();
+  });
+  expect(name).not.toHaveAccessibleDescription();
+});
+
+test('leaves the edited category out of the names it finds taken', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
+  // act
+  render(
+    <CategoryForm
+      mode={{ kind: 'edit', category: groceries, relatedQueryKeys: [], onSaved: vi.fn() }}
+      categoryTypes={categoryTypes}
+      onBack={vi.fn()}
+    />,
+  );
+
+  // assert
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+  expect(screen.getByRole('textbox', { name: 'Name' })).not.toHaveAccessibleDescription();
 });

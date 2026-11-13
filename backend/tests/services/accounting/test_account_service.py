@@ -128,6 +128,24 @@ async def test_create_account_existing_name(db: AsyncSession, db_transaction: As
     assert len(transactions) == 1
 
 
+async def test_create_account_name_existing_in_another_case(db: AsyncSession, db_transaction: AsyncSession):
+    # arrange
+    user_id: UUID = uuid4()
+    existing_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Freelance", currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=existing_data)
+    await db.commit()
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="freelance", currency="USD")
+
+    # act / assert
+    with pytest.raises(NameAlreadyExists) as exc:
+        await account_service.create_account(db=db_transaction, create_data=create_data, user_id=user_id)
+        await db_transaction.commit()
+
+    assert exc.value.error_code == ErrorCodeType.NAME_ALREADY_EXISTS
+    accounts_db: list[AccountModel] = (await db.scalars(select(AccountModel))).all()
+    assert [account.name for account in accounts_db] == ["Freelance"]
+
+
 async def test_get_accounts(db: AsyncSession):
     # Arrange
     user_id: UUID = uuid4()

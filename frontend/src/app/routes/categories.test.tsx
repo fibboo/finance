@@ -288,6 +288,9 @@ test('creates a category from New category and lists it', async () => {
   const form = await screen.findByRole('form', { name: 'New category' });
   await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Rent');
   await user.click(within(form).getByRole('radio', { name: 'Fixed' }));
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Create category' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Create category' }));
@@ -367,6 +370,9 @@ test('edits a category from its row and lists the saved name', async () => {
   expect(within(form).getByRole('radio', { name: 'Fixed' })).toBeChecked();
   await user.clear(name);
   await user.type(name, 'Flat');
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(form).getByRole('button', { name: 'Save changes' }));
@@ -495,15 +501,18 @@ test('opens Restore category when a restore is refused because the name is taken
   // arrange
   const user = userEvent.setup();
   server.use(
-    http.get('http://localhost/api/accounting/accounts', () =>
-      HttpResponse.json({
-        items: [cigarettes],
-        total: 1,
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const items = new URL(request.url).searchParams.has('search_term')
+        ? [{ ...cigarettes, id: '9e0f1a2b-4e6a-4c7d-8e9f-5a1d9c3e3c50', status: 'ACTIVE' as const }]
+        : [cigarettes];
+      return HttpResponse.json({
+        items,
+        total: items.length,
         page: 1,
         size: 100,
         pages: 1,
-      } satisfies components['schemas']['Page_Account_']),
-    ),
+      } satisfies components['schemas']['Page_Account_']);
+    }),
     http.post(`http://localhost/api/accounting/accounts/${cigarettes.id}/restore`, () =>
       HttpResponse.json(
         {
@@ -524,7 +533,9 @@ test('opens Restore category when a restore is refused because the name is taken
   const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
   expect(name).toHaveValue('Cigarettes');
-  expect(name).toHaveAccessibleDescription('An active category already has this name');
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active category already has this name');
+  });
   expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
 });
 
@@ -574,6 +585,9 @@ test('restores a category under a new name, closes the window and moves the focu
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Cigarettes 2025');
+  await vi.waitFor(() => {
+    expect(within(restoreForm).getByRole('button', { name: 'Restore category' })).toBeEnabled();
+  });
 
   // act
   await user.click(within(restoreForm).getByRole('button', { name: 'Restore category' }));
@@ -637,6 +651,9 @@ test('keeps Restore category closed after a category restored under a new name l
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
   await user.clear(name);
   await user.type(name, 'Smokes');
+  await vi.waitFor(() => {
+    expect(within(restoreForm).getByRole('button', { name: 'Restore category' })).toBeEnabled();
+  });
   await user.click(within(restoreForm).getByRole('button', { name: 'Restore category' }));
   expect(await screen.findByText('No categories match this search')).toBeInTheDocument();
 
@@ -751,6 +768,9 @@ test('keeps the edit form closed after a saved category left the filtered list',
   await user.click(within(fixed).getByRole('button', { name: 'Edit' }));
   const form = await screen.findByRole('form', { name: 'Edit category' });
   await user.click(within(form).getByRole('radio', { name: 'Periodic' }));
+  await vi.waitFor(() => {
+    expect(within(form).getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
   await user.click(within(form).getByRole('button', { name: 'Save changes' }));
   await waitFor(() => {
     expect(screen.queryByRole('form', { name: 'Edit category' })).not.toBeInTheDocument();
@@ -833,6 +853,9 @@ test('keeps the edit form of another category open when an earlier save finishes
   const fixed = await screen.findByRole('region', { name: 'Fixed' });
   await user.click(within(fixed).getByRole('button', { name: 'Edit' }));
   const rentForm = await screen.findByRole('form', { name: 'Edit category' });
+  await vi.waitFor(() => {
+    expect(within(rentForm).getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
   await user.click(within(rentForm).getByRole('button', { name: 'Save changes' }));
   await user.click(within(rentForm).getByRole('button', { name: 'Back' }));
   await user.click(
