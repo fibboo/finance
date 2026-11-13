@@ -1,8 +1,9 @@
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { type To, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 
 import { CatalogTransactions } from '@/app/catalog-transactions';
+import { readTransactionsLink } from '@/app/transactions-link';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
@@ -25,7 +26,6 @@ import { IncomeSourceForm } from '@/features/accounts/components/income-source-f
 import { NoMatchingAccounts } from '@/features/accounts/components/no-matching-accounts';
 import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
-import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
@@ -46,20 +46,6 @@ function readIncomeSourceCount(
       ? undefined
       : { value: total, label: total === 1 ? 'income source' : 'income sources' };
   return incomeSourceCount;
-}
-
-function readIncomeSourceTransactionsLink(incomeSourceId: string): To {
-  const transactionsLink = {
-    pathname: '/transactions',
-    search: writeTransactionFilters({
-      transaction_types: [],
-      account_ids: [],
-      category_ids: [],
-      income_source_ids: [incomeSourceId],
-      location_ids: [],
-    }).toString(),
-  };
-  return transactionsLink;
 }
 
 export function Component() {
@@ -202,7 +188,7 @@ export function Component() {
               renderActions={(incomeSource) => (
                 <CatalogRowActions
                   entry={incomeSource}
-                  transactionsLink={readIncomeSourceTransactionsLink(incomeSource.id)}
+                  transactionsLink={readTransactionsLink(incomeSource)}
                   isRestorePending={incomeSourceRestore.isPending}
                   isFocusRequested={incomeSource.id === focusedIncomeSourceId}
                   onFocused={() => {
@@ -244,7 +230,7 @@ export function Component() {
             description="Income source · recent transactions"
             emptyText="No transactions from this income source yet"
             filterQuery={{ account_ids: [shownIncomeSource.id] }}
-            transactionsLink={readIncomeSourceTransactionsLink(shownIncomeSource.id)}
+            transactionsLink={readTransactionsLink(shownIncomeSource)}
             transactionTypes={dictionaries?.transaction_types}
           />
         )}

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useState } from 'react';
-import { Navigate, type To, useSearchParams } from 'react-router';
+import { Navigate, useSearchParams } from 'react-router';
 
 import { Sheet } from '@/components/sheet/sheet';
 
@@ -18,12 +18,13 @@ import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { summaryQueries } from '@/features/summary/api/summary-queries';
 import { writeNewAdjustment } from '@/features/transactions/api/new-transaction';
-import { writeTransactionFilters } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import { revealHorizontally } from '@/lib/reveal-horizontally';
 import type { components } from '@/lib/api-schema';
+
+import { readTransactionsLink } from './transactions-link';
 
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -34,21 +35,6 @@ const EDIT_SHEET_LABELS = {
   EXPENSE: 'Edit category',
   INCOME: 'Edit income source',
 } as const;
-
-function readTransactionsLink(account: Readonly<Account>): To {
-  const accountIds = [account.id];
-  const transactionsLink = {
-    pathname: '/transactions',
-    search: writeTransactionFilters({
-      transaction_types: [],
-      account_ids: account.kind === 'EXPENSE' || account.kind === 'INCOME' ? [] : accountIds,
-      category_ids: account.kind === 'EXPENSE' ? accountIds : [],
-      income_source_ids: account.kind === 'INCOME' ? accountIds : [],
-      location_ids: [],
-    }).toString(),
-  };
-  return transactionsLink;
-}
 
 type SelectedAccountDetailsProps = Readonly<{
   baseCurrency: string;
