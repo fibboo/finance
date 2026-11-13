@@ -233,6 +233,10 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
 .link { text-decoration: underline; text-decoration-color: var(--color-border); text-underline-offset: 0.2em; }
 .row.selected::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-segment); background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
 .sheetDetails { flex: none; background: transparent; padding-top: var(--space-2); }
+
+/* restore under a new name */
+.input.invalid { outline: var(--size-border) solid var(--color-danger); }
+.fieldError { font-weight: 600; color: var(--color-danger); }
 </style>
 
 <div class="sheetPage">
@@ -268,7 +272,7 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
 
   <section>
     <h2>4 · Deleted off</h2>
-    <p class="lead">With the toggle off the list holds active entries only. A restore refused because an active entry took the name in the meantime shows the error notification.</p>
+    <p class="lead">With the toggle off the list holds active entries only. A restore refused because an active entry took the name in the meantime opens the Restore window of section 8.</p>
     <div class="boards" id="deletedBoards"></div>
   </section>
 
@@ -288,6 +292,12 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
     <h2>7 · Transactions: search and New</h2>
     <p class="lead">Agreed: Transactions gets the row of the other sections above its filter chips, the search by text on the left and New transaction on the right. The search looks in the comment, the names of the accounts of a transaction and the name of its location. The floating add button and the sidebar button stay.</p>
     <div class="boards" id="searchBoards"></div>
+  </section>
+
+  <section>
+    <h2>8 · Restore under a new name</h2>
+    <p class="lead">Agreed: Restore on a deleted category is refused when an active category already has its name. The page then opens the window of Edit category, a bottom sheet on a phone and a centered dialog on desktop, with the current name and the reason under the field. Restore category restores it under the typed name; closing the window leaves it deleted.</p>
+    <div class="boards" id="restoreBoards"></div>
   </section>
 
   <section>
@@ -538,6 +548,21 @@ section > p.lead { margin: var(--space-1) 0 var(--space-4); color: var(--color-m
       board: phoneBoard({ active: 'transactions', title: 'Transactions', count: '-$1,229.00', toolbar: txToolbar, list: txList(feedDays) }) }),
     variant({ id: 'transactions-search-desktop', wide: true, name: 'Transactions with search on desktop', note: 'The search field and New transaction sit at the left above the chips, as in the other sections.',
       board: txBoard([transactionDetails({ category: groceries, location: spar })]) }),
+  ].join('');
+
+  const restoreCategories = { ...categories, Fixed: [...categories.Fixed.slice(0, 3), { name: 'Gym', description: 'New club near work' }, categories.Fixed[3]] };
+  const restoreForm = (isDialog) => `
+    <div class="formHead">${isDialog ? '' : icon('back')}<b>Restore category</b></div>
+    <label class="field"><span>Name</span><span class="input invalid">Gym</span><span class="fieldError">An active category already has this name</span></label>
+    <span class="submit">Restore category</span>`;
+  document.getElementById('restoreBoards').innerHTML = [
+    variant({ id: 'category-restore-phone', name: 'Restore category', note: 'The shared Sheet with the name field, its error and Restore category. Back, a swipe down or a tap outside closes it and leaves the category deleted.',
+      board: phoneBoard({ active: 'categories', title: 'Categories', count: '10', toolbar: toolbar({ placeholder: 'Search categories', newLabel: 'category' }), filters: filtersB(true), list: grouped(restoreCategories, { kind: 'category', isSelectable: false }),
+        overlay: `<div class="backdrop"></div><div class="bsheet"><span class="handle"></span>${restoreForm(false)}</div>` }) }),
+    variant({ id: 'category-restore-desktop', wide: true, name: 'Restore category on desktop', note: 'The shared Sheet as a centered dialog.',
+      board: desktopBoard({ active: 'categories', title: 'Categories', count: '10', toolbar: toolbar({ placeholder: 'Search categories', newLabel: 'category' }), filters: filtersB(true), list: grouped(restoreCategories, { kind: 'category' }),
+        aside: recentPanel({ name: 'Rent', meta: 'Category · Fixed · recent transactions', days: rentDays }),
+        overlay: `<div class="backdrop"></div><div class="dialogWrap"><div class="dialog">${restoreForm(true)}</div></div>` }) }),
   ].join('');
 
   document.querySelectorAll('.phone .desktopOnly').forEach((el) => el.remove());
