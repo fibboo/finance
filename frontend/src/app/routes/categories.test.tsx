@@ -1238,20 +1238,63 @@ test('moves the focus between the category and its top transaction with Left and
 
   // assert
   expect(searchField).toHaveFocus();
+});
 
-  // act
+test('keeps the focus in the delete confirmation with Right on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+        ],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [rentPayment],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions/:transactionId', () =>
+      HttpResponse.json(rentPayment),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
+  const rentTransactions = await screen.findByRole('region', { name: 'Transactions of Rent' });
+  await within(rentTransactions).findByRole('link', { name: 'Main card' });
   await user.click(
     within(screen.getByRole('region', { name: 'Fixed' })).getByRole('button', { name: 'Delete' }),
   );
   const confirmation = screen.getByRole('alertdialog', { name: 'Delete this category?' });
-  const focusedButton = document.activeElement;
+
+  // act
   await user.keyboard('{ArrowRight}');
 
   // assert
-  expect(confirmation).toContainElement(
-    focusedButton instanceof HTMLElement ? focusedButton : null,
-  );
-  expect(focusedButton).toHaveFocus();
+  expect(within(confirmation).getByRole('button', { name: 'Cancel' })).toHaveFocus();
 });
 
 test('leaves the focus with Left and Right beside transactions without details on a narrower desktop', async () => {
