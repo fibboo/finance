@@ -46,5 +46,6 @@
 @media (--desktop) {
   .searchField {
     flex: 0 1 var(--size-search);
+    min-height: var(--size-segment);
   }
 }

@@ -1,3 +1,5 @@
+@import '@/styles/media.css';
+
 .newButton {
   flex: none;
   min-height: var(--size-touch);
@@ -35,4 +37,10 @@
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
+}
+
+@media (--desktop) {
+  .newButton {
+    min-height: var(--size-segment);
+  }
 }
