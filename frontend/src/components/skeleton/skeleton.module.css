@@ -17,6 +17,12 @@
   background-color: var(--color-bone);
 }
 
+.line {
+  min-height: 1lh;
+  display: flex;
+  align-items: center;
+}
+
 @keyframes shimmer {
   from {
     background-position: 150% 0;

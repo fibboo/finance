@@ -68,6 +68,7 @@ export function LocationDetails({
       }}
       onClose={onClose}
       onChoose={onChoose}
+      renderSkeleton={undefined}
       renderContent={(closeButton) =>
         location !== undefined && (
           <article aria-labelledby={titleId} className={styles['locationDetails']}>

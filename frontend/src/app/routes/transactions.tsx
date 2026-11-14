@@ -201,6 +201,7 @@ export function Component() {
             <DetailsColumn
               baseCurrency={baseCurrency}
               defaultTransactionId={topTransactionId}
+              isDefaultTransactionPending={feed.query.isPending}
               omittedAccountIds={undefined}
               omittedLocationIds={undefined}
               shownAccount={undefined}

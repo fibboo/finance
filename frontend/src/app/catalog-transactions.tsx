@@ -128,6 +128,7 @@ export function CatalogTransactions({
           <DetailsColumn
             baseCurrency={baseCurrency}
             defaultTransactionId={topTransactionId}
+            isDefaultTransactionPending={feed.query.isPending}
             omittedAccountIds={entryAccountIds}
             omittedLocationIds={entryLocationIds}
             shownAccount={undefined}

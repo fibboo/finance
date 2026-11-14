@@ -29,12 +29,13 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 type SelectedTransactionDetailsProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
+  isDefaultTransactionPending: boolean;
   readAccountLink: ReadAccountLink;
   readLocationLink: ReadLocationLink;
 }>;
 
 type SelectedTransactionProps = Readonly<{
-  transactionId: string;
+  transactionId: string | undefined;
   isShownByDefault: boolean;
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
@@ -56,14 +57,17 @@ function SelectedTransaction({
 }: SelectedTransactionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [editedTransactionId, setEditedTransactionId] = useState<string | undefined>(undefined);
-  const isEditing = editedTransactionId === transactionId;
+  const isEditing = transactionId !== undefined && editedTransactionId === transactionId;
   if (editedTransactionId !== undefined && !isEditing) {
     setEditedTransactionId(undefined);
   }
 
   const editButtonId = useId();
   const relatedQueryKeys = [accountQueries.all().queryKey, summaryQueries.current().queryKey];
-  const { data: transaction, error } = useQuery(transactionQueries.detail(transactionId));
+  const { data: transaction, error } = useQuery({
+    ...transactionQueries.detail(transactionId ?? ''),
+    enabled: transactionId !== undefined,
+  });
   const choices = useMovementChoices(isEditing ? transaction?.transaction_type : undefined);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   if (isNotFound && isShownByDefault) {
@@ -116,6 +120,10 @@ function SelectedTransaction({
           });
         }}
         onChoose={() => {
+          if (transactionId === undefined) {
+            return;
+          }
+
           setSearchParams(writeSelectedTransaction({ searchParams, transactionId }), {
             preventScrollReset: true,
             replace: true,
@@ -163,6 +171,7 @@ function SelectedTransaction({
 export function SelectedTransactionDetails({
   baseCurrency,
   defaultTransactionId,
+  isDefaultTransactionPending,
   readAccountLink,
   readLocationLink,
 }: SelectedTransactionDetailsProps) {
@@ -171,7 +180,7 @@ export function SelectedTransactionDetails({
   const transactionId = selectedTransactionId ?? defaultTransactionId;
   const isShownByDefault = selectedTransactionId === undefined;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
-  if (transactionId === undefined || dictionaries === undefined) {
+  if (dictionaries === undefined || (transactionId === undefined && !isDefaultTransactionPending)) {
     return null;
   }
 

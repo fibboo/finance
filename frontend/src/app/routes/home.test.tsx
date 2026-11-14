@@ -245,6 +245,64 @@ test('shows the first account and the top recent transaction while none is chose
   expect(accountDetails).not.toHaveFocus();
 });
 
+test('shows the framed transaction skeleton before Recent answers and keeps it until the details do', async () => {
+  // arrange
+  let answerFeed = (): void => undefined;
+  const feedAnswered = new Promise<void>((resolve) => {
+    answerFeed = resolve;
+  });
+  let answerDetails = (): void => undefined;
+  const detailsAnswered = new Promise<void>((resolve) => {
+    answerDetails = resolve;
+  });
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', async () => {
+      await feedAnswered;
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${expense.id}`, async () => {
+      await detailsAnswered;
+      return HttpResponse.json(expense);
+    }),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  // the labels of an expense stand in a busy card while the feed loads
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(details).toHaveAttribute('aria-busy', 'true');
+  expect(within(details).getByText('From')).toBeInTheDocument();
+  expect(within(details).getByText('Comment')).toBeInTheDocument();
+
+  // act
+  answerFeed();
+
+  // assert
+  const recentTransactions = await screen.findByRole('region', { name: 'Recent transactions' });
+  expect(
+    await within(recentTransactions).findByRole('link', { name: 'Groceries' }),
+  ).toBeInTheDocument();
+  expect(details).toHaveAttribute('aria-busy', 'true');
+  expect(within(details).queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
+
+  // act
+  answerDetails();
+
+  // assert
+  expect(
+    await within(details).findByRole('heading', { level: 2, name: 'Groceries' }),
+  ).toBeInTheDocument();
+  expect(details).toHaveAttribute('aria-busy', 'false');
+});
+
 test('opens the details of a recent transaction on Home', async () => {
   // arrange
   const user = userEvent.setup();

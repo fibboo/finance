@@ -145,6 +145,7 @@ export function AccountDetails({
       }}
       onClose={onClose}
       onChoose={onChoose}
+      renderSkeleton={undefined}
       renderContent={(closeButton) =>
         account !== undefined && (
           <AccountOverview

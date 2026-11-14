@@ -8,13 +8,19 @@ import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
 import { EditTransaction } from './edit-transaction';
 import { TRANSACTION_ARROW_KEY_LIST } from './transaction-arrow-keys';
-import { type ReadLocationLink, TransactionOverview } from './transaction-overview';
+import {
+  EXPENSE_FRAME,
+  readTransactionFrame,
+  type ReadLocationLink,
+  TransactionOverview,
+  TransactionOverviewSkeleton,
+} from './transaction-overview';
 import type { ReadAccountLink } from './transaction-entry-block';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
 type TransactionDetailsProps = Readonly<{
-  transactionId: string;
+  transactionId: string | undefined;
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
@@ -50,7 +56,11 @@ export function TransactionDetails({
     isFetching,
     isPlaceholderData,
     refetch,
-  } = useQuery({ ...transactionQueries.detail(transactionId), placeholderData: keepPreviousData });
+  } = useQuery({
+    ...transactionQueries.detail(transactionId ?? ''),
+    enabled: transactionId !== undefined,
+    placeholderData: keepPreviousData,
+  });
   return (
     <DetailsPanel
       label="Transaction details"
@@ -61,7 +71,7 @@ export function TransactionDetails({
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop
       errorMessage="Couldn't load the transaction"
-      returnFocusId={readTransactionLinkId(transactionId)}
+      returnFocusId={readTransactionLinkId(transactionId ?? '')}
       back={undefined}
       arrowKeyList={TRANSACTION_ARROW_KEY_LIST}
       onRetry={() => {
@@ -69,6 +79,16 @@ export function TransactionDetails({
       }}
       onClose={onClose}
       onChoose={onChoose}
+      renderSkeleton={(closeButton) => (
+        <TransactionOverviewSkeleton
+          transactionFrame={
+            transaction === undefined
+              ? EXPENSE_FRAME
+              : readTransactionFrame({ transaction, baseCurrency, transactionTypes })
+          }
+          closeButton={closeButton}
+        />
+      )}
       renderContent={(closeButton) =>
         transaction !== undefined && (
           <TransactionOverview

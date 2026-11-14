@@ -7,7 +7,8 @@ const TIP_DURATION_MS = 4000;
 
 type Action =
   | Readonly<{ kind: 'link'; to: To; isScrollKept: boolean }>
-  | Readonly<{ kind: 'button'; blockingHint: string | undefined; onClick: () => void }>;
+  | Readonly<{ kind: 'button'; blockingHint: string | undefined; onClick: () => void }>
+  | Readonly<{ kind: 'disabled' }>;
 
 type ActionButtonProps = Readonly<{
   id?: string;
@@ -79,6 +80,22 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
       >
         {icon}
       </Link>
+    );
+  }
+
+  if (action.kind === 'disabled') {
+    return (
+      <button
+        id={id}
+        type="button"
+        aria-label={label}
+        aria-hidden="true"
+        aria-disabled
+        disabled
+        className={className}
+      >
+        {icon}
+      </button>
     );
   }
 

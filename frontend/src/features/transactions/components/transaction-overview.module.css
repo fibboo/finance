@@ -67,6 +67,44 @@
   overflow-wrap: anywhere;
 }
 
+.skeletonValue {
+  min-height: 1lh;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.metaSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text);
+}
+
+.titleSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-text-lg);
+}
+
+.amountSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-balance);
+}
+
+.baseAmountSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+.factSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+.commentSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text);
+}
+
 .locationLink {
   color: inherit;
   text-decoration: underline;
