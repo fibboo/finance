@@ -14,7 +14,12 @@ import {
   readNeighbourCatalogRowLinkId,
 } from '@/components/catalog-list/catalog-row-focus';
 import { readCatalogSearch, writeCatalogSearch } from '@/components/catalog-list/catalog-search';
-import { readIsDeletedShown, writeIsDeletedShown } from '@/components/catalog-list/deleted-filter';
+import {
+  readIsDeletedShown,
+  storeIsDeletedShown,
+  useStoredIsDeletedShown,
+  writeIsDeletedShown,
+} from '@/components/catalog-list/deleted-filter';
 import { NoEntries } from '@/components/catalog-list/no-entries';
 import { NoMatchingEntries } from '@/components/catalog-list/no-matching-entries';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
@@ -84,7 +89,8 @@ export function Component() {
     categoryTypes === undefined
       ? undefined
       : readCategoryTypeFilter({ searchParams, categoryTypes });
-  const isDeletedShown = readIsDeletedShown(searchParams);
+  const isStoredDeletedShown = useStoredIsDeletedShown('categories');
+  const isDeletedShown = readIsDeletedShown({ searchParams, isStoredDeletedShown });
   const { data: activeCategoryPage } = useQuery({
     ...accountQueries.list({ size: ACCOUNT_PAGE_SIZE, kinds: ['EXPENSE'], order: 'recent_use' }),
     throwOnError: isThrownWithoutData,
@@ -195,10 +201,12 @@ export function Component() {
               setSearchParams(
                 writeIsDeletedShown({
                   searchParams: listSearchParams,
+                  isStoredDeletedShown,
                   isDeletedShown: nextIsDeletedShown,
                 }),
                 { replace: true },
               );
+              storeIsDeletedShown({ page: 'categories', isDeletedShown: nextIsDeletedShown });
             }}
           />
         )}

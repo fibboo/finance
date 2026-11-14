@@ -14,7 +14,12 @@ import {
   readNeighbourCatalogRowLinkId,
 } from '@/components/catalog-list/catalog-row-focus';
 import { readCatalogSearch, writeCatalogSearch } from '@/components/catalog-list/catalog-search';
-import { readIsDeletedShown, writeIsDeletedShown } from '@/components/catalog-list/deleted-filter';
+import {
+  readIsDeletedShown,
+  storeIsDeletedShown,
+  useStoredIsDeletedShown,
+  writeIsDeletedShown,
+} from '@/components/catalog-list/deleted-filter';
 import { NoEntries } from '@/components/catalog-list/no-entries';
 import { NoMatchingEntries } from '@/components/catalog-list/no-matching-entries';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
@@ -68,7 +73,8 @@ export function Component() {
   const search = readCatalogSearch(searchParams);
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
-  const isDeletedShown = readIsDeletedShown(searchParams);
+  const isStoredDeletedShown = useStoredIsDeletedShown('income_sources');
+  const isDeletedShown = readIsDeletedShown({ searchParams, isStoredDeletedShown });
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
     throwOnError: true,
@@ -166,10 +172,12 @@ export function Component() {
             setSearchParams(
               writeIsDeletedShown({
                 searchParams: listSearchParams,
+                isStoredDeletedShown,
                 isDeletedShown: nextIsDeletedShown,
               }),
               { replace: true },
             );
+            storeIsDeletedShown({ page: 'income_sources', isDeletedShown: nextIsDeletedShown });
           }}
         />
       </div>

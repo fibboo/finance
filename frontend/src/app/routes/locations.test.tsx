@@ -192,6 +192,32 @@ test('requests only the active locations with Deleted off and keeps it in the UR
   expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('off');
 });
 
+test('opens with Deleted off when it was turned off on an earlier visit and stores turning it on', async () => {
+  // arrange
+  const user = userEvent.setup();
+  localStorage.setItem('deleted:locations', 'off');
+  server.use(
+    http.get('http://localhost/api/accounting/locations', ({ request }) => {
+      const statuses = new URL(request.url).searchParams.getAll('statuses');
+      const items = statuses.includes('DELETED') ? [spar, oldMarket] : [spar];
+      return HttpResponse.json(readLocationPage(items));
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/locations'] });
+  const list = await screen.findByRole('region', { name: 'Locations' });
+  expect(await within(list).findByText('Spar')).toBeInTheDocument();
+  expect(within(list).queryByText('Old market')).not.toBeInTheDocument();
+  expect(screen.getByRole('switch', { name: 'Deleted' })).not.toBeChecked();
+
+  // act
+  await user.click(screen.getByRole('switch', { name: 'Deleted' }));
+
+  // assert
+  expect(await within(list).findByText('Old market')).toBeInTheDocument();
+  expect(localStorage.getItem('deleted:locations')).toBe('on');
+  expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('on');
+});
+
 test('requests the search term and offers to clear a search that matches nothing', async () => {
   // arrange
   const user = userEvent.setup();
