@@ -3,7 +3,6 @@ import { Link, Navigate, type To, useSearchParams } from 'react-router';
 
 import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
-import { writeDeletedEntryLink } from '@/components/catalog-list/deleted-filter';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import {
   readLocationLinkId,
@@ -27,7 +26,6 @@ import styles from './catalog-transactions.module.css';
 type DictionaryItem = components['schemas']['DictionaryItem'];
 type Transaction = components['schemas']['Transaction'];
 type Account = components['schemas']['Account'];
-type Location = components['schemas']['Location'];
 
 const ACCOUNT_SECTION_PATHNAMES = {
   ASSET: '/accounts',
@@ -36,8 +34,6 @@ const ACCOUNT_SECTION_PATHNAMES = {
   INCOME: '/income-sources',
   EQUITY: '/accounts',
 } as const satisfies Readonly<Record<Account['kind'], string>>;
-
-const CATALOG_ACCOUNT_KINDS: readonly Account['kind'][] = ['EXPENSE', 'INCOME'];
 
 export const CATALOG_FULL_MENU_MIN_WIDTH = '87rem';
 
@@ -57,34 +53,26 @@ function readIsFilteredTransaction({
 }
 
 function readAccountSectionLink(account: Readonly<Account>): To {
-  const selectedAccountParams = writeSelectedAccount({
-    searchParams: new URLSearchParams(),
-    accountId: account.id,
-  });
-  const searchParams = CATALOG_ACCOUNT_KINDS.includes(account.kind)
-    ? writeDeletedEntryLink({ searchParams: selectedAccountParams, status: account.status })
-    : selectedAccountParams;
   const accountSectionLink = {
     pathname: ACCOUNT_SECTION_PATHNAMES[account.kind],
-    search: searchParams.toString(),
+    search: writeSelectedAccount({
+      searchParams: new URLSearchParams(),
+      accountId: account.id,
+    }).toString(),
   };
   return accountSectionLink;
 }
 
-function readLocationSectionLink(location: Readonly<Location>): LocationLink {
-  const searchParams = writeDeletedEntryLink({
-    searchParams: writeSelectedLocation({
-      searchParams: new URLSearchParams(),
-      locationId: location.id,
-    }),
-    status: location.status,
-  });
+function readLocationSectionLink(locationId: string): LocationLink {
   const locationSectionLink = {
     to: {
       pathname: '/locations',
-      search: searchParams.toString(),
+      search: writeSelectedLocation({
+        searchParams: new URLSearchParams(),
+        locationId,
+      }).toString(),
     },
-    id: readLocationLinkId(location.id),
+    id: readLocationLinkId(locationId),
   };
   return locationSectionLink;
 }
@@ -172,8 +160,10 @@ export function CatalogTransactions({
             readAccountLink={(account) =>
               entryAccountIds.includes(account.id) ? undefined : readAccountSectionLink(account)
             }
-            readLocationLink={(location) =>
-              entryLocationIds.includes(location.id) ? undefined : readLocationSectionLink(location)
+            readLocationLink={(locationId) =>
+              entryLocationIds.includes(locationId)
+                ? undefined
+                : readLocationSectionLink(locationId)
             }
           />
         </div>

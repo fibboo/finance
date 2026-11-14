@@ -736,66 +736,6 @@ test('shows the chosen transaction of a location with the location as plain text
   expect(searchParams.get('transaction')).toBeNull();
 });
 
-test('links a deleted category of the chosen transaction with Deleted on', async () => {
-  // arrange
-  vi.stubGlobal('innerWidth', 1280);
-  const deletedGroceries = {
-    ...groceries,
-    status: 'DELETED',
-  } satisfies components['schemas']['Account'];
-  const purchaseOfDeletedCategory = {
-    ...sparPurchase,
-    postings: sparPurchase.postings.map((posting) => ({
-      ...posting,
-      account: posting.account.id === groceries.id ? deletedGroceries : posting.account,
-    })),
-  } satisfies components['schemas']['Transaction'];
-  server.use(
-    http.get('http://localhost/api/dictionaries/accounting', () =>
-      HttpResponse.json({
-        currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
-        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
-        transaction_orders: [],
-      } satisfies components['schemas']['AccountingDictionaries']),
-    ),
-    http.get('http://localhost/api/accounting/locations', () =>
-      HttpResponse.json(readLocationPage([spar])),
-    ),
-    http.get('http://localhost/api/accounting/transactions', () =>
-      HttpResponse.json({
-        items: [purchaseOfDeletedCategory],
-        total: 1,
-        page: 1,
-        size: 15,
-        pages: 1,
-      } satisfies components['schemas']['Page_Transaction_']),
-    ),
-    http.get(`http://localhost/api/accounting/transactions/${sparPurchase.id}`, () =>
-      HttpResponse.json(purchaseOfDeletedCategory),
-    ),
-  );
-
-  // act
-  render(<Component />, {
-    initialEntries: [`/locations?location=${spar.id}&transaction=${sparPurchase.id}`],
-  });
-
-  // assert
-  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
-  expect(
-    await within(transactionDetails).findByRole('link', { name: /Groceries/ }),
-  ).toHaveAttribute('href', `/categories?account=${groceries.id}&deleted=on`);
-  expect(within(transactionDetails).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
-    'href',
-    `/accounts?account=${wallet.id}`,
-  );
-});
-
 test('drops the chosen transaction when Deleted changes the list', async () => {
   // arrange
   const user = userEvent.setup();

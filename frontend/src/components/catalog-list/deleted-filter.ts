@@ -1,10 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { z } from 'zod';
 
-import type { components } from '@/lib/api-schema';
-
-type EntityStatus = components['schemas']['EntityStatusType'];
-
 export type CatalogPage = 'categories' | 'income_sources' | 'locations';
 
 const DELETED_PARAM = 'deleted';
@@ -72,18 +68,6 @@ export function readIsDeletedShown({
     : isStoredDeletedShown;
 
   return isDeletedShown;
-}
-
-export function writeDeletedEntryLink({
-  searchParams,
-  status,
-}: Readonly<{ searchParams: URLSearchParams; status: EntityStatus }>): URLSearchParams {
-  const nextSearchParams = new URLSearchParams(searchParams);
-  if (status === 'DELETED') {
-    nextSearchParams.set(DELETED_PARAM, DELETED_ON);
-  }
-
-  return nextSearchParams;
 }
 
 export function writeIsDeletedShown({

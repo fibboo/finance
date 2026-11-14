@@ -5,7 +5,6 @@ import {
   readIsDeletedShown,
   storeIsDeletedShown,
   useStoredIsDeletedShown,
-  writeDeletedEntryLink,
   writeIsDeletedShown,
 } from './deleted-filter';
 
@@ -86,22 +85,6 @@ test('drops the deleted param when Deleted is turned on over a stored on', () =>
 
   // assert
   expect(searchParams.has('deleted')).toBe(false);
-});
-
-test('writes on to the URL of a link to a deleted entry only', () => {
-  // act
-  const deletedEntryParams = writeDeletedEntryLink({
-    searchParams: new URLSearchParams('location=1'),
-    status: 'DELETED',
-  });
-  const activeEntryParams = writeDeletedEntryLink({
-    searchParams: new URLSearchParams('location=1'),
-    status: 'ACTIVE',
-  });
-
-  // assert
-  expect(deletedEntryParams.toString()).toBe('location=1&deleted=on');
-  expect(activeEntryParams.toString()).toBe('location=1');
 });
 
 test('reads the stored value of the page only and follows what is stored later', () => {

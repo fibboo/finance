@@ -98,6 +98,48 @@ export function readTypeLabel({
   return type.label;
 }
 
+function readAdjustmentPosting({
+  debit,
+  credit,
+}: Readonly<{ debit: Posting; credit: Posting }>): Posting {
+  const posting = debit.account.kind === 'EQUITY' ? credit : debit;
+  return posting;
+}
+
+export type TransactionEntry = Readonly<{ role: 'From' | 'To'; posting: Posting }>;
+
+export function readTransactionEntries(transaction: Readonly<Transaction>): TransactionEntry[] {
+  const debit = requireField({ value: transaction.postings[0], name: 'debit' });
+  const credit = requireField({ value: transaction.postings[1], name: 'credit' });
+  if (transaction.transaction_type !== 'ADJUSTMENT') {
+    const entries = [
+      { role: 'From', posting: debit },
+      { role: 'To', posting: credit },
+    ] satisfies TransactionEntry[];
+    return entries;
+  }
+
+  const posting = readAdjustmentPosting({ debit, credit });
+  const entries = [
+    { role: Number(posting.amount) < 0 ? 'From' : 'To', posting },
+  ] satisfies TransactionEntry[];
+  return entries;
+}
+
+export function readExchangeDifference(transaction: Readonly<Transaction>): number | undefined {
+  const valuationPostings = transaction.postings.filter(
+    (posting) =>
+      Number(posting.amount) === 0 &&
+      isMoneyAccountKind(posting.account.kind) &&
+      posting.base_amount !== null,
+  );
+  const exchangeDifference =
+    valuationPostings.length === 0
+      ? undefined
+      : valuationPostings.reduce((sum, posting) => sum + Number(posting.base_amount), 0);
+  return exchangeDifference;
+}
+
 export function readTransactionView({
   transaction,
   transactionTypes,
@@ -155,7 +197,7 @@ export function readTransactionView({
       return view;
     }
     case 'ADJUSTMENT': {
-      const posting = credit.account.kind === 'EQUITY' ? debit : credit;
+      const posting = readAdjustmentPosting({ debit, credit });
       const typeLabel = readTypeLabel({ transaction, transactionTypes });
       const view = {
         title: [typeLabel],

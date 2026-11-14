@@ -9,7 +9,7 @@ import { DeleteTransaction } from './delete-transaction';
 import { EditTransaction } from './edit-transaction';
 import { TRANSACTION_ARROW_KEY_LIST } from './transaction-arrow-keys';
 import { type ReadLocationLink, TransactionOverview } from './transaction-overview';
-import type { ReadAccountLink } from './transaction-postings';
+import type { ReadAccountLink } from './transaction-entry-block';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
@@ -18,6 +18,7 @@ type TransactionDetailsProps = Readonly<{
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
   accountKinds: readonly DictionaryItem[];
+  categoryTypes: readonly DictionaryItem[];
   readAccountLink: ReadAccountLink;
   readLocationLink: ReadLocationLink;
   relatedQueryKeys: readonly QueryKey[];
@@ -33,6 +34,7 @@ export function TransactionDetails({
   baseCurrency,
   transactionTypes,
   accountKinds,
+  categoryTypes,
   readAccountLink,
   readLocationLink,
   relatedQueryKeys,
@@ -73,6 +75,7 @@ export function TransactionDetails({
             baseCurrency={baseCurrency}
             transactionTypes={transactionTypes}
             accountKinds={accountKinds}
+            categoryTypes={categoryTypes}
             readAccountLink={readAccountLink}
             readLocationLink={readLocationLink}
             closeButton={closeButton}
