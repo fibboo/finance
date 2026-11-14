@@ -15,10 +15,12 @@ import {
 } from '@/features/transactions/api/selected-transaction';
 import type { TransactionFilterQuery } from '@/features/transactions/api/transaction-filters';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
+import { TRANSACTION_ARROW_KEY_LIST } from '@/features/transactions/components/transaction-arrow-keys';
 import { readTopTransactionId } from '@/features/transactions/components/feed-transactions';
 import type { LocationLink } from '@/features/transactions/components/transaction-overview';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
 import { useTransactionFeed } from '@/features/transactions/hooks/use-transaction-feed';
+import { useListFocusKeys } from '@/hooks/use-arrow-key-selection';
 import { useIsWideDesktop } from '@/hooks/use-is-desktop';
 import type { components } from '@/lib/api-schema';
 
@@ -101,6 +103,10 @@ export function CatalogTransactions({
 }: CatalogTransactionsProps) {
   const baseCurrency = useBaseCurrency();
   const isDetailsShown = useIsWideDesktop();
+  useListFocusKeys({
+    rightList: TRANSACTION_ARROW_KEY_LIST['data-arrow-key-list'],
+    isEnabled: isDetailsShown,
+  });
   const [searchParams] = useSearchParams();
   const selectedTransactionId = readSelectedTransactionId(searchParams);
   const { data: selectedTransaction } = useQuery({
