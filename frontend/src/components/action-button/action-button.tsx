@@ -85,15 +85,7 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
 
   if (action.kind === 'disabled') {
     return (
-      <button
-        id={id}
-        type="button"
-        aria-label={label}
-        aria-hidden="true"
-        aria-disabled
-        disabled
-        className={className}
-      >
+      <button id={id} type="button" aria-hidden="true" aria-disabled disabled className={className}>
         {icon}
       </button>
     );

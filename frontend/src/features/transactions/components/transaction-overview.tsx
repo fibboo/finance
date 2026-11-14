@@ -77,10 +77,10 @@ export type TransactionFrame = Readonly<{
 }>;
 
 export const EXPENSE_FRAME: TransactionFrame = {
-  hasBaseAmount: true,
+  hasBaseAmount: false,
   entryFrames: [
-    { role: 'From', isMoneyAccount: true, hasBalance: true, hasBaseAmount: true },
-    { role: 'To', isMoneyAccount: false, hasBalance: false, hasBaseAmount: true },
+    { role: 'From', isMoneyAccount: true, hasBalance: true, hasBaseAmount: false },
+    { role: 'To', isMoneyAccount: false, hasBalance: false, hasBaseAmount: false },
   ],
   hasExchangeDifference: false,
 };
