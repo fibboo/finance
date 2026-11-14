@@ -3,7 +3,7 @@
 .searchField {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: var(--size-touch);
+  min-height: var(--size-segment);
   padding: 0 var(--space-3-5);
   border-radius: var(--radius-full);
   display: flex;
@@ -46,6 +46,5 @@
 @media (--desktop) {
   .searchField {
     flex: 0 1 var(--size-search);
-    min-height: var(--size-segment);
   }
 }
