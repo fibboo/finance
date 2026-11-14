@@ -1238,6 +1238,55 @@ test('moves the focus between the category and its top transaction with Left and
 
   // assert
   expect(searchField).toHaveFocus();
+
+  // act
+  await user.click(
+    within(screen.getByRole('region', { name: 'Fixed' })).getByRole('button', { name: 'Delete' }),
+  );
+  const confirmation = screen.getByRole('alertdialog', { name: 'Delete this category?' });
+  const focusedButton = document.activeElement;
+  await user.keyboard('{ArrowRight}');
+
+  // assert
+  expect(confirmation).toContainElement(
+    focusedButton instanceof HTMLElement ? focusedButton : null,
+  );
+  expect(focusedButton).toHaveFocus();
+});
+
+test('leaves the focus with Left and Right beside transactions without details on a narrower desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1024);
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [rentPayment],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
+  const rentTransactions = await screen.findByRole('region', { name: 'Transactions of Rent' });
+  expect(await within(rentTransactions).findAllByText('-$900.00')).not.toHaveLength(0);
+
+  // act
+  await user.keyboard('{ArrowLeft}{ArrowRight}');
+
+  // assert
+  expect(document.body).toHaveFocus();
 });
 
 test('drops the chosen transaction when the type filter or Deleted changes the list', async () => {

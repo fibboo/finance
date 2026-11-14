@@ -10,7 +10,7 @@ const STEP_KEYS = {
 } satisfies Readonly<Record<Orientation, Readonly<Record<string, number>>>>;
 
 const KEY_OWNER_SELECTOR =
-  'input, textarea, select, [contenteditable="true"], dialog, [role="dialog"]:not([data-details-panel])';
+  'input, textarea, select, [contenteditable="true"], dialog, [role="dialog"]:not([data-details-panel]), [role="alertdialog"]';
 
 const arrowKeySelectionStateSchema = z.object({ isArrowKeySelection: z.literal(true) });
 
@@ -157,9 +157,13 @@ export function useListFocusKeys({
   isEnabled,
 }: Readonly<{ rightList: string; isEnabled: boolean }>): void {
   useEffect(() => {
+    if (!isEnabled) {
+      return;
+    }
+
     function handleKeyDown(event: KeyboardEvent) {
       const step = readStep({ event, orientation: 'horizontal' });
-      if (!isEnabled || step === undefined || readIsKeyOwnedElsewhere(event.target)) {
+      if (step === undefined || readIsKeyOwnedElsewhere(event.target)) {
         return;
       }
 

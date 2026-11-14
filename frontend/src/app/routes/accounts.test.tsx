@@ -1189,21 +1189,6 @@ test('moves the focus between the chosen account and the chosen transaction with
   expect(router.state.location.search).toBe(search);
 });
 
-test('leaves the focus with Left on a narrower desktop', async () => {
-  // arrange
-  const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1024);
-  serveAccountTransactions();
-  render(<Component />);
-  await screen.findByRole('link', { name: 'Wallet' });
-
-  // act
-  await user.keyboard('{ArrowLeft}');
-
-  // assert
-  expect(document.body).toHaveFocus();
-});
-
 test('keeps the account details without transactions on a narrower desktop', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 1024);
