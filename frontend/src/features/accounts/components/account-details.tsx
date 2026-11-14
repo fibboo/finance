@@ -2,6 +2,8 @@ import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query
 import type { To } from 'react-router';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
+import { LoadError } from '@/components/load-error/load-error';
+import { Skeleton } from '@/components/skeleton/skeleton';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
@@ -17,8 +19,12 @@ import { RestoreAccount } from './restore-account';
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
+export type AccountDetailsForm = 'panel' | 'summary';
+
+const LOAD_ERROR_MESSAGE = "Couldn't load the account";
+
 type AccountDetailsProps = Readonly<{
-  form: 'panel' | 'summary';
+  form: AccountDetailsForm;
   accountId: string;
   baseCurrency: string;
   accountKinds: readonly DictionaryItem[];
@@ -85,11 +91,29 @@ export function AccountDetails({
         onDeleted={isMoneyAccountKind(account.kind) ? onDeleted : onStatusChanged}
       />
     );
+  if (form === 'summary' && account === undefined) {
+    return isError ? (
+      <LoadError
+        message={LOAD_ERROR_MESSAGE}
+        onRetry={() => {
+          void refetch();
+        }}
+      />
+    ) : (
+      <Skeleton className={styles['balanceSkeleton']} />
+    );
+  }
+
   if (form === 'summary') {
     return (
       account !== undefined && (
         <div className={styles['summary']}>
           <AccountBalance account={account} baseCurrency={baseCurrency} isInline />
+          {account.description !== undefined &&
+            account.description !== null &&
+            account.description !== '' && (
+              <p className={styles['description']}>{account.description}</p>
+            )}
           <AccountActions
             account={account}
             adjustBalanceLink={adjustBalanceLink}
@@ -112,7 +136,7 @@ export function AccountDetails({
       isReplacing={isPlaceholderData}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}
-      errorMessage="Couldn't load the account"
+      errorMessage={LOAD_ERROR_MESSAGE}
       returnFocusId={readAccountLinkId(accountId)}
       arrowKeyList={undefined}
       onRetry={() => {

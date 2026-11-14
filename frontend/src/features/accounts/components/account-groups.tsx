@@ -31,6 +31,7 @@ type AccountGroupsProps = Readonly<{
   topAccountId: string | undefined;
   baseCurrency: string;
   listSearchParams: URLSearchParams;
+  isParamIgnored: boolean;
 }>;
 
 function sumBaseCurrencyBalances(accounts: readonly Account[]): number {
@@ -59,6 +60,7 @@ export function AccountGroups({
   topAccountId,
   baseCurrency,
   listSearchParams,
+  isParamIgnored,
 }: AccountGroupsProps) {
   const [searchParams] = useSearchParams();
   const arrowKeySelection = useArrowKeySelection({
@@ -66,7 +68,7 @@ export function AccountGroups({
     orientation: 'vertical',
     isFocusRequired: false,
   });
-  const selectedAccountId = readSelectedAccountId(searchParams);
+  const selectedAccountId = isParamIgnored ? undefined : readSelectedAccountId(searchParams);
   const groups = readAccountGroups(accounts ?? []);
   return (
     <div className={styles['accountGroups']} aria-busy={accounts === undefined}>

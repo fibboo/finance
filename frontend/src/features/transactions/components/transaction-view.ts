@@ -253,6 +253,7 @@ export function readMoneyEntryView({
       otherPosting.account,
     ],
     accountNames: [],
+    markedAccount: entryPosting.account,
     titleMarkedAccount: null,
     amount,
     baseAmount: entryPosting.base_amount === null ? null : Number(entryPosting.base_amount),

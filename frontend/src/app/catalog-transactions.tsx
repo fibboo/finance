@@ -38,6 +38,8 @@ const ACCOUNT_SECTION_PATHNAMES = {
 
 export const CATALOG_FULL_MENU_MIN_WIDTH = '87rem';
 
+export const CATALOG_DESCRIPTION_SEPARATOR = ' · ';
+
 function readIsFilteredTransaction({
   transaction,
   filterQuery,

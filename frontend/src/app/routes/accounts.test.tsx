@@ -1203,3 +1203,64 @@ test('ignores the transaction param on a phone', async () => {
   expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
   expect(transactionRequestCount).toBe(0);
 });
+
+test('retries the account of the feed header and shows its description on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  let walletRequestCount = 0;
+  serveAccountTransactions();
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () => {
+      walletRequestCount += 1;
+      return walletRequestCount === 1
+        ? HttpResponse.json(
+            { error_code: 'INTERNAL_ERROR', message: 'Internal error' },
+            { status: 500 },
+          )
+        : HttpResponse.json({ ...wallet, description: 'Cash for the week' });
+    }),
+  );
+  render(<Component />);
+  const walletTransactions = await screen.findByRole('region', {
+    name: 'Transactions of Wallet',
+  });
+  expect(
+    await within(walletTransactions).findByText("Couldn't load the account"),
+  ).toBeInTheDocument();
+
+  // act
+  await user.click(within(walletTransactions).getByRole('button', { name: 'Try again' }));
+
+  // assert
+  expect(await within(walletTransactions).findByText('Cash for the week')).toBeInTheDocument();
+  expect(within(walletTransactions).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+});
+
+test('marks the account the feed shows when the search hides the chosen one on a wide desktop', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 1280);
+  serveAccountTransactions();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const items =
+        new URL(request.url).searchParams.get('search_term') === 'wal'
+          ? [wallet]
+          : [wallet, creditCard];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/?account=${creditCard.id}&search=wal`] });
+
+  // assert
+  expect(await screen.findByRole('region', { name: 'Transactions of Wallet' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Wallet' })).toHaveAttribute('data-shown-by-default');
+});

@@ -10,7 +10,10 @@ import {
   readSelectedAccountId,
   writeSelectedAccount,
 } from '@/features/accounts/api/selected-account';
-import { AccountDetails } from '@/features/accounts/components/account-details';
+import {
+  AccountDetails,
+  type AccountDetailsForm,
+} from '@/features/accounts/components/account-details';
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
@@ -35,8 +38,6 @@ const EDIT_SHEET_LABELS = {
   EXPENSE: 'Edit category',
   INCOME: 'Edit income source',
 } as const;
-
-type AccountDetailsForm = 'panel' | 'summary';
 
 type SelectedAccountDetailsProps = Readonly<{
   form: AccountDetailsForm;

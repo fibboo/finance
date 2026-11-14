@@ -81,6 +81,7 @@ test('groups assets before liabilities, each with its total and its accounts in 
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
     />,
   );
 
@@ -116,6 +117,7 @@ test('leaves out a group without accounts', () => {
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
     />,
   );
 
@@ -132,6 +134,7 @@ test('shows the groups as loading while the accounts are pending', () => {
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
     />,
   );
 
@@ -149,6 +152,7 @@ test('moves the selection through the rows of both groups with the arrow keys', 
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
     />,
   );
   await user.tab();
@@ -174,6 +178,7 @@ test('moves the selection from the selected row with the arrow keys while the fo
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
     />,
     { initialEntries: [`/?account=${savings.id}`] },
   );
@@ -203,6 +208,7 @@ test.each([
         topAccountId={topAccountId}
         baseCurrency="USD"
         listSearchParams={new URLSearchParams()}
+        isParamIgnored={false}
       />,
     );
 
@@ -227,6 +233,7 @@ test.each(['Shift', 'Control', 'Alt', 'Meta'])(
         topAccountId={undefined}
         baseCurrency="USD"
         listSearchParams={new URLSearchParams()}
+        isParamIgnored={false}
       />,
     );
     await user.tab();

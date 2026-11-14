@@ -2,7 +2,11 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { CATALOG_FULL_MENU_MIN_WIDTH, CatalogTransactions } from '@/app/catalog-transactions';
+import {
+  CATALOG_DESCRIPTION_SEPARATOR,
+  CATALOG_FULL_MENU_MIN_WIDTH,
+  CatalogTransactions,
+} from '@/app/catalog-transactions';
 import { SelectedAccountDetails } from '@/app/selected-account-details';
 import { readTransactionsLink } from '@/app/transactions-link';
 import { useBaseCurrency } from '@/app/use-base-currency';
@@ -30,8 +34,6 @@ import { readSearchTerm } from '@/lib/search-term';
 import styles from './accounts.module.css';
 
 export const handle = { fullMenuMinWidth: CATALOG_FULL_MENU_MIN_WIDTH };
-
-const DESCRIPTION_SEPARATOR = ' · ';
 
 function readAccountCount(
   total: number | undefined,
@@ -129,6 +131,7 @@ export function Component() {
                 topAccountId={topAccountId}
                 baseCurrency={baseCurrency}
                 listSearchParams={listSearchParams}
+                isParamIgnored={isWideDesktop && chosenAccount === undefined}
               />
             )}
           </div>
@@ -143,7 +146,7 @@ export function Component() {
                   'recent transactions',
                 ]
                   .filter((part) => part !== undefined)
-                  .join(DESCRIPTION_SEPARATOR)}
+                  .join(CATALOG_DESCRIPTION_SEPARATOR)}
                 emptyText="No transactions in this account yet"
                 filterQuery={{ account_ids: [shownAccount.id] }}
                 transactionsLink={readTransactionsLink(shownAccount)}
