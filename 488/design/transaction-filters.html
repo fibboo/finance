@@ -1,0 +1,471 @@
+<title>Transaction Filters Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one section per variant, phone frame beside a scaled desktop strip; app tokens from frontend/src/styles/tokens.css */
+:root {
+  --ground: #eeeeeb; --panel: #ffffff; --border: #e2e2de; --ink: #17181a; --muted: #5a5d64;
+  --accent: #1f7a55; --transfer: #e8eef9; --band: #f4f4f1; --page: #e6e6e2; --bad: #b42318;
+  --font: "Inter", system-ui, sans-serif; --display: "Space Grotesk", "Inter", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --ground: #0b0c0e; --panel: #17191c; --border: #2a2d32; --ink: #ecedee; --muted: #9a9ea6;
+  --accent: #4cc38a; --transfer: #172131; --band: #1e2125; --page: #050607; --bad: #ff7a6b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --ground: #0b0c0e; --panel: #17191c; --border: #2a2d32; --ink: #ecedee; --muted: #9a9ea6;
+  --accent: #4cc38a; --transfer: #172131; --band: #1e2125; --page: #050607; --bad: #ff7a6b; color-scheme: dark }
+body { background: var(--page); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+h1 { font-family: var(--display); font-size: 30px; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 22px; margin: 0; text-wrap: balance; }
+.lead { color: var(--muted); max-width: 70ch; margin: 8px 0 0; }
+.problem { display: grid; gap: 6px; max-width: 75ch; padding: 0; margin: 12px 0 0; list-style: none; }
+.problem li::before { content: "— "; color: var(--muted); }
+section.variant { display: grid; gap: 16px; border-top: 1px solid var(--border); padding-top: 28px; }
+.tag { display: inline-block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rec { color: var(--accent); font-weight: 600; }
+.cols { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.notes { flex: 1 1 300px; min-width: 0; display: grid; gap: 10px; }
+.notes p { margin: 0; max-width: 62ch; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pc div { background: var(--panel); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.pc b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+@media (max-width: 560px) { .pc { grid-template-columns: 1fr; } }
+.screens { display: flex; flex-wrap: wrap; gap: 16px; }
+.cap { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* phone */
+.phone { width: 300px; max-width: 100%; height: 520px; background: var(--ground); border-radius: 28px; border: 1px solid var(--border); padding: 18px 12px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; position: relative; font-size: 13px; }
+.title { font-weight: 700; font-size: 20px; } .title span { color: var(--muted); font-weight: 500; }
+.row { display: flex; gap: 8px; align-items: center; }
+.search { flex: 1; min-width: 0; height: 38px; border-radius: 999px; background: var(--panel); color: var(--muted); display: flex; align-items: center; padding: 0 14px; gap: 6px; white-space: nowrap; overflow: hidden; }
+.new { height: 38px; padding: 0 14px; border-radius: 999px; background: var(--ink); color: var(--ground); display: flex; align-items: center; font-weight: 600; white-space: nowrap; }
+.ibtn { width: 38px; height: 38px; flex: none; border-radius: 999px; background: var(--panel); display: grid; place-items: center; position: relative; }
+.ibtn.on { background: var(--ink); color: var(--ground); }
+.badge { position: absolute; top: -3px; right: -3px; min-width: 17px; height: 17px; border-radius: 999px; background: var(--accent); color: var(--ground); font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; }
+.chips { display: flex; gap: 6px; overflow: hidden; flex: none; }
+.chips.wrapr { flex-wrap: wrap; }
+.chip { flex: none; height: 30px; padding: 0 11px; border-radius: 999px; background: var(--panel); display: flex; align-items: center; gap: 5px; font-weight: 500; white-space: nowrap; }
+.chip.on { background: var(--ink); color: var(--ground); }
+.chip.ghost { background: transparent; color: var(--muted); }
+.chip .x { opacity: .7; font-size: 12px; }
+.summary { flex: none; display: flex; gap: 8px; align-items: flex-start; background: var(--panel); border-radius: 12px; padding: 8px 10px; }
+.summary .txt { flex: 1; min-width: 0; }
+.summary .clear { color: var(--accent); font-weight: 600; }
+.list { flex: 1; background: var(--panel); border-radius: 16px; padding: 6px; display: grid; gap: 4px; align-content: start; overflow: hidden; }
+.tx { background: var(--transfer); border-radius: 10px; padding: 6px 8px; display: flex; justify-content: space-between; gap: 6px; }
+.tx .n { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx .d { color: var(--muted); font-size: 11px; }
+.tx .a { font-weight: 600; font-variant-numeric: tabular-nums; }
+.svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chev::after { content: "▾"; font-size: 10px; opacity: .8; }
+
+/* sheet */
+.dim { position: absolute; inset: 0; background: rgb(0 0 0 / 40%); }
+.sheet { position: absolute; left: 8px; right: 8px; bottom: 8px; top: 40px; background: var(--panel); border-radius: 20px; padding: 8px 14px 12px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.handle { width: 36px; height: 4px; border-radius: 9px; background: var(--border); align-self: center; }
+.sh { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 16px; }
+.sh .reset { font-size: 13px; color: var(--accent); font-weight: 600; }
+.sec { display: grid; gap: 6px; }
+.lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.seg { display: flex; background: var(--band); border-radius: 10px; padding: 3px; gap: 3px; }
+.seg span { flex: 1; text-align: center; padding: 5px 0; border-radius: 8px; font-size: 12px; }
+.seg .on { background: var(--panel); font-weight: 600; }
+.sheet .chip { background: var(--band); height: 28px; }
+.sheet .chip.on { background: var(--ink); }
+.line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.line .v { color: var(--muted); } .line .v.on { color: var(--ink); font-weight: 600; }
+.cta { margin-top: auto; height: 40px; border-radius: 999px; background: var(--ink); color: var(--ground); display: grid; place-items: center; font-weight: 600; }
+.fields { display: flex; gap: 8px; } .fields span { flex: 1; background: var(--band); border-radius: 10px; padding: 6px 10px; color: var(--muted); }
+
+/* desktop strip */
+.desk { width: 640px; max-width: 100%; background: var(--ground); border-radius: 16px; border: 1px solid var(--border); padding: 16px; display: grid; gap: 10px; font-size: 13px; }
+.desk .search { flex: 0 1 260px; }
+.desk .body { display: grid; grid-template-columns: 1fr 160px; gap: 10px; }
+.desk .list { min-height: 120px; }
+.desk .det { background: var(--panel); border-radius: 16px; }
+.pop { position: relative; }
+.pop .panel { position: absolute; top: 40px; left: 0; width: 260px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 12px; display: grid; gap: 8px; box-shadow: 0 12px 32px rgb(0 0 0 / 30%); z-index: 1; }
+/* full desktop board for variant B */
+.board-scroll { overflow-x: auto; scrollbar-width: none; max-width: 100%; border-radius: 18px; }
+.board { width: 1140px; height: 640px; background: var(--ground); border: 1px solid var(--border); border-radius: 18px; padding: 16px; display: grid; grid-template-columns: 190px 1fr; gap: 20px; font-size: 13px; position: relative; overflow: hidden; }
+.side { background: var(--panel); border-radius: 18px; padding: 18px 12px; display: flex; flex-direction: column; gap: 6px; }
+.side .brand { font-weight: 700; font-size: 15px; padding: 0 8px 10px; display: flex; gap: 8px; align-items: center; }
+.side .brand::before { content: ""; width: 8px; height: 8px; border-radius: 3px; background: var(--accent); }
+.side .add { background: var(--ink); color: var(--ground); border-radius: 12px; padding: 9px 12px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+.side .nav { padding: 8px 10px; border-radius: 10px; color: var(--muted); }
+.side .nav.on { background: var(--ground); color: var(--ink); font-weight: 600; }
+.main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.main .top { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px 0; }
+.main .top .title { font-size: 22px; }
+.avatar { width: 34px; height: 34px; border-radius: 999px; background: var(--panel); display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+.main .row .search { flex: 0 1 300px; }
+.main .row .ibtn { width: auto; padding: 0 14px; gap: 6px; display: flex; font-weight: 500; }
+.main .row .ibtn .badge { position: static; }
+.dsum { display: flex; gap: 12px; align-items: center; background: var(--panel); border-radius: 12px; padding: 8px 14px; align-self: flex-start; max-width: 100%; }
+.dsum .clear { color: var(--accent); font-weight: 600; }
+.dsum .edit { color: var(--muted); }
+.feed { flex: 1; display: grid; grid-template-columns: 1fr 300px; gap: 14px; min-height: 0; }
+.feed .list { padding: 8px; gap: 6px; }
+.feed .tx { padding: 8px 12px; }
+.feed .tx .a small { display: block; color: var(--muted); font-weight: 400; font-size: 11px; text-align: right; }
+.dday { font-size: 11px; color: var(--muted); padding: 4px 6px 0; text-transform: uppercase; letter-spacing: .06em; }
+.details { background: var(--panel); border-radius: 18px; padding: 16px; display: grid; gap: 8px; align-content: start; }
+.details .big { font-size: 26px; font-weight: 700; font-family: var(--display); }
+.details .blk { background: var(--ground); border-radius: 12px; padding: 10px 12px; display: flex; justify-content: space-between; }
+.dpanel { position: absolute; top: 140px; width: 380px; background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 16px 40px rgb(0 0 0 / 35%); z-index: 2; }
+.dpanel .chip { background: var(--band); height: 28px; }
+.dpanel .chip.on { background: var(--ink); }
+.dpanel .cta { margin-top: 4px; }
+.dpanel .back { color: var(--muted); }
+.check { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.check .box { width: 16px; height: 16px; border-radius: 5px; border: 2px solid var(--muted); flex: none; }
+.check .box.on { background: var(--ink); border-color: var(--ink); }
+.check .dot { width: 8px; height: 8px; border-radius: 9px; flex: none; }
+.check .cur { margin-left: auto; color: var(--muted); }
+.dates { display: flex; gap: 8px; }
+.fld { flex: 1; min-width: 0; background: var(--band); border-radius: 10px; padding: 4px 10px; display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 6px; }
+.fld small { grid-column: 1 / -1; font-size: 10px; color: var(--muted); }
+.fld .val { font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+.fld .ph { color: var(--muted); }
+.fld .clr { color: var(--muted); font-size: 12px; }
+.scroll { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.tbl { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+.tbl th, .tbl td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.tbl th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="tag">Transactions · фильтры</span>
+    <h1>Как переделать фильтры транзакций</h1>
+    <p class="lead">Сейчас под поиском стоит восемь чипов: Period, Type, Accounts, Categories, Income, Locations, Amount и Sort. Ниже четыре варианта, на телефоне 390 px и на десктопе. Тема тёмная или светлая, как у системы.</p>
+    <ul class="problem">
+      <li>На телефоне видно 2,5 чипа из восьми; применённые Amount и Sort уходят за край, и не видно, что они включены.</li>
+      <li>На десктопе чипы переносятся во второй ряд и съедают ~100 px над лентой.</li>
+      <li>Пять из восьми чипов почти всегда пустые, но занимают место всегда.</li>
+      <li>Сортировка не фильтр, но стоит в том же ряду и выглядит так же.</li>
+    </ul>
+  </header>
+
+  <!-- B desktop -->
+  <section class="variant">
+    <div><span class="tag rec">Выбран · вариант B на десктопе</span><h2>Иконка фильтров со счётчиком и строка-сводка, ноутбук 1707 px</h2></div>
+    <p class="lead">Отдельного ряда чипов нет. Кнопка «Filters» стоит в строке поиска; на десктопе у неё есть подпись, потому что место позволяет. Под строкой поиска сводка появляется, только когда что-то применено. Панель открывается поповером под кнопкой, и в ней те же секции, что в листе на телефоне.</p>
+    <ul class="problem">
+      <li>Кнопка подписана «Filters» на десктопе, на телефоне остаётся только иконка.</li>
+      <li>Каждое изменение в панели применяется сразу, лента и счётчик в заголовке обновляются под панелью. Кнопки Apply нет; панель закрывается крестиком, Esc, кликом снаружи или свайпом. На телефоне лист закрывает ленту, поэтому внизу листа «Show N transactions»: число уже применённого результата, нажатие закрывает лист. Поля дат показывают крестик очистки, когда в них что-то введено. Кнопки месяцев прыгают к месяцу и закрывают панель.</li>
+      <li>У частей сводки нет крестиков, сводка остаётся компактной: снять всё можно через «Clear», снять один фильтр через панель.</li>
+    </ul>
+
+    <div>
+      <div class="board-scroll"><div class="board">
+        <div class="side"><div class="brand">finance</div><div class="add">+ Add transaction</div><div class="nav">Home</div><div class="nav on">Transactions</div><div class="nav">Accounts</div><div class="nav">Categories</div><div class="nav">Locations</div><div class="nav">Income sources</div></div>
+        <div class="main">
+          <div class="top"><div class="title">Transactions <span>104</span></div><div class="avatar">TE</div></div>
+          <div class="row"><div class="search">⌕ Search transactions</div><div class="ibtn"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters</div><div class="new">+ New transaction</div></div>
+          <div class="feed">
+            <div class="list">
+              <div class="dday">Tue, 10.11.2026</div>
+              <div class="tx"><div><div class="n">Clothing</div><div class="d">Credit EUR · EUR · 0.8989</div></div><div class="a">-$173.75<small>€156.18</small></div></div>
+              <div class="dday">Mon, 09.11.2026</div>
+              <div class="tx"><div><div class="n">Wallet 2 → Wallet</div><div class="d">USD</div></div><div class="a">$389.10</div></div>
+              <div class="tx"><div><div class="n">Wallet 3 → Wallet</div><div class="d">USD</div></div><div class="a">$389.10</div></div>
+              <div class="dday">Tue, 06.10.2026</div>
+              <div class="tx"><div><div class="n">Airbag USDT → UniCredit card</div><div class="d">USD</div></div><div class="a">$500.00</div></div>
+              <div class="tx"><div><div class="n">Airbag USD Cash → UniCredit štednj</div><div class="d">USD</div></div><div class="a">$500.00</div></div>
+              <div class="tx"><div><div class="n">Main card → UniCredit Dinar card</div><div class="d">EUR · 0.8547</div></div><div class="a">$413.85<small>€353.72</small></div></div>
+            </div>
+            <div class="details"><span class="d">Expense · Tue, 10.11.2026</span><div class="n" style="font-weight:600;font-size:16px">Clothing</div><div class="big">€156.18</div><span class="lbl">From</span><div class="blk"><span>Credit EUR</span><span>-€156.18</span></div><span class="lbl">To</span><div class="blk"><span>Clothing</span><span>+€156.18</span></div></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap">1. Без фильтров: лента начинается сразу под строкой поиска, на ряд выше, чем сейчас.</div>
+    </div>
+
+    <div>
+      <div class="board-scroll"><div class="board">
+        <div class="side"><div class="brand">finance</div><div class="add">+ Add transaction</div><div class="nav">Home</div><div class="nav on">Transactions</div><div class="nav">Accounts</div><div class="nav">Categories</div><div class="nav">Locations</div><div class="nav">Income sources</div></div>
+        <div class="main">
+          <div class="top"><div class="title">Transactions <span>37</span></div><div class="avatar">TE</div></div>
+          <div class="row"><div class="search">⌕ Search transactions</div><div class="ibtn on"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters <span class="badge">4</span></div><div class="new">+ New transaction</div></div>
+          <div class="dsum"><span>From 01.09.2026 · Expense, Transfer · Over $10 · Largest first</span><span class="clear">Clear</span></div>
+          <div class="feed">
+            <div class="list">
+              <div class="tx"><div><div class="n">Main card → UniCredit Dinar card</div><div class="d">Sun, 06.09.2026 · EUR · 0.8547</div></div><div class="a">$1,111.29<small>€949.82</small></div></div>
+              <div class="tx"><div><div class="n">Airbag USDT → UniCredit card</div><div class="d">Tue, 06.10.2026 · USD</div></div><div class="a">$500.00</div></div>
+              <div class="tx"><div><div class="n">Airbag USD Cash → UniCredit štednj</div><div class="d">Tue, 06.10.2026 · USD</div></div><div class="a">$500.00</div></div>
+              <div class="tx"><div><div class="n">Main card → Savings</div><div class="d">Sat, 03.10.2026 · EUR · 0.8547</div></div><div class="a">$468.00<small>€400.00</small></div></div>
+              <div class="tx"><div><div class="n">Main card → Savings</div><div class="d">Sat, 05.09.2026 · EUR · 0.8547</div></div><div class="a">$468.00<small>€400.00</small></div></div>
+              <div class="tx"><div><div class="n">Main card → Credit card</div><div class="d">Sun, 06.09.2026 · EUR · 0.8547</div></div><div class="a">$417.13<small>€356.52</small></div></div>
+              <div class="tx"><div><div class="n">Main card → UniCredit Dinar card</div><div class="d">Tue, 06.10.2026 · EUR · 0.8547</div></div><div class="a">$413.85<small>€353.72</small></div></div>
+            </div>
+            <div class="details"><span class="d">Transfer · Sun, 06.09.2026</span><div class="n" style="font-weight:600;font-size:16px">Main card → UniCredit Dinar card</div><div class="big">€949.82</div><span class="lbl">From</span><div class="blk"><span>Main card</span><span>-€949.82</span></div><span class="lbl">To</span><div class="blk"><span>UniCredit Dinar card</span><span>+RSD 110,842.62</span></div></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap">2. Применено 4: на кнопке счётчик, под строкой поиска одна строка-сводка. Клик по сводке открывает панель, «Clear» снимает всё.</div>
+    </div>
+
+    <div class="screens">
+      <div>
+        <div class="board-scroll"><div class="board" style="width:720px;grid-template-columns:1fr;height:600px">
+          <div class="main">
+            <div class="row"><div class="search">⌕ Search transactions</div><div class="ibtn on"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters <span class="badge">4</span></div></div>
+            <div class="dsum"><span>From 01.09.2026 · Expense, Transfer · Over $10 · Largest first</span></div>
+            <div class="list" style="opacity:.5"><div class="tx"><div class="n">Main card → UniCredit Dinar card</div><div class="a">$1,111.29</div></div></div>
+          </div>
+          <div class="dpanel" style="top:62px;left:324px">
+            <div class="sh">Filters <span class="reset">Reset all</span></div>
+            <div class="sec"><span class="lbl">Sort</span><div class="seg"><span>Newest</span><span>Oldest</span><span class="on">Largest</span><span>Smallest</span></div></div>
+            <div class="sec"><span class="lbl">Period</span><div class="chips"><span class="chip">Nov</span><span class="chip">Oct</span><span class="chip">Sep</span><span class="chip">Aug</span></div><div class="dates"><span class="fld"><small>From</small><span class="val">01.09.2026</span><span class="clr" aria-label="Clear From">✕</span></span><span class="fld"><small>To</small><span class="val ph">dd.mm.yyyy</span></span></div></div>
+            <div class="sec"><span class="lbl">Type</span><div class="chips wrapr"><span class="chip on">Expense</span><span class="chip">Income</span><span class="chip on">Transfer</span><span class="chip">Adjustment</span></div></div>
+            <div class="sec">
+              <div class="line"><span>Accounts</span><span class="v">Any ›</span></div>
+              <div class="line"><span>Categories</span><span class="v">Any ›</span></div>
+              <div class="line"><span>Income sources</span><span class="v">Any ›</span></div>
+              <div class="line"><span>Locations</span><span class="v">Any ›</span></div>
+              <div class="line"><span>Amount, USD</span><span class="v on">Over $10 ›</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="cap">3. Панель открыта поповером под кнопкой «Filters». Каждое изменение сразу меняет ленту и сводку под панелью.</div>
+      </div>
+      <div>
+        <div class="board-scroll"><div class="board" style="width:720px;grid-template-columns:1fr;height:600px">
+          <div class="main">
+            <div class="row"><div class="search">⌕ Search transactions</div><div class="ibtn on"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters <span class="badge">4</span></div></div>
+            <div class="dsum"><span>From 01.09.2026 · Expense, Transfer · Over $10 · Largest first</span></div>
+            <div class="list" style="opacity:.5"><div class="tx"><div class="n">Main card → UniCredit Dinar card</div><div class="a">$1,111.29</div></div></div>
+          </div>
+          <div class="dpanel" style="top:62px;left:324px">
+            <div class="sh"><span><span class="back">‹</span> Accounts</span><span class="reset">Clear</span></div>
+            <div class="search" style="background:var(--band);height:34px">⌕ Search accounts</div>
+            <div class="check"><span class="box on"></span><span class="dot" style="background:#6b72e8"></span>Main card<span class="cur">EUR</span></div>
+            <div class="check"><span class="box on"></span><span class="dot" style="background:#9b6be8"></span>UniCredit Dinar card<span class="cur">RSD</span></div>
+            <div class="check"><span class="box"></span><span class="dot" style="background:#4b9be0"></span>Wallet<span class="cur">USD</span></div>
+            <div class="check"><span class="box"></span><span class="dot" style="background:#2ea37a"></span>Savings<span class="cur">EUR</span></div>
+            <div class="check"><span class="box"></span><span class="dot" style="background:#e06b3c"></span>Credit card<span class="cur">EUR</span></div>
+          </div>
+        </div></div>
+        <div class="cap">4. Список открывается вторым экраном той же панели; каждая галочка применяется сразу, «‹» возвращает к секциям.</div>
+      </div>
+      <div>
+        <div class="phone" style="height:640px">
+          <div class="title">Transactions <span>37</span></div>
+          <div class="row"><div class="search">⌕ Search</div><div class="ibtn on"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span class="badge">4</span></div><div class="new">+ New</div></div>
+          <div class="dim"></div>
+          <div class="sheet" style="top:70px">
+            <span class="handle"></span>
+            <div class="sh">Filters <span style="display:flex;gap:14px;align-items:center"><span class="reset">Reset all</span><span style="color:var(--muted)">✕</span></span></div>
+            <div class="sec"><span class="lbl">Sort</span><div class="seg"><span>Newest</span><span>Oldest</span><span class="on">Largest</span><span>Smallest</span></div></div>
+            <div class="sec"><span class="lbl">Period</span><div class="chips"><span class="chip">Nov</span><span class="chip">Oct</span><span class="chip">Sep</span><span class="chip">Aug</span></div><div class="dates"><span class="fld"><small>From</small><span class="val">01.09.2026</span><span class="clr" aria-label="Clear From">✕</span></span><span class="fld"><small>To</small><span class="val ph">dd.mm.yyyy</span></span></div></div>
+            <div class="sec"><span class="lbl">Type</span><div class="chips wrapr"><span class="chip on">Expense</span><span class="chip">Income</span><span class="chip on">Transfer</span><span class="chip">Adjustment</span></div></div>
+            <div class="sec">
+              <div class="line"><span>Accounts</span><span class="v">Any ›</span></div>
+              <div class="line"><span>Categories</span><span class="v">Any ›</span></div>
+              <div class="line"><span>Income sources</span><span class="v">Any ›</span></div>
+              <div class="line"><span>Locations</span><span class="v">Any ›</span></div>
+              <div class="line"><span>Amount, USD</span><span class="v on">Over $10 ›</span></div>
+            </div>
+            <div class="cta">Show 37 transactions</div>
+          </div>
+        </div>
+        <div class="cap">5. Телефон: та же панель листом снизу. Лист закрывает ленту, поэтому внизу «Show 37 transactions»: фильтры уже применены, кнопка показывает их результат и закрывает лист.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- A -->
+  <section class="variant">
+    <div><span class="tag">Вариант A</span><h2>Одна кнопка «Filters» и чипы только применённых</h2></div>
+    <div class="cols">
+      <div class="screens">
+        <div>
+          <div class="phone">
+            <div class="title">Transactions <span>37</span></div>
+            <div class="row"><div class="search">⌕ Search transactions</div><div class="new">+ New</div></div>
+            <div class="chips wrapr">
+              <span class="chip on"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters · 4</span>
+              <span class="chip">From 01.09 <span class="x">✕</span></span>
+              <span class="chip">Expense, Transfer <span class="x">✕</span></span>
+              <span class="chip">Over $10 <span class="x">✕</span></span>
+              <span class="chip">↓ Largest first <span class="x">✕</span></span>
+            </div>
+            <div class="list">
+              <div class="tx"><div><div class="n">Main card → UniCredit Dinar</div><div class="d">Sun, 06.09.2026</div></div><div class="a">$1,111.29</div></div>
+              <div class="tx"><div><div class="n">Airbag USDT → UniCredit</div><div class="d">Tue, 06.10.2026</div></div><div class="a">$500.00</div></div>
+              <div class="tx"><div><div class="n">Main card → Savings</div><div class="d">Sat, 03.10.2026</div></div><div class="a">$468.00</div></div>
+              <div class="tx"><div><div class="n">Main card → Credit card</div><div class="d">Sun, 06.09.2026</div></div><div class="a">$417.13</div></div>
+              <div class="tx"><div><div class="n">Wallet 2 → Wallet</div><div class="d">Mon, 09.11.2026</div></div><div class="a">$389.10</div></div>
+            </div>
+          </div>
+          <div class="cap">Применено 4. Все видны, переносятся во второй ряд, ✕ снимает один.</div>
+        </div>
+        <div>
+          <div class="phone">
+            <div class="title">Transactions <span>37</span></div>
+            <div class="row"><div class="search">⌕ Search transactions</div><div class="new">+ New</div></div>
+            <div class="dim"></div>
+            <div class="sheet">
+              <span class="handle"></span>
+              <div class="sh">Filters <span class="reset">Reset all</span></div>
+              <div class="sec"><span class="lbl">Sort</span><div class="seg"><span>Newest</span><span>Oldest</span><span class="on">Largest</span><span>Smallest</span></div></div>
+              <div class="sec"><span class="lbl">Period</span><div class="chips"><span class="chip">Nov</span><span class="chip">Oct</span><span class="chip on">From 01.09</span><span class="chip">Custom…</span></div></div>
+              <div class="sec"><span class="lbl">Type</span><div class="chips wrapr"><span class="chip on">Expense</span><span class="chip">Income</span><span class="chip on">Transfer</span><span class="chip">Adjustment</span></div></div>
+              <div class="sec">
+                <div class="line"><span>Accounts</span><span class="v">Any ›</span></div>
+                <div class="line"><span>Categories</span><span class="v">Any ›</span></div>
+                <div class="line"><span>Income sources</span><span class="v">Any ›</span></div>
+                <div class="line"><span>Locations</span><span class="v">Any ›</span></div>
+                <div class="line"><span>Amount, USD</span><span class="v on">Over $10 ›</span></div>
+              </div>
+              <div class="cta">Show 37 transactions</div>
+            </div>
+          </div>
+          <div class="cap">Один лист со всеми фильтрами; списки открываются вторым экраном листа.</div>
+        </div>
+        <div>
+          <div class="desk">
+            <div class="row"><div class="search">⌕ Search transactions</div><div class="new">+ New transaction</div></div>
+            <div class="chips">
+              <span class="chip on">☰ Filters · 4</span><span class="chip">From 01.09 <span class="x">✕</span></span><span class="chip">Expense, Transfer <span class="x">✕</span></span><span class="chip">Over $10 <span class="x">✕</span></span><span class="chip">↓ Largest first <span class="x">✕</span></span>
+            </div>
+            <div class="body"><div class="list"><div class="tx"><div class="n">Main card → UniCredit Dinar</div><div class="a">$1,111.29</div></div><div class="tx"><div class="n">Airbag USDT → UniCredit</div><div class="a">$500.00</div></div></div><div class="det"></div></div>
+          </div>
+          <div class="cap">Десктоп: тот же ряд в одну строку, «Filters» открывает тот же лист поповером.</div>
+        </div>
+      </div>
+      <div class="notes">
+        <p>Без фильтров в ряду только кнопка «Filters». Каждый применённый фильтр становится чипом со своим значением и крестиком, поэтому всё применённое всегда на виду, а ряд переносится вместо горизонтальной прокрутки.</p>
+        <p>Тап по чипу открывает лист сразу на этой секции. Применение одной кнопкой «Show 37 transactions» внизу листа, вместо Apply в каждом поповере.</p>
+        <div class="pc"><div><b>Плюсы</b>Всё применённое видно. Пустой ряд — одна кнопка. Один лист вместо восьми поповеров. Одинаково на обеих ширинах.</div><div><b>Минусы</b>Включить один фильтр — на тап больше (Filters → секция). Нужен счётчик результатов до применения (запрос total).</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- B -->
+  <section class="variant">
+    <div><span class="tag">Вариант B</span><h2>Иконка фильтров в строке поиска и строка-сводка</h2></div>
+    <div class="cols">
+      <div class="screens">
+        <div>
+          <div class="phone">
+            <div class="title">Transactions <span>104</span></div>
+            <div class="row"><div class="search">⌕ Search</div><div class="ibtn"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></div><div class="new">+ New</div></div>
+            <div class="list">
+              <div class="tx"><div><div class="n">Clothing</div><div class="d">Tue, 10.11.2026</div></div><div class="a">-$173.75</div></div>
+              <div class="tx"><div><div class="n">Wallet 2 → Wallet</div><div class="d">Mon, 09.11.2026</div></div><div class="a">$389.10</div></div>
+              <div class="tx"><div><div class="n">Wallet 3 → Wallet</div><div class="d">Mon, 09.11.2026</div></div><div class="a">$389.10</div></div>
+              <div class="tx"><div><div class="n">Main card → Savings</div><div class="d">Sat, 03.10.2026</div></div><div class="a">$468.00</div></div>
+              <div class="tx"><div><div class="n">Airbag USDT → UniCredit</div><div class="d">Tue, 06.10.2026</div></div><div class="a">$500.00</div></div>
+              <div class="tx"><div><div class="n">Main card → Credit card</div><div class="d">Sun, 06.09.2026</div></div><div class="a">$417.13</div></div>
+            </div>
+          </div>
+          <div class="cap">Без фильтров ряда чипов нет вовсе: лента выше на целый ряд.</div>
+        </div>
+        <div>
+          <div class="phone">
+            <div class="title">Transactions <span>37</span></div>
+            <div class="row"><div class="search">⌕ Search</div><div class="ibtn on"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span class="badge">4</span></div><div class="new">+ New</div></div>
+            <div class="summary"><div class="txt">From 01.09 · Expense, Transfer · Over $10 · Largest first</div><span class="clear">Clear</span></div>
+            <div class="list">
+              <div class="tx"><div><div class="n">Main card → UniCredit Dinar</div><div class="d">Sun, 06.09.2026</div></div><div class="a">$1,111.29</div></div>
+              <div class="tx"><div><div class="n">Airbag USDT → UniCredit</div><div class="d">Tue, 06.10.2026</div></div><div class="a">$500.00</div></div>
+              <div class="tx"><div><div class="n">Main card → Savings</div><div class="d">Sat, 03.10.2026</div></div><div class="a">$468.00</div></div>
+            </div>
+          </div>
+          <div class="cap">С фильтрами: счётчик на иконке и одна строка-сводка; тап по ней открывает лист.</div>
+        </div>
+      </div>
+      <div class="notes">
+        <p>Фильтры живут в том же листе, что и в A. Разница в том, как показано применённое: не отдельные чипы, а одна текстовая сводка с «Clear».</p>
+        <div class="pc"><div><b>Плюсы</b>Самый компактный: ноль рядов без фильтров. Сводка читается как фраза.</div><div><b>Минусы</b>Снять один фильтр нельзя без листа. Длинная сводка переносится на 2–3 строки. Иконку без подписи легко не заметить.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- C -->
+  <section class="variant">
+    <div><span class="tag">Вариант C</span><h2>Четыре чипа вместо восьми, сортировка иконкой</h2></div>
+    <div class="cols">
+      <div class="screens">
+        <div>
+          <div class="phone">
+            <div class="title">Transactions <span>37</span></div>
+            <div class="row"><div class="search">⌕ Search</div><div class="ibtn on">⇅</div><div class="new">+ New</div></div>
+            <div class="chips wrapr">
+              <span class="chip on chev">From 01.09</span><span class="chip on chev">Expense +1</span><span class="chip on chev">Over $10</span><span class="chip chev">Accounts &amp; more</span>
+            </div>
+            <div class="list">
+              <div class="tx"><div><div class="n">Main card → UniCredit Dinar</div><div class="d">Sun, 06.09.2026</div></div><div class="a">$1,111.29</div></div>
+              <div class="tx"><div><div class="n">Airbag USDT → UniCredit</div><div class="d">Tue, 06.10.2026</div></div><div class="a">$500.00</div></div>
+              <div class="tx"><div><div class="n">Main card → Savings</div><div class="d">Sat, 03.10.2026</div></div><div class="a">$468.00</div></div>
+              <div class="tx"><div><div class="n">Main card → Credit card</div><div class="d">Sun, 06.09.2026</div></div><div class="a">$417.13</div></div>
+            </div>
+          </div>
+          <div class="cap">Period, Type, Amount и одна группа «Accounts &amp; more» для четырёх списков; применённые идут первыми.</div>
+        </div>
+        <div>
+          <div class="phone">
+            <div class="title">Transactions <span>37</span></div>
+            <div class="dim"></div>
+            <div class="sheet" style="top:150px">
+              <span class="handle"></span>
+              <div class="sh">Accounts &amp; more</div>
+              <div class="seg"><span class="on">Accounts 2</span><span>Categories</span><span>Income</span><span>Places</span></div>
+              <div class="line"><span>☑ Main card</span><span class="v">EUR</span></div>
+              <div class="line"><span>☑ UniCredit Dinar</span><span class="v">RSD</span></div>
+              <div class="line"><span>☐ Wallet</span><span class="v">USD</span></div>
+              <div class="cta">Apply</div>
+            </div>
+          </div>
+          <div class="cap">Четыре списка в одном листе с вкладками.</div>
+        </div>
+      </div>
+      <div class="notes">
+        <p>Ближе всего к текущему коду: поповеры остаются, просто их меньше. Четыре коротких чипа почти помещаются в 390 px, а «применённые первыми» гарантирует, что включённое не уходит за край.</p>
+        <div class="pc"><div><b>Плюсы</b>Один тап до Period/Type/Amount, как сейчас. Меньше переделки.</div><div><b>Минусы</b>Ряд есть всегда. Счёт «Accounts &amp; more · 3» не говорит, какие именно. Иконка сортировки в строке поиска теснит поле на телефоне.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- D -->
+  <section class="variant">
+    <div><span class="tag">Вариант D · минимальный</span><h2>Оставить восемь чипов, но применённые первыми и «Clear»</h2></div>
+    <div class="cols">
+      <div class="screens">
+        <div>
+          <div class="phone" style="height:250px">
+            <div class="title">Transactions <span>37</span></div>
+            <div class="row"><div class="search">⌕ Search transactions</div><div class="new">+ New</div></div>
+            <div class="chips">
+              <span class="chip ghost">Clear 4</span><span class="chip on chev">From 01.09</span><span class="chip on chev">Expense +1</span><span class="chip on chev">Over $10</span><span class="chip on chev">Largest</span><span class="chip chev">Accounts</span>
+            </div>
+            <div class="list"><div class="tx"><div class="n">Main card → UniCredit Dinar</div><div class="a">$1,111.29</div></div></div>
+          </div>
+          <div class="cap">Ряд по-прежнему прокручивается, но включённые стоят в начале.</div>
+        </div>
+      </div>
+      <div class="notes">
+        <p>Это правка на один PR: порядок чипов и чип «Clear N» в начале ряда. Проблему места не решает, а на телефоне при четырёх применённых всё равно часть уезжает за край.</p>
+        <div class="pc"><div><b>Плюсы</b>Дёшево, ничего не ломает.</div><div><b>Минусы</b>Место и восемь поповеров остаются; чипы прыгают местами после применения.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="variant">
+    <h2>Сравнение</h2>
+    <div class="scroll">
+      <table class="tbl">
+        <thead><tr><th></th><th>A · Filters + чипы</th><th>B · Иконка + сводка</th><th>C · 4 чипа</th><th>D · Порядок</th></tr></thead>
+        <tbody>
+          <tr><td>Рядов без фильтров</td><td>1 (одна кнопка)</td><td>0</td><td>1</td><td>1</td></tr>
+          <tr><td>Всё применённое видно на 390 px</td><td>Да, с переносом</td><td>Да, текстом</td><td>Да, с переносом</td><td>Нет</td></tr>
+          <tr><td>Снять один фильтр</td><td>1 тап (✕)</td><td>Через лист</td><td>Через поповер</td><td>Через поповер</td></tr>
+          <tr><td>Включить новый фильтр</td><td>2 тапа</td><td>2 тапа</td><td>1–2 тапа</td><td>1 тап</td></tr>
+          <tr><td>Объём работы</td><td>Container, 3–4 PR</td><td>Container, 3–4 PR</td><td>2 PR</td><td>1 PR</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
