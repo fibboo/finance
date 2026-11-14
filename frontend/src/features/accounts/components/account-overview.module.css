@@ -99,3 +99,29 @@
   -webkit-line-clamp: 1;
   line-clamp: 1;
 }
+
+.markSkeleton {
+  width: var(--size-account-mark-lg);
+  height: var(--size-account-mark-lg);
+  border-radius: var(--radius-segment);
+}
+
+.metaSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text-sm);
+}
+
+.titleSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text-lg);
+}
+
+.balanceSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-balance);
+}
+
+.baseBalanceSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}

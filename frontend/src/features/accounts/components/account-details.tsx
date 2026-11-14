@@ -3,7 +3,6 @@ import type { To } from 'react-router';
 
 import { type DetailsBack, DetailsPanel } from '@/components/details-panel/details-panel';
 import { LoadError } from '@/components/load-error/load-error';
-import { Skeleton } from '@/components/skeleton/skeleton';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
@@ -13,11 +12,13 @@ import { AccountActions } from './account-actions';
 import { AccountBalance } from './account-balance';
 import styles from './account-details.module.css';
 import { AccountOverview } from './account-overview';
+import { AccountOverviewSkeleton } from './account-overview-skeleton';
+import { AccountSummarySkeleton } from './account-summary-skeleton';
 import { DeleteAccount } from './delete-account';
 import { RestoreAccount } from './restore-account';
 
 type Account = components['schemas']['Account'];
-type DictionaryItem = components['schemas']['DictionaryItem'];
+type AccountingDictionaries = components['schemas']['AccountingDictionaries'];
 
 export type AccountDetailsForm = 'panel' | 'summary';
 
@@ -25,11 +26,10 @@ const LOAD_ERROR_MESSAGE = "Couldn't load the account";
 
 type AccountDetailsProps = Readonly<{
   form: AccountDetailsForm;
-  accountId: string;
+  accountId: string | undefined;
   baseCurrency: string;
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
-  adjustBalanceLink: To;
+  dictionaries: AccountingDictionaries | undefined;
+  readAdjustBalanceLink: (account: Readonly<Account>) => To;
   readTransactionsLink: (account: Readonly<Account>) => To;
   transactionsLinkId: string;
   isOnlyAccount: boolean;
@@ -49,9 +49,8 @@ export function AccountDetails({
   form,
   accountId,
   baseCurrency,
-  accountKinds,
-  categoryTypes,
-  adjustBalanceLink,
+  dictionaries,
+  readAdjustBalanceLink,
   readTransactionsLink,
   transactionsLinkId,
   isOnlyAccount,
@@ -72,20 +71,24 @@ export function AccountDetails({
     isFetching,
     isPlaceholderData,
     refetch,
-  } = useQuery({ ...accountQueries.detail(accountId), placeholderData: keepPreviousData });
+  } = useQuery({
+    ...accountQueries.detail(accountId ?? ''),
+    enabled: accountId !== undefined,
+    placeholderData: keepPreviousData,
+  });
 
   const statusAction =
     account === undefined ? undefined : account.status === 'DELETED' ? (
       <RestoreAccount
-        key={accountId}
-        accountId={accountId}
+        key={account.id}
+        accountId={account.id}
         relatedQueryKeys={relatedQueryKeys}
         onRestored={onStatusChanged}
         onNameTaken={onRestoreNameTaken}
       />
     ) : (
       <DeleteAccount
-        key={accountId}
+        key={account.id}
         account={account}
         currency={account.currency ?? baseCurrency}
         isOnlyAccount={isOnlyAccount}
@@ -103,7 +106,7 @@ export function AccountDetails({
           }}
         />
       ) : (
-        <Skeleton className={styles['balanceSkeleton']} />
+        <AccountSummarySkeleton />
       );
     }
 
@@ -117,7 +120,7 @@ export function AccountDetails({
           )}
         <AccountActions
           account={account}
-          adjustBalanceLink={adjustBalanceLink}
+          adjustBalanceLink={readAdjustBalanceLink(account)}
           transactionsLink={readTransactionsLink(account)}
           transactionsLinkId={transactionsLinkId}
           statusAction={statusAction}
@@ -130,14 +133,14 @@ export function AccountDetails({
   return (
     <DetailsPanel
       label="Account details"
-      isLoaded={account !== undefined}
+      isLoaded={account !== undefined && dictionaries !== undefined}
       isError={isError}
       isFetching={isFetching}
       isReplacing={isPlaceholderData}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}
       errorMessage={LOAD_ERROR_MESSAGE}
-      returnFocusId={readAccountLinkId(accountId)}
+      returnFocusId={readAccountLinkId(accountId ?? '')}
       arrowKeyList={undefined}
       back={back}
       onRetry={() => {
@@ -145,15 +148,21 @@ export function AccountDetails({
       }}
       onClose={onClose}
       onChoose={onChoose}
-      renderSkeleton={undefined}
+      renderSkeleton={(closeButton) => (
+        <AccountOverviewSkeleton
+          isMoneyAccount={account === undefined || isMoneyAccountKind(account.kind)}
+          closeButton={closeButton}
+        />
+      )}
       renderContent={(closeButton) =>
-        account !== undefined && (
+        account !== undefined &&
+        dictionaries !== undefined && (
           <AccountOverview
             account={account}
             baseCurrency={baseCurrency}
-            accountKinds={accountKinds}
-            categoryTypes={categoryTypes}
-            adjustBalanceLink={adjustBalanceLink}
+            accountKinds={dictionaries.account_kinds}
+            categoryTypes={dictionaries.category_types}
+            adjustBalanceLink={readAdjustBalanceLink(account)}
             transactionsLink={readTransactionsLink(account)}
             transactionsLinkId={transactionsLinkId}
             closeButton={closeButton}

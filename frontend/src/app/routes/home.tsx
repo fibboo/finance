@@ -39,7 +39,9 @@ export function Component() {
   const topTransactionId = readTopTransactionId(feed);
   const shownAccount = useShownAccount({
     defaultTransactionId: topTransactionId,
+    isDefaultTransactionPending: feed.query.isPending,
     firstAccountId: accountPage?.items[0]?.id,
+    isFirstAccountPending: accountPage === undefined,
   });
   const isRecentShown =
     !(feed.query.isError && feed.query.data === undefined) &&

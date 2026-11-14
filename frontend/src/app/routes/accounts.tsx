@@ -170,6 +170,7 @@ export function Component() {
                     shownAccount={{
                       kind: 'selected',
                       defaultAccountId: shownAccount?.id,
+                      isDefaultAccountPending: accountPage === undefined,
                       isParamIgnored: chosenAccount === undefined,
                     }}
                     isKeptOpenOnDesktop
@@ -186,6 +187,7 @@ export function Component() {
               shownAccount={{
                 kind: 'selected',
                 defaultAccountId: topAccountId,
+                isDefaultAccountPending: accountPage === undefined,
                 isParamIgnored: false,
               }}
               isKeptOpenOnDesktop

@@ -208,6 +208,7 @@ export function DetailsColumn({
           shownAccount={{
             kind: 'selected',
             defaultAccountId: shownAccount.defaultAccountId,
+            isDefaultAccountPending: shownAccount.isDefaultAccountPending,
             isParamIgnored: false,
           }}
           isKeptOpenOnDesktop
