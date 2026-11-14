@@ -189,11 +189,8 @@
     display: none;
   }
 
-  .detailsPanel:not(.inPlace) {
-    animation-name: panel-in;
-  }
-
   .detailsPanel {
+    animation: none;
     position: static;
     z-index: auto;
     flex: none;
@@ -229,12 +226,5 @@
 @keyframes sheet-in {
   from {
     transform: translateY(100%);
-  }
-}
-
-@keyframes panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-3));
   }
 }

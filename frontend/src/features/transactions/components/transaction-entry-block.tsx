@@ -1,7 +1,6 @@
 import { useId } from 'react';
 import { Link, type To } from 'react-router';
 
-import { Skeleton, SkeletonLine } from '@/components/skeleton/skeleton';
 import { readAccountColor } from '@/lib/account-colors';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
@@ -105,36 +104,6 @@ export function readTransactionEntryFrame({
       entry.posting.currency !== baseCurrency && readBaseAmount(entry.posting) !== undefined,
   };
   return entryFrame;
-}
-
-type TransactionEntryBlockSkeletonProps = Readonly<{ entryFrame: TransactionEntryFrame }>;
-
-export function TransactionEntryBlockSkeleton({ entryFrame }: TransactionEntryBlockSkeletonProps) {
-  return (
-    <div className={styles['transactionEntryBlock']} aria-hidden="true">
-      <span className={styles['role']}>{entryFrame.role}</span>
-      <div className={styles['entry']}>
-        <Skeleton
-          className={
-            entryFrame.isMoneyAccount ? styles['moneyAccountMarkSkeleton'] : styles['markSkeleton']
-          }
-        />
-        <span className={styles['identity']}>
-          <SkeletonLine textClassName={styles['name']} className={styles['nameSkeleton']} />
-          <SkeletonLine textClassName={styles['note']} className={styles['noteSkeleton']} />
-          {entryFrame.hasBalance && (
-            <SkeletonLine textClassName={styles['note']} className={styles['balanceSkeleton']} />
-          )}
-        </span>
-        <span className={styles['amounts']}>
-          <SkeletonLine textClassName={styles['amount']} className={styles['amountSkeleton']} />
-          {entryFrame.hasBaseAmount && (
-            <SkeletonLine textClassName={styles['note']} className={styles['baseAmountSkeleton']} />
-          )}
-        </span>
-      </div>
-    </div>
-  );
 }
 
 type TransactionEntryBlockProps = Readonly<{

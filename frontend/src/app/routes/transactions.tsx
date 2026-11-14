@@ -111,6 +111,7 @@ export function Component() {
   const feed = useTransactionFeed({
     isOpeningDayKept: true,
     isFirstPageErrorThrown: true,
+    isPreviousListKept: true,
     filterQuery: filters === undefined ? undefined : readTransactionFilterQuery(filters),
     anchorDate,
   });

@@ -31,6 +31,7 @@ export type TransactionFeedQuery = Readonly<{
 type TransactionFeedOptions = Readonly<{
   isOpeningDayKept: boolean;
   isFirstPageErrorThrown: boolean;
+  isPreviousListKept: boolean;
   filterQuery: Readonly<TransactionFilterQuery> | undefined;
   anchorDate?: string | undefined;
 }>;
@@ -45,6 +46,7 @@ function readNextDay(date: string): string {
 export function useTransactionFeed({
   isOpeningDayKept,
   isFirstPageErrorThrown,
+  isPreviousListKept,
   filterQuery,
   anchorDate,
 }: TransactionFeedOptions): TransactionFeedQuery {
@@ -70,7 +72,7 @@ export function useTransactionFeed({
     ...feedOptions,
     ...scrolledDownRefetch,
     enabled: filterQuery !== undefined,
-    placeholderData: keepPreviousData,
+    ...(isPreviousListKept && { placeholderData: keepPreviousData }),
     throwOnError: (error, failedQuery) =>
       isFirstPageErrorThrown && isThrownWithoutData(error, failedQuery),
   });

@@ -296,16 +296,21 @@ export function Component() {
             />
           )}
         </div>
-        {isDesktop && shownGroup !== undefined && shownCategory !== undefined && (
+        {isDesktop && (shownCategory !== undefined || groups === undefined) && (
           <CatalogTransactions
-            key={shownCategory.id}
-            name={shownCategory.name}
-            description={['Category', shownGroup.heading, 'recent transactions'].join(
-              CATALOG_DESCRIPTION_SEPARATOR,
-            )}
+            entryFeed={
+              shownGroup === undefined || shownCategory === undefined
+                ? undefined
+                : {
+                    name: shownCategory.name,
+                    description: ['Category', shownGroup.heading, 'recent transactions'].join(
+                      CATALOG_DESCRIPTION_SEPARATOR,
+                    ),
+                    filterQuery: { account_ids: [shownCategory.id] },
+                    transactionsLink: readTransactionsLink(shownCategory),
+                  }
+            }
             emptyText="No transactions in this category yet"
-            filterQuery={{ account_ids: [shownCategory.id] }}
-            transactionsLink={readTransactionsLink(shownCategory)}
             transactionTypes={dictionaries?.transaction_types}
           />
         )}

@@ -122,3 +122,9 @@
     text-decoration-color: currentColor;
   }
 }
+
+.emptyText {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-muted);
+}

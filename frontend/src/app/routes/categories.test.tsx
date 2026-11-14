@@ -1554,9 +1554,12 @@ test('drops a chosen transaction that is not of the shown category on a wide des
   await waitFor(() => {
     expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
   });
-  await waitFor(() => {
-    expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
-  });
+  // the card stays in place with its empty state, since the feed has no transaction
+  expect(
+    await within(screen.getByRole('dialog', { name: 'Transaction details' })).findByText(
+      'No transactions yet',
+    ),
+  ).toBeInTheDocument();
 });
 
 test('gives a phone plain names and no transactions of a category', async () => {

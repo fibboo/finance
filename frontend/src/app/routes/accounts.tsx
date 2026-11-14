@@ -141,20 +141,26 @@ export function Component() {
             )}
           </div>
           {isWideDesktop ? (
-            shownAccount !== undefined && (
+            (shownAccount !== undefined || accountPage === undefined) && (
               <CatalogTransactions
-                key={shownAccount.id}
-                name={shownAccount.name}
-                description={[
-                  dictionaries?.account_kinds.find((kind) => kind.key === shownAccount.kind)?.label,
-                  shownAccount.currency ?? baseCurrency,
-                  'recent transactions',
-                ]
-                  .filter((part) => part !== undefined)
-                  .join(CATALOG_DESCRIPTION_SEPARATOR)}
+                entryFeed={
+                  shownAccount === undefined || dictionaries === undefined
+                    ? undefined
+                    : {
+                        name: shownAccount.name,
+                        description: [
+                          dictionaries.account_kinds.find((kind) => kind.key === shownAccount.kind)
+                            ?.label,
+                          shownAccount.currency ?? baseCurrency,
+                          'recent transactions',
+                        ]
+                          .filter((part) => part !== undefined)
+                          .join(CATALOG_DESCRIPTION_SEPARATOR),
+                        filterQuery: { account_ids: [shownAccount.id] },
+                        transactionsLink: readTransactionsLink(shownAccount),
+                      }
+                }
                 emptyText="No transactions in this account yet"
-                filterQuery={{ account_ids: [shownAccount.id] }}
-                transactionsLink={readTransactionsLink(shownAccount)}
                 transactionTypes={dictionaries?.transaction_types}
                 summary={
                   <SelectedAccountDetails
@@ -163,7 +169,7 @@ export function Component() {
                     accountCount={allAccountPage?.total}
                     shownAccount={{
                       kind: 'selected',
-                      defaultAccountId: shownAccount.id,
+                      defaultAccountId: shownAccount?.id,
                       isParamIgnored: chosenAccount === undefined,
                     }}
                     isKeptOpenOnDesktop

@@ -33,6 +33,7 @@ export function Component() {
   const feed = useTransactionFeed({
     isOpeningDayKept: false,
     isFirstPageErrorThrown: false,
+    isPreviousListKept: true,
     filterQuery: {},
   });
   const topTransactionId = readTopTransactionId(feed);

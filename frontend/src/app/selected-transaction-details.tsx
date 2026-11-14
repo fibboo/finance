@@ -24,7 +24,7 @@ import type { components } from '@/lib/api-schema';
 import { TransactionFormSkeleton } from './transaction-form-skeleton';
 import { useMovementChoices } from './use-movement-choices';
 
-type DictionaryItem = components['schemas']['DictionaryItem'];
+type AccountingDictionaries = components['schemas']['AccountingDictionaries'];
 
 type SelectedTransactionDetailsProps = Readonly<{
   baseCurrency: string;
@@ -36,22 +36,20 @@ type SelectedTransactionDetailsProps = Readonly<{
 
 type SelectedTransactionProps = Readonly<{
   transactionId: string | undefined;
+  isTransactionPending: boolean;
   isShownByDefault: boolean;
   baseCurrency: string;
-  transactionTypes: readonly DictionaryItem[];
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
+  dictionaries: AccountingDictionaries | undefined;
   readAccountLink: ReadAccountLink;
   readLocationLink: ReadLocationLink;
 }>;
 
 function SelectedTransaction({
   transactionId,
+  isTransactionPending,
   isShownByDefault,
   baseCurrency,
-  transactionTypes,
-  accountKinds,
-  categoryTypes,
+  dictionaries,
   readAccountLink,
   readLocationLink,
 }: SelectedTransactionProps) {
@@ -96,10 +94,9 @@ function SelectedTransaction({
     <>
       <TransactionDetails
         transactionId={transactionId}
+        isTransactionPending={isTransactionPending}
         baseCurrency={baseCurrency}
-        transactionTypes={transactionTypes}
-        accountKinds={accountKinds}
-        categoryTypes={categoryTypes}
+        dictionaries={dictionaries}
         readAccountLink={readAccountLink}
         readLocationLink={readLocationLink}
         relatedQueryKeys={relatedQueryKeys}
@@ -179,19 +176,20 @@ export function SelectedTransactionDetails({
   const selectedTransactionId = readSelectedTransactionId(searchParams);
   const transactionId = selectedTransactionId ?? defaultTransactionId;
   const isShownByDefault = selectedTransactionId === undefined;
-  const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
-  if (dictionaries === undefined || (transactionId === undefined && !isDefaultTransactionPending)) {
+  const { data: dictionaries, isError: isDictionaryFailed } = useQuery(
+    dictionaryQueries.accounting(),
+  );
+  if (isDictionaryFailed && dictionaries === undefined) {
     return null;
   }
 
   return (
     <SelectedTransaction
       transactionId={transactionId}
+      isTransactionPending={transactionId === undefined && isDefaultTransactionPending}
       isShownByDefault={isShownByDefault}
       baseCurrency={baseCurrency}
-      transactionTypes={dictionaries.transaction_types}
-      accountKinds={dictionaries.account_kinds}
-      categoryTypes={dictionaries.category_types}
+      dictionaries={dictionaries}
       readAccountLink={readAccountLink}
       readLocationLink={readLocationLink}
     />

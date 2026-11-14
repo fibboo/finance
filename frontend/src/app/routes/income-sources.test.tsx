@@ -607,9 +607,12 @@ test('shows the chosen transaction of an income source with the source as plain 
     await screen.findByRole('region', { name: 'Transactions of Freelance' }),
   ).toBeInTheDocument();
   expect(router.state.location.search).toBe(`?account=${freelance.id}`);
-  await waitFor(() => {
-    expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
-  });
+  // the card stays in place with its empty state, since the feed has no transaction
+  expect(
+    await within(screen.getByRole('dialog', { name: 'Transaction details' })).findByText(
+      'No transactions yet',
+    ),
+  ).toBeInTheDocument();
 });
 
 test('drops the chosen transaction when Deleted changes the list', async () => {

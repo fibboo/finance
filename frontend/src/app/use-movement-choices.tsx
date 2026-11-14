@@ -21,7 +21,7 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
     enabled: isOpen,
-    throwOnError: isThrownWithoutData,
+    throwOnError: (error, failedQuery) => isOpen && isThrownWithoutData(error, failedQuery),
   });
   const { data: currencies } = useQuery({
     ...currencyQueries.recentUse(),
