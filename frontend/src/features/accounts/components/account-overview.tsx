@@ -1,37 +1,16 @@
 import { type ReactNode, useId } from 'react';
 import type { To } from 'react-router';
 
-import { ActionBar } from '@/components/action-bar/action-bar';
-import { ActionButton } from '@/components/action-button/action-button';
-import {
-  ADJUST_ICON_PATH,
-  EDIT_ICON_PATH,
-  TRANSACTIONS_ICON_PATH,
-} from '@/components/action-button/action-icons';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
-import { formatMoney } from '@/lib/format-money';
 
+import { AccountActions } from './account-actions';
+import { AccountBalance } from './account-balance';
 import { AccountMark } from './account-mark';
 import styles from './account-overview.module.css';
-import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
-
-function readBaseBalanceText({
-  account,
-  baseCurrency,
-}: Readonly<{ account: Readonly<Account>; baseCurrency: string }>): string {
-  const baseBalance = formatMoney({
-    amount: Number(account.base_currency_balance),
-    currency: baseCurrency,
-  });
-  const rateText = readAccountRateText({ account, baseCurrency });
-  const baseBalanceText =
-    rateText === undefined ? baseBalance : `${baseBalance} · rate ${rateText}`;
-  return baseBalanceText;
-}
 
 function readMetaText({
   account,
@@ -80,7 +59,6 @@ export function AccountOverview({
   const titleId = useId();
   const isMoneyAccount = isMoneyAccountKind(account.kind);
   const isDeleted = account.status === 'DELETED';
-  const currency = account.currency ?? baseCurrency;
   return (
     <article aria-labelledby={titleId} className={styles['accountOverview']}>
       <div className={styles['header']} data-sheet-drag-area>
@@ -106,16 +84,7 @@ export function AccountOverview({
         {closeButton}
       </div>
       {isMoneyAccount && (
-        <div className={styles['amounts']}>
-          <span
-            className={`${styles['balance'] ?? ''} ${Number(account.balance) < 0 ? (styles['debt'] ?? '') : ''}`}
-          >
-            {formatMoney({ amount: Number(account.balance), currency })}
-          </span>
-          <span className={styles['baseBalance']}>
-            {readBaseBalanceText({ account, baseCurrency })}
-          </span>
-        </div>
+        <AccountBalance account={account} baseCurrency={baseCurrency} isInline={false} />
       )}
       {account.description !== undefined &&
         account.description !== null &&
@@ -127,32 +96,14 @@ export function AccountOverview({
             </span>
           </p>
         )}
-      <ActionBar>
-        {isMoneyAccount && (
-          <ActionButton
-            label="Adjust balance"
-            iconPath={ADJUST_ICON_PATH}
-            isDanger={false}
-            action={{ kind: 'link', to: adjustBalanceLink, isScrollKept: true }}
-          />
-        )}
-        <ActionButton
-          id={transactionsLinkId}
-          label="Transactions"
-          iconPath={TRANSACTIONS_ICON_PATH}
-          isDanger={false}
-          action={{ kind: 'link', to: transactionsLink, isScrollKept: false }}
-        />
-        {!isDeleted && (
-          <ActionButton
-            label="Edit"
-            iconPath={EDIT_ICON_PATH}
-            isDanger={false}
-            action={{ kind: 'button', blockingHint: undefined, onClick: onEdit }}
-          />
-        )}
-        {statusAction}
-      </ActionBar>
+      <AccountActions
+        account={account}
+        adjustBalanceLink={adjustBalanceLink}
+        transactionsLink={transactionsLink}
+        transactionsLinkId={transactionsLinkId}
+        statusAction={statusAction}
+        onEdit={onEdit}
+      />
     </article>
   );
 }

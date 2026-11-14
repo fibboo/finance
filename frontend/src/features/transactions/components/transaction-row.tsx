@@ -12,7 +12,7 @@ import {
 } from '../api/selected-transaction';
 import styles from './transaction-row.module.css';
 import { TransactionTextParts } from './transaction-text-parts';
-import { readTransactionView } from './transaction-view';
+import { readMoneyEntryView, readTransactionView } from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -48,7 +48,15 @@ export function TransactionRow({
   dateLabel,
 }: TransactionRowProps) {
   const [searchParams] = useSearchParams();
-  const view = readTransactionView({ transaction, transactionTypes });
+  const transactionView = readTransactionView({ transaction, transactionTypes });
+  const moneyEntryView = readMoneyEntryView({
+    view: transactionView,
+    transaction,
+    transactionTypes,
+    omittedAccountIds,
+  });
+  const view = moneyEntryView ?? transactionView;
+  const isMoneyEntryOmitted = moneyEntryView !== undefined;
   const selectedTransactionId = readSelectedTransactionId(searchParams);
   const isSelected = arrowKeySelection !== undefined && selectedTransactionId === transaction.id;
   const isShownByDefault = selectedTransactionId === undefined && isTop;
@@ -122,9 +130,17 @@ export function TransactionRow({
               {DETAILS_SEPARATOR}
             </>
           )}
-          {view.currency}
-          {rateText !== undefined && `${DETAILS_SEPARATOR}${rateText}`}
-          {locationName !== undefined && `${DETAILS_SEPARATOR}${locationName}`}
+          {isMoneyEntryOmitted ? (
+            [transaction.location?.name, rateText]
+              .filter((part) => part !== undefined)
+              .join(DETAILS_SEPARATOR)
+          ) : (
+            <>
+              {view.currency}
+              {rateText !== undefined && `${DETAILS_SEPARATOR}${rateText}`}
+              {locationName !== undefined && `${DETAILS_SEPARATOR}${locationName}`}
+            </>
+          )}
         </span>
       </span>
       <span className={styles['amounts']}>

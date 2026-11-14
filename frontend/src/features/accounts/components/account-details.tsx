@@ -7,6 +7,9 @@ import type { components } from '@/lib/api-schema';
 
 import { accountQueries } from '../api/account-queries';
 import { readAccountLinkId } from '../api/selected-account';
+import { AccountActions } from './account-actions';
+import { AccountBalance } from './account-balance';
+import styles from './account-details.module.css';
 import { AccountOverview } from './account-overview';
 import { DeleteAccount } from './delete-account';
 import { RestoreAccount } from './restore-account';
@@ -15,6 +18,7 @@ type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
 type AccountDetailsProps = Readonly<{
+  form: 'panel' | 'summary';
   accountId: string;
   baseCurrency: string;
   accountKinds: readonly DictionaryItem[];
@@ -35,6 +39,7 @@ type AccountDetailsProps = Readonly<{
 }>;
 
 export function AccountDetails({
+  form,
   accountId,
   baseCurrency,
   accountKinds,
@@ -60,6 +65,43 @@ export function AccountDetails({
     isPlaceholderData,
     refetch,
   } = useQuery({ ...accountQueries.detail(accountId), placeholderData: keepPreviousData });
+
+  const statusAction =
+    account === undefined ? undefined : account.status === 'DELETED' ? (
+      <RestoreAccount
+        key={accountId}
+        accountId={accountId}
+        relatedQueryKeys={relatedQueryKeys}
+        onRestored={onStatusChanged}
+        onNameTaken={onRestoreNameTaken}
+      />
+    ) : (
+      <DeleteAccount
+        key={accountId}
+        account={account}
+        currency={account.currency ?? baseCurrency}
+        isOnlyAccount={isOnlyAccount}
+        relatedQueryKeys={relatedQueryKeys}
+        onDeleted={isMoneyAccountKind(account.kind) ? onDeleted : onStatusChanged}
+      />
+    );
+  if (form === 'summary') {
+    return (
+      account !== undefined && (
+        <div className={styles['summary']}>
+          <AccountBalance account={account} baseCurrency={baseCurrency} isInline />
+          <AccountActions
+            account={account}
+            adjustBalanceLink={adjustBalanceLink}
+            transactionsLink={readTransactionsLink(account)}
+            transactionsLinkId={transactionsLinkId}
+            statusAction={statusAction}
+            onEdit={onEdit}
+          />
+        </div>
+      )
+    );
+  }
 
   return (
     <DetailsPanel
@@ -89,26 +131,7 @@ export function AccountDetails({
             transactionsLink={readTransactionsLink(account)}
             transactionsLinkId={transactionsLinkId}
             closeButton={closeButton}
-            statusAction={
-              account.status === 'DELETED' ? (
-                <RestoreAccount
-                  key={accountId}
-                  accountId={accountId}
-                  relatedQueryKeys={relatedQueryKeys}
-                  onRestored={onStatusChanged}
-                  onNameTaken={onRestoreNameTaken}
-                />
-              ) : (
-                <DeleteAccount
-                  key={accountId}
-                  account={account}
-                  currency={account.currency ?? baseCurrency}
-                  isOnlyAccount={isOnlyAccount}
-                  relatedQueryKeys={relatedQueryKeys}
-                  onDeleted={isMoneyAccountKind(account.kind) ? onDeleted : onStatusChanged}
-                />
-              )
-            }
+            statusAction={statusAction}
             onEdit={onEdit}
           />
         )

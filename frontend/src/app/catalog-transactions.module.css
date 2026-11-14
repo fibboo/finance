@@ -20,12 +20,19 @@
   flex: none;
   padding: var(--space-5) var(--space-3) var(--space-2);
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
 }
 
+.summary {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
 .heading {
+  flex: 1 1 0;
   min-width: 0;
 }
 

@@ -36,7 +36,10 @@ const EDIT_SHEET_LABELS = {
   INCOME: 'Edit income source',
 } as const;
 
+type AccountDetailsForm = 'panel' | 'summary';
+
 type SelectedAccountDetailsProps = Readonly<{
+  form: AccountDetailsForm;
   baseCurrency: string;
   accountCount: number | undefined;
   defaultAccountId: string | undefined;
@@ -46,6 +49,7 @@ type SelectedAccountDetailsProps = Readonly<{
 }>;
 
 type SelectedAccountProps = Readonly<{
+  form: AccountDetailsForm;
   accountId: string;
   isShownByDefault: boolean;
   isKeptOpenOnDesktop: boolean;
@@ -111,6 +115,7 @@ function AccountForm({
 }
 
 function SelectedAccount({
+  form,
   accountId,
   isShownByDefault,
   isKeptOpenOnDesktop,
@@ -187,6 +192,7 @@ function SelectedAccount({
   return (
     <>
       <AccountDetails
+        form={form}
         accountId={accountId}
         baseCurrency={baseCurrency}
         accountKinds={accountKinds}
@@ -261,6 +267,7 @@ function SelectedAccount({
 }
 
 export function SelectedAccountDetails({
+  form,
   baseCurrency,
   accountCount,
   defaultAccountId,
@@ -279,6 +286,7 @@ export function SelectedAccountDetails({
 
   return (
     <SelectedAccount
+      form={form}
       accountId={accountId}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}

@@ -959,3 +959,247 @@ test('keeps the accounts on screen and notifies once when their refetch fails', 
   document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
   expect(await screen.findByRole('link', { name: 'Daily card' })).toBeInTheDocument();
 });
+
+const groceries = {
+  ...wallet,
+  name: 'Groceries',
+  id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
+  kind: 'EXPENSE',
+  balance: '0',
+  currency: null,
+  color: null,
+  category_type: 'VARIABLE',
+  base_currency_rate: '0',
+  base_currency_balance: '0.00',
+} satisfies components['schemas']['Account'];
+
+const groceryPayment = {
+  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c40',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  transaction_date: '2026-11-04',
+  comment: null,
+  base_currency_amount: '42.10',
+  location: null,
+  income_period: null,
+  transaction_type: 'EXPENSE',
+  status: 'ACTIVE',
+  created_at: '2026-11-04T09:00:00Z',
+  updated_at: '2026-11-04T09:00:00Z',
+  postings: [
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a60',
+      amount: '-42.10',
+      currency: 'USD',
+      base_amount: '-42.10',
+      account: wallet,
+    },
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a61',
+      amount: '42.10',
+      currency: 'USD',
+      base_amount: '42.10',
+      account: groceries,
+    },
+  ],
+} satisfies components['schemas']['Transaction'];
+
+const transferToCard = {
+  ...groceryPayment,
+  id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c41',
+  transaction_date: '2026-10-31',
+  base_currency_amount: '200.00',
+  transaction_type: 'TRANSFER',
+  postings: [
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a62',
+      amount: '-200.00',
+      currency: 'USD',
+      base_amount: '-200.00',
+      account: wallet,
+    },
+    {
+      id: '3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a63',
+      amount: '200.00',
+      currency: 'USD',
+      base_amount: '200.00',
+      account: creditCard,
+    },
+  ],
+} satisfies components['schemas']['Transaction'];
+
+function serveAccountTransactions() {
+  // 768 px of jsdom's window over 52 px rows give pages of 15
+  document.documentElement.style.fontSize = '16px';
+  document.documentElement.style.setProperty('--size-transaction-row', '3.25rem');
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [{ key: 'USD', label: 'US Dollar' }],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'LIABILITY', label: 'Liability' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
+        transaction_types: [
+          { key: 'EXPENSE', label: 'Expense' },
+          { key: 'TRANSFER', label: 'Transfer' },
+        ],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet, creditCard],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const items =
+        new URL(request.url).searchParams.getAll('account_ids').join() === wallet.id
+          ? [groceryPayment, transferToCard]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get('http://localhost/api/accounting/transactions/:transactionId', ({ params }) =>
+      HttpResponse.json(
+        params['transactionId'] === transferToCard.id ? transferToCard : groceryPayment,
+      ),
+    ),
+  );
+}
+
+test('shows the transactions of the top account with its balance and actions and the details of its first transaction on a wide desktop', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 1280);
+  serveAccountTransactions();
+
+  // act
+  const { router } = render(<Component />);
+
+  // assert
+  const walletTransactions = await screen.findByRole('region', {
+    name: 'Transactions of Wallet',
+  });
+  expect(walletTransactions).toHaveTextContent('Asset · USD · recent transactions');
+  expect(within(walletTransactions).getByRole('heading', { name: 'Wallet' })).toBeInTheDocument();
+  expect(await within(walletTransactions).findAllByText('$412.50')).not.toHaveLength(0);
+  expect(within(walletTransactions).getByRole('link', { name: 'Adjust balance' })).toHaveAttribute(
+    'href',
+    `/?new_transaction=ADJUSTMENT&new_transaction_account=${wallet.id}`,
+  );
+  expect(within(walletTransactions).getByRole('link', { name: 'Transactions' })).toHaveAttribute(
+    'href',
+    `/transactions?account_ids=${wallet.id}`,
+  );
+  expect(within(walletTransactions).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  expect(
+    within(walletTransactions).getByRole('button', { name: 'Delete account' }),
+  ).toBeInTheDocument();
+  expect(within(walletTransactions).getByRole('link', { name: 'All' })).toHaveAttribute(
+    'href',
+    `/transactions?account_ids=${wallet.id}`,
+  );
+  expect(
+    await within(walletTransactions).findByRole('link', { name: 'Transfer → Credit card' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(transactionDetails).findByRole('link', { name: 'Groceries' }),
+  ).toHaveAttribute('href', `/categories?account=${groceries.id}`);
+  // the account of the page is plain text in the postings
+  expect(
+    within(transactionDetails).queryByRole('link', { name: 'Wallet' }),
+  ).not.toBeInTheDocument();
+  expect(router.state.location.search).toBe('');
+});
+
+test('opens a transaction of the feed and drops it when another account is chosen on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  serveAccountTransactions();
+  const { router } = render(<Component />, { initialEntries: [`/?account=${wallet.id}`] });
+  const walletTransactions = await screen.findByRole('region', {
+    name: 'Transactions of Wallet',
+  });
+
+  // act
+  await user.click(
+    await within(walletTransactions).findByRole('link', { name: 'Transfer → Credit card' }),
+  );
+
+  // assert
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(
+    await within(transactionDetails).findByRole('link', { name: 'Credit card' }),
+  ).toHaveAttribute('href', `/accounts?account=${creditCard.id}`);
+  expect(new URLSearchParams(router.state.location.search).get('transaction')).toBe(
+    transferToCard.id,
+  );
+
+  // act
+  await user.click(within(screen.getByRole('region', { name: 'Liabilities' })).getByRole('link'));
+
+  // assert
+  expect(
+    await screen.findByRole('region', { name: 'Transactions of Credit card' }),
+  ).toHaveTextContent('Liability · USD · recent transactions');
+  expect(router.state.location.search).toBe(`?account=${creditCard.id}`);
+});
+
+test('keeps the account details without transactions on a narrower desktop', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 1024);
+  let transactionRequestCount = 0;
+  serveAccountTransactions();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () => {
+      transactionRequestCount += 1;
+      return HttpResponse.json(null, { status: 400 });
+    }),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(await within(details).findByRole('heading', { name: 'Wallet' })).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: /^Transactions of/ })).not.toBeInTheDocument();
+  expect(transactionRequestCount).toBe(0);
+});
+
+test('ignores the transaction param on a phone', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 390);
+  let transactionRequestCount = 0;
+  serveAccountTransactions();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions/:transactionId', () => {
+      transactionRequestCount += 1;
+      return HttpResponse.json(null, { status: 400 });
+    }),
+  );
+
+  // act
+  render(<Component />, {
+    initialEntries: [`/?account=${wallet.id}&transaction=${groceryPayment.id}`],
+  });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  expect(await within(details).findByRole('heading', { name: 'Wallet' })).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
+  expect(transactionRequestCount).toBe(0);
+});

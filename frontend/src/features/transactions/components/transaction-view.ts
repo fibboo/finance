@@ -215,3 +215,49 @@ export function readTransactionView({
     }
   }
 }
+
+export function readMoneyEntryView({
+  view,
+  transaction,
+  transactionTypes,
+  omittedAccountIds,
+}: Readonly<{
+  view: TransactionView;
+  transaction: Readonly<Transaction>;
+  transactionTypes: readonly DictionaryItem[];
+  omittedAccountIds: readonly string[];
+}>): TransactionView | undefined {
+  const entryPosting = transaction.postings.find(
+    (posting) =>
+      omittedAccountIds.includes(posting.account.id) && isMoneyAccountKind(posting.account.kind),
+  );
+  if (entryPosting === undefined) {
+    return undefined;
+  }
+
+  if (transaction.transaction_type !== 'TRANSFER') {
+    const entryView = { ...view, accountNames: [] };
+    return entryView;
+  }
+
+  const otherPosting = requireField({
+    value: transaction.postings.find((posting) => posting.account.id !== entryPosting.account.id),
+    name: 'other account',
+  });
+  const amount = Number(entryPosting.amount);
+  const arrow = amount < 0 ? '→' : '←';
+  const entryView = {
+    ...view,
+    rowTitle: [
+      `${readTypeLabel({ transaction, transactionTypes })} ${arrow} `,
+      otherPosting.account,
+    ],
+    accountNames: [],
+    titleMarkedAccount: null,
+    amount,
+    baseAmount: entryPosting.base_amount === null ? null : Number(entryPosting.base_amount),
+    currency: entryPosting.currency,
+    signDisplay: 'exceptZero',
+  } satisfies TransactionView;
+  return entryView;
+}

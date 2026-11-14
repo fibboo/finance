@@ -30,6 +30,7 @@ type AccountGroupsProps = Readonly<{
   accounts: readonly Account[] | undefined;
   topAccountId: string | undefined;
   baseCurrency: string;
+  listSearchParams: URLSearchParams;
 }>;
 
 function sumBaseCurrencyBalances(accounts: readonly Account[]): number {
@@ -53,7 +54,12 @@ function readAccountClassName({
   return accountClassName;
 }
 
-export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountGroupsProps) {
+export function AccountGroups({
+  accounts,
+  topAccountId,
+  baseCurrency,
+  listSearchParams,
+}: AccountGroupsProps) {
   const [searchParams] = useSearchParams();
   const arrowKeySelection = useArrowKeySelection({
     list: 'accounts',
@@ -119,7 +125,7 @@ export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountG
                         id={readAccountLinkId(account.id)}
                         to={{
                           search: writeSelectedAccount({
-                            searchParams,
+                            searchParams: listSearchParams,
                             accountId: account.id,
                           }).toString(),
                         }}
