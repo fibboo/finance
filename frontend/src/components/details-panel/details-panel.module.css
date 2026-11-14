@@ -196,7 +196,6 @@
   .detailsPanel {
     position: static;
     z-index: auto;
-    scroll-margin-top: var(--sticky-top, 0);
     flex: none;
     grid-row: var(--details-panel-row, auto);
     contain: var(--details-panel-contain, none);

@@ -1,21 +1,7 @@
 @import '@/styles/media.css';
 
-.actions {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  flex: none;
-  margin-bottom: calc(var(--space-2) * -1);
-  padding-bottom: var(--space-2);
-  display: flex;
-  gap: var(--space-2);
-  background: var(--color-ground);
-}
-
 .accounts,
 .accountsWithTransactions {
-  --sticky-top: calc(var(--size-touch) + var(--space-2));
-
   flex: none;
   padding-bottom: var(--size-fab-room);
   display: flex;
@@ -27,15 +13,8 @@
 }
 
 @media (--desktop) {
-  .actions {
-    margin-bottom: calc(var(--space-4) * -1);
-    padding-bottom: var(--space-4);
-  }
-
   .accounts,
   .accountsWithTransactions {
-    --sticky-top: calc(var(--size-touch) + var(--space-4));
-
     padding-bottom: 0;
     flex-direction: row;
     gap: var(--space-4);
@@ -47,8 +26,6 @@
   }
 
   .list {
-    --sticky-top: 0;
-
     flex: 1 0 var(--size-catalog-list);
     min-width: 0;
     display: flex;

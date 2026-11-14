@@ -43,6 +43,12 @@
   outline-offset: calc(var(--size-focus) * -2);
 }
 
+@media (--desktop) {
+  .chip {
+    background: var(--color-band);
+  }
+}
+
 @media (hover: hover) {
   .chip:hover {
     border-color: var(--color-ink);

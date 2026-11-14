@@ -1,6 +1,6 @@
 .newButton {
   flex: none;
-  min-height: var(--size-touch);
+  min-height: var(--size-segment);
   padding: 0 var(--space-5) 0 var(--space-4);
   border: 0;
   border-radius: var(--radius-full);

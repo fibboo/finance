@@ -142,9 +142,11 @@ export function Component() {
   }
 
   return (
-    <Page title="Income sources" count={readIncomeSourceCount(activeIncomeSourcePage?.total)}>
-      <div className={styles['controls']}>
-        <div className={styles['actions']}>
+    <Page
+      title="Income sources"
+      count={readIncomeSourceCount(activeIncomeSourcePage?.total)}
+      actions={
+        <>
           <SearchField
             key={searchField.fieldKey}
             id={INCOME_SOURCE_SEARCH_FIELD_ID}
@@ -168,25 +170,26 @@ export function Component() {
               setIsCreating(true);
             }}
           />
-        </div>
-        <CatalogFilters
-          segment={undefined}
-          isDeletedShown={isDeletedShown}
-          onDeletedShownChange={(nextIsDeletedShown) => {
-            setSearchParams(
-              writeIsDeletedShown({
-                searchParams: listSearchParams,
-                isStoredDeletedShown,
-                isDeletedShown: nextIsDeletedShown,
-              }),
-              { replace: true },
-            );
-            storeIsDeletedShown({ page: 'income_sources', isDeletedShown: nextIsDeletedShown });
-          }}
-        />
-      </div>
+        </>
+      }
+    >
       <div className={styles['incomeSources']}>
         <div className={styles['list']}>
+          <CatalogFilters
+            segment={undefined}
+            isDeletedShown={isDeletedShown}
+            onDeletedShownChange={(nextIsDeletedShown) => {
+              setSearchParams(
+                writeIsDeletedShown({
+                  searchParams: listSearchParams,
+                  isStoredDeletedShown,
+                  isDeletedShown: nextIsDeletedShown,
+                }),
+                { replace: true },
+              );
+              storeIsDeletedShown({ page: 'income_sources', isDeletedShown: nextIsDeletedShown });
+            }}
+          />
           {isNothingMatched ? (
             <NoMatchingEntries
               entityNames="income sources"

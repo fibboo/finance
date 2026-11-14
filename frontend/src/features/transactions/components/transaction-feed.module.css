@@ -51,6 +51,7 @@
 
   .transactions {
     padding: 0 var(--space-2) var(--space-4);
-    border-radius: var(--radius-bar);
+    border-radius: var(--feed-top-radius, var(--radius-bar))
+      var(--feed-top-radius, var(--radius-bar)) var(--radius-bar) var(--radius-bar);
   }
 }

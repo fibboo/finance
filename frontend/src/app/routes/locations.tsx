@@ -138,9 +138,11 @@ export function Component() {
   }
 
   return (
-    <Page title="Locations" count={readLocationCount(activeLocationPage?.total)}>
-      <div className={styles['controls']}>
-        <div className={styles['actions']}>
+    <Page
+      title="Locations"
+      count={readLocationCount(activeLocationPage?.total)}
+      actions={
+        <>
           <SearchField
             key={searchField.fieldKey}
             id={LOCATION_SEARCH_FIELD_ID}
@@ -164,25 +166,26 @@ export function Component() {
               setIsCreating(true);
             }}
           />
-        </div>
-        <CatalogFilters
-          segment={undefined}
-          isDeletedShown={isDeletedShown}
-          onDeletedShownChange={(nextIsDeletedShown) => {
-            setSearchParams(
-              writeIsDeletedShown({
-                searchParams: listSearchParams,
-                isStoredDeletedShown,
-                isDeletedShown: nextIsDeletedShown,
-              }),
-              { replace: true },
-            );
-            storeIsDeletedShown({ page: 'locations', isDeletedShown: nextIsDeletedShown });
-          }}
-        />
-      </div>
+        </>
+      }
+    >
       <div className={styles['locations']}>
         <div className={styles['list']}>
+          <CatalogFilters
+            segment={undefined}
+            isDeletedShown={isDeletedShown}
+            onDeletedShownChange={(nextIsDeletedShown) => {
+              setSearchParams(
+                writeIsDeletedShown({
+                  searchParams: listSearchParams,
+                  isStoredDeletedShown,
+                  isDeletedShown: nextIsDeletedShown,
+                }),
+                { replace: true },
+              );
+              storeIsDeletedShown({ page: 'locations', isDeletedShown: nextIsDeletedShown });
+            }}
+          />
           {isNothingMatched ? (
             <NoMatchingEntries
               entityNames="locations"

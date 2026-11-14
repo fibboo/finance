@@ -116,79 +116,86 @@ export function Component() {
   });
   const topTransactionId = readTopTransactionId(feed);
   return (
-    <Page title="Transactions" count={readTransactionCount(feed.total)}>
-      <div className={styles['actions']}>
-        <SearchField
-          key={searchField.fieldKey}
-          id="transaction-search"
-          label="Search transactions"
-          term={search}
-          isFocusedOnMount={searchField.isFocusedOnMount}
-          onSearch={(nextSearch) => {
-            setSearchParams(
-              writeTransactionSearch({ searchParams: listSearchParams, search: nextSearch }),
-              { replace: true, state: TYPED_SEARCH_STATE },
-            );
-          }}
-        />
-        <NewButton entityName="transaction" isDisabled={false} onClick={openNewTransaction} />
-      </div>
-      {baseCurrency !== undefined &&
-        dictionaries !== undefined &&
-        accounts !== undefined &&
-        locations !== undefined &&
-        filters !== undefined && (
-          <FilterChips
-            filters={filters}
-            today={today}
-            anchorDate={anchorDate}
-            baseCurrency={baseCurrency}
-            transactionTypes={dictionaries.transaction_types}
-            transactionOrders={dictionaries.transaction_orders}
-            items={{ ...accounts, location_ids: locations.items }}
-            onApply={(change, jumpDate) => {
-              const nextFilters = { ...filters, ...change };
-              const nextSearchParams = writeTransactionFilters(nextFilters);
-              setSearchParams(nextSearchParams);
-              if (jumpDate === undefined) {
-                clearJump();
-              } else {
-                jumpToDate({
-                  date: readJumpDate({ date: jumpDate, filters: nextFilters }),
-                  listKey: readTransactionListKey(nextSearchParams),
-                });
-              }
-            }}
-            onJump={(monthEnd) => {
-              jumpToDate({ date: readJumpDate({ date: monthEnd, filters }), listKey });
+    <Page
+      title="Transactions"
+      count={readTransactionCount(feed.total)}
+      actions={
+        <>
+          <SearchField
+            key={searchField.fieldKey}
+            id="transaction-search"
+            label="Search transactions"
+            term={search}
+            isFocusedOnMount={searchField.isFocusedOnMount}
+            onSearch={(nextSearch) => {
+              setSearchParams(
+                writeTransactionSearch({ searchParams: listSearchParams, search: nextSearch }),
+                { replace: true, state: TYPED_SEARCH_STATE },
+              );
             }}
           />
-        )}
+          <NewButton entityName="transaction" isDisabled={false} onClick={openNewTransaction} />
+        </>
+      }
+    >
       <div className={styles['transactions']}>
-        {baseCurrency !== undefined && (
-          <TransactionFeed
-            key={`${listKey}#${feed.anchorDate ?? ''}`}
-            feed={feed}
-            baseCurrency={baseCurrency}
-            transactionTypes={dictionaries?.transaction_types}
-            topTransactionId={topTransactionId}
-            label="Transactions"
-            isGroupedByDay={filters === undefined || isSortedByDate(filters)}
-            onReturnToToday={clearJump}
-            {...(filters !== undefined &&
-              hasNarrowingFilters(filters) && {
-                emptyState: (
-                  <NoMatchingTransactions
-                    onReset={() => {
-                      clearJump();
-                      searchField.focusAfterClear();
-                      setSearchParams({});
-                    }}
-                  />
-                ),
-              })}
-          />
-        )}
+        <div className={styles['feed']}>
+          {baseCurrency !== undefined &&
+            dictionaries !== undefined &&
+            accounts !== undefined &&
+            locations !== undefined &&
+            filters !== undefined && (
+              <FilterChips
+                filters={filters}
+                today={today}
+                anchorDate={anchorDate}
+                baseCurrency={baseCurrency}
+                transactionTypes={dictionaries.transaction_types}
+                transactionOrders={dictionaries.transaction_orders}
+                items={{ ...accounts, location_ids: locations.items }}
+                onApply={(change, jumpDate) => {
+                  const nextFilters = { ...filters, ...change };
+                  const nextSearchParams = writeTransactionFilters(nextFilters);
+                  setSearchParams(nextSearchParams);
+                  if (jumpDate === undefined) {
+                    clearJump();
+                  } else {
+                    jumpToDate({
+                      date: readJumpDate({ date: jumpDate, filters: nextFilters }),
+                      listKey: readTransactionListKey(nextSearchParams),
+                    });
+                  }
+                }}
+                onJump={(monthEnd) => {
+                  jumpToDate({ date: readJumpDate({ date: monthEnd, filters }), listKey });
+                }}
+              />
+            )}
+          {baseCurrency !== undefined && (
+            <TransactionFeed
+              key={`${listKey}#${feed.anchorDate ?? ''}`}
+              feed={feed}
+              baseCurrency={baseCurrency}
+              transactionTypes={dictionaries?.transaction_types}
+              topTransactionId={topTransactionId}
+              label="Transactions"
+              isGroupedByDay={filters === undefined || isSortedByDate(filters)}
+              onReturnToToday={clearJump}
+              {...(filters !== undefined &&
+                hasNarrowingFilters(filters) && {
+                  emptyState: (
+                    <NoMatchingTransactions
+                      onReset={() => {
+                        clearJump();
+                        searchField.focusAfterClear();
+                        setSearchParams({});
+                      }}
+                    />
+                  ),
+                })}
+            />
+          )}
+        </div>
         {baseCurrency !== undefined && (
           <div className={styles['details']}>
             <DetailsColumn
