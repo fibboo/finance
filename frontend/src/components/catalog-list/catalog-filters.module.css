@@ -110,7 +110,6 @@
 
 @media (--desktop) {
   .catalogFilters {
-    position: static;
     padding: var(--space-4) var(--space-3-5) var(--space-3);
     border-radius: var(--radius-panel) var(--radius-panel) 0 0;
     background:

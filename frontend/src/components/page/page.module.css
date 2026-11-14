@@ -54,13 +54,6 @@
 
 @media (--desktop) {
   .page,
-  .actions {
-    flex: 1 1 100%;
-    min-width: 0;
-    display: flex;
-    gap: var(--space-2);
-  }
-
   .content {
     gap: var(--space-4);
   }

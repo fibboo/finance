@@ -27,8 +27,10 @@
   }
 
   .feed {
-    --feed-top-radius: 0;
-
     gap: 0;
+  }
+
+  .feed:has(> :nth-child(2)) {
+    --feed-top-radius: 0;
   }
 }
