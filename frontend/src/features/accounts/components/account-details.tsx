@@ -91,39 +91,37 @@ export function AccountDetails({
         onDeleted={isMoneyAccountKind(account.kind) ? onDeleted : onStatusChanged}
       />
     );
-  if (form === 'summary' && account === undefined) {
-    return isError ? (
-      <LoadError
-        message={LOAD_ERROR_MESSAGE}
-        onRetry={() => {
-          void refetch();
-        }}
-      />
-    ) : (
-      <Skeleton className={styles['balanceSkeleton']} />
-    );
-  }
-
   if (form === 'summary') {
+    if (account === undefined) {
+      return isError && !isFetching ? (
+        <LoadError
+          message={LOAD_ERROR_MESSAGE}
+          onRetry={() => {
+            void refetch();
+          }}
+        />
+      ) : (
+        <Skeleton className={styles['balanceSkeleton']} />
+      );
+    }
+
     return (
-      account !== undefined && (
-        <div className={styles['summary']}>
-          <AccountBalance account={account} baseCurrency={baseCurrency} isInline />
-          {account.description !== undefined &&
-            account.description !== null &&
-            account.description !== '' && (
-              <p className={styles['description']}>{account.description}</p>
-            )}
-          <AccountActions
-            account={account}
-            adjustBalanceLink={adjustBalanceLink}
-            transactionsLink={readTransactionsLink(account)}
-            transactionsLinkId={transactionsLinkId}
-            statusAction={statusAction}
-            onEdit={onEdit}
-          />
-        </div>
-      )
+      <div className={styles['summary']}>
+        <AccountBalance account={account} baseCurrency={baseCurrency} isInline />
+        {account.description !== undefined &&
+          account.description !== null &&
+          account.description !== '' && (
+            <p className={styles['description']}>{account.description}</p>
+          )}
+        <AccountActions
+          account={account}
+          adjustBalanceLink={adjustBalanceLink}
+          transactionsLink={readTransactionsLink(account)}
+          transactionsLinkId={transactionsLinkId}
+          statusAction={statusAction}
+          onEdit={onEdit}
+        />
+      </div>
     );
   }
 

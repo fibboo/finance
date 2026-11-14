@@ -17,6 +17,6 @@
 
 .balanceSkeleton {
   display: block;
-  width: 50%;
+  width: var(--size-skeleton-label-lg);
   height: var(--size-skeleton-balance);
 }

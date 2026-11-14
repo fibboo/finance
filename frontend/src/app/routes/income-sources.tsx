@@ -2,7 +2,11 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { CATALOG_FULL_MENU_MIN_WIDTH, CatalogTransactions } from '@/app/catalog-transactions';
+import {
+  CATALOG_DESCRIPTION_SEPARATOR,
+  CATALOG_FULL_MENU_MIN_WIDTH,
+  CatalogTransactions,
+} from '@/app/catalog-transactions';
 import { INCOME_SOURCE_ICON_PATH } from '@/app/income-source-icon';
 import { readTransactionsLink } from '@/app/transactions-link';
 import { readCatalogInitial } from '@/components/catalog-list/catalog-entry';
@@ -256,7 +260,9 @@ export function Component() {
           <CatalogTransactions
             key={shownIncomeSource.id}
             name={shownIncomeSource.name}
-            description="Income source · recent transactions"
+            description={['Income source', 'recent transactions'].join(
+              CATALOG_DESCRIPTION_SEPARATOR,
+            )}
             emptyText="No transactions from this income source yet"
             filterQuery={{ account_ids: [shownIncomeSource.id] }}
             transactionsLink={readTransactionsLink(shownIncomeSource)}
