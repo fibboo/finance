@@ -12,7 +12,7 @@ If the diff touches a `.py` file, a `requirements/` file, a Dockerfile, `pytest.
 
 ## What Is Not a Finding
 
-- The size of a pull request. `.claude/rules/common.md` sets the 500-line limit as a rule for planning and authoring. A review does not count a diff's lines against it and never asks for a split to shrink a PR. The one-kind-of-work rule below is about what the diff contains rather than how big it is, and it still applies.
+- The size of a pull request. `.claude/rules/common.md` makes the split by meaning, and its size signal, a rule for planning and authoring. A review does not count a diff's lines and never asks for a split to shrink a PR. The one-kind-of-work rule and the backend and frontend rule below are about what the diff contains rather than how big it is, and they still apply.
 - A violation in a file the diff does not touch. Existing code is brought in line by dedicated issues, and a review never asks a pull request to migrate code it did not change. A file the diff moves or rewrites counts as touched and is held to the rules in full.
 
 ## Skills
@@ -29,6 +29,14 @@ A pull request carries one kind of work (`.claude/rules/common.md`: one issue is
 - A fix to existing behaviour shipped together with a new capability is a finding, whatever the line count.
 - A new branch inside existing logic for a case it already handles is part of the fix. A new endpoint, a new transaction type or a new entity is a new capability.
 - Name which files belong to which piece, and ask for the original issue to be split into two sub-issues: a **Bug** for the fix and an **Enhancement** for the new capability, each with its own PR.
+- Grade it **P2** and treat it as blocking, since the author can act on it before the merge. The reviewer never creates or edits issues; the split is the author's to make.
+
+## Backend and Frontend
+
+A pull request changes `backend/` or `frontend/`, not both (`.claude/rules/common.md` **General Coding**).
+
+- A diff that changes files in both is a finding, unless it is a bug fix that needs both modules and the change on each side is small and reads as one fix.
+- Name which files belong to which module, and ask for the work to be split into a backend issue and a frontend issue, each with its own PR.
 - Grade it **P2** and treat it as blocking, since the author can act on it before the merge. The reviewer never creates or edits issues; the split is the author's to make.
 
 ## Rule Sections
