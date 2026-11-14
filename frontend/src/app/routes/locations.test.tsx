@@ -712,11 +712,11 @@ test('shows the chosen transaction of a location with the location as plain text
   const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(await within(transactionDetails).findByRole('link', { name: 'Wallet' })).toHaveAttribute(
     'href',
-    `/accounts?account=${wallet.id}`,
+    `/locations?account=${groceries.id}&location=${spar.id}&transaction=${sparPurchase.id}&entry=account.${wallet.id}`,
   );
   expect(within(transactionDetails).getByRole('link', { name: 'Groceries' })).toHaveAttribute(
     'href',
-    `/categories?account=${groceries.id}`,
+    `/locations?account=${groceries.id}&location=${spar.id}&transaction=${sparPurchase.id}&entry=account.${groceries.id}`,
   );
   expect(within(transactionDetails).getByText('Spar')).toBeInTheDocument();
   expect(within(transactionDetails).queryByRole('link', { name: 'Spar' })).not.toBeInTheDocument();

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 
+import type { DetailsBack } from '@/components/details-panel/details-panel';
 import { Sheet } from '@/components/sheet/sheet';
 
 import { accountQueries } from '@/features/accounts/api/account-queries';
@@ -27,6 +28,7 @@ import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import { revealHorizontally } from '@/lib/reveal-horizontally';
 import type { components } from '@/lib/api-schema';
 
+import { writeClosedEntry, writeSelectedEntry } from './selected-entry';
 import { readTransactionsLink } from './transactions-link';
 
 type Account = components['schemas']['Account'];
@@ -39,13 +41,16 @@ const EDIT_SHEET_LABELS = {
   INCOME: 'Edit income source',
 } as const;
 
+type ShownAccount =
+  | Readonly<{ kind: 'selected'; defaultAccountId: string | undefined; isParamIgnored: boolean }>
+  | Readonly<{ kind: 'opened'; accountId: string; back: DetailsBack }>;
+
 type SelectedAccountDetailsProps = Readonly<{
   form: AccountDetailsForm;
   baseCurrency: string;
   accountCount: number | undefined;
-  defaultAccountId: string | undefined;
+  shownAccount: ShownAccount;
   isKeptOpenOnDesktop: boolean;
-  isParamIgnored: boolean;
   isMoneyAccountOnly: boolean;
 }>;
 
@@ -55,6 +60,7 @@ type SelectedAccountProps = Readonly<{
   isShownByDefault: boolean;
   isKeptOpenOnDesktop: boolean;
   isMoneyAccountOnly: boolean;
+  back: DetailsBack | undefined;
   baseCurrency: string;
   isOnlyAccount: boolean;
   accountKinds: readonly DictionaryItem[];
@@ -115,12 +121,31 @@ function AccountForm({
   );
 }
 
+function writeShownAccount({
+  searchParams,
+  accountId,
+  isOpened,
+}: Readonly<{
+  searchParams: URLSearchParams;
+  accountId: string | undefined;
+  isOpened: boolean;
+}>): URLSearchParams {
+  const shownSearchParams = isOpened
+    ? writeSelectedEntry({
+        searchParams,
+        entry: accountId === undefined ? undefined : { kind: 'account', id: accountId },
+      })
+    : writeSelectedAccount({ searchParams, accountId });
+  return shownSearchParams;
+}
+
 function SelectedAccount({
   form,
   accountId,
   isShownByDefault,
   isKeptOpenOnDesktop,
   isMoneyAccountOnly,
+  back,
   baseCurrency,
   isOnlyAccount,
   accountKinds,
@@ -142,9 +167,12 @@ function SelectedAccount({
   }
 
   const { data: account, error } = useQuery(accountQueries.detail(accountId));
+  const isOpened = back !== undefined;
   useEffect(() => {
-    revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
-  }, [accountId]);
+    if (!isOpened) {
+      revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
+    }
+  }, [accountId, isOpened]);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   const isUnavailable =
     isNotFound ||
@@ -157,7 +185,9 @@ function SelectedAccount({
   if (isUnavailable) {
     return (
       <Navigate
-        to={{ search: writeSelectedAccount({ searchParams, accountId: undefined }).toString() }}
+        to={{
+          search: writeShownAccount({ searchParams, accountId: undefined, isOpened }).toString(),
+        }}
         replace
       />
     );
@@ -184,7 +214,7 @@ function SelectedAccount({
   }
 
   function dropSelectedAccount({ isReplaced }: Readonly<{ isReplaced: boolean }>) {
-    setSearchParams(writeSelectedAccount({ searchParams, accountId: undefined }), {
+    setSearchParams(writeShownAccount({ searchParams, accountId: undefined, isOpened }), {
       preventScrollReset: true,
       replace: isReplaced,
     });
@@ -207,6 +237,7 @@ function SelectedAccount({
         relatedQueryKeys={relatedQueryKeys}
         isShownByDefault={isShownByDefault}
         isKeptOpenOnDesktop={isKeptOpenOnDesktop}
+        back={back}
         onEdit={() => {
           setEditedAccountId(accountId);
         }}
@@ -218,10 +249,14 @@ function SelectedAccount({
           setRenamedAccountId(accountId);
         }}
         onClose={() => {
-          dropSelectedAccount({ isReplaced: false });
+          if (isOpened) {
+            setSearchParams(writeClosedEntry(searchParams), { preventScrollReset: true });
+          } else {
+            dropSelectedAccount({ isReplaced: false });
+          }
         }}
         onChoose={() => {
-          setSearchParams(writeSelectedAccount({ searchParams, accountId }), {
+          setSearchParams(writeShownAccount({ searchParams, accountId, isOpened }), {
             preventScrollReset: true,
             replace: true,
           });
@@ -271,15 +306,20 @@ export function SelectedAccountDetails({
   form,
   baseCurrency,
   accountCount,
-  defaultAccountId,
+  shownAccount,
   isKeptOpenOnDesktop,
-  isParamIgnored,
   isMoneyAccountOnly,
 }: SelectedAccountDetailsProps) {
   const [searchParams] = useSearchParams();
-  const selectedAccountId = isParamIgnored ? undefined : readSelectedAccountId(searchParams);
-  const accountId = selectedAccountId ?? defaultAccountId;
-  const isShownByDefault = selectedAccountId === undefined;
+  const selectedAccountId =
+    shownAccount.kind === 'opened' || shownAccount.isParamIgnored
+      ? undefined
+      : readSelectedAccountId(searchParams);
+  const accountId =
+    shownAccount.kind === 'opened'
+      ? shownAccount.accountId
+      : (selectedAccountId ?? shownAccount.defaultAccountId);
+  const isShownByDefault = shownAccount.kind === 'selected' && selectedAccountId === undefined;
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
   if (accountId === undefined || dictionaries === undefined) {
     return null;
@@ -292,6 +332,7 @@ export function SelectedAccountDetails({
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}
       isMoneyAccountOnly={isMoneyAccountOnly}
+      back={shownAccount.kind === 'opened' ? shownAccount.back : undefined}
       baseCurrency={baseCurrency}
       isOnlyAccount={accountCount === 1}
       accountKinds={dictionaries.account_kinds}

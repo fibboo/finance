@@ -587,7 +587,7 @@ test('shows the chosen transaction of an income source with the source as plain 
   const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(await within(transactionDetails).findByRole('link', { name: 'Wallet' })).toHaveAttribute(
     'href',
-    `/accounts?account=${wallet.id}`,
+    `/income-sources?account=${salary.id}&transaction=${salaryPayment.id}&entry=account.${wallet.id}`,
   );
   expect(
     within(transactionDetails).queryByRole('link', { name: 'Salary' }),

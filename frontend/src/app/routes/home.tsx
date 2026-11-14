@@ -68,9 +68,9 @@ export function Component() {
             <DetailsColumn
               baseCurrency={baseCurrency}
               defaultTransactionId={topTransactionId}
+              omittedAccountIds={undefined}
+              omittedLocationIds={undefined}
               shownAccount={shownAccount}
-              accountCount={accountPage?.total}
-              isAccountFirst
             />
           </div>
         </div>

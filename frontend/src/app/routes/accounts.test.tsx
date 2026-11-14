@@ -1116,7 +1116,7 @@ test('shows the transactions of the top account with its balance and actions and
   const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(
     await within(transactionDetails).findByRole('link', { name: 'Groceries' }),
-  ).toHaveAttribute('href', `/categories?account=${groceries.id}`);
+  ).toHaveAttribute('href', `/?entry=account.${groceries.id}`);
   // the account of the page is plain text in the postings
   expect(
     within(transactionDetails).queryByRole('link', { name: 'Wallet' }),
@@ -1143,7 +1143,10 @@ test('opens a transaction of the feed and drops it when another account is chose
   const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(
     await within(transactionDetails).findByRole('link', { name: 'Credit card' }),
-  ).toHaveAttribute('href', `/accounts?account=${creditCard.id}`);
+  ).toHaveAttribute(
+    'href',
+    `/?account=${wallet.id}&transaction=${transferToCard.id}&entry=account.${creditCard.id}`,
+  );
   expect(new URLSearchParams(router.state.location.search).get('transaction')).toBe(
     transferToCard.id,
   );

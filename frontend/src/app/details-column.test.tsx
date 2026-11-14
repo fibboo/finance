@@ -8,7 +8,6 @@ import { render } from '@/test/render';
 import { server } from '@/test/setup';
 
 import { DetailsColumn } from './details-column';
-import { useShownAccount } from './use-shown-account';
 
 const wallet = {
   name: 'Wallet',
@@ -93,17 +92,13 @@ const expenseAtSpar = {
 } satisfies components['schemas']['Transaction'];
 
 function ShownDetailsColumn() {
-  const shownAccount = useShownAccount({
-    defaultTransactionId: undefined,
-    firstAccountId: undefined,
-  });
   return (
     <DetailsColumn
       baseCurrency="USD"
       defaultTransactionId={undefined}
-      shownAccount={shownAccount}
-      accountCount={1}
-      isAccountFirst={false}
+      omittedAccountIds={undefined}
+      omittedLocationIds={undefined}
+      shownAccount={undefined}
     />
   );
 }
@@ -142,6 +137,15 @@ beforeEach(() => {
     http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
       HttpResponse.json(wallet),
     ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [wallet],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
   );
 });
 
@@ -171,23 +175,9 @@ test.each([
     );
 
     // act
-    render(
-      <DetailsColumn
-        baseCurrency="USD"
-        defaultTransactionId={undefined}
-        shownAccount={{
-          chosenAccountId: account.id,
-          defaultAccountId: wallet.id,
-          isAccountParamStale: false,
-          isAccountOpenedLast: true,
-          shownLocationId: undefined,
-          isLocationOpenedLast: false,
-        }}
-        accountCount={1}
-        isAccountFirst={false}
-      />,
-      { initialEntries: [`/transactions?transaction=${expense.id}&account=${account.id}`] },
-    );
+    render(<ShownDetailsColumn />, {
+      initialEntries: [`/transactions?transaction=${expense.id}&entry=account.${account.id}`],
+    });
 
     // assert
     const details = await screen.findByRole('dialog', { name: 'Account details' });
@@ -214,23 +204,9 @@ test('opens the category form to edit a category', async () => {
       HttpResponse.json(groceries),
     ),
   );
-  render(
-    <DetailsColumn
-      baseCurrency="USD"
-      defaultTransactionId={undefined}
-      shownAccount={{
-        chosenAccountId: groceries.id,
-        defaultAccountId: wallet.id,
-        isAccountParamStale: false,
-        isAccountOpenedLast: true,
-        shownLocationId: undefined,
-        isLocationOpenedLast: false,
-      }}
-      accountCount={1}
-      isAccountFirst={false}
-    />,
-    { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
-  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expense.id}&entry=account.${groceries.id}`],
+  });
   const details = await screen.findByRole('dialog', { name: 'Account details' });
 
   // act
@@ -256,23 +232,9 @@ test('keeps a deleted category open with Restore and moves the focus to its Tran
       return HttpResponse.json(category);
     }),
   );
-  render(
-    <DetailsColumn
-      baseCurrency="USD"
-      defaultTransactionId={undefined}
-      shownAccount={{
-        chosenAccountId: groceries.id,
-        defaultAccountId: wallet.id,
-        isAccountParamStale: false,
-        isAccountOpenedLast: true,
-        shownLocationId: undefined,
-        isLocationOpenedLast: false,
-      }}
-      accountCount={1}
-      isAccountFirst={false}
-    />,
-    { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
-  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expense.id}&entry=account.${groceries.id}`],
+  });
   const details = await screen.findByRole('dialog', { name: 'Account details' });
   await user.click(await within(details).findByRole('button', { name: 'Delete category' }));
   const confirmation = screen.getByRole('alertdialog', { name: 'Delete this category?' });
@@ -305,23 +267,9 @@ test('restores a deleted category from its details', async () => {
       return HttpResponse.json(category);
     }),
   );
-  render(
-    <DetailsColumn
-      baseCurrency="USD"
-      defaultTransactionId={undefined}
-      shownAccount={{
-        chosenAccountId: groceries.id,
-        defaultAccountId: wallet.id,
-        isAccountParamStale: false,
-        isAccountOpenedLast: true,
-        shownLocationId: undefined,
-        isLocationOpenedLast: false,
-      }}
-      accountCount={1}
-      isAccountFirst={false}
-    />,
-    { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
-  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expense.id}&entry=account.${groceries.id}`],
+  });
   const details = await screen.findByRole('dialog', { name: 'Account details' });
   expect(await within(details).findByText('Deleted')).toBeInTheDocument();
   expect(within(details).getByRole('link', { name: 'Transactions' })).toBeInTheDocument();
@@ -361,23 +309,9 @@ test('opens Restore category when a restore from the details is refused because 
       ),
     ),
   );
-  render(
-    <DetailsColumn
-      baseCurrency="USD"
-      defaultTransactionId={undefined}
-      shownAccount={{
-        chosenAccountId: groceries.id,
-        defaultAccountId: wallet.id,
-        isAccountParamStale: false,
-        isAccountOpenedLast: true,
-        shownLocationId: undefined,
-        isLocationOpenedLast: false,
-      }}
-      accountCount={1}
-      isAccountFirst={false}
-    />,
-    { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
-  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expense.id}&entry=account.${groceries.id}`],
+  });
   const details = await screen.findByRole('dialog', { name: 'Account details' });
 
   // act
@@ -429,23 +363,9 @@ test('restores a category under a new name from its details and moves the focus 
       },
     ),
   );
-  render(
-    <DetailsColumn
-      baseCurrency="USD"
-      defaultTransactionId={undefined}
-      shownAccount={{
-        chosenAccountId: groceries.id,
-        defaultAccountId: wallet.id,
-        isAccountParamStale: false,
-        isAccountOpenedLast: true,
-        shownLocationId: undefined,
-        isLocationOpenedLast: false,
-      }}
-      accountCount={1}
-      isAccountFirst={false}
-    />,
-    { initialEntries: [`/transactions?transaction=${expense.id}&account=${groceries.id}`] },
-  );
+  render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expense.id}&entry=account.${groceries.id}`],
+  });
   const details = await screen.findByRole('dialog', { name: 'Account details' });
   await user.click(await within(details).findByRole('button', { name: 'Restore' }));
   const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
@@ -489,7 +409,9 @@ test('opens the location of a transaction with Transactions, Edit and Delete', a
   expect(
     await within(details).findByRole('heading', { level: 2, name: 'Spar' }),
   ).toBeInTheDocument();
-  expect(router.state.location.search).toBe(`?transaction=${expenseAtSpar.id}&location=${spar.id}`);
+  expect(router.state.location.search).toBe(
+    `?transaction=${expenseAtSpar.id}&entry=location.${spar.id}`,
+  );
   expect(within(details).getByText('Location')).toBeInTheDocument();
   expect(within(details).getByText('Near home')).toBeInTheDocument();
   expect(within(details).getByRole('link', { name: 'Transactions' })).toHaveAttribute(
@@ -498,40 +420,8 @@ test('opens the location of a transaction with Transactions, Edit and Delete', a
   );
   expect(within(details).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
   expect(within(details).getByRole('button', { name: 'Delete location' })).toBeInTheDocument();
-  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
-});
-
-test('shows the account in place of the location when the account was chosen after it', async () => {
-  // arrange
-  server.use(
-    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
-  );
-
-  // act
-  render(<ShownDetailsColumn />, {
-    initialEntries: [
-      `/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}&account=${wallet.id}`,
-    ],
-  });
-
-  // assert
-  const details = await screen.findByRole('dialog', { name: 'Account details' });
-  expect(
-    await within(details).findByRole('heading', { level: 2, name: 'Wallet' }),
-  ).toBeInTheDocument();
-  expect(screen.queryByRole('dialog', { name: 'Location details' })).not.toBeInTheDocument();
-});
-
-test('ignores a location chosen before a transaction at another location', async () => {
-  // act
-  render(<ShownDetailsColumn />, {
-    initialEntries: [`/transactions?location=${spar.id}&transaction=${expense.id}`],
-  });
-
-  // assert
-  expect(await screen.findByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
-  expect(await screen.findByRole('dialog', { name: 'Account details' })).toBeInTheDocument();
-  expect(screen.queryByRole('dialog', { name: 'Location details' })).not.toBeInTheDocument();
+  expect(within(details).queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
 });
 
 test('drops a location that is not found', async () => {
@@ -550,7 +440,7 @@ test('drops a location that is not found', async () => {
 
   // act
   const { router } = render(<ShownDetailsColumn />, {
-    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&entry=location.${spar.id}`],
   });
 
   // assert
@@ -567,7 +457,7 @@ test('opens the location form to edit a location', async () => {
     http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
   );
   render(<ShownDetailsColumn />, {
-    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&entry=location.${spar.id}`],
   });
   const details = await screen.findByRole('dialog', { name: 'Location details' });
 
@@ -595,7 +485,7 @@ test('keeps a deleted location open with Restore and moves the focus to its Tran
     }),
   );
   render(<ShownDetailsColumn />, {
-    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&entry=location.${spar.id}`],
   });
   const details = await screen.findByRole('dialog', { name: 'Location details' });
   await user.click(await within(details).findByRole('button', { name: 'Delete location' }));
@@ -630,7 +520,7 @@ test('restores a deleted location from its details', async () => {
     }),
   );
   render(<ShownDetailsColumn />, {
-    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&entry=location.${spar.id}`],
   });
   const details = await screen.findByRole('dialog', { name: 'Location details' });
   expect(await within(details).findByText('Deleted')).toBeInTheDocument();
@@ -662,7 +552,7 @@ test('opens Restore location when a restore from the details is refused because 
     ),
   );
   render(<ShownDetailsColumn />, {
-    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&location=${spar.id}`],
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&entry=location.${spar.id}`],
   });
   const details = await screen.findByRole('dialog', { name: 'Location details' });
 
@@ -673,49 +563,104 @@ test('opens Restore location when a restore from the details is refused because 
   expect(await screen.findByRole('form', { name: 'Restore location' })).toBeInTheDocument();
 });
 
-test('shows a location chosen before an account that the shown transaction does not touch', async () => {
+test('opens the account of a transaction in place of its card', async () => {
   // arrange
-  server.use(
-    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
-    http.get(`http://localhost/api/accounting/accounts/${salary.id}`, () =>
-      HttpResponse.json(salary),
-    ),
-  );
+  const user = userEvent.setup();
+  const { router } = render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expense.id}`],
+  });
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
 
   // act
-  render(<ShownDetailsColumn />, {
-    initialEntries: [
-      `/transactions?location=${spar.id}&account=${salary.id}&transaction=${expenseAtSpar.id}`,
-    ],
-  });
+  await user.click(await within(transactionDetails).findByRole('link', { name: 'Wallet' }));
 
   // assert
-  const details = await screen.findByRole('dialog', { name: 'Location details' });
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
   expect(
-    await within(details).findByRole('heading', { level: 2, name: 'Spar' }),
+    await within(details).findByRole('heading', { level: 2, name: 'Wallet' }),
   ).toBeInTheDocument();
-  expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
+  expect(router.state.location.search).toBe(
+    `?transaction=${expense.id}&entry=account.${wallet.id}`,
+  );
+  expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
 });
 
-test('returns the focus to the location of the transaction when its details close', async () => {
+test('goes back from the opened location to the transaction card', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
     http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
   );
-  render(<ShownDetailsColumn />, {
-    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}`],
+  const { router } = render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&entry=location.${spar.id}`],
   });
-  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
-  await user.click(await within(transactionDetails).findByRole('link', { name: 'Spar' }));
   const details = await screen.findByRole('dialog', { name: 'Location details' });
-  await within(details).findByRole('heading', { level: 2, name: 'Spar' });
 
   // act
-  await user.click(within(details).getByRole('button', { name: 'Close details' }));
+  await user.click(within(details).getByRole('link', { name: 'Transaction' }));
+
+  // assert
+  expect(await screen.findByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
+  expect(router.state.location.search).toBe(`?transaction=${expenseAtSpar.id}`);
+  expect(screen.queryByRole('dialog', { name: 'Location details' })).not.toBeInTheDocument();
+});
+
+test('closes the transaction together with the entry opened from it', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const { router } = render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expense.id}&entry=account.${wallet.id}`],
+  });
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await within(details).findByRole('heading', { level: 2, name: 'Wallet' });
+
+  // act
+  await user.keyboard('{Escape}');
 
   // assert
   await waitFor(() => {
-    expect(within(transactionDetails).getByRole('link', { name: 'Spar' })).toHaveFocus();
+    expect(router.state.location.search).toBe('');
   });
+});
+
+test('drops the opened entry when another transaction is chosen', async () => {
+  // arrange
+  server.use(
+    http.get(`http://localhost/api/accounting/locations/${spar.id}`, () => HttpResponse.json(spar)),
+  );
+  const { router } = render(<ShownDetailsColumn />, {
+    initialEntries: [`/transactions?transaction=${expenseAtSpar.id}&entry=location.${spar.id}`],
+  });
+  await screen.findByRole('dialog', { name: 'Location details' });
+
+  // act
+  await router.navigate(`/transactions?transaction=${expense.id}&entry=location.${spar.id}`);
+
+  // assert
+  await waitFor(() => {
+    expect(router.state.location.search).toBe(`?transaction=${expense.id}`);
+  });
+  expect(await screen.findByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
+});
+
+test('shows the page entry of a transaction as plain text', async () => {
+  // act
+  render(
+    <DetailsColumn
+      baseCurrency="USD"
+      defaultTransactionId={undefined}
+      omittedAccountIds={[groceries.id]}
+      omittedLocationIds={undefined}
+      shownAccount={undefined}
+    />,
+    { initialEntries: [`/categories?account=${groceries.id}&transaction=${expense.id}`] },
+  );
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(await within(details).findByRole('link', { name: 'Wallet' })).toHaveAttribute(
+    'href',
+    `/categories?account=${groceries.id}&transaction=${expense.id}&entry=account.${wallet.id}`,
+  );
+  expect(within(details).queryByRole('link', { name: 'Groceries' })).not.toBeInTheDocument();
 });

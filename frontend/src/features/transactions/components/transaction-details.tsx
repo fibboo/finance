@@ -62,6 +62,7 @@ export function TransactionDetails({
       isKeptOpenOnDesktop
       errorMessage="Couldn't load the transaction"
       returnFocusId={readTransactionLinkId(transactionId)}
+      back={undefined}
       arrowKeyList={TRANSACTION_ARROW_KEY_LIST}
       onRetry={() => {
         void refetch();

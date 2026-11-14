@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 
+import type { DetailsBack } from '@/components/details-panel/details-panel';
 import { Sheet } from '@/components/sheet/sheet';
 import { locationQueries } from '@/features/locations/api/location-queries';
-import { writeSelectedLocation } from '@/features/locations/api/selected-location';
 import { LocationDetails } from '@/features/locations/components/location-details';
 import { LocationForm } from '@/features/locations/components/location-form';
 import { LocationRestoreForm } from '@/features/locations/components/location-restore-form';
@@ -12,13 +12,15 @@ import { transactionQueries } from '@/features/transactions/api/transaction-quer
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 
 import { LOCATION_ICON_PATH } from './location-icon';
+import { writeClosedEntry, writeSelectedEntry } from './selected-entry';
 import { readLocationTransactionsLink } from './transactions-link';
 
 type SelectedLocationDetailsProps = Readonly<{
   locationId: string;
+  back: DetailsBack;
 }>;
 
-export function SelectedLocationDetails({ locationId }: SelectedLocationDetailsProps) {
+export function SelectedLocationDetails({ locationId, back }: SelectedLocationDetailsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [editedLocationId, setEditedLocationId] = useState<string | undefined>(undefined);
   const [renamedLocationId, setRenamedLocationId] = useState<string | undefined>(undefined);
@@ -37,7 +39,7 @@ export function SelectedLocationDetails({ locationId }: SelectedLocationDetailsP
   if (error instanceof ApiError && error.status === NOT_FOUND_STATUS) {
     return (
       <Navigate
-        to={{ search: writeSelectedLocation({ searchParams, locationId: undefined }).toString() }}
+        to={{ search: writeSelectedEntry({ searchParams, entry: undefined }).toString() }}
         replace
       />
     );
@@ -71,6 +73,7 @@ export function SelectedLocationDetails({ locationId }: SelectedLocationDetailsP
         transactionsLinkId={transactionsLinkId}
         relatedQueryKeys={relatedQueryKeys}
         isShownByDefault={false}
+        back={back}
         onEdit={() => {
           setEditedLocationId(locationId);
         }}
@@ -79,15 +82,16 @@ export function SelectedLocationDetails({ locationId }: SelectedLocationDetailsP
           setRenamedLocationId(locationId);
         }}
         onClose={() => {
-          setSearchParams(writeSelectedLocation({ searchParams, locationId: undefined }), {
-            preventScrollReset: true,
-          });
+          setSearchParams(writeClosedEntry(searchParams), { preventScrollReset: true });
         }}
         onChoose={() => {
-          setSearchParams(writeSelectedLocation({ searchParams, locationId }), {
-            preventScrollReset: true,
-            replace: true,
-          });
+          setSearchParams(
+            writeSelectedEntry({ searchParams, entry: { kind: 'location', id: locationId } }),
+            {
+              preventScrollReset: true,
+              replace: true,
+            },
+          );
         }}
       />
       {isEditing && location !== undefined && (

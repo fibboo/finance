@@ -1,7 +1,7 @@
 import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
 import type { To } from 'react-router';
 
-import { DetailsPanel } from '@/components/details-panel/details-panel';
+import { type DetailsBack, DetailsPanel } from '@/components/details-panel/details-panel';
 import { LoadError } from '@/components/load-error/load-error';
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
@@ -36,6 +36,7 @@ type AccountDetailsProps = Readonly<{
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;
   isKeptOpenOnDesktop: boolean;
+  back: DetailsBack | undefined;
   onEdit: () => void;
   onDeleted: () => void;
   onStatusChanged: () => void;
@@ -57,6 +58,7 @@ export function AccountDetails({
   relatedQueryKeys,
   isShownByDefault,
   isKeptOpenOnDesktop,
+  back,
   onEdit,
   onDeleted,
   onStatusChanged,
@@ -137,6 +139,7 @@ export function AccountDetails({
       errorMessage={LOAD_ERROR_MESSAGE}
       returnFocusId={readAccountLinkId(accountId)}
       arrowKeyList={undefined}
+      back={back}
       onRetry={() => {
         void refetch();
       }}

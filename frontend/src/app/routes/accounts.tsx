@@ -156,9 +156,12 @@ export function Component() {
                     form="summary"
                     baseCurrency={baseCurrency}
                     accountCount={allAccountPage?.total}
-                    defaultAccountId={shownAccount.id}
+                    shownAccount={{
+                      kind: 'selected',
+                      defaultAccountId: shownAccount.id,
+                      isParamIgnored: chosenAccount === undefined,
+                    }}
                     isKeptOpenOnDesktop
-                    isParamIgnored={chosenAccount === undefined}
                     isMoneyAccountOnly
                   />
                 }
@@ -169,9 +172,12 @@ export function Component() {
               form="panel"
               baseCurrency={baseCurrency}
               accountCount={allAccountPage?.total}
-              defaultAccountId={topAccountId}
+              shownAccount={{
+                kind: 'selected',
+                defaultAccountId: topAccountId,
+                isParamIgnored: false,
+              }}
               isKeptOpenOnDesktop
-              isParamIgnored={false}
               isMoneyAccountOnly
             />
           )}

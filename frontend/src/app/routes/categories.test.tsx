@@ -1116,7 +1116,7 @@ test('shows the details of the top transaction beside the transactions of a cate
   expect(await within(transactionDetails).findAllByText('-$900.00')).not.toHaveLength(0);
   expect(within(transactionDetails).getByRole('link', { name: 'Main card' })).toHaveAttribute(
     'href',
-    `/accounts?account=${mainCardPosting?.account.id ?? ''}`,
+    `/categories?account=${rent.id}&entry=account.${mainCardPosting?.account.id ?? ''}`,
   );
   // the category of the page is plain text in the postings
   expect(within(transactionDetails).queryByRole('link', { name: 'Rent' })).not.toBeInTheDocument();
