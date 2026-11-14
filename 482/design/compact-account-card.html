@@ -1,0 +1,365 @@
+<title>Compact Account Card</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: доска вариантов из экранов самого приложения, десктоп 1440 × 780 масштабируется по ширине страницы. Токены — из tokens.css приложения. */
+:root {
+  --color-ground: #eeeeeb; --color-panel: #ffffff; --color-border: #e2e2de; --color-ink: #17181a;
+  --color-muted: #5a5d64; --color-accent: #1f7a55; --color-bone: #e4e4e0; --color-band: #f4f4f1;
+  --color-danger: #b42318; --color-note: #fff4d6; --color-note-ink: #6b4e00;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-size-2xs: 0.6875rem; --font-size-xs: 0.75rem; --font-size-sm: 0.8125rem; --font-size-md: 0.875rem;
+  --font-size-base: 0.9375rem; --font-size-lg: 1rem; --font-size-xl: 1.125rem; --font-size-heading: 1.25rem; --font-size-3xl: 1.75rem;
+  --space-0-5: 0.125rem; --space-1: 0.25rem; --space-1-5: 0.375rem; --space-2: 0.5rem; --space-2-5: 0.625rem;
+  --space-3: 0.75rem; --space-3-5: 0.875rem; --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem;
+  --radius-segment: 0.625rem; --radius-action: 0.875rem; --radius-panel: 1.25rem; --radius-full: 999rem;
+  --size-border: 0.0625rem; --size-mark: 1.75rem; --size-sidebar: 14.5rem; --size-details: 22.5rem; --size-icon: 1.375rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+    --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-bone: #24272b; --color-band: #1e2125;
+    --color-danger: #ff7a6b; --color-note: #2b2410; --color-note-ink: #f1d68a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-ground: #0b0c0e; --color-panel: #17191c; --color-border: #2a2d32; --color-ink: #ecedee;
+  --color-muted: #9a9ea6; --color-accent: #4cc38a; --color-bone: #24272b; --color-band: #1e2125;
+  --color-danger: #ff7a6b; --color-note: #2b2410; --color-note-ink: #f1d68a; color-scheme: dark;
+}
+* { box-sizing: border-box; scrollbar-width: none; }
+body { margin: 0; font-family: var(--font-sans); line-height: 1.5; color: var(--color-ink); background: var(--color-ground); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+
+.sheetPage { max-width: 84rem; margin: 0 auto; padding-block: var(--space-6) var(--space-8); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: var(--space-8); }
+.intro { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+.intro h1 { margin: 0; font-size: var(--font-size-3xl); letter-spacing: -0.02em; text-wrap: balance; }
+.intro p { margin: var(--space-2) 0 0; max-width: 48rem; color: var(--color-muted); }
+.themes { display: flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-panel); }
+.themes button { font: inherit; font-size: var(--font-size-sm); border: 0; cursor: pointer; padding: var(--space-1-5) var(--space-3); border-radius: var(--radius-full); color: var(--color-muted); background: transparent; }
+.themes button[aria-pressed="true"] { color: var(--color-ink); background: var(--color-band); font-weight: 600; }
+.themes button:focus-visible { outline: 2px solid var(--color-ink); }
+section { display: flex; flex-direction: column; gap: var(--space-3); }
+section > h2 { margin: 0; font-size: var(--font-size-xl); text-wrap: balance; }
+section > h2 .tag { margin-left: var(--space-2); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-full); background: var(--color-band); font-size: var(--font-size-xs); font-weight: 600; vertical-align: middle; }
+.notes { margin: 0; padding-left: var(--space-5); color: var(--color-muted); font-size: var(--font-size-md); display: flex; flex-direction: column; gap: var(--space-1); max-width: 56rem; }
+.notes b { color: var(--color-ink); font-weight: 600; }
+.common { padding: var(--space-3) var(--space-4); border-radius: var(--radius-action); background: var(--color-note); color: var(--color-note-ink); font-size: var(--font-size-md); max-width: 56rem; }
+.boards { display: flex; flex-direction: column; gap: var(--space-4); }
+.caption { font-size: var(--font-size-sm); color: var(--color-muted); }
+.frame { width: 100%; overflow: hidden; border-radius: var(--radius-panel); outline: var(--size-border) solid var(--color-border); }
+.board { background: var(--color-ground); transform-origin: 0 0; position: relative; }
+
+.ico { width: var(--size-icon); height: var(--size-icon); flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ico.sm { width: 1.125rem; height: 1.125rem; }
+
+/* desktop board */
+.desktop { width: 1440px; height: 780px; padding: var(--space-4); display: flex; gap: var(--space-6); overflow: hidden; }
+.sidebar { flex: none; width: var(--size-sidebar); align-self: flex-start; padding: var(--space-5) var(--space-4); border-radius: var(--radius-panel); background: var(--color-panel); display: flex; flex-direction: column; gap: var(--space-1); }
+.logo { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-1) var(--space-3); font-size: var(--font-size-xl); font-weight: 700; }
+.logo i { width: 0.6rem; height: 0.6rem; border-radius: 0.15rem; background: var(--color-accent); }
+.addBtn { padding: var(--space-3); border-radius: var(--radius-action); background: var(--color-bone); text-align: center; font-weight: 600; margin-bottom: var(--space-2-5); }
+.nav { min-height: 2.75rem; padding: 0 var(--space-3); border-radius: var(--radius-action); color: var(--color-muted); display: flex; gap: var(--space-3); align-items: center; font-size: var(--font-size-base); }
+.nav.on { background: var(--color-ground); color: var(--color-ink); font-weight: 600; }
+.menuToggle { margin-top: var(--space-3); padding-top: var(--space-2); border-top: var(--size-border) solid var(--color-border); }
+.main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.topBar { display: flex; justify-content: space-between; align-items: center; min-height: 3rem; }
+.pageTitle { margin: 0; font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.pageTitle small { margin-left: var(--space-2); font-size: var(--font-size-heading); color: var(--color-muted); font-weight: 500; }
+.avatar { width: 3rem; height: 3rem; border-radius: var(--radius-full); background: var(--color-panel); display: grid; place-items: center; font-weight: 600; font-size: var(--font-size-md); }
+.toolbar { display: flex; gap: var(--space-2-5); margin-top: var(--space-4); align-items: center; }
+.search { flex: 0 1 20rem; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-full); background: var(--color-panel); color: var(--color-muted); font-size: var(--font-size-md); }
+.newBtn { flex: none; display: flex; align-items: center; gap: var(--space-1-5); padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-full); background: var(--color-ink); color: var(--color-panel); font-weight: 500; font-size: var(--font-size-md); }
+.filters { display: flex; gap: var(--space-2); margin-top: var(--space-2-5); align-items: center; }
+.seg { display: flex; padding: var(--space-0-5); border-radius: var(--radius-full); background: var(--color-panel); font-size: var(--font-size-sm); }
+.seg span { padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); color: var(--color-muted); }
+.seg span.on { background: var(--color-ink); color: var(--color-panel); font-weight: 500; }
+.toggle { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-sm); }
+.toggle i { position: relative; width: 2.25rem; height: 1.375rem; border-radius: var(--radius-full); background: var(--color-ink); }
+.toggle i::after { content: ''; position: absolute; top: 0.1875rem; right: 0.1875rem; width: 1rem; height: 1rem; border-radius: var(--radius-full); background: var(--color-panel); }
+.content { flex: 1 1 auto; min-height: 0; display: flex; gap: var(--space-4); align-items: stretch; margin-top: var(--space-3); margin-bottom: calc(var(--space-4) * -1); }
+.panel { flex: 1 1 17.5rem; min-width: 0; background: var(--color-panel); border-radius: var(--radius-panel) var(--radius-panel) 0 0; padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden; }
+
+/* catalog list */
+.alist { display: grid; grid-template-columns: var(--size-mark) minmax(0, 1fr) max-content; column-gap: var(--space-4); }
+.groupHead { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; min-height: 2.25rem; margin: var(--space-1-5) calc(var(--space-2) * -1) 0; padding: 0 var(--space-2); border-radius: var(--radius-segment); background: var(--color-band); font-size: var(--font-size-sm); font-weight: 700; }
+.groupHead span { font-weight: 500; color: var(--color-muted); }
+.acc { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 3.5rem; padding-block: var(--space-1-5); position: relative; isolation: isolate; }
+.acc.selected::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-segment); background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
+.text { min-width: 0; display: flex; flex-direction: column; }
+.title, .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title { font-size: var(--font-size-base); font-weight: 500; }
+.sub { font-size: var(--font-size-sm); color: var(--color-muted); line-height: 1.35; }
+.struck { text-decoration: line-through; color: var(--color-muted); }
+.mark { width: var(--size-mark); height: var(--size-mark); border-radius: var(--radius-full); display: grid; place-items: center; font-size: var(--font-size-sm); font-weight: 600; color: var(--color-muted); background: var(--color-bone); }
+.rowActions { display: flex; gap: var(--space-0-5); }
+.rowAction { width: 2.5rem; height: 2.5rem; display: grid; place-items: center; color: var(--color-muted); }
+.rowAction.danger { color: var(--color-danger); }
+
+/* feed */
+.recent { flex: 0 1 26rem; min-width: 0; background: var(--color-panel); border-radius: var(--radius-panel) var(--radius-panel) 0 0; padding: var(--space-5) var(--space-5) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); overflow: hidden; }
+.recentHead { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.list { display: grid; grid-template-columns: 0.5rem minmax(0, 1fr) max-content; column-gap: var(--space-2-5); }
+.dayHead, .row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.dayHead { min-height: 1.75rem; margin: var(--space-1) calc(var(--space-2) * -1); padding: 0 var(--space-2); border-radius: var(--radius-segment); background: var(--color-band); font-size: var(--font-size-xs); }
+.dayHead b { grid-column: 1 / -2; font-weight: 600; }
+.dayHead span { justify-self: end; color: var(--color-muted); }
+.row { min-height: 2.75rem; padding-block: var(--space-1-5); font-size: var(--font-size-sm); position: relative; isolation: isolate; }
+.row.selected::before { content: ''; position: absolute; inset: var(--space-1) calc(var(--space-2) * -1); z-index: -1; border-radius: var(--radius-segment); background: color-mix(in oklab, var(--color-panel), var(--color-ink) 10%); }
+.row .title { font-size: var(--font-size-md); font-weight: 400; }
+.row .sub { font-size: var(--font-size-2xs); }
+.dot { width: 0.5rem; height: 0.5rem; border-radius: var(--radius-full); background: currentColor; flex: none; }
+.amounts { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.amount { font-weight: 500; }
+.orig { font-size: var(--font-size-2xs); color: var(--color-muted); }
+
+/* details column */
+.detailsColumn { flex: 0 0 var(--size-details); min-height: 0; display: flex; flex-direction: column; gap: var(--space-4); position: relative; }
+.detailsColumn.scrolls { overflow: hidden; }
+.details { flex: none; background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+.aHead { display: flex; gap: var(--space-3); align-items: center; }
+.meta { font-size: var(--font-size-sm); color: var(--color-muted); }
+.dTitle { margin: var(--space-0-5) 0 0; font-size: var(--font-size-heading); font-weight: 600; }
+.bigAmount { font-size: 2.25rem; font-weight: 600; line-height: 1.1; letter-spacing: -0.03em; }
+.postings { padding: var(--space-1) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.postings h4 { margin: 0; padding: var(--space-2-5) 0 var(--space-1); font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); }
+.posting { min-height: 3.25rem; display: flex; align-items: center; gap: var(--space-3); }
+.posting .text { flex: 1 1 auto; }
+.link { text-decoration: underline; text-decoration-color: var(--color-border); text-underline-offset: 0.2em; }
+.plainName { color: var(--color-ink); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-6); font-size: var(--font-size-md); margin: 0; }
+.facts dt { color: var(--color-muted); } .facts dd { margin: 0; text-align: right; }
+.actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--space-2); margin-top: var(--space-1); }
+.actions span { min-height: 2.875rem; border-radius: var(--radius-action); background: var(--color-ground); display: flex; align-items: center; justify-content: center; }
+.actions .danger { color: var(--color-danger); }
+.balance { font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.accMark { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-segment); display: grid; place-items: center; font-weight: 600; color: #fff; flex: none; }
+.fade { position: absolute; left: 0; right: 0; bottom: 0; height: 5rem; background: linear-gradient(to bottom, transparent, var(--color-ground)); pointer-events: none; }
+.scrollHint { position: absolute; left: 50%; bottom: var(--space-3); transform: translateX(-50%); display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); background: var(--color-panel); border: var(--size-border) solid var(--color-border); font-size: var(--font-size-xs); color: var(--color-muted); }
+.compactAcc { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-panel); background: var(--color-panel); }
+.compactAcc .text { flex: 1 1 auto; }
+.compactAcc .bal { font-weight: 600; font-size: var(--font-size-lg); white-space: nowrap; }
+.compactAcc .chev { color: var(--color-muted); }
+.backRow { display: flex; align-items: center; gap: var(--space-1); font-size: var(--font-size-sm); color: var(--color-muted); }
+.callout { position: absolute; z-index: 6; max-width: 15rem; padding: var(--space-2) var(--space-3); border-radius: var(--radius-segment); background: var(--color-note); color: var(--color-note-ink); font-size: var(--font-size-xs); line-height: 1.4; box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.18); }
+.accBlock { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-3-5); border-radius: var(--radius-action); background: var(--color-ground); }
+.accBlock .text { flex: 1 1 auto; }
+.accBlock .bal { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.accBlock .bal b { font-size: var(--font-size-lg); font-weight: 600; }
+.blockLabel { font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); }
+/* phone */
+.phone { width: 390px; height: 844px; padding: var(--space-4) var(--space-4) 0; overflow: hidden; display: block; }
+.phone .topBar { min-height: 2.75rem; }
+.phone .avatar { width: 2.75rem; height: 2.75rem; }
+.phone .toolbar { margin-top: var(--space-3); }
+.phone .search { flex: 1 1 auto; }
+.phone .panel { border-radius: var(--radius-panel); margin-top: var(--space-3); padding: var(--space-2) var(--space-3-5) var(--space-3); }
+.bar { position: absolute; left: var(--space-4); right: var(--space-4); bottom: var(--space-4); height: 3.75rem; padding: 0 var(--space-1-5); border: var(--size-border) solid var(--color-border); border-radius: 1.375rem; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; background: var(--color-panel); z-index: 3; }
+.barItem { height: 3.125rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-0-5); font-size: var(--font-size-2xs); font-weight: 500; color: var(--color-muted); }
+.barItem.on { color: var(--color-ink); font-weight: 600; }
+.backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / 0.5); z-index: 4; }
+.bsheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--color-panel); border-radius: 1.5rem 1.5rem 0 0; padding: var(--space-2) var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
+.bsheet .handle { align-self: center; width: 2.5rem; height: 0.25rem; border-radius: var(--radius-full); background: var(--color-bone); }
+.bsheet .details { padding: 0; background: transparent; }
+.phoneRow { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start; }
+.phoneFrame { width: 390px; max-width: 100%; overflow: hidden; border-radius: var(--radius-panel); outline: var(--size-border) solid var(--color-border); }
+.accBal { text-align: right; font-weight: 600; white-space: nowrap; }
+.feedWide { flex: 1 1 auto; }
+.chips { display: flex; gap: var(--space-1-5); margin-top: var(--space-2-5); }
+.chip { padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); background: var(--color-panel); font-size: var(--font-size-sm); }
+.amount.in { color: var(--color-accent); }
+.headActions { display: flex; gap: var(--space-1); margin-top: var(--space-2); }
+.headActions span { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-segment); background: var(--color-ground); display: grid; place-items: center; }
+.headActions .danger { color: var(--color-danger); }
+.headBal { margin-top: var(--space-1); font-size: var(--font-size-heading); font-weight: 600; }
+/* rail menu and export at 1280 px */
+:root.w1280 .desktop { width: 1280px; height: 800px; }
+.sidebar.rail { width: 4.25rem; padding: var(--space-5) var(--space-2-5); align-items: stretch; }
+.sidebar.rail .logo { justify-content: center; padding: var(--space-1-5) 0 var(--space-4); }
+.sidebar.rail .addBtn { padding: 0; height: 2.75rem; display: grid; place-items: center; }
+.sidebar.rail .nav { padding: 0; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* home */
+.homeGrid { flex: 1 1 auto; min-height: 0; display: flex; gap: var(--space-4); margin-top: var(--space-4); }
+.homeLeft { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.homePanel { background: var(--color-panel); border-radius: var(--radius-panel); padding: var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2-5); }
+.homePanel.grow { flex: 1 1 auto; min-height: 0; overflow: hidden; border-radius: var(--radius-panel) var(--radius-panel) 0 0; margin-bottom: calc(var(--space-4) * -1); }
+.panelHead { display: flex; justify-content: space-between; align-items: baseline; }
+.panelHead b { font-size: var(--font-size-lg); font-weight: 600; }
+.total { font-size: var(--font-size-3xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.tiles { display: flex; gap: var(--space-2-5); overflow: hidden; }
+.tile { flex: 0 0 11rem; padding: var(--space-3); border-radius: var(--radius-action); background: var(--color-ground); display: flex; flex-direction: column; gap: var(--space-1); }
+.tile.on { background: color-mix(in oklab, var(--color-ground), var(--color-accent) 18%); }
+.tile b { font-size: var(--font-size-lg); }
+.monthBar { height: 0.5rem; border-radius: var(--radius-full); background: var(--color-danger); }
+.monthRow { display: flex; justify-content: space-between; font-size: var(--font-size-sm); color: var(--color-muted); }
+.monthRow b { color: var(--color-ink); }
+.homeRight { flex: 0 0 var(--size-details); min-height: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+/* compact account card */
+.accTop { display: flex; align-items: center; gap: var(--space-3); }
+.accTop .grow { flex: 1 1 auto; min-width: 0; }
+.inlineBal { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-0-5) var(--space-2); }
+.inlineBal .balance { font-size: var(--font-size-3xl); }
+.sideBal { text-align: right; white-space: nowrap; }
+.sideBal b { display: block; font-size: var(--font-size-xl); font-weight: 600; }
+.squares { display: flex; gap: var(--space-2); position: relative; }
+.squares > span { width: 2.75rem; height: 2.75rem; border-radius: var(--radius-segment); background: var(--color-ground); display: grid; place-items: center; }
+.squares > .danger { color: var(--color-danger); }
+.squares > .blocked { color: color-mix(in oklab, var(--color-danger), transparent 55%); }
+.wideBtns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--space-2); position: relative; }
+.wideBtns > span { height: 2.75rem; border-radius: var(--radius-segment); background: var(--color-ground); display: grid; place-items: center; }
+.wideBtns > .blocked { color: color-mix(in oklab, var(--color-danger), transparent 55%); }
+.toolBtns { display: flex; gap: var(--space-1); position: relative; align-self: flex-start; }
+.toolBtns > span { width: 2.75rem; height: 2.75rem; border-radius: var(--radius-segment); display: grid; place-items: center; color: var(--color-muted); }
+.toolBtns > .blocked { color: color-mix(in oklab, var(--color-danger), transparent 55%); }
+.tip { position: absolute; z-index: 6; bottom: calc(100% + var(--space-2)); width: max-content; max-width: 14rem; padding: var(--space-2) var(--space-3); border-radius: var(--radius-segment); background: var(--color-ink); color: var(--color-panel); font-size: var(--font-size-sm); font-weight: 500; line-height: 1.35; }
+.tip::after { content: ''; position: absolute; top: 100%; border: 0.375rem solid transparent; border-top-color: var(--color-ink); }
+.tip.atRight { right: 0; } .tip.atRight::after { right: 0.9rem; }
+.tip.below { bottom: auto; top: calc(100% + var(--space-2)); } .tip.below::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--color-ink); }
+.heightMark { position: absolute; z-index: 7; right: 0.4rem; width: 0.25rem; border-radius: var(--radius-full); background: var(--color-accent); }
+</style>
+
+<div class="sheetPage">
+  <header class="intro">
+    <div>
+      <h1>Компактная карточка счёта</h1>
+      <p>Home на десктопе, 1280 × 800, меню иконками. Сейчас справа карточка счёта над карточкой транзакции, и вместе они выше экрана. Согласован вариант A: компактная карточка счёта над карточкой транзакции, и шапка ленты Accounts из #443 с подсказкой про удаление в тултипе.</p>
+    </div>
+    <div class="themes" role="group" aria-label="Тема">
+      <button type="button" data-theme-choice="">Системная</button>
+      <button type="button" data-theme-choice="light">Светлая</button>
+      <button type="button" data-theme-choice="dark">Тёмная</button>
+    </div>
+  </header>
+
+  <p class="common"><b>Во всех вариантах.</b> Карточка счёта теряет крупный баланс 2.25rem, пустое место под ним и строку «Bring the balance to zero to delete.». Подсказка показывается тултипом над кнопкой удаления при наведении, фокусе или нажатии, как уже работает у заблокированной кнопки. Описание счёта — одна приглушённая строка. Карточка транзакции не меняется. Телефон не меняется: там детали счёта открываются листом.</p>
+
+  <section>
+    <h2>Home · компактная карточка счёта <span class="tag">согласовано</span></h2>
+    <div class="boards"><div class="frame" data-board-width="1280" id="boardA"></div></div>
+    <ul class="notes">
+      <li><b>Как в шапке ленты Accounts (#443).</b> Та же форма: баланс 1.75rem с оценкой в базовой валюте в одну строку, под ним четыре квадрата 44 px. Один компонент на двух страницах.</li>
+      <li><b>Высота</b> около 210 px вместо 420.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Accounts · шапка ленты с тултипом <span class="tag">согласовано</span></h2>
+    <div class="boards"><div class="frame" data-board-width="1280" id="boardAccounts"></div></div>
+    <ul class="notes">
+      <li><b>Только одно изменение к #443:</b> строка подсказки над кнопками уходит в тултип над корзиной. Остальное как сейчас.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const ICONS = {
+    home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
+    transactions: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+    accounts: 'M6 6h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3M3 10h18M16 14.5h2',
+    categories: 'M3 12V4h8l10 10-8 8zM7.5 7.2a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6',
+    locations: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 7.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4',
+    income: 'M12 4v10M8 10l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3',
+    add: 'M12 5v14M5 12h14',
+    edit: 'M4 20h4L19 9l-4-4L4 16z',
+    remove: 'M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3',
+    search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M20 20l-4-4',
+    chev: 'M9 6l6 6-6 6',
+    back: 'M15 6l-6 6 6 6',
+    adjust: 'M4 7h10M18 7h2M4 17h2M10 17h10M14 4.5v5M6 14.5v5',
+  };
+  const icon = (name, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[name]}"/></svg>`;
+  const SECTIONS = ['home', 'transactions', 'accounts', 'categories', 'locations', 'income'];
+  const rail = (active) => `<aside class="sidebar rail"><div class="logo"><i></i></div><div class="addBtn">${icon('add')}</div>
+    ${SECTIONS.map((k) => `<div class="nav${k === active ? ' on' : ''}">${icon(k)}</div>`).join('')}
+    <div class="menuToggle"><div class="nav">${icon('chev')}</div></div></aside>`;
+  const PURPLE = '#a259d9';
+  const VIOLET = '#6b6fe0';
+  const ORANGE = '#e0663f';
+  const HINT = 'Bring the balance to zero to delete.';
+
+  const tiles = [['Freelance', 'USD', '$15,979.25', 'on', 'F'], ['Airbag USD Cash', 'USD', '$2,500.00', '', 'A'], ['Airbag USDT', 'USD', '$2,500.00', '', 'A'], ['freelance 2', 'USD', '$0.00', '', 'F'], ['Vakif', 'TRY', '$0.00', '', 'V']];
+  const recentRows = [
+    ['Yesterday', '-$35.00', [['Pets Periodic', 'Freelance · USD', '-$35.00', '', PURPLE, 'selected']]],
+    ['Thu, 12.11.2026', '-$39.26', [['Household', 'Credit card · USD', '-$39.95', '', ORANGE], ['Adjustment', 'UniCredit Dinar card · RSD · 77.0000', '-$0.01', '-RSD 0.77', VIOLET], ['Adjustment', 'UniCredit Dinar card · RSD · 100.2857', '+$0.70', '+RSD 70.20', VIOLET]]],
+    ['Tue, 10.11.2026', '-$173.75', [['Freelance → Credit EUR', 'USD', '$62.39', '', PURPLE], ['Freelance → Credit EUR', 'USD', '$111.25', '', PURPLE]]],
+  ];
+  const homeLeft = `<div class="homeLeft">
+    <div class="homePanel"><div class="panelHead"><span class="meta">Total balance · USD</span><span class="meta">All</span></div><div class="total">$40,417.36</div>
+      <div class="tiles">${tiles.map(([n, c, b, on, m]) => `<div class="tile ${on}"><span class="title">${n}</span><span class="sub">${c}</span><b>${b}</b></div>`).join('')}</div></div>
+    <div class="homePanel"><div class="panelHead"><b>This month</b><span class="meta">Left <span style="color:var(--color-danger);font-weight:600">-$273.09</span></span></div><div class="monthBar"></div><div class="monthRow"><span>Spent <b>-$273.09</b></span><span>Earned <b>$0.00</b></span></div></div>
+    <div class="homePanel grow"><div class="panelHead"><b>Recent transactions</b><span class="meta">All</span></div>
+      <div class="list">${recentRows.map(([day, total, rows]) => `<div class="dayHead"><b>${day}</b><span>${total}</span></div>${rows.map(([t, s, a, o, c, sel]) => `<div class="row${sel ? ' selected' : ''}"><span class="dot" style="color:${c}"></span><span class="text"><span class="title">${t}</span><span class="sub">${s}</span></span><span class="amounts"><span class="amount">${a}</span>${o ? `<span class="orig">${o}</span>` : ''}</span></div>`).join('')}`).join('')}</div></div>
+  </div>`;
+
+  const transaction = `<aside class="details">
+      <div><div class="meta">Expense · Fri, 13.11.2026</div><h4 class="dTitle">Pets Periodic</h4></div>
+      <div><div class="bigAmount">-$35.00</div></div>
+      <div class="blockLabel">From</div>
+      <div class="accBlock"><span class="accMark" style="background:${PURPLE}">F</span><span class="text"><span class="title link">Freelance ›</span><span class="sub">Asset · USD</span><span class="sub">Balance $15,979.25</span></span><span class="bal"><b>-$35.00</b></span></div>
+      <div class="blockLabel">To</div>
+      <div class="accBlock"><span class="mark">P</span><span class="text"><span class="title link">Pets Periodic ›</span><span class="sub">Expense · Variable</span></span><span class="bal"><b>+$35.00</b></span></div>
+      <dl class="facts"><dt>Location</dt><dd class="link">Premium Pet ›</dd><dt>Comment</dt><dd>—</dd></dl>
+      <div class="actions"><span>${icon('edit')}</span><span class="danger">${icon('remove')}</span></div>
+    </aside>`;
+  const tip = (cls) => `<span class="tip ${cls}">${HINT}</span>`;
+  const head = `<div class="aHead"><span class="accMark" style="background:${PURPLE}">F</span><div><div class="meta">Asset · USD</div><h4 class="dTitle">Freelance</h4></div></div>`;
+  const cardA = `<aside class="details">${head}
+      <div class="inlineBal"><span class="balance">$15,979.25</span><span class="meta">$15,979.25</span></div>
+      <div class="squares"><span>${icon('adjust')}</span><span>${icon('transactions')}</span><span>${icon('edit')}</span><span class="blocked" style="position:relative">${icon('remove')}${tip('atRight')}</span></div>
+    </aside>`;
+  const cardB = `<aside class="details"><div class="accTop"><span class="accMark" style="background:${PURPLE}">F</span><div class="grow"><div class="meta">Asset · USD</div><h4 class="dTitle">Freelance</h4></div><div class="sideBal"><b>$15,979.25</b><span class="meta">$15,979.25</span></div></div>
+      <div class="wideBtns"><span>${icon('adjust')}</span><span>${icon('transactions')}</span><span>${icon('edit')}</span><span class="blocked" style="position:relative">${icon('remove')}${tip('atRight')}</span></div>
+    </aside>`;
+  const cardC = `<aside class="details"><div class="accTop"><span class="accMark" style="background:${PURPLE}">F</span><div class="grow"><div class="meta">Asset · USD</div><h4 class="dTitle">Freelance</h4></div>
+      <div class="toolBtns"><span>${icon('adjust')}</span><span>${icon('transactions')}</span><span>${icon('edit')}</span><span class="blocked" style="position:relative">${icon('remove')}${tip('atRight below')}</span></div></div>
+      <div class="inlineBal"><span class="balance">$15,979.25</span><span class="meta">$15,979.25</span></div>
+    </aside>`;
+
+  const home = (card) => `<div class="board desktop">${rail('home')}
+    <div class="main"><div class="topBar"><h3 class="pageTitle">Home</h3><span class="avatar">TE</span></div>
+      <div class="homeGrid">${homeLeft}<div class="homeRight">${card}${transaction}</div></div></div></div>`;
+  document.getElementById('boardA').innerHTML = home(cardA);
+
+  const accounts = [['Assets', '$40,417.36', [['UniCredit Dinar card', 'RSD · 99.7983', '$2,054.13', 'RSD 204,998.60', 'U', '#7f6fd6', 'on'], ['UniCredit štednj', 'EUR · 0.8547', '$8,684.97', '€7,423.05', 'U', '#5b6470'], ['Freelance', 'USD', '$15,979.25', '', 'F', PURPLE], ['Airbag USD Cash', 'USD', '$2,500.00', '', 'A', '#c9a227']]]];
+  const accountList = `<div class="alist" style="grid-template-columns: var(--size-mark) minmax(0,1fr) max-content">${accounts.map(([g, total, rows]) => `<div class="groupHead">${g}<span style="color:var(--color-ink);font-weight:700">${total}</span></div>${rows.map(([n, s, b, o, m, c, on]) => `<div class="acc${on ? ' selected' : ''}"><span class="mark" style="border-radius:var(--radius-segment);color:#fff;background:${c}">${m}</span><span class="text"><span class="title">${n}</span><span class="sub">${s}</span></span><span class="amounts"><span class="amount">${b}</span>${o ? `<span class="orig">${o}</span>` : ''}</span></div>`).join('')}`).join('')}</div>`;
+  const feedRows = [['Thu, 12.11.2026', '+$0.69', [['Adjustment', '77.0000', '-$0.01', '-RSD 0.77'], ['Adjustment', '100.2857', '+$0.70', '+RSD 70.20']]], ['Wed, 04.11.2026', '-$2.70', [['Pets', 'Premium Pet · 100.0000', '-$1.50', '-RSD 150.00'], ['Groceries', 'Maxi · 100.0000', '-$1.20', '-RSD 120.00']]], ['Tue, 27.10.2026', '-$8.21', [['Groceries', 'Maxi · 99.8283', '-$8.21', '-RSD 819.59']]]];
+  const feed = `<aside class="recent"><div class="recentHead"><div><div class="meta">Asset · RSD · recent transactions</div><h4 class="dTitle">UniCredit Dinar card</h4></div><span class="meta">All</span></div>
+    <div class="inlineBal"><span class="balance">RSD 204,998.60</span><span class="meta">$2,054.13 · rate 99.7983</span></div>
+    <div class="squares" style="margin-bottom:var(--space-2)"><span>${icon('adjust')}</span><span>${icon('transactions')}</span><span>${icon('edit')}</span><span class="blocked" style="position:relative">${icon('remove')}<span class="tip" style="left:-5rem">${HINT}</span></span></div>
+    <div class="list">${feedRows.map(([day, total, rows]) => `<div class="dayHead"><b>${day}</b><span>${total}</span></div>${rows.map(([t, s, a, o], i) => `<div class="row${day.startsWith('Thu') && i === 0 ? ' selected' : ''}"><span class="dot" style="color:#7f6fd6"></span><span class="text"><span class="title">${t}</span><span class="sub">${s}</span></span><span class="amounts"><span class="amount">${a}</span><span class="orig">${o}</span></span></div>`).join('')}`).join('')}</div></aside>`;
+  const adjustment = `<aside class="details"><div><div class="meta">Adjustment · Thu, 12.11.2026</div><h4 class="dTitle">Adjustment</h4></div><div><div class="bigAmount">-RSD 0.77</div><div class="meta">≈ $0.01</div></div>
+    <div class="blockLabel">From</div><div class="accBlock"><span class="accMark" style="background:#7f6fd6">U</span><span class="text"><span class="title">UniCredit Dinar card</span><span class="sub">Asset · RSD</span><span class="sub">Balance RSD 204,998.60</span></span><span class="bal"><b>-RSD 0.77</b><span class="meta">≈ -$0.01</span></span></div>
+    <dl class="facts"><dt>Location</dt><dd>—</dd><dt>Comment</dt><dd>—</dd></dl><div class="actions"><span>${icon('edit')}</span><span class="danger">${icon('remove')}</span></div></aside>`;
+  document.getElementById('boardAccounts').innerHTML = `<div class="board desktop">${rail('accounts')}
+    <div class="main"><div class="topBar"><h3 class="pageTitle">Accounts<small>9</small></h3><span class="avatar">TE</span></div>
+      <div class="toolbar"><span class="search">${icon('search', 'sm')}Search accounts</span><span class="newBtn">${icon('add', 'sm')}New account</span></div>
+      <div class="content"><div class="panel">${accountList}</div>${feed}<div class="detailsColumn">${adjustment}</div></div></div></div>`;
+
+  function fit() {
+    document.querySelectorAll('.frame').forEach((frame) => {
+      const board = frame.querySelector('.board');
+      if (!board) return;
+      const scale = frame.clientWidth / board.offsetWidth;
+      board.style.transform = `scale(${scale})`;
+      frame.style.height = `${board.offsetHeight * scale}px`;
+    });
+  }
+  document.documentElement.classList.add('w1280');
+  window.addEventListener('resize', fit);
+  fit();
+
+  const buttons = document.querySelectorAll('[data-theme-choice]');
+  function applyTheme(choice) {
+    if (choice) document.documentElement.setAttribute('data-theme', choice); else document.documentElement.removeAttribute('data-theme');
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeChoice === choice)));
+    try { localStorage.setItem('compact-account-theme', choice); } catch {}
+  }
+  let saved = '';
+  try { saved = localStorage.getItem('compact-account-theme') ?? ''; } catch {}
+  buttons.forEach((b) => b.addEventListener('click', () => applyTheme(b.dataset.themeChoice)));
+  applyTheme(saved);
+})();
+</script>
