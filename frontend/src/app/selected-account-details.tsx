@@ -10,7 +10,10 @@ import {
   readSelectedAccountId,
   writeSelectedAccount,
 } from '@/features/accounts/api/selected-account';
-import { AccountDetails } from '@/features/accounts/components/account-details';
+import {
+  AccountDetails,
+  type AccountDetailsForm,
+} from '@/features/accounts/components/account-details';
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { IncomeSourceForm } from '@/features/accounts/components/income-source-form';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
@@ -37,6 +40,7 @@ const EDIT_SHEET_LABELS = {
 } as const;
 
 type SelectedAccountDetailsProps = Readonly<{
+  form: AccountDetailsForm;
   baseCurrency: string;
   accountCount: number | undefined;
   defaultAccountId: string | undefined;
@@ -46,6 +50,7 @@ type SelectedAccountDetailsProps = Readonly<{
 }>;
 
 type SelectedAccountProps = Readonly<{
+  form: AccountDetailsForm;
   accountId: string;
   isShownByDefault: boolean;
   isKeptOpenOnDesktop: boolean;
@@ -111,6 +116,7 @@ function AccountForm({
 }
 
 function SelectedAccount({
+  form,
   accountId,
   isShownByDefault,
   isKeptOpenOnDesktop,
@@ -187,6 +193,7 @@ function SelectedAccount({
   return (
     <>
       <AccountDetails
+        form={form}
         accountId={accountId}
         baseCurrency={baseCurrency}
         accountKinds={accountKinds}
@@ -261,6 +268,7 @@ function SelectedAccount({
 }
 
 export function SelectedAccountDetails({
+  form,
   baseCurrency,
   accountCount,
   defaultAccountId,
@@ -279,6 +287,7 @@ export function SelectedAccountDetails({
 
   return (
     <SelectedAccount
+      form={form}
       accountId={accountId}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop={isKeptOpenOnDesktop}

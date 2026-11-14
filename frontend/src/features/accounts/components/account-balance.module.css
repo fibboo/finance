@@ -1,0 +1,40 @@
+@import '@/styles/media.css';
+
+.amounts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.inlineAmounts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-0-5) var(--space-2);
+}
+
+.balance {
+  font-size: var(--font-size-detail-amount);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-display);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+.inlineAmounts > .balance {
+  font-size: var(--font-size-3xl);
+}
+
+.debt {
+  color: var(--color-danger);
+}
+
+.baseBalance {
+  font-size: var(--font-size-base);
+  color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .baseBalance {
+    font-size: var(--font-size-md);
+  }
+}

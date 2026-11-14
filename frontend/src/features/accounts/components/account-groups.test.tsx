@@ -80,6 +80,8 @@ test('groups assets before liabilities, each with its total and its accounts in 
       accounts={[wallet, intesaCredit, mainCard, visaCredit, savings, amexCredit]}
       topAccountId={undefined}
       baseCurrency="USD"
+      listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
     />,
   );
 
@@ -109,7 +111,15 @@ test('groups assets before liabilities, each with its total and its accounts in 
 
 test('leaves out a group without accounts', () => {
   // act
-  render(<AccountGroups accounts={[wallet]} topAccountId={undefined} baseCurrency="USD" />);
+  render(
+    <AccountGroups
+      accounts={[wallet]}
+      topAccountId={undefined}
+      baseCurrency="USD"
+      listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
+    />,
+  );
 
   // assert
   expect(screen.getByRole('region', { name: 'Assets' })).toBeInTheDocument();
@@ -118,7 +128,15 @@ test('leaves out a group without accounts', () => {
 
 test('shows the groups as loading while the accounts are pending', () => {
   // act
-  render(<AccountGroups accounts={undefined} topAccountId={undefined} baseCurrency="USD" />);
+  render(
+    <AccountGroups
+      accounts={undefined}
+      topAccountId={undefined}
+      baseCurrency="USD"
+      listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
+    />,
+  );
 
   // assert
   expect(screen.queryByRole('region')).not.toBeInTheDocument();
@@ -133,6 +151,8 @@ test('moves the selection through the rows of both groups with the arrow keys', 
       accounts={[wallet, savings, intesaCredit]}
       topAccountId={undefined}
       baseCurrency="USD"
+      listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
     />,
   );
   await user.tab();
@@ -157,6 +177,8 @@ test('moves the selection from the selected row with the arrow keys while the fo
       accounts={[wallet, savings, intesaCredit]}
       topAccountId={undefined}
       baseCurrency="USD"
+      listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
     />,
     { initialEntries: [`/?account=${savings.id}`] },
   );
@@ -185,6 +207,8 @@ test.each([
         accounts={[wallet, savings, intesaCredit]}
         topAccountId={topAccountId}
         baseCurrency="USD"
+        listSearchParams={new URLSearchParams()}
+        isParamIgnored={false}
       />,
     );
 
@@ -204,7 +228,13 @@ test.each(['Shift', 'Control', 'Alt', 'Meta'])(
     // arrange
     const user = userEvent.setup();
     render(
-      <AccountGroups accounts={[wallet, savings]} topAccountId={undefined} baseCurrency="USD" />,
+      <AccountGroups
+        accounts={[wallet, savings]}
+        topAccountId={undefined}
+        baseCurrency="USD"
+        listSearchParams={new URLSearchParams()}
+        isParamIgnored={false}
+      />,
     );
     await user.tab();
 

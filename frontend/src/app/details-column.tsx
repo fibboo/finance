@@ -52,6 +52,7 @@ export function DetailsColumn({
     <div className={isEntryOpenedLast ? styles['selection'] : styles['earlierSelection']}>
       {shownLocationId === undefined ? (
         <SelectedAccountDetails
+          form="panel"
           baseCurrency={baseCurrency}
           accountCount={accountCount}
           defaultAccountId={shownAccount.defaultAccountId}

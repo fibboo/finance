@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { Link, Navigate, type To, useSearchParams } from 'react-router';
 
 import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
@@ -36,6 +37,8 @@ const ACCOUNT_SECTION_PATHNAMES = {
 } as const satisfies Readonly<Record<Account['kind'], string>>;
 
 export const CATALOG_FULL_MENU_MIN_WIDTH = '87rem';
+
+export const CATALOG_DESCRIPTION_SEPARATOR = ' · ';
 
 function readIsFilteredTransaction({
   transaction,
@@ -84,6 +87,7 @@ type CatalogTransactionsProps = Readonly<{
   filterQuery: Readonly<TransactionFilterQuery>;
   transactionsLink: To;
   transactionTypes: readonly DictionaryItem[] | undefined;
+  summary?: ReactNode;
 }>;
 
 export function CatalogTransactions({
@@ -93,6 +97,7 @@ export function CatalogTransactions({
   filterQuery,
   transactionsLink,
   transactionTypes,
+  summary,
 }: CatalogTransactionsProps) {
   const baseCurrency = useBaseCurrency();
   const isDetailsShown = useIsWideDesktop();
@@ -148,6 +153,7 @@ export function CatalogTransactions({
               <Link to={transactionsLink} className={styles['allLink']}>
                 All
               </Link>
+              {summary !== undefined && <div className={styles['summary']}>{summary}</div>}
             </div>
           }
         />

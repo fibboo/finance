@@ -2,7 +2,11 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { CATALOG_FULL_MENU_MIN_WIDTH, CatalogTransactions } from '@/app/catalog-transactions';
+import {
+  CATALOG_DESCRIPTION_SEPARATOR,
+  CATALOG_FULL_MENU_MIN_WIDTH,
+  CatalogTransactions,
+} from '@/app/catalog-transactions';
 import { LOCATION_ICON_PATH } from '@/app/location-icon';
 import { readLocationTransactionsLink } from '@/app/transactions-link';
 import { CatalogFilters } from '@/components/catalog-list/catalog-filters';
@@ -266,7 +270,7 @@ export function Component() {
           <CatalogTransactions
             key={shownLocation.id}
             name={shownLocation.name}
-            description="Location · recent transactions"
+            description={['Location', 'recent transactions'].join(CATALOG_DESCRIPTION_SEPARATOR)}
             emptyText="No transactions at this location yet"
             filterQuery={{ location_ids: [shownLocation.id] }}
             transactionsLink={readLocationTransactionsLink(shownLocation.id)}

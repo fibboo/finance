@@ -30,6 +30,8 @@ type AccountGroupsProps = Readonly<{
   accounts: readonly Account[] | undefined;
   topAccountId: string | undefined;
   baseCurrency: string;
+  listSearchParams: URLSearchParams;
+  isParamIgnored: boolean;
 }>;
 
 function sumBaseCurrencyBalances(accounts: readonly Account[]): number {
@@ -53,14 +55,20 @@ function readAccountClassName({
   return accountClassName;
 }
 
-export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountGroupsProps) {
+export function AccountGroups({
+  accounts,
+  topAccountId,
+  baseCurrency,
+  listSearchParams,
+  isParamIgnored,
+}: AccountGroupsProps) {
   const [searchParams] = useSearchParams();
   const arrowKeySelection = useArrowKeySelection({
     list: 'accounts',
     orientation: 'vertical',
     isFocusRequired: false,
   });
-  const selectedAccountId = readSelectedAccountId(searchParams);
+  const selectedAccountId = isParamIgnored ? undefined : readSelectedAccountId(searchParams);
   const groups = readAccountGroups(accounts ?? []);
   return (
     <div className={styles['accountGroups']} aria-busy={accounts === undefined}>
@@ -119,7 +127,7 @@ export function AccountGroups({ accounts, topAccountId, baseCurrency }: AccountG
                         id={readAccountLinkId(account.id)}
                         to={{
                           search: writeSelectedAccount({
-                            searchParams,
+                            searchParams: listSearchParams,
                             accountId: account.id,
                           }).toString(),
                         }}

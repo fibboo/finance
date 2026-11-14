@@ -1,8 +1,8 @@
 .actionButton {
   position: relative;
-  flex: 1 1 0;
+  flex: var(--action-button-flex, 1 1 0);
   min-width: 0;
-  min-height: var(--size-button-lg);
+  min-height: var(--action-button-min-height, var(--size-button-lg));
   border: 0;
   padding: var(--space-2);
   border-radius: var(--radius-action);

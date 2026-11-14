@@ -353,3 +353,84 @@ test('names the money account and the location instead of the entry every row of
   // assert
   expect(await screen.findByRole('listitem')).toHaveTextContent('WalletUSD · Spar-$42.80');
 });
+
+test.each([
+  {
+    kind: 'the category, the location and the rate of an expense',
+    row: {
+      ...transaction,
+      location: {
+        id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
+        user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        name: 'Spar',
+        description: null,
+        status: 'ACTIVE',
+        created_at: '2026-10-01T09:00:00Z',
+        updated_at: '2026-10-01T09:00:00Z',
+      },
+      postings: [
+        { ...posting, amount: '-42.10', currency: 'EUR', base_amount: '-49.26', account: wallet },
+        { ...posting, amount: '42.10', currency: 'EUR', base_amount: '49.26', account: category },
+      ],
+    },
+    cells: ['Groceries', 'Spar · 0.8546', '-$49.26', '-€42.10'],
+  },
+  {
+    kind: 'the other account of an outgoing transfer with the amount that left',
+    row: {
+      ...transaction,
+      transaction_type: 'TRANSFER',
+      postings: [
+        { ...posting, amount: '-300.00', currency: 'EUR', base_amount: '-327.40', account: wallet },
+        { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
+      ],
+    },
+    cells: ['Transfer → Savings', '0.9163', '-$327.40', '-€300.00'],
+  },
+  {
+    kind: 'the other account of an incoming transfer with the amount that came in',
+    row: {
+      ...transaction,
+      transaction_type: 'TRANSFER',
+      postings: [
+        { ...posting, amount: '-300.00', base_amount: '-300.00', account: savings },
+        { ...posting, amount: '280.00', currency: 'EUR', base_amount: '300.00', account: wallet },
+      ],
+    },
+    cells: ['Transfer ← Savings', '0.9333', '+$300.00', '+€280.00'],
+  },
+  {
+    kind: 'only the type of an adjustment',
+    row: {
+      ...transaction,
+      transaction_type: 'ADJUSTMENT',
+      postings: [
+        { ...posting, amount: '-25.00', base_amount: '-25.00', account: equity },
+        { ...posting, amount: '25.00', base_amount: '25.00', account: wallet },
+      ],
+    },
+    cells: ['Adjustment', '+$25.00'],
+  },
+] satisfies {
+  kind: string;
+  row: components['schemas']['Transaction'];
+  cells: string[];
+}[])(
+  'leaves out the money account every row of the feed has and names $kind',
+  async ({ row, cells }) => {
+    // act
+    render(
+      <TransactionRow
+        transaction={row}
+        baseCurrency="USD"
+        transactionTypes={transactionTypes}
+        isTop={false}
+        arrowKeySelection={undefined}
+        omittedAccountIds={[wallet.id]}
+      />,
+    );
+
+    // assert
+    expect(await screen.findByRole('listitem')).toHaveTextContent(cells.join(''));
+  },
+);

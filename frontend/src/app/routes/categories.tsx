@@ -2,7 +2,11 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { CATALOG_FULL_MENU_MIN_WIDTH, CatalogTransactions } from '@/app/catalog-transactions';
+import {
+  CATALOG_DESCRIPTION_SEPARATOR,
+  CATALOG_FULL_MENU_MIN_WIDTH,
+  CatalogTransactions,
+} from '@/app/catalog-transactions';
 import { CATEGORY_ICON_PATH } from '@/app/category-icon';
 import { readTransactionsLink } from '@/app/transactions-link';
 import { readCatalogInitial } from '@/components/catalog-list/catalog-entry';
@@ -58,7 +62,6 @@ import styles from './categories.module.css';
 export const handle = { fullMenuMinWidth: CATALOG_FULL_MENU_MIN_WIDTH };
 
 const CATEGORY_SEARCH_FIELD_ID = 'category-search';
-const DESCRIPTION_SEPARATOR = ' · ';
 
 function readCategoryCount(
   total: number | undefined,
@@ -295,7 +298,7 @@ export function Component() {
             key={shownCategory.id}
             name={shownCategory.name}
             description={['Category', shownGroup.heading, 'recent transactions'].join(
-              DESCRIPTION_SEPARATOR,
+              CATALOG_DESCRIPTION_SEPARATOR,
             )}
             emptyText="No transactions in this category yet"
             filterQuery={{ account_ids: [shownCategory.id] }}
