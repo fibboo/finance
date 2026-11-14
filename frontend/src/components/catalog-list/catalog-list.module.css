@@ -4,6 +4,10 @@
   background: var(--color-panel);
 }
 
+.catalogList:not(:has(.groupHeader)) {
+  padding-top: var(--space-3);
+}
+
 .group + .group {
   margin-top: var(--space-1-5);
 }
