@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card switching light</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.board{--ground:#eeeeeb;--panel:#ffffff;--border:#e2e2de;--ink:#17181a;--muted:#5a5d64;--bone:#e4e4e0;--shimmer:rgb(255 255 255 / 65%);--danger:#b42318;width:1320px;height:1560px;box-sizing:border-box;padding:40px;background:var(--ground);color:var(--ink);font-family:'Geist',system-ui,sans-serif;display:flex;flex-direction:column;gap:28px}
+.row{display:flex;gap:40px;align-items:flex-start}
+.col{width:360px;display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;color:var(--muted);line-height:1.4;min-height:40px}
+.cap b{color:var(--ink);font-weight:600}
+.card{width:360px;box-sizing:border-box;padding:20px;border-radius:22px;background:var(--panel);display:flex;flex-direction:column;gap:12px;line-height:1.5}
+.meta{font-size:13px;color:var(--muted)}
+.title{margin:0;font-size:20px;font-weight:600}
+.amounts{display:flex;flex-direction:column;gap:2px}
+.amount{font-size:36px;font-weight:600;line-height:1.1;letter-spacing:-0.03em}
+.base{font-size:14px;color:var(--muted)}
+.role{margin:0;font-size:12px;font-weight:400;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
+.block{display:flex;flex-direction:column;gap:8px}
+.entry{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--ground)}
+.mark{flex:none;width:28px;height:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted);background:var(--bone)}
+.mark.money{width:40px;height:40px;border-radius:10px;font-size:15px;color:#fff}
+.identity{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.name{font-size:15px;font-weight:500}
+.name a{color:inherit;text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:0.2em}
+.note{font-size:13px;color:var(--muted)}
+.eamounts{flex:none;display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap}
+.eamount{font-size:16px;font-weight:600}
+.facts{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 24px;font-size:14px;align-items:center}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;text-align:right;display:flex;justify-content:flex-end}
+.actions{display:flex;gap:8px;margin-top:4px}
+.act{flex:1;height:46px;border:0;border-radius:14px;background:var(--ground);color:var(--ink);display:flex;align-items:center;justify-content:center;font:inherit}
+.act.danger{color:var(--danger)}
+.act[disabled]{opacity:0.5}
+.act svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.line{display:flex;align-items:center}
+.sk{display:block;flex-shrink:0;border-radius:999px;background-color:var(--bone);background-image:linear-gradient(90deg,transparent 30%,var(--shimmer) 50%,transparent 70%);background-repeat:no-repeat;background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite}
+@keyframes shimmer{from{background-position:150% 0}to{background-position:-50% 0}}
+.legend{font-size:13px;color:var(--muted);max-width:1200px;line-height:1.5}
+</style>
+</helmet>
+<div class="board">
+<div class="cap" style="min-height:0"><b>Switching rows</b></div>
+<div class="row">
+
+<div class="col">
+<div class="cap"><b>1 · Rent chosen.</b> The card is loaded.</div>
+<article class="card" aria-label="Rent">
+<div><div class="meta">Expense · Thu, 05.11.2026</div><h2 class="title">Rent</h2></div>
+<div class="amounts"><span class="amount">-$1,053.00</span><span class="base">≈ -€900.00</span></div>
+<section class="block"><h3 class="role">From</h3>
+<div class="entry"><span class="mark money" style="background:#6c63e6">M</span><span class="identity"><span class="name"><a href="#">Main card</a> ›</span><span class="note">Asset · EUR</span><span class="note">Balance €4,120.00</span></span><span class="eamounts"><span class="eamount">-€900.00</span><span class="note">≈ -$1,053.00</span></span></div>
+</section>
+<section class="block"><h3 class="role">To</h3>
+<div class="entry"><span class="mark">R</span><span class="identity"><span class="name">Rent</span><span class="note">Expense · Fixed</span></span><span class="eamounts"><span class="eamount">+€900.00</span><span class="note">≈ +$1,053.00</span></span></div>
+</section>
+<dl class="facts"><dt>Location</dt><dd>Landlord ›</dd><dt>Comment</dt><dd>November rent</dd></dl>
+<div class="actions"><button class="act" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button><button class="act danger" type="button" aria-label="Delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div>
+</article>
+</div>
+
+<div class="col">
+<div class="cap"><b>2 · Groceries chosen, loading.</b> The frame of the card stays: labels, blocks, buttons. Only the values turn into skeletons, each in a line of its text's height.</div>
+<article class="card" aria-label="Loading transaction" aria-busy="true">
+<div><div class="line" style="height:19.5px"><span class="sk" style="width:128px;height:12px"></span></div><div class="line" style="height:30px"><span class="sk" style="width:96px;height:16px"></span></div></div>
+<div class="amounts"><div class="line" style="height:39.6px"><span class="sk" style="width:150px;height:32px"></span></div><div class="line" style="height:21px"><span class="sk" style="width:72px;height:12px"></span></div></div>
+<section class="block"><h3 class="role">From</h3>
+<div class="entry"><span class="sk" style="width:40px;height:40px;border-radius:10px"></span><span class="identity" style="gap:0"><span class="line" style="height:22.5px"><span class="sk" style="width:88px;height:12px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:72px;height:9px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:104px;height:9px"></span></span></span><span class="eamounts"><span class="line" style="height:24px"><span class="sk" style="width:64px;height:12px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:56px;height:9px"></span></span></span></div>
+</section>
+<section class="block"><h3 class="role">To</h3>
+<div class="entry"><span class="sk" style="width:28px;height:28px"></span><span class="identity"><span class="line" style="height:22.5px"><span class="sk" style="width:64px;height:12px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:96px;height:9px"></span></span></span><span class="eamounts"><span class="line" style="height:24px"><span class="sk" style="width:64px;height:12px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:56px;height:9px"></span></span></span></div>
+</section>
+<dl class="facts"><dt>Location</dt><dd><span class="line" style="height:21px"><span class="sk" style="width:64px;height:12px"></span></span></dd><dt>Comment</dt><dd><span class="line" style="height:21px"><span class="sk" style="width:96px;height:12px"></span></span></dd></dl>
+<div class="actions"><button class="act" type="button" aria-label="Edit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button><button class="act danger" type="button" aria-label="Delete" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div>
+</article>
+</div>
+
+<div class="col">
+<div class="cap"><b>3 · Groceries loaded.</b> The values fill the same lines; the card keeps its height when the blocks match.</div>
+<article class="card" aria-label="Groceries">
+<div><div class="meta">Expense · Mon, 02.11.2026</div><h2 class="title">Groceries</h2></div>
+<div class="amounts"><span class="amount">-$42.10</span><span class="base">≈ -€36.00</span></div>
+<section class="block"><h3 class="role">From</h3>
+<div class="entry"><span class="mark money" style="background:#6c63e6">M</span><span class="identity"><span class="name"><a href="#">Main card</a> ›</span><span class="note">Asset · EUR</span><span class="note">Balance €4,084.00</span></span><span class="eamounts"><span class="eamount">-€36.00</span><span class="note">≈ -$42.10</span></span></div>
+</section>
+<section class="block"><h3 class="role">To</h3>
+<div class="entry"><span class="mark">G</span><span class="identity"><span class="name">Groceries</span><span class="note">Expense · Variable</span></span><span class="eamounts"><span class="eamount">+€36.00</span><span class="note">≈ +$42.10</span></span></div>
+</section>
+<dl class="facts"><dt>Location</dt><dd>Carrefour ›</dd><dt>Comment</dt><dd>—</dd></dl>
+<div class="actions"><button class="act" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button><button class="act danger" type="button" aria-label="Delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div>
+</article>
+</div>
+
+</div>
+<div class="cap" style="min-height:0;margin-top:8px"><b>First load</b></div>
+<div class="row">
+<div class="col">
+<div class="cap"><b>A · Page opens.</b> The card shows the framed skeleton at once. It waits for the feed, then asks for the details of its first transaction, and keeps the skeleton until they arrive.</div>
+<article class="card" aria-label="Loading transaction" aria-busy="true">
+<div><div class="line" style="height:19.5px"><span class="sk" style="width:128px;height:12px"></span></div><div class="line" style="height:30px"><span class="sk" style="width:96px;height:16px"></span></div></div>
+<div class="amounts"><div class="line" style="height:39.6px"><span class="sk" style="width:150px;height:32px"></span></div><div class="line" style="height:21px"><span class="sk" style="width:72px;height:12px"></span></div></div>
+<section class="block"><h3 class="role">From</h3>
+<div class="entry"><span class="sk" style="width:40px;height:40px;border-radius:10px"></span><span class="identity" style="gap:0"><span class="line" style="height:22.5px"><span class="sk" style="width:88px;height:12px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:72px;height:9px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:104px;height:9px"></span></span></span><span class="eamounts"><span class="line" style="height:24px"><span class="sk" style="width:64px;height:12px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:56px;height:9px"></span></span></span></div>
+</section>
+<section class="block"><h3 class="role">To</h3>
+<div class="entry"><span class="sk" style="width:28px;height:28px"></span><span class="identity"><span class="line" style="height:22.5px"><span class="sk" style="width:64px;height:12px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:96px;height:9px"></span></span></span><span class="eamounts"><span class="line" style="height:24px"><span class="sk" style="width:64px;height:12px"></span></span><span class="line" style="height:19.5px"><span class="sk" style="width:56px;height:9px"></span></span></span></div>
+</section>
+<dl class="facts"><dt>Location</dt><dd><span class="line" style="height:21px"><span class="sk" style="width:64px;height:12px"></span></span></dd><dt>Comment</dt><dd><span class="line" style="height:21px"><span class="sk" style="width:96px;height:12px"></span></span></dd></dl>
+<div class="actions"><button class="act" type="button" aria-label="Edit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button><button class="act danger" type="button" aria-label="Delete" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div>
+</article>
+</div>
+
+<div class="col">
+<div class="cap"><b>B · Details loaded.</b> The skeleton stops and the values fill the same lines.</div>
+<article class="card" aria-label="Rent">
+<div><div class="meta">Expense · Thu, 05.11.2026</div><h2 class="title">Rent</h2></div>
+<div class="amounts"><span class="amount">-$1,053.00</span><span class="base">≈ -€900.00</span></div>
+<section class="block"><h3 class="role">From</h3>
+<div class="entry"><span class="mark money" style="background:#6c63e6">M</span><span class="identity"><span class="name"><a href="#">Main card</a> ›</span><span class="note">Asset · EUR</span><span class="note">Balance €4,120.00</span></span><span class="eamounts"><span class="eamount">-€900.00</span><span class="note">≈ -$1,053.00</span></span></div>
+</section>
+<section class="block"><h3 class="role">To</h3>
+<div class="entry"><span class="mark">R</span><span class="identity"><span class="name">Rent</span><span class="note">Expense · Fixed</span></span><span class="eamounts"><span class="eamount">+€900.00</span><span class="note">≈ +$1,053.00</span></span></div>
+</section>
+<dl class="facts"><dt>Location</dt><dd>Landlord ›</dd><dt>Comment</dt><dd>November rent</dd></dl>
+<div class="actions"><button class="act" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button><button class="act danger" type="button" aria-label="Delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div>
+</article>
+</div>
+</div>
+<p class="legend">The skeleton keeps the blocks of the card shown before (here From and To, Location, Comment). When the new transaction has other blocks (a transfer with an exchange difference, or a single block), the card changes its height only once, when the values arrive. Edit and Delete stay in place, disabled while loading. With nothing shown before (first load, a link, the phone sheet) the skeleton takes the frame of an expense: From, To, Location and Comment.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":1560}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
