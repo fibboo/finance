@@ -290,7 +290,7 @@ test('opens an account from its card on Home and links the strip to the Accounts
   expect(within(accounts).getByRole('link', { name: 'All' })).toHaveAttribute('href', '/accounts');
 });
 
-test('opens the account of a posting on Home as the last opened panel', async () => {
+test('opens the account of a posting on Home in place of the card under the chosen account', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
@@ -306,10 +306,14 @@ test('opens the account of a posting on Home as the last opened panel', async ()
   await user.click(accountLink);
 
   // assert
-  // the account param moves after the transaction one, so a phone shows the account
-  expect(accountLink).toHaveAttribute('href', `/?transaction=${expense.id}&account=${wallet.id}`);
-  expect(await screen.findByRole('dialog', { name: 'Account details' })).toBeInTheDocument();
-  expect(screen.getByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
+  expect(accountLink).toHaveAttribute(
+    'href',
+    `/?account=${wallet.id}&transaction=${expense.id}&entry=account.${wallet.id}`,
+  );
+  expect(await screen.findByRole('link', { name: 'Transaction' })).toBeInTheDocument();
+  // the account chosen in the list stays above the account opened from the card
+  expect(screen.getAllByRole('dialog', { name: 'Account details' })).toHaveLength(2);
+  expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
 });
 
 test.each([

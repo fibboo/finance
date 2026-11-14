@@ -16,8 +16,8 @@
     display: var(--details-column-display, flex);
     grid-row: 1 / -1;
     grid-template-rows: subgrid;
-    flex-direction: var(--details-column-direction, column);
-    align-self: var(--details-column-align, stretch);
+    flex-direction: column;
+    align-self: stretch;
     max-height: 100%;
     gap: var(--details-column-gap, var(--space-4));
     overflow-y: auto;

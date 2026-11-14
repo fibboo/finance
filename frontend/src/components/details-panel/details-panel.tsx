@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useEffectEvent, useId, useRef } from 'react';
-import { NavigationType, useLocation, useNavigationType } from 'react-router';
+import { Link, NavigationType, type To, useLocation, useNavigationType } from 'react-router';
+import { z } from 'zod';
 
 import { LoadError } from '@/components/load-error/load-error';
 import { Skeleton } from '@/components/skeleton/skeleton';
@@ -13,8 +14,15 @@ import styles from './details-panel.module.css';
 import { focusReturnTarget } from './focus-return';
 
 const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
+const BACK_ICON_PATH = 'm15 6-6 6 6 6';
 const DETAILS_PANEL_SELECTOR = '[data-details-panel]';
 const DIALOG_SELECTOR = 'dialog, [role="dialog"]';
+
+const inPlaceStateSchema = z.object({ isInPlace: z.literal(true) });
+
+const IN_PLACE_STATE = { isInPlace: true } satisfies z.infer<typeof inPlaceStateSchema>;
+
+export type DetailsBack = Readonly<{ to: To; label: string }>;
 
 function readIsShown(bounds: DOMRectReadOnly): boolean {
   const isShown = bounds.height > 0;
@@ -38,11 +46,17 @@ function readIsOnlyShownPanel(panelId: string): boolean {
 function readPanelClassName({
   isShownByDefault,
   isKeptOpenOnDesktop,
-}: Readonly<{ isShownByDefault: boolean; isKeptOpenOnDesktop: boolean }>): string {
+  isInPlace,
+}: Readonly<{
+  isShownByDefault: boolean;
+  isKeptOpenOnDesktop: boolean;
+  isInPlace: boolean;
+}>): string {
   const panelClassName = [
     styles['detailsPanel'],
     isShownByDefault ? styles['shownByDefault'] : undefined,
     isKeptOpenOnDesktop ? styles['keptOpenOnDesktop'] : undefined,
+    isInPlace ? styles['inPlace'] : undefined,
   ]
     .filter((className) => className !== undefined)
     .join(' ');
@@ -60,6 +74,7 @@ type DetailsPanelProps = Readonly<{
   errorMessage: string;
   returnFocusId: string;
   arrowKeyList: ArrowKeySelectionProps | undefined;
+  back: DetailsBack | undefined;
   onRetry: () => void;
   onClose: () => void;
   onChoose: () => void;
@@ -77,6 +92,7 @@ export function DetailsPanel({
   errorMessage,
   returnFocusId,
   arrowKeyList,
+  back,
   onRetry,
   onClose,
   onChoose,
@@ -87,6 +103,7 @@ export function DetailsPanel({
   const location = useLocation();
   const isArrowKeySelection =
     useNavigationType() !== NavigationType.Pop && readIsArrowKeySelection(location.state);
+  const isInPlace = back !== undefined || inPlaceStateSchema.safeParse(location.state).success;
   const handleRef = useRef<HTMLSpanElement>(null);
 
   function close() {
@@ -173,7 +190,7 @@ export function DetailsPanel({
     };
   }, [isShownByDefault, panelId, backdropId]);
 
-  const closeButton = (
+  const closeButton = back === undefined && (
     <button type="button" className={styles['close']} aria-label="Close details" onClick={close}>
       <svg className={styles['closeIcon']} aria-hidden="true" viewBox="0 0 24 24">
         <path d={CLOSE_ICON_PATH} />
@@ -185,7 +202,7 @@ export function DetailsPanel({
       {!isShownByDefault && (
         <div
           id={backdropId}
-          className={styles['backdrop']}
+          className={`${styles['backdrop'] ?? ''} ${isInPlace ? (styles['inPlace'] ?? '') : ''}`}
           data-testid="details-panel-backdrop"
           aria-hidden="true"
         />
@@ -210,7 +227,7 @@ export function DetailsPanel({
         data-details
         aria-busy={(!isLoaded && isFetching) || isReplacing}
         tabIndex={-1}
-        className={readPanelClassName({ isShownByDefault, isKeptOpenOnDesktop })}
+        className={readPanelClassName({ isShownByDefault, isKeptOpenOnDesktop, isInPlace })}
         {...dragHandlers}
       >
         <span
@@ -219,6 +236,14 @@ export function DetailsPanel({
           aria-hidden="true"
           data-sheet-drag-area
         />
+        {back !== undefined && (
+          <Link to={back.to} state={IN_PLACE_STATE} preventScrollReset className={styles['back']}>
+            <svg className={styles['backIcon']} aria-hidden="true" viewBox="0 0 24 24">
+              <path d={BACK_ICON_PATH} />
+            </svg>
+            {back.label}
+          </Link>
+        )}
         {isLoaded ? (
           <div className={styles['content']} inert={isReplacing}>
             {renderContent(closeButton)}

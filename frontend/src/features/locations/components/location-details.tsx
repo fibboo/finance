@@ -5,7 +5,7 @@ import type { To } from 'react-router';
 import { ActionBar } from '@/components/action-bar/action-bar';
 import { ActionButton } from '@/components/action-button/action-button';
 import { EDIT_ICON_PATH, TRANSACTIONS_ICON_PATH } from '@/components/action-button/action-icons';
-import { DetailsPanel } from '@/components/details-panel/details-panel';
+import { type DetailsBack, DetailsPanel } from '@/components/details-panel/details-panel';
 
 import { locationQueries } from '../api/location-queries';
 import { readLocationLinkId } from '../api/selected-location';
@@ -20,6 +20,7 @@ type LocationDetailsProps = Readonly<{
   transactionsLinkId: string;
   relatedQueryKeys: readonly QueryKey[];
   isShownByDefault: boolean;
+  back: DetailsBack | undefined;
   onEdit: () => void;
   onStatusChanged: () => void;
   onRestoreNameTaken: () => void;
@@ -34,6 +35,7 @@ export function LocationDetails({
   transactionsLinkId,
   relatedQueryKeys,
   isShownByDefault,
+  back,
   onEdit,
   onStatusChanged,
   onRestoreNameTaken,
@@ -60,6 +62,7 @@ export function LocationDetails({
       errorMessage="Couldn't load the location"
       returnFocusId={readLocationLinkId(locationId)}
       arrowKeyList={undefined}
+      back={back}
       onRetry={() => {
         void refetch();
       }}

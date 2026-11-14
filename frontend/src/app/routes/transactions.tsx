@@ -2,17 +2,15 @@ import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 
 import { DetailsColumn } from '@/app/details-column';
+import { writeSelectedEntry } from '@/app/selected-entry';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { useOpenNewTransaction } from '@/app/use-open-new-transaction';
-import { useShownAccount } from '@/app/use-shown-account';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
 import { SearchField } from '@/components/search-field/search-field';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
-import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
-import { writeSelectedLocation } from '@/features/locations/api/selected-location';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
   hasAccountIdParams,
@@ -73,12 +71,9 @@ export function Component() {
   const baseCurrency = useBaseCurrency();
   const today = useToday();
   const [searchParams, setSearchParams] = useSearchParams();
-  const listSearchParams = writeSelectedLocation({
-    searchParams: writeSelectedAccount({
-      searchParams: writeSelectedTransaction({ searchParams, transactionId: undefined }),
-      accountId: undefined,
-    }),
-    locationId: undefined,
+  const listSearchParams = writeSelectedEntry({
+    searchParams: writeSelectedTransaction({ searchParams, transactionId: undefined }),
+    entry: undefined,
   });
   const listKey = readTransactionListKey(listSearchParams);
   const search = readTransactionSearch(searchParams);
@@ -120,10 +115,6 @@ export function Component() {
     anchorDate,
   });
   const topTransactionId = readTopTransactionId(feed);
-  const shownAccount = useShownAccount({
-    defaultTransactionId: topTransactionId,
-    firstAccountId: undefined,
-  });
   return (
     <Page title="Transactions" count={readTransactionCount(feed.total)}>
       <div className={styles['actions']}>
@@ -203,9 +194,9 @@ export function Component() {
             <DetailsColumn
               baseCurrency={baseCurrency}
               defaultTransactionId={topTransactionId}
-              shownAccount={shownAccount}
-              accountCount={moneyAccounts?.total}
-              isAccountFirst={false}
+              omittedAccountIds={undefined}
+              omittedLocationIds={undefined}
+              shownAccount={undefined}
             />
           </div>
         )}

@@ -2,13 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Link, Navigate, type To, useSearchParams } from 'react-router';
 
-import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
+import { DetailsColumn } from '@/app/details-column';
 import { useBaseCurrency } from '@/app/use-base-currency';
-import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
-import {
-  readLocationLinkId,
-  writeSelectedLocation,
-} from '@/features/locations/api/selected-location';
 import {
   readSelectedTransactionId,
   writeSelectedTransaction,
@@ -17,7 +12,6 @@ import type { TransactionFilterQuery } from '@/features/transactions/api/transac
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { TRANSACTION_ARROW_KEY_LIST } from '@/features/transactions/components/transaction-arrow-keys';
 import { readTopTransactionId } from '@/features/transactions/components/feed-transactions';
-import type { LocationLink } from '@/features/transactions/components/transaction-overview';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
 import { useTransactionFeed } from '@/features/transactions/hooks/use-transaction-feed';
 import { useListFocusKeys } from '@/hooks/use-arrow-key-selection';
@@ -28,16 +22,6 @@ import styles from './catalog-transactions.module.css';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 type Transaction = components['schemas']['Transaction'];
-type Account = components['schemas']['Account'];
-
-const ACCOUNT_SECTION_PATHNAMES = {
-  ASSET: '/accounts',
-  LIABILITY: '/accounts',
-  EXPENSE: '/categories',
-  INCOME: '/income-sources',
-  EQUITY: '/accounts',
-} as const satisfies Readonly<Record<Account['kind'], string>>;
-
 export const CATALOG_FULL_MENU_MIN_WIDTH = '87rem';
 
 export const CATALOG_DESCRIPTION_SEPARATOR = ' · ';
@@ -55,31 +39,6 @@ function readIsFilteredTransaction({
     transaction.postings.some((posting) => accountIds.includes(posting.account.id)) ||
     (transaction.location !== null && locationIds.includes(transaction.location.id));
   return isFilteredTransaction;
-}
-
-function readAccountSectionLink(account: Readonly<Account>): To {
-  const accountSectionLink = {
-    pathname: ACCOUNT_SECTION_PATHNAMES[account.kind],
-    search: writeSelectedAccount({
-      searchParams: new URLSearchParams(),
-      accountId: account.id,
-    }).toString(),
-  };
-  return accountSectionLink;
-}
-
-function readLocationSectionLink(locationId: string): LocationLink {
-  const locationSectionLink = {
-    to: {
-      pathname: '/locations',
-      search: writeSelectedLocation({
-        searchParams: new URLSearchParams(),
-        locationId,
-      }).toString(),
-    },
-    id: readLocationLinkId(locationId),
-  };
-  return locationSectionLink;
 }
 
 type CatalogTransactionsProps = Readonly<{
@@ -166,17 +125,12 @@ export function CatalogTransactions({
       </aside>
       {isDetailsShown && (
         <div className={styles['details']}>
-          <SelectedTransactionDetails
+          <DetailsColumn
             baseCurrency={baseCurrency}
             defaultTransactionId={topTransactionId}
-            readAccountLink={(account) =>
-              entryAccountIds.includes(account.id) ? undefined : readAccountSectionLink(account)
-            }
-            readLocationLink={(locationId) =>
-              entryLocationIds.includes(locationId)
-                ? undefined
-                : readLocationSectionLink(locationId)
-            }
+            omittedAccountIds={entryAccountIds}
+            omittedLocationIds={entryLocationIds}
+            shownAccount={undefined}
           />
         </div>
       )}

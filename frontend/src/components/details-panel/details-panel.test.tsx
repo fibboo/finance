@@ -21,6 +21,7 @@ test('closes on a tap on the backdrop once the press is released', async () => {
       errorMessage="Could not load the transaction."
       returnFocusId="transaction-1"
       arrowKeyList={undefined}
+      back={undefined}
       onRetry={vi.fn()}
       onClose={onClose}
       onChoose={vi.fn()}
