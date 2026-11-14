@@ -128,6 +128,62 @@ export function useArrowKeySelection({
   return selectionProps;
 }
 
+function readFocusedList(target: EventTarget | null): string | undefined {
+  const focusedList =
+    target instanceof Element
+      ? (target.closest('[data-arrow-key-list]')?.getAttribute('data-arrow-key-list') ?? undefined)
+      : undefined;
+  return focusedList;
+}
+
+function readFocusTarget({
+  rightList,
+  isRightward,
+}: Readonly<{ rightList: string; isRightward: boolean }>): HTMLAnchorElement | undefined {
+  const rows = [
+    ...document.querySelectorAll<HTMLAnchorElement>(
+      'a[data-arrow-key-list][data-arrow-key-orientation="vertical"]',
+    ),
+  ].filter((row) => (row.getAttribute('data-arrow-key-list') === rightList) === isRightward);
+  const focusTarget =
+    rows.find((row) => row.getAttribute('aria-current') === 'true') ??
+    rows.find((row) => row.hasAttribute('data-shown-by-default')) ??
+    rows[0];
+  return focusTarget;
+}
+
+export function useListFocusKeys({
+  rightList,
+  isEnabled,
+}: Readonly<{ rightList: string; isEnabled: boolean }>): void {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const step = readStep({ event, orientation: 'horizontal' });
+      if (!isEnabled || step === undefined || readIsKeyOwnedElsewhere(event.target)) {
+        return;
+      }
+
+      const isRightward = step > 0;
+      const focusedList = readFocusedList(event.target);
+      const isInTargetSide =
+        focusedList !== undefined && (focusedList === rightList) === isRightward;
+      const focusTarget = isInTargetSide ? undefined : readFocusTarget({ rightList, isRightward });
+      if (focusTarget === undefined) {
+        return;
+      }
+
+      event.preventDefault();
+      focusTarget.focus({ preventScroll: true });
+      focusTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [rightList, isEnabled]);
+}
+
 export function readIsArrowKeySelection(locationState: unknown): boolean {
   const isArrowKeySelection = arrowKeySelectionStateSchema.safeParse(locationState).success;
   return isArrowKeySelection;

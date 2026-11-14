@@ -1166,6 +1166,80 @@ test('shows the details of the top transaction beside the transactions of a cate
   expect(router.state.location.search).toBe(`?account=${groceries.id}`);
 });
 
+test('moves the focus between the category and its top transaction with Left and Right on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+        ],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      const items =
+        new URL(request.url).searchParams.getAll('account_ids').join() === rent.id
+          ? [rentPayment, earlierRentPayment]
+          : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get('http://localhost/api/accounting/transactions/:transactionId', ({ params }) =>
+      HttpResponse.json(
+        params['transactionId'] === rentPayment.id ? rentPayment : earlierRentPayment,
+      ),
+    ),
+  );
+  const { router } = render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
+  const rentTransactions = await screen.findByRole('region', { name: 'Transactions of Rent' });
+  const [topRow] = await within(rentTransactions).findAllByRole('link', { name: 'Main card' });
+
+  // act
+  await user.keyboard('{ArrowRight}');
+
+  // assert
+  expect(topRow).toHaveFocus();
+
+  // act
+  await user.keyboard('{ArrowLeft}');
+
+  // assert
+  expect(screen.getByRole('link', { name: 'Rent' })).toHaveFocus();
+  expect(router.state.location.search).toBe(`?account=${rent.id}`);
+
+  // act
+  const searchField = screen.getByRole('searchbox', { name: 'Search categories' });
+  await user.click(searchField);
+  await user.keyboard('{ArrowRight}');
+
+  // assert
+  expect(searchField).toHaveFocus();
+});
+
 test('drops the chosen transaction when the type filter or Deleted changes the list', async () => {
   // arrange
   const user = userEvent.setup();

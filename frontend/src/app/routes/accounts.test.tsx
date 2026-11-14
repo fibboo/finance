@@ -1158,6 +1158,52 @@ test('opens a transaction of the feed and drops it when another account is chose
   expect(router.state.location.search).toBe(`?account=${creditCard.id}`);
 });
 
+test('moves the focus between the chosen account and the chosen transaction with Left and Right on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  serveAccountTransactions();
+  const search = `?account=${wallet.id}&transaction=${transferToCard.id}`;
+  const { router } = render(<Component />, { initialEntries: [`/${search}`] });
+  const walletTransactions = await screen.findByRole('region', {
+    name: 'Transactions of Wallet',
+  });
+  const transferRow = await within(walletTransactions).findByRole('link', {
+    name: 'Transfer → Credit card',
+  });
+
+  // the details of the chosen transaction hold the focus as they open
+  expect(screen.getByRole('dialog', { name: 'Transaction details' })).toHaveFocus();
+
+  // act
+  await user.keyboard('{ArrowLeft}');
+
+  // assert
+  expect(screen.getByRole('link', { name: 'Wallet' })).toHaveFocus();
+
+  // act
+  await user.keyboard('{ArrowLeft}{ArrowRight}{ArrowRight}');
+
+  // assert
+  expect(transferRow).toHaveFocus();
+  expect(router.state.location.search).toBe(search);
+});
+
+test('leaves the focus with Left on a narrower desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1024);
+  serveAccountTransactions();
+  render(<Component />);
+  await screen.findByRole('link', { name: 'Wallet' });
+
+  // act
+  await user.keyboard('{ArrowLeft}');
+
+  // assert
+  expect(document.body).toHaveFocus();
+});
+
 test('keeps the account details without transactions on a narrower desktop', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 1024);
