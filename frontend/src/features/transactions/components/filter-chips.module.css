@@ -9,6 +9,11 @@
   scrollbar-width: none;
 }
 
+.chipSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-chip);
+}
+
 @media (--desktop) {
   .filterChips {
     padding: var(--space-4) var(--space-4) var(--space-3);

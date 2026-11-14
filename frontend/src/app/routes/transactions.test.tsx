@@ -341,6 +341,25 @@ test('shows the empty state without transactions', async () => {
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 
+test('keeps the filter row and the transaction card in place while the accounts load', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', async () => {
+      await delay('infinite');
+    }),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  // the card stands busy with its frame while the chips of the filters wait for the accounts
+  const details = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(details).toHaveAttribute('aria-busy', 'true');
+  expect(within(details).getByText('Location')).toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Filters' })).not.toBeInTheDocument();
+});
+
 test('shows a busy list while the first page loads', async () => {
   // arrange
   server.use(

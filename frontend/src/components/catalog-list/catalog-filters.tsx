@@ -1,13 +1,18 @@
 import { useId } from 'react';
 
+import { Skeleton } from '@/components/skeleton/skeleton';
+
 import styles from './catalog-filters.module.css';
 
-type CatalogSegment<Key extends string> = Readonly<{
-  legend: string;
-  options: readonly Readonly<{ key: Key; label: string }>[];
-  chosenKey: Key | undefined;
-  onChoose: (key: Key | undefined) => void;
-}>;
+type CatalogSegment<Key extends string> =
+  | Readonly<{ kind: 'pending' }>
+  | Readonly<{
+      kind: 'shown';
+      legend: string;
+      options: readonly Readonly<{ key: Key; label: string }>[];
+      chosenKey: Key | undefined;
+      onChoose: (key: Key | undefined) => void;
+    }>;
 
 type CatalogFiltersProps<Key extends string> = Readonly<{
   segment: CatalogSegment<Key> | undefined;
@@ -23,7 +28,8 @@ export function CatalogFilters<Key extends string>({
   const name = useId();
   return (
     <div className={styles['catalogFilters']}>
-      {segment !== undefined && (
+      {segment?.kind === 'pending' && <Skeleton className={styles['segmentSkeleton']} />}
+      {segment?.kind === 'shown' && (
         <fieldset className={styles['segment']}>
           <legend className="visually-hidden">{segment.legend}</legend>
           {[{ key: undefined, label: 'All' }, ...segment.options].map((option) => (
