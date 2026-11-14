@@ -1,7 +1,7 @@
 @import '@/styles/media.css';
 
 .accountGroups {
-  --group-header-top: calc(var(--sticky-top, 0) + var(--space-1));
+  --group-header-top: var(--space-1);
 
   isolation: isolate;
   display: flex;
@@ -200,7 +200,7 @@
 
 @media (--desktop) {
   .accountGroups {
-    --columns-top: calc(var(--sticky-top, 0) + var(--space-2));
+    --columns-top: var(--space-2);
     --group-header-top: calc(var(--columns-top) + var(--size-columns-header-lg) + var(--space-1-5));
 
     flex: 1 1 auto;

@@ -83,34 +83,39 @@ export function Component() {
   }
 
   return (
-    <Page title="Accounts" count={readAccountCount(allAccountPage?.total)}>
-      <div className={styles['actions']}>
-        <SearchField
-          key={searchField.fieldKey}
-          id={ACCOUNT_SEARCH_FIELD_ID}
-          label="Search accounts"
-          term={search}
-          isFocusedOnMount={searchField.isFocusedOnMount}
-          onSearch={(nextSearch) => {
-            setSearchParams(
-              writeCatalogSearch({ searchParams: listSearchParams, search: nextSearch }),
-              {
-                replace: true,
-                state: TYPED_SEARCH_STATE,
-              },
-            );
-          }}
-        />
-        <NewButton
-          entityName="account"
-          isDisabled={
-            dictionaries === undefined || currencies === undefined || baseCurrency === undefined
-          }
-          onClick={() => {
-            setIsCreating(true);
-          }}
-        />
-      </div>
+    <Page
+      title="Accounts"
+      count={readAccountCount(allAccountPage?.total)}
+      actions={
+        <>
+          <SearchField
+            key={searchField.fieldKey}
+            id={ACCOUNT_SEARCH_FIELD_ID}
+            label="Search accounts"
+            term={search}
+            isFocusedOnMount={searchField.isFocusedOnMount}
+            onSearch={(nextSearch) => {
+              setSearchParams(
+                writeCatalogSearch({ searchParams: listSearchParams, search: nextSearch }),
+                {
+                  replace: true,
+                  state: TYPED_SEARCH_STATE,
+                },
+              );
+            }}
+          />
+          <NewButton
+            entityName="account"
+            isDisabled={
+              dictionaries === undefined || currencies === undefined || baseCurrency === undefined
+            }
+            onClick={() => {
+              setIsCreating(true);
+            }}
+          />
+        </>
+      }
+    >
       {baseCurrency !== undefined && (
         <div className={isWideDesktop ? styles['accountsWithTransactions'] : styles['accounts']}>
           <div className={isWideDesktop ? styles['list'] : styles['plainList']}>

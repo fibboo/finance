@@ -20,8 +20,8 @@
 
 .icon {
   flex: none;
-  width: var(--size-icon-md);
-  height: var(--size-icon-md);
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -34,7 +34,7 @@
   padding: 0;
   border: 0;
   outline: 0;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-md);
   background: transparent;
   color: var(--color-ink);
 }
@@ -46,14 +46,5 @@
 @media (--desktop) {
   .searchField {
     flex: 0 1 var(--size-search);
-  }
-
-  .icon {
-    width: var(--size-icon-sm);
-    height: var(--size-icon-sm);
-  }
-
-  .input {
-    font-size: var(--font-size-md);
   }
 }

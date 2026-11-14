@@ -8,10 +8,11 @@ import { useIsLogoShownOnPhone } from './use-is-logo-shown-on-phone';
 type PageProps = Readonly<{
   title: string;
   count?: Readonly<{ value: number; label: string }> | undefined;
+  actions?: ReactNode;
   children?: ReactNode;
 }>;
 
-export function Page({ title, count, children }: PageProps) {
+export function Page({ title, count, actions, children }: PageProps) {
   const isLogoShownOnPhone = useIsLogoShownOnPhone();
   return (
     <div className={styles['page']}>
@@ -31,6 +32,7 @@ export function Page({ title, count, children }: PageProps) {
             </>
           )}
         </h1>
+        {actions !== undefined && <div className={styles['actions']}>{actions}</div>}
       </div>
       <div className={styles['content']}>{children}</div>
     </div>

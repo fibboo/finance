@@ -156,9 +156,11 @@ export function Component() {
   }
 
   return (
-    <Page title="Categories" count={readCategoryCount(activeCategoryPage?.total)}>
-      <div className={styles['controls']}>
-        <div className={styles['actions']}>
+    <Page
+      title="Categories"
+      count={readCategoryCount(activeCategoryPage?.total)}
+      actions={
+        <>
           <SearchField
             key={searchField.fieldKey}
             id={CATEGORY_SEARCH_FIELD_ID}
@@ -182,40 +184,41 @@ export function Component() {
               setIsCreating(true);
             }}
           />
-        </div>
-        {categoryTypes !== undefined && (
-          <CatalogFilters
-            segment={{
-              legend: 'Category type',
-              options: categoryTypes,
-              chosenKey: categoryType,
-              onChoose: (nextCategoryType) => {
+        </>
+      }
+    >
+      <div className={styles['categories']}>
+        <div className={styles['list']}>
+          {categoryTypes !== undefined && (
+            <CatalogFilters
+              segment={{
+                legend: 'Category type',
+                options: categoryTypes,
+                chosenKey: categoryType,
+                onChoose: (nextCategoryType) => {
+                  setSearchParams(
+                    writeCategoryTypeFilter({
+                      searchParams: listSearchParams,
+                      categoryType: nextCategoryType,
+                    }),
+                    { replace: true },
+                  );
+                },
+              }}
+              isDeletedShown={isDeletedShown}
+              onDeletedShownChange={(nextIsDeletedShown) => {
                 setSearchParams(
-                  writeCategoryTypeFilter({
+                  writeIsDeletedShown({
                     searchParams: listSearchParams,
-                    categoryType: nextCategoryType,
+                    isStoredDeletedShown,
+                    isDeletedShown: nextIsDeletedShown,
                   }),
                   { replace: true },
                 );
-              },
-            }}
-            isDeletedShown={isDeletedShown}
-            onDeletedShownChange={(nextIsDeletedShown) => {
-              setSearchParams(
-                writeIsDeletedShown({
-                  searchParams: listSearchParams,
-                  isStoredDeletedShown,
-                  isDeletedShown: nextIsDeletedShown,
-                }),
-                { replace: true },
-              );
-              storeIsDeletedShown({ page: 'categories', isDeletedShown: nextIsDeletedShown });
-            }}
-          />
-        )}
-      </div>
-      <div className={styles['categories']}>
-        <div className={styles['list']}>
+                storeIsDeletedShown({ page: 'categories', isDeletedShown: nextIsDeletedShown });
+              }}
+            />
+          )}
           {isNothingMatched ? (
             <NoMatchingEntries
               entityNames="categories"
