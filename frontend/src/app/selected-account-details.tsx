@@ -167,10 +167,12 @@ function SelectedAccount({
   }
 
   const { data: account, error } = useQuery(accountQueries.detail(accountId));
-  useEffect(() => {
-    revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
-  }, [accountId]);
   const isOpened = back !== undefined;
+  useEffect(() => {
+    if (!isOpened) {
+      revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
+    }
+  }, [accountId, isOpened]);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   const isUnavailable =
     isNotFound ||

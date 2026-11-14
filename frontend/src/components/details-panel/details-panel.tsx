@@ -22,7 +22,7 @@ const inPlaceStateSchema = z.object({ isInPlace: z.literal(true) });
 
 const IN_PLACE_STATE = { isInPlace: true } satisfies z.infer<typeof inPlaceStateSchema>;
 
-export type DetailsBack = Readonly<{ to: To; label: string }>;
+export type DetailsBack = Readonly<{ to: To; label: string; returnFocusId: string }>;
 
 function readIsShown(bounds: DOMRectReadOnly): boolean {
   const isShown = bounds.height > 0;
@@ -90,7 +90,7 @@ export function DetailsPanel({
   isShownByDefault,
   isKeptOpenOnDesktop,
   errorMessage,
-  returnFocusId,
+  returnFocusId: panelReturnFocusId,
   arrowKeyList,
   back,
   onRetry,
@@ -98,6 +98,7 @@ export function DetailsPanel({
   onChoose,
   renderContent,
 }: DetailsPanelProps) {
+  const returnFocusId = back?.returnFocusId ?? panelReturnFocusId;
   const backdropId = useId();
   const panelId = useId();
   const location = useLocation();
