@@ -745,9 +745,10 @@ test('links a deleted category of the chosen transaction with Deleted on', async
   } satisfies components['schemas']['Account'];
   const purchaseOfDeletedCategory = {
     ...sparPurchase,
-    postings: sparPurchase.postings.map((posting) =>
-      posting.account.id === groceries.id ? { ...posting, account: deletedGroceries } : posting,
-    ),
+    postings: sparPurchase.postings.map((posting) => ({
+      ...posting,
+      account: posting.account.id === groceries.id ? deletedGroceries : posting.account,
+    })),
   } satisfies components['schemas']['Transaction'];
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>

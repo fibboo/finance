@@ -3,7 +3,7 @@ import { Link, Navigate, type To, useSearchParams } from 'react-router';
 
 import { SelectedTransactionDetails } from '@/app/selected-transaction-details';
 import { useBaseCurrency } from '@/app/use-base-currency';
-import { writeDeletedShown } from '@/components/catalog-list/deleted-filter';
+import { writeDeletedEntryLink } from '@/components/catalog-list/deleted-filter';
 import { writeSelectedAccount } from '@/features/accounts/api/selected-account';
 import {
   readLocationLinkId,
@@ -37,6 +37,8 @@ const ACCOUNT_SECTION_PATHNAMES = {
   EQUITY: '/accounts',
 } as const satisfies Readonly<Record<Account['kind'], string>>;
 
+const CATALOG_ACCOUNT_KINDS: readonly Account['kind'][] = ['EXPENSE', 'INCOME'];
+
 export const CATALOG_FULL_MENU_MIN_WIDTH = '87rem';
 
 function readIsFilteredTransaction({
@@ -55,32 +57,32 @@ function readIsFilteredTransaction({
 }
 
 function readAccountSectionLink(account: Readonly<Account>): To {
-  const searchParams = writeSelectedAccount({
+  const selectedAccountParams = writeSelectedAccount({
     searchParams: new URLSearchParams(),
     accountId: account.id,
   });
+  const searchParams = CATALOG_ACCOUNT_KINDS.includes(account.kind)
+    ? writeDeletedEntryLink({ searchParams: selectedAccountParams, status: account.status })
+    : selectedAccountParams;
   const accountSectionLink = {
     pathname: ACCOUNT_SECTION_PATHNAMES[account.kind],
-    search: (account.status === 'DELETED'
-      ? writeDeletedShown(searchParams)
-      : searchParams
-    ).toString(),
+    search: searchParams.toString(),
   };
   return accountSectionLink;
 }
 
 function readLocationSectionLink(location: Readonly<Location>): LocationLink {
-  const searchParams = writeSelectedLocation({
-    searchParams: new URLSearchParams(),
-    locationId: location.id,
+  const searchParams = writeDeletedEntryLink({
+    searchParams: writeSelectedLocation({
+      searchParams: new URLSearchParams(),
+      locationId: location.id,
+    }),
+    status: location.status,
   });
   const locationSectionLink = {
     to: {
       pathname: '/locations',
-      search: (location.status === 'DELETED'
-        ? writeDeletedShown(searchParams)
-        : searchParams
-      ).toString(),
+      search: searchParams.toString(),
     },
     id: readLocationLinkId(location.id),
   };
