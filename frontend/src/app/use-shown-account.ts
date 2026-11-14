@@ -16,12 +16,15 @@ import { readFirstMoneyAccountId } from '@/features/transactions/components/tran
 export type ShownAccount = Readonly<{
   chosenAccountId: string | undefined;
   defaultAccountId: string | undefined;
+  isDefaultAccountPending: boolean;
   isAccountOpenedLast: boolean;
 }>;
 
 type ShownAccountOptions = Readonly<{
   defaultTransactionId: string | undefined;
+  isDefaultTransactionPending: boolean;
   firstAccountId: string | undefined;
+  isFirstAccountPending: boolean;
 }>;
 
 function readIsAccountOpenedLast(searchParams: URLSearchParams): boolean {
@@ -35,7 +38,9 @@ function readIsAccountOpenedLast(searchParams: URLSearchParams): boolean {
 
 export function useShownAccount({
   defaultTransactionId,
+  isDefaultTransactionPending,
   firstAccountId,
+  isFirstAccountPending,
 }: ShownAccountOptions): ShownAccount {
   const [searchParams] = useSearchParams();
   const shownTransactionId = readSelectedTransactionId(searchParams) ?? defaultTransactionId;
@@ -50,9 +55,18 @@ export function useShownAccount({
   if (transactionAccountId !== undefined && transactionAccountId !== lastTransactionAccountId) {
     setLastTransactionAccountId(transactionAccountId);
   }
+  const isShownTransactionPending =
+    (shownTransactionId === undefined && isDefaultTransactionPending) ||
+    (shownTransactionId !== undefined && shownTransaction === undefined);
+  const defaultAccountId =
+    transactionAccountId ??
+    lastTransactionAccountId ??
+    (isShownTransactionPending ? undefined : firstAccountId);
   const shownAccount = {
     chosenAccountId: readSelectedAccountId(searchParams),
-    defaultAccountId: transactionAccountId ?? lastTransactionAccountId ?? firstAccountId,
+    defaultAccountId,
+    isDefaultAccountPending:
+      defaultAccountId === undefined && (isShownTransactionPending || isFirstAccountPending),
     isAccountOpenedLast: readIsAccountOpenedLast(searchParams),
   };
   return shownAccount;

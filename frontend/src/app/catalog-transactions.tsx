@@ -1,9 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { hashKey, useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Link, Navigate, type To, useSearchParams } from 'react-router';
 
 import { DetailsColumn } from '@/app/details-column';
 import { useBaseCurrency } from '@/app/use-base-currency';
+import { SkeletonLine } from '@/components/skeleton/skeleton-line';
 import {
   readSelectedTransactionId,
   writeSelectedTransaction,
@@ -41,25 +42,27 @@ function readIsFilteredTransaction({
   return isFilteredTransaction;
 }
 
-type CatalogTransactionsProps = Readonly<{
+export type CatalogEntryFeed = Readonly<{
   name: string;
   description: string;
-  emptyText: string;
   filterQuery: Readonly<TransactionFilterQuery>;
   transactionsLink: To;
+}>;
+
+type CatalogTransactionsProps = Readonly<{
+  entryFeed: CatalogEntryFeed | undefined;
+  emptyText: string;
   transactionTypes: readonly DictionaryItem[] | undefined;
   summary?: ReactNode;
 }>;
 
 export function CatalogTransactions({
-  name,
-  description,
+  entryFeed,
   emptyText,
-  filterQuery,
-  transactionsLink,
   transactionTypes,
   summary,
 }: CatalogTransactionsProps) {
+  const filterQuery = entryFeed?.filterQuery;
   const baseCurrency = useBaseCurrency();
   const isDetailsShown = useIsWideDesktop();
   useListFocusKeys({
@@ -75,11 +78,12 @@ export function CatalogTransactions({
   const feed = useTransactionFeed({
     isOpeningDayKept: false,
     isFirstPageErrorThrown: false,
+    isPreviousListKept: false,
     filterQuery,
   });
   const topTransactionId = isDetailsShown ? readTopTransactionId(feed) : undefined;
-  const entryAccountIds = filterQuery.account_ids ?? [];
-  const entryLocationIds = filterQuery.location_ids ?? [];
+  const entryAccountIds = filterQuery?.account_ids ?? [];
+  const entryLocationIds = filterQuery?.location_ids ?? [];
   const isFailed = feed.query.isError && feed.query.data === undefined;
   if (baseCurrency === undefined || isFailed) {
     return null;
@@ -88,6 +92,7 @@ export function CatalogTransactions({
   const isSelectedTransactionOfOtherEntry =
     isDetailsShown &&
     selectedTransaction !== undefined &&
+    filterQuery !== undefined &&
     !readIsFilteredTransaction({ transaction: selectedTransaction, filterQuery });
   return (
     <>
@@ -101,23 +106,36 @@ export function CatalogTransactions({
       )}
       <aside className={styles['catalogTransactions']}>
         <TransactionFeed
+          key={filterQuery === undefined ? undefined : hashKey([filterQuery])}
           feed={feed}
           baseCurrency={baseCurrency}
           transactionTypes={transactionTypes}
           topTransactionId={topTransactionId}
-          label={`Transactions of ${name}`}
+          label={entryFeed === undefined ? 'Transactions' : `Transactions of ${entryFeed.name}`}
           selection={isDetailsShown ? 'keysInList' : 'none'}
           omittedAccountIds={entryAccountIds}
           emptyState={<p className={styles['empty']}>{emptyText}</p>}
           header={
             <div className={styles['header']}>
-              <div className={styles['heading']}>
-                <p className={styles['description']}>{description}</p>
-                <h2 className={styles['name']}>{name}</h2>
-              </div>
-              <Link to={transactionsLink} className={styles['allLink']}>
-                All
-              </Link>
+              {entryFeed === undefined ? (
+                <div className={styles['heading']} aria-hidden="true">
+                  <SkeletonLine
+                    textClassName={styles['description']}
+                    className={styles['descriptionSkeleton']}
+                  />
+                  <SkeletonLine textClassName={styles['name']} className={styles['nameSkeleton']} />
+                </div>
+              ) : (
+                <>
+                  <div className={styles['heading']}>
+                    <p className={styles['description']}>{entryFeed.description}</p>
+                    <h2 className={styles['name']}>{entryFeed.name}</h2>
+                  </div>
+                  <Link to={entryFeed.transactionsLink} className={styles['allLink']}>
+                    All
+                  </Link>
+                </>
+              )}
               {summary !== undefined && <div className={styles['summary']}>{summary}</div>}
             </div>
           }
@@ -128,6 +146,7 @@ export function CatalogTransactions({
           <DetailsColumn
             baseCurrency={baseCurrency}
             defaultTransactionId={topTransactionId}
+            isDefaultTransactionPending={feed.query.isPending}
             omittedAccountIds={entryAccountIds}
             omittedLocationIds={entryLocationIds}
             shownAccount={undefined}

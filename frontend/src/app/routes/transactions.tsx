@@ -25,6 +25,7 @@ import {
   writeTransactionSearch,
 } from '@/features/transactions/api/transaction-filters';
 import { FilterChips } from '@/features/transactions/components/filter-chips';
+import { FilterChipsSkeleton } from '@/features/transactions/components/filter-chips-skeleton';
 import { readTopTransactionId } from '@/features/transactions/components/feed-transactions';
 import { NoMatchingTransactions } from '@/features/transactions/components/no-matching-transactions';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
@@ -111,6 +112,7 @@ export function Component() {
   const feed = useTransactionFeed({
     isOpeningDayKept: true,
     isFirstPageErrorThrown: true,
+    isPreviousListKept: true,
     filterQuery: filters === undefined ? undefined : readTransactionFilterQuery(filters),
     anchorDate,
   });
@@ -140,37 +142,39 @@ export function Component() {
     >
       <div className={styles['transactions']}>
         <div className={styles['feed']}>
-          {baseCurrency !== undefined &&
-            dictionaries !== undefined &&
-            accounts !== undefined &&
-            locations !== undefined &&
-            filters !== undefined && (
-              <FilterChips
-                filters={filters}
-                today={today}
-                anchorDate={anchorDate}
-                baseCurrency={baseCurrency}
-                transactionTypes={dictionaries.transaction_types}
-                transactionOrders={dictionaries.transaction_orders}
-                items={{ ...accounts, location_ids: locations.items }}
-                onApply={(change, jumpDate) => {
-                  const nextFilters = { ...filters, ...change };
-                  const nextSearchParams = writeTransactionFilters(nextFilters);
-                  setSearchParams(nextSearchParams);
-                  if (jumpDate === undefined) {
-                    clearJump();
-                  } else {
-                    jumpToDate({
-                      date: readJumpDate({ date: jumpDate, filters: nextFilters }),
-                      listKey: readTransactionListKey(nextSearchParams),
-                    });
-                  }
-                }}
-                onJump={(monthEnd) => {
-                  jumpToDate({ date: readJumpDate({ date: monthEnd, filters }), listKey });
-                }}
-              />
-            )}
+          {baseCurrency === undefined ||
+          dictionaries === undefined ||
+          accounts === undefined ||
+          locations === undefined ||
+          filters === undefined ? (
+            <FilterChipsSkeleton />
+          ) : (
+            <FilterChips
+              filters={filters}
+              today={today}
+              anchorDate={anchorDate}
+              baseCurrency={baseCurrency}
+              transactionTypes={dictionaries.transaction_types}
+              transactionOrders={dictionaries.transaction_orders}
+              items={{ ...accounts, location_ids: locations.items }}
+              onApply={(change, jumpDate) => {
+                const nextFilters = { ...filters, ...change };
+                const nextSearchParams = writeTransactionFilters(nextFilters);
+                setSearchParams(nextSearchParams);
+                if (jumpDate === undefined) {
+                  clearJump();
+                } else {
+                  jumpToDate({
+                    date: readJumpDate({ date: jumpDate, filters: nextFilters }),
+                    listKey: readTransactionListKey(nextSearchParams),
+                  });
+                }
+              }}
+              onJump={(monthEnd) => {
+                jumpToDate({ date: readJumpDate({ date: monthEnd, filters }), listKey });
+              }}
+            />
+          )}
           {baseCurrency !== undefined && (
             <TransactionFeed
               key={`${listKey}#${feed.anchorDate ?? ''}`}
@@ -201,6 +205,7 @@ export function Component() {
             <DetailsColumn
               baseCurrency={baseCurrency}
               defaultTransactionId={topTransactionId}
+              isDefaultTransactionPending={feed.query.isPending}
               omittedAccountIds={undefined}
               omittedLocationIds={undefined}
               shownAccount={undefined}

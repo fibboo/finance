@@ -269,14 +269,21 @@ export function Component() {
             />
           )}
         </div>
-        {isDesktop && shownLocation !== undefined && (
+        {isDesktop && (shownLocation !== undefined || locationPage === undefined) && (
           <CatalogTransactions
-            key={shownLocation.id}
-            name={shownLocation.name}
-            description={['Location', 'recent transactions'].join(CATALOG_DESCRIPTION_SEPARATOR)}
+            entryFeed={
+              shownLocation === undefined
+                ? undefined
+                : {
+                    name: shownLocation.name,
+                    description: ['Location', 'recent transactions'].join(
+                      CATALOG_DESCRIPTION_SEPARATOR,
+                    ),
+                    filterQuery: { location_ids: [shownLocation.id] },
+                    transactionsLink: readLocationTransactionsLink(shownLocation.id),
+                  }
+            }
             emptyText="No transactions at this location yet"
-            filterQuery={{ location_ids: [shownLocation.id] }}
-            transactionsLink={readLocationTransactionsLink(shownLocation.id)}
             transactionTypes={dictionaries?.transaction_types}
           />
         )}

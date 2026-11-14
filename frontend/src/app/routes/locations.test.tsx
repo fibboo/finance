@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -163,6 +163,29 @@ test('shows the number of active locations and lists them by recent use with the
   );
   expect(screen.getByRole('switch', { name: 'Deleted' })).toBeChecked();
   expect(new Set(requestedOrders)).toEqual(new Set(['recent_use']));
+});
+
+test('shows the transactions column and the card before the locations answer on desktop', async () => {
+  // arrange
+  vi.stubGlobal('innerWidth', 1280);
+  server.use(
+    http.get('http://localhost/api/accounting/locations', async () => {
+      await delay('infinite');
+    }),
+  );
+
+  // act
+  render(<Component />);
+
+  // assert
+  expect(await screen.findByRole('region', { name: 'Transactions' })).toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
+  expect(screen.getByRole('dialog', { name: 'Transaction details' })).toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
 });
 
 test('requests only the active locations with Deleted off and keeps it in the URL', async () => {

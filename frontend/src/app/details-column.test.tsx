@@ -96,6 +96,7 @@ function ShownDetailsColumn() {
     <DetailsColumn
       baseCurrency="USD"
       defaultTransactionId={undefined}
+      isDefaultTransactionPending={false}
       omittedAccountIds={undefined}
       omittedLocationIds={undefined}
       shownAccount={undefined}
@@ -649,6 +650,7 @@ test('shows the page entry of a transaction as plain text', async () => {
     <DetailsColumn
       baseCurrency="USD"
       defaultTransactionId={undefined}
+      isDefaultTransactionPending={false}
       omittedAccountIds={[groceries.id]}
       omittedLocationIds={undefined}
       shownAccount={undefined}

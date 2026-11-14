@@ -33,12 +33,15 @@ export function Component() {
   const feed = useTransactionFeed({
     isOpeningDayKept: false,
     isFirstPageErrorThrown: false,
+    isPreviousListKept: true,
     filterQuery: {},
   });
   const topTransactionId = readTopTransactionId(feed);
   const shownAccount = useShownAccount({
     defaultTransactionId: topTransactionId,
+    isDefaultTransactionPending: feed.query.isPending,
     firstAccountId: accountPage?.items[0]?.id,
+    isFirstAccountPending: accountPage === undefined,
   });
   const isRecentShown =
     !(feed.query.isError && feed.query.data === undefined) &&
@@ -68,6 +71,7 @@ export function Component() {
             <DetailsColumn
               baseCurrency={baseCurrency}
               defaultTransactionId={topTransactionId}
+              isDefaultTransactionPending={feed.query.isPending}
               omittedAccountIds={undefined}
               omittedLocationIds={undefined}
               shownAccount={shownAccount}

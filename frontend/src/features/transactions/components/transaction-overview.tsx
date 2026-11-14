@@ -6,7 +6,12 @@ import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import { DeletedAccountName } from './deleted-account-name';
-import { type ReadAccountLink, TransactionEntryBlock } from './transaction-entry-block';
+import {
+  type ReadAccountLink,
+  readTransactionEntryFrame,
+  TransactionEntryBlock,
+  type TransactionEntryFrame,
+} from './transaction-entry-block';
 import styles from './transaction-overview.module.css';
 import { TransactionTextParts } from './transaction-text-parts';
 import {
@@ -59,6 +64,43 @@ function LocationName({ location, readLocationLink }: LocationNameProps) {
       {location.name}
     </Link>
   );
+}
+
+export type TransactionFrame = Readonly<{
+  hasBaseAmount: boolean;
+  entryFrames: readonly TransactionEntryFrame[];
+  hasExchangeDifference: boolean;
+}>;
+
+export const EXPENSE_FRAME: TransactionFrame = {
+  hasBaseAmount: false,
+  entryFrames: [
+    { role: 'From', isMoneyAccount: true, hasBalance: true, hasBaseAmount: false },
+    { role: 'To', isMoneyAccount: false, hasBalance: false, hasBaseAmount: false },
+  ],
+  hasExchangeDifference: false,
+};
+
+export function readTransactionFrame({
+  transaction,
+  baseCurrency,
+  transactionTypes,
+}: Readonly<{
+  transaction: Readonly<Transaction>;
+  baseCurrency: string;
+  transactionTypes: readonly DictionaryItem[];
+}>): TransactionFrame {
+  const view = readTransactionView({ transaction, transactionTypes });
+  const transactionFrame = {
+    hasBaseAmount:
+      view.currency !== baseCurrency &&
+      readBaseAmount({ transaction, baseAmount: view.baseAmount }) !== undefined,
+    entryFrames: readTransactionEntries(transaction).map((entry) =>
+      readTransactionEntryFrame({ entry, baseCurrency }),
+    ),
+    hasExchangeDifference: readExchangeDifference(transaction) !== undefined,
+  };
+  return transactionFrame;
 }
 
 type TransactionOverviewProps = Readonly<{

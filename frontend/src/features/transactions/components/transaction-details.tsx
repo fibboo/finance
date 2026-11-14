@@ -8,17 +8,23 @@ import { transactionQueries } from '../api/transaction-queries';
 import { DeleteTransaction } from './delete-transaction';
 import { EditTransaction } from './edit-transaction';
 import { TRANSACTION_ARROW_KEY_LIST } from './transaction-arrow-keys';
-import { type ReadLocationLink, TransactionOverview } from './transaction-overview';
+import {
+  EXPENSE_FRAME,
+  readTransactionFrame,
+  type ReadLocationLink,
+  TransactionOverview,
+} from './transaction-overview';
+import { TransactionOverviewEmpty } from './transaction-overview-empty';
+import { TransactionOverviewSkeleton } from './transaction-overview-skeleton';
 import type { ReadAccountLink } from './transaction-entry-block';
 
-type DictionaryItem = components['schemas']['DictionaryItem'];
+type AccountingDictionaries = components['schemas']['AccountingDictionaries'];
 
 type TransactionDetailsProps = Readonly<{
-  transactionId: string;
+  transactionId: string | undefined;
+  isTransactionPending: boolean;
   baseCurrency: string;
-  transactionTypes: readonly DictionaryItem[];
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
+  dictionaries: AccountingDictionaries | undefined;
   readAccountLink: ReadAccountLink;
   readLocationLink: ReadLocationLink;
   relatedQueryKeys: readonly QueryKey[];
@@ -31,10 +37,9 @@ type TransactionDetailsProps = Readonly<{
 
 export function TransactionDetails({
   transactionId,
+  isTransactionPending,
   baseCurrency,
-  transactionTypes,
-  accountKinds,
-  categoryTypes,
+  dictionaries,
   readAccountLink,
   readLocationLink,
   relatedQueryKeys,
@@ -50,18 +55,23 @@ export function TransactionDetails({
     isFetching,
     isPlaceholderData,
     refetch,
-  } = useQuery({ ...transactionQueries.detail(transactionId), placeholderData: keepPreviousData });
+  } = useQuery({
+    ...transactionQueries.detail(transactionId ?? ''),
+    enabled: transactionId !== undefined,
+    placeholderData: keepPreviousData,
+  });
+  const isEmpty = transactionId === undefined && !isTransactionPending;
   return (
     <DetailsPanel
       label="Transaction details"
-      isLoaded={transaction !== undefined}
+      isLoaded={isEmpty || (transaction !== undefined && dictionaries !== undefined)}
       isError={isError}
       isFetching={isFetching}
-      isReplacing={isPlaceholderData}
+      isReplacing={isPlaceholderData && !isEmpty}
       isShownByDefault={isShownByDefault}
       isKeptOpenOnDesktop
       errorMessage="Couldn't load the transaction"
-      returnFocusId={readTransactionLinkId(transactionId)}
+      returnFocusId={readTransactionLinkId(transactionId ?? '')}
       back={undefined}
       arrowKeyList={TRANSACTION_ARROW_KEY_LIST}
       onRetry={() => {
@@ -69,30 +79,49 @@ export function TransactionDetails({
       }}
       onClose={onClose}
       onChoose={onChoose}
+      renderSkeleton={(closeButton) => (
+        <TransactionOverviewSkeleton
+          transactionFrame={
+            transaction === undefined || dictionaries === undefined
+              ? EXPENSE_FRAME
+              : readTransactionFrame({
+                  transaction,
+                  baseCurrency,
+                  transactionTypes: dictionaries.transaction_types,
+                })
+          }
+          closeButton={closeButton}
+        />
+      )}
       renderContent={(closeButton) =>
-        transaction !== undefined && (
-          <TransactionOverview
-            transaction={transaction}
-            baseCurrency={baseCurrency}
-            transactionTypes={transactionTypes}
-            accountKinds={accountKinds}
-            categoryTypes={categoryTypes}
-            readAccountLink={readAccountLink}
-            readLocationLink={readLocationLink}
-            closeButton={closeButton}
-            editAction={
-              <EditTransaction id={editButtonId} transaction={transaction} onEdit={onEdit} />
-            }
-            deleteAction={
-              <DeleteTransaction
-                key={transactionId}
-                transaction={transaction}
-                transactionTypes={transactionTypes}
-                relatedQueryKeys={relatedQueryKeys}
-                onDeleted={onClose}
-              />
-            }
-          />
+        isEmpty ? (
+          <TransactionOverviewEmpty closeButton={closeButton} />
+        ) : (
+          transaction !== undefined &&
+          dictionaries !== undefined && (
+            <TransactionOverview
+              transaction={transaction}
+              baseCurrency={baseCurrency}
+              transactionTypes={dictionaries.transaction_types}
+              accountKinds={dictionaries.account_kinds}
+              categoryTypes={dictionaries.category_types}
+              readAccountLink={readAccountLink}
+              readLocationLink={readLocationLink}
+              closeButton={closeButton}
+              editAction={
+                <EditTransaction id={editButtonId} transaction={transaction} onEdit={onEdit} />
+              }
+              deleteAction={
+                <DeleteTransaction
+                  key={transactionId}
+                  transaction={transaction}
+                  transactionTypes={dictionaries.transaction_types}
+                  relatedQueryKeys={relatedQueryKeys}
+                  onDeleted={onClose}
+                />
+              }
+            />
+          )
         )
       }
     />

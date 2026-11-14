@@ -33,6 +33,7 @@ import { readTransactionsLink } from './transactions-link';
 
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
+type AccountingDictionaries = components['schemas']['AccountingDictionaries'];
 
 const EDIT_SHEET_LABELS = {
   ASSET: 'Edit account',
@@ -42,7 +43,12 @@ const EDIT_SHEET_LABELS = {
 } as const;
 
 type ShownAccount =
-  | Readonly<{ kind: 'selected'; defaultAccountId: string | undefined; isParamIgnored: boolean }>
+  | Readonly<{
+      kind: 'selected';
+      defaultAccountId: string | undefined;
+      isDefaultAccountPending: boolean;
+      isParamIgnored: boolean;
+    }>
   | Readonly<{ kind: 'opened'; accountId: string; back: DetailsBack }>;
 
 type SelectedAccountDetailsProps = Readonly<{
@@ -56,16 +62,14 @@ type SelectedAccountDetailsProps = Readonly<{
 
 type SelectedAccountProps = Readonly<{
   form: AccountDetailsForm;
-  accountId: string;
+  accountId: string | undefined;
   isShownByDefault: boolean;
   isKeptOpenOnDesktop: boolean;
   isMoneyAccountOnly: boolean;
   back: DetailsBack | undefined;
   baseCurrency: string;
   isOnlyAccount: boolean;
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
-  currencies: readonly DictionaryItem[];
+  dictionaries: AccountingDictionaries | undefined;
 }>;
 
 type AccountFormProps = Readonly<{
@@ -148,28 +152,29 @@ function SelectedAccount({
   back,
   baseCurrency,
   isOnlyAccount,
-  accountKinds,
-  categoryTypes,
-  currencies,
+  dictionaries,
 }: SelectedAccountProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [editedAccountId, setEditedAccountId] = useState<string | undefined>(undefined);
   const [renamedAccountId, setRenamedAccountId] = useState<string | undefined>(undefined);
   const transactionsLinkId = useId();
-  const isEditing = editedAccountId === accountId;
+  const isEditing = accountId !== undefined && editedAccountId === accountId;
   if (editedAccountId !== undefined && !isEditing) {
     setEditedAccountId(undefined);
   }
 
-  const isRenaming = renamedAccountId === accountId;
+  const isRenaming = accountId !== undefined && renamedAccountId === accountId;
   if (renamedAccountId !== undefined && !isRenaming) {
     setRenamedAccountId(undefined);
   }
 
-  const { data: account, error } = useQuery(accountQueries.detail(accountId));
+  const { data: account, error } = useQuery({
+    ...accountQueries.detail(accountId ?? ''),
+    enabled: accountId !== undefined,
+  });
   const isOpened = back !== undefined;
   useEffect(() => {
-    if (!isOpened) {
+    if (!isOpened && accountId !== undefined) {
       revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
     }
   }, [accountId, isOpened]);
@@ -226,11 +231,10 @@ function SelectedAccount({
         form={form}
         accountId={accountId}
         baseCurrency={baseCurrency}
-        accountKinds={accountKinds}
-        categoryTypes={categoryTypes}
-        adjustBalanceLink={{
-          search: writeNewAdjustment({ searchParams, accountId }).toString(),
-        }}
+        dictionaries={dictionaries}
+        readAdjustBalanceLink={(shownAccount) => ({
+          search: writeNewAdjustment({ searchParams, accountId: shownAccount.id }).toString(),
+        })}
         readTransactionsLink={readTransactionsLink}
         transactionsLinkId={transactionsLinkId}
         isOnlyAccount={isOnlyAccount}
@@ -256,29 +260,36 @@ function SelectedAccount({
           }
         }}
         onChoose={() => {
+          if (accountId === undefined) {
+            return;
+          }
+
           setSearchParams(writeShownAccount({ searchParams, accountId, isOpened }), {
             preventScrollReset: true,
             replace: true,
           });
         }}
       />
-      {isEditing && account !== undefined && account.kind !== 'EQUITY' && (
-        <Sheet label={EDIT_SHEET_LABELS[account.kind]} onClose={closeEditForm}>
-          <AccountForm
-            account={account}
-            baseCurrency={baseCurrency}
-            accountKinds={accountKinds}
-            categoryTypes={categoryTypes}
-            currencies={currencies}
-            onSaved={() => {
-              setEditedAccountId((openAccountId) =>
-                openAccountId === accountId ? undefined : openAccountId,
-              );
-            }}
-            onBack={closeEditForm}
-          />
-        </Sheet>
-      )}
+      {isEditing &&
+        account !== undefined &&
+        dictionaries !== undefined &&
+        account.kind !== 'EQUITY' && (
+          <Sheet label={EDIT_SHEET_LABELS[account.kind]} onClose={closeEditForm}>
+            <AccountForm
+              account={account}
+              baseCurrency={baseCurrency}
+              accountKinds={dictionaries.account_kinds}
+              categoryTypes={dictionaries.category_types}
+              currencies={dictionaries.currencies}
+              onSaved={() => {
+                setEditedAccountId((openAccountId) =>
+                  openAccountId === accountId ? undefined : openAccountId,
+                );
+              }}
+              onBack={closeEditForm}
+            />
+          </Sheet>
+        )}
       {isRenaming &&
         account?.status === 'DELETED' &&
         (account.kind === 'EXPENSE' || account.kind === 'INCOME') && (
@@ -320,8 +331,18 @@ export function SelectedAccountDetails({
       ? shownAccount.accountId
       : (selectedAccountId ?? shownAccount.defaultAccountId);
   const isShownByDefault = shownAccount.kind === 'selected' && selectedAccountId === undefined;
-  const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
-  if (accountId === undefined || dictionaries === undefined) {
+  const { data: dictionaries, isError: isDictionaryFailed } = useQuery(
+    dictionaryQueries.accounting(),
+  );
+  const isAccountPending =
+    accountId === undefined &&
+    shownAccount.kind === 'selected' &&
+    shownAccount.isDefaultAccountPending;
+  if (isDictionaryFailed && dictionaries === undefined) {
+    return null;
+  }
+
+  if (accountId === undefined && !isAccountPending) {
     return null;
   }
 
@@ -335,9 +356,7 @@ export function SelectedAccountDetails({
       back={shownAccount.kind === 'opened' ? shownAccount.back : undefined}
       baseCurrency={baseCurrency}
       isOnlyAccount={accountCount === 1}
-      accountKinds={dictionaries.account_kinds}
-      categoryTypes={dictionaries.category_types}
-      currencies={dictionaries.currencies}
+      dictionaries={dictionaries}
     />
   );
 }

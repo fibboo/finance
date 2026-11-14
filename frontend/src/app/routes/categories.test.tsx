@@ -1061,6 +1061,83 @@ test('shows the transactions of the category whose name is chosen and moves the 
   expect(new URLSearchParams(router.state.location.search).get('account')).toBe(cigarettes.id);
 });
 
+test('keeps the transactions column and the card in place while another category loads on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  let answerGroceries = (): void => undefined;
+  const groceriesAnswered = new Promise<void>((resolve) => {
+    answerGroceries = resolve;
+  });
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+        ],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', async ({ request }) => {
+      const isRent = new URL(request.url).searchParams.getAll('account_ids').join() === rent.id;
+      if (!isRent) {
+        await groceriesAnswered;
+      }
+
+      const items = isRent ? [rentPayment] : [];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+    http.get(`http://localhost/api/accounting/transactions/${rentPayment.id}`, () =>
+      HttpResponse.json(rentPayment),
+    ),
+  );
+  render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(await within(transactionDetails).findAllByText('-$900.00')).not.toHaveLength(0);
+
+  // act
+  await user.click(screen.getByRole('link', { name: 'Groceries' }));
+
+  // assert
+  // the column shows the new name at once and the same card keeps its frame
+  expect(await screen.findByRole('region', { name: 'Transactions of Groceries' })).toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
+  expect(transactionDetails).toBeInTheDocument();
+  expect(transactionDetails).toHaveAttribute('aria-busy', 'true');
+  expect(within(transactionDetails).getByText('From')).toBeInTheDocument();
+
+  // act
+  answerGroceries();
+
+  // assert
+  expect(await within(transactionDetails).findByText('No transactions yet')).toBeInTheDocument();
+  expect(transactionDetails).toHaveAttribute('aria-busy', 'false');
+});
+
 test('shows the details of the top transaction beside the transactions of a category whose rows name the account on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
@@ -1164,6 +1241,86 @@ test('shows the details of the top transaction beside the transactions of a cate
     await screen.findByRole('region', { name: 'Transactions of Groceries' }),
   ).toBeInTheDocument();
   expect(router.state.location.search).toBe(`?account=${groceries.id}`);
+});
+
+test('keeps the frame of the transaction card while another transaction loads on a wide desktop', async () => {
+  // arrange
+  const user = userEvent.setup();
+  vi.stubGlobal('innerWidth', 1280);
+  let answerEarlierPayment = (): void => undefined;
+  const earlierPaymentAnswered = new Promise<void>((resolve) => {
+    answerEarlierPayment = resolve;
+  });
+  server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [
+          { key: 'ASSET', label: 'Asset' },
+          { key: 'EXPENSE', label: 'Expense' },
+        ],
+        category_types: [
+          { key: 'VARIABLE', label: 'Variable' },
+          { key: 'FIXED', label: 'Fixed' },
+        ],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [groceries, rent],
+        total: 2,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [rentPayment, earlierRentPayment],
+        total: 2,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${rentPayment.id}`, () =>
+      HttpResponse.json(rentPayment),
+    ),
+    http.get(`http://localhost/api/accounting/transactions/${earlierRentPayment.id}`, async () => {
+      await earlierPaymentAnswered;
+      return HttpResponse.json(earlierRentPayment);
+    }),
+  );
+  render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
+  const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
+  expect(await within(transactionDetails).findAllByText('-$900.00')).not.toHaveLength(0);
+  const rentTransactions = screen.getByRole('region', { name: 'Transactions of Rent' });
+  const [, earlierRow] = await within(rentTransactions).findAllByRole('link', {
+    name: 'Main card',
+  });
+  if (earlierRow === undefined) {
+    throw new Error('Both payments have a row.');
+  }
+
+  // act
+  await user.click(earlierRow);
+
+  // assert
+  // the same card keeps its labels while its values load
+  expect(transactionDetails).toBeInTheDocument();
+  expect(transactionDetails).toHaveAttribute('aria-busy', 'true');
+  expect(within(transactionDetails).queryByText('-$900.00')).not.toBeInTheDocument();
+  expect(within(transactionDetails).getByText('From')).toBeInTheDocument();
+  expect(within(transactionDetails).getByText('Location')).toBeInTheDocument();
+
+  // act
+  answerEarlierPayment();
+
+  // assert
+  expect(await within(transactionDetails).findAllByText('-$850.00')).not.toHaveLength(0);
+  expect(transactionDetails).toHaveAttribute('aria-busy', 'false');
 });
 
 test('moves the focus between the category and its top transaction with Left and Right on a wide desktop', async () => {
@@ -1474,7 +1631,12 @@ test('drops a chosen transaction that is not of the shown category on a wide des
   await waitFor(() => {
     expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
   });
-  expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
+  // the card stays in place with its empty state, since the feed has no transaction
+  expect(
+    await within(screen.getByRole('dialog', { name: 'Transaction details' })).findByText(
+      'No transactions yet',
+    ),
+  ).toBeInTheDocument();
 });
 
 test('gives a phone plain names and no transactions of a category', async () => {

@@ -267,16 +267,21 @@ export function Component() {
             />
           )}
         </div>
-        {isDesktop && shownIncomeSource !== undefined && (
+        {isDesktop && (shownIncomeSource !== undefined || incomeSourcePage === undefined) && (
           <CatalogTransactions
-            key={shownIncomeSource.id}
-            name={shownIncomeSource.name}
-            description={['Income source', 'recent transactions'].join(
-              CATALOG_DESCRIPTION_SEPARATOR,
-            )}
+            entryFeed={
+              shownIncomeSource === undefined
+                ? undefined
+                : {
+                    name: shownIncomeSource.name,
+                    description: ['Income source', 'recent transactions'].join(
+                      CATALOG_DESCRIPTION_SEPARATOR,
+                    ),
+                    filterQuery: { account_ids: [shownIncomeSource.id] },
+                    transactionsLink: readTransactionsLink(shownIncomeSource),
+                  }
+            }
             emptyText="No transactions from this income source yet"
-            filterQuery={{ account_ids: [shownIncomeSource.id] }}
-            transactionsLink={readTransactionsLink(shownIncomeSource)}
             transactionTypes={dictionaries?.transaction_types}
           />
         )}

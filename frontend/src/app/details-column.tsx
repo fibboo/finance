@@ -67,6 +67,7 @@ function isSameEntry({
 type TransactionOrEntryProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
+  isDefaultTransactionPending: boolean;
   omittedAccountIds: readonly string[] | undefined;
   omittedLocationIds: readonly string[] | undefined;
   defaultAccountId: string | undefined;
@@ -76,6 +77,7 @@ type TransactionOrEntryProps = Readonly<{
 function TransactionOrEntry({
   baseCurrency,
   defaultTransactionId,
+  isDefaultTransactionPending,
   omittedAccountIds,
   omittedLocationIds,
   defaultAccountId,
@@ -108,6 +110,7 @@ function TransactionOrEntry({
         <SelectedTransactionDetails
           baseCurrency={baseCurrency}
           defaultTransactionId={defaultTransactionId}
+          isDefaultTransactionPending={isDefaultTransactionPending}
           readAccountLink={(account) =>
             omittedAccountIds?.includes(account.id) === true
               ? undefined
@@ -155,6 +158,7 @@ function TransactionOrEntry({
 type DetailsColumnProps = Readonly<{
   baseCurrency: string;
   defaultTransactionId: string | undefined;
+  isDefaultTransactionPending: boolean;
   omittedAccountIds: readonly string[] | undefined;
   omittedLocationIds: readonly string[] | undefined;
   shownAccount: ShownAccount | undefined;
@@ -163,6 +167,7 @@ type DetailsColumnProps = Readonly<{
 export function DetailsColumn({
   baseCurrency,
   defaultTransactionId,
+  isDefaultTransactionPending,
   omittedAccountIds,
   omittedLocationIds,
   shownAccount,
@@ -181,6 +186,7 @@ export function DetailsColumn({
     <TransactionOrEntry
       baseCurrency={baseCurrency}
       defaultTransactionId={defaultTransactionId}
+      isDefaultTransactionPending={isDefaultTransactionPending}
       omittedAccountIds={omittedAccountIds}
       omittedLocationIds={omittedLocationIds}
       defaultAccountId={shownAccount?.defaultAccountId}
@@ -202,6 +208,7 @@ export function DetailsColumn({
           shownAccount={{
             kind: 'selected',
             defaultAccountId: shownAccount.defaultAccountId,
+            isDefaultAccountPending: shownAccount.isDefaultAccountPending,
             isParamIgnored: false,
           }}
           isKeptOpenOnDesktop

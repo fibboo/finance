@@ -11,6 +11,7 @@ import { locationQueries } from '../api/location-queries';
 import { readLocationLinkId } from '../api/selected-location';
 import { DeleteLocation } from './delete-location';
 import styles from './location-details.module.css';
+import { LocationDetailsSkeleton } from './location-details-skeleton';
 import { RestoreLocation } from './restore-location';
 
 type LocationDetailsProps = Readonly<{
@@ -68,6 +69,9 @@ export function LocationDetails({
       }}
       onClose={onClose}
       onChoose={onChoose}
+      renderSkeleton={(closeButton) => (
+        <LocationDetailsSkeleton markIconPath={markIconPath} closeButton={closeButton} />
+      )}
       renderContent={(closeButton) =>
         location !== undefined && (
           <article aria-labelledby={titleId} className={styles['locationDetails']}>

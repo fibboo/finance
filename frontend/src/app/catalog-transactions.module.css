@@ -83,3 +83,13 @@
 .allLink:hover {
   color: var(--color-ink);
 }
+
+.descriptionSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-text);
+}
+
+.nameSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text-lg);
+}

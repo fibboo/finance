@@ -79,6 +79,7 @@ type DetailsPanelProps = Readonly<{
   onClose: () => void;
   onChoose: () => void;
   renderContent: (closeButton: ReactNode) => ReactNode;
+  renderSkeleton: ((closeButton: ReactNode) => ReactNode) | undefined;
 }>;
 
 export function DetailsPanel({
@@ -97,6 +98,7 @@ export function DetailsPanel({
   onClose,
   onChoose,
   renderContent,
+  renderSkeleton,
 }: DetailsPanelProps) {
   const returnFocusId = back?.returnFocusId ?? panelReturnFocusId;
   const backdropId = useId();
@@ -198,6 +200,8 @@ export function DetailsPanel({
       </svg>
     </button>
   );
+  const isFailed = isError && !isFetching;
+  const isSkeletonShown = renderSkeleton !== undefined && (isReplacing || (!isLoaded && !isFailed));
   return (
     <>
       {!isShownByDefault && (
@@ -226,7 +230,7 @@ export function DetailsPanel({
         data-return-focus-id={returnFocusId}
         {...arrowKeyList}
         data-details
-        aria-busy={(!isLoaded && isFetching) || isReplacing}
+        aria-busy={isSkeletonShown || (!isLoaded && isFetching) || isReplacing}
         tabIndex={-1}
         className={readPanelClassName({ isShownByDefault, isKeptOpenOnDesktop, isInPlace })}
         {...dragHandlers}
@@ -245,7 +249,9 @@ export function DetailsPanel({
             {back.label}
           </Link>
         )}
-        {isLoaded ? (
+        {isSkeletonShown ? (
+          <div className={styles['content']}>{renderSkeleton(closeButton)}</div>
+        ) : isLoaded ? (
           <div className={styles['content']} inert={isReplacing}>
             {renderContent(closeButton)}
             {isReplacing && (
@@ -259,7 +265,7 @@ export function DetailsPanel({
           </div>
         ) : (
           <div className={styles['placeholder']}>
-            {isError && !isFetching ? (
+            {isFailed ? (
               <LoadError message={errorMessage} onRetry={onRetry} />
             ) : (
               <div className={styles['skeleton']}>

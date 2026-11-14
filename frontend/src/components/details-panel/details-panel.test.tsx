@@ -26,6 +26,7 @@ test('closes on a tap on the backdrop once the press is released', async () => {
       onClose={onClose}
       onChoose={vi.fn()}
       renderContent={() => <p>Groceries</p>}
+      renderSkeleton={undefined}
     />,
   );
   await user.pointer({ keys: '[TouchA>]', target: screen.getByTestId('details-panel-backdrop') });

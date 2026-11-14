@@ -84,6 +84,28 @@ function EntryName({ account, readAccountLink }: EntryNameProps) {
   );
 }
 
+export type TransactionEntryFrame = Readonly<{
+  role: TransactionEntry['role'];
+  isMoneyAccount: boolean;
+  hasBalance: boolean;
+  hasBaseAmount: boolean;
+}>;
+
+export function readTransactionEntryFrame({
+  entry,
+  baseCurrency,
+}: Readonly<{ entry: TransactionEntry; baseCurrency: string }>): TransactionEntryFrame {
+  const { account } = entry.posting;
+  const entryFrame = {
+    role: entry.role,
+    isMoneyAccount: isMoneyAccountKind(account.kind),
+    hasBalance: readBalanceText(account) !== undefined,
+    hasBaseAmount:
+      entry.posting.currency !== baseCurrency && readBaseAmount(entry.posting) !== undefined,
+  };
+  return entryFrame;
+}
+
 type TransactionEntryBlockProps = Readonly<{
   entry: TransactionEntry;
   baseCurrency: string;

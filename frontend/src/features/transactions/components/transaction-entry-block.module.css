@@ -97,3 +97,39 @@
     text-decoration-color: currentColor;
   }
 }
+
+.markSkeleton {
+  width: var(--size-account-mark-sm);
+  height: var(--size-account-mark-sm);
+}
+
+.moneyAccountMarkSkeleton {
+  width: var(--size-account-mark-lg);
+  height: var(--size-account-mark-lg);
+  border-radius: var(--radius-segment);
+}
+
+.nameSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+.noteSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text-sm);
+}
+
+.balanceSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-text-sm);
+}
+
+.amountSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+.baseAmountSkeleton {
+  width: var(--size-skeleton-balance-lg);
+  height: var(--size-skeleton-text-sm);
+}
