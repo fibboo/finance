@@ -8,6 +8,14 @@ Read `CLAUDE.md` and `.claude/rules/common.md` in full before planning or changi
 - For a review, match rules against the changed paths even if the diff came from `gh` rather than from opening the files. Read `.claude/rules/pr-review.md` before reporting findings.
 - Use paths from the root of the checkout being worked on, including in a Git worktree. Do not read rules or edit files in another worktree by accident.
 
+## Approval
+
+For every Codex task that requires user approval, prefer native Plan mode and its plan-approval UI when the host exposes and permits them. Check the tools available in the current session and the active mode's restrictions before choosing the approval route; repository instructions cannot switch collaboration mode or grant tool permissions.
+
+If native Plan mode or its plan-approval UI is unavailable or prohibited, state the limitation, present the complete proposal in chat and obtain explicit approval there. Use a question tool only when its documented constraints and the active mode permit approval requests; otherwise ask in chat and wait. Do not call unavailable tools or use a clarification-only tool for approval.
+
+Preserve the applicable workflow's requirements for the proposal's contents and approval timing. Continue only independent work while approval is pending; silence, elapsed time and a preselected option are not approval. Do not request approval again for an unchanged proposal the user already approved. Task approval and the host's command permissions are separate: neither replaces the other.
+
 ## Skills
 
 Codex discovers entrypoints in `.agents/skills/`. Each entrypoint points to the complete shared workflow in `.claude/skills/`; read and follow that workflow before acting. Do not maintain a second copy of its instructions.

@@ -14,6 +14,12 @@ In either agent, `#issue <description>` creates an issue and `#issue <number>` u
 
 Open a fresh session from the intended checkout after changing the setup. In Codex CLI, check `/skills` for both skills; in Claude Code, check the `/` skill suggestions. Ask either agent to list the project instruction files it loaded and the rules it would use for a Python PR review. Expect `CLAUDE.md`, common rules, Python rules, applicable module rules and PR review rules; Codex should also name `AGENTS.md`. This read-only check should not create an issue or edit files.
 
+## Codex task approval
+
+`AGENTS.md`, **Approval**, defines the approval route for every Codex task requiring user approval, including issue drafts. Prefer native Plan mode and its plan-approval UI when the current host exposes and permits them. When either is unavailable or prohibited, explain the limitation and obtain explicit approval in chat after presenting the complete proposal. Follow the active mode and each tool's documented constraints; a clarification tool is not an approval mechanism when its constraints forbid that use.
+
+This route preserves each workflow's requirements for what the user must see before approval. Task approval is separate from sandbox or command permissions, including automatic command review: neither grants the other. Repository guidance cannot enable a missing tool, change collaboration mode or expand the host's permissions.
+
 ## Tools and startup
 
 Install Git, GitHub CLI, the agent you use, and Docker Desktop for backend work. Launch Docker Desktop before running container commands. Black and isort may run locally; the project's Docker fallback is in `CLAUDE.md`.

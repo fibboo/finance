@@ -25,6 +25,8 @@ Skills live in `.claude/skills/<name>/SKILL.md`.
 
 Setup, permission modes and Git troubleshooting: `docs/agent-setup.md`. Tool names are host-specific: use the available equivalent while preserving the workflow's outputs and approval requirements. The verbatim-output rule applies when a Skill tool actually returns a result, not to shell output or source-file reads in hosts without that tool.
 
+Codex approval routing for all tasks that require approval: `AGENTS.md`, **Approval**.
+
 ## Project Overview
 
 Finance is a personal finance service: ledger accounts (money accounts, categories as EXPENSE accounts and income sources as INCOME accounts), locations, and income, expense, transfer and balance adjustment transactions. Users sign in through Telegram or Google. A FastAPI backend lives in `backend/` and a React frontend in `frontend/`.
