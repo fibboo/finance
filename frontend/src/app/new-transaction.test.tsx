@@ -304,7 +304,7 @@ test('lists the seller’s currencies in the order of their recent use', async (
   render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
 
   // act
-  await user.click(await screen.findByRole('checkbox', { name: 'Paid in another currency' }));
+  await user.click(await screen.findByRole('switch', { name: 'Different currency' }));
 
   // assert
   const currencySelect = screen.getByRole('combobox', { name: 'Seller’s currency' });
