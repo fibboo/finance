@@ -20,6 +20,14 @@ Open a fresh session from the intended checkout after changing the setup. In Cod
 
 This route preserves each workflow's requirements for what the user must see before approval. Task approval is separate from sandbox or command permissions, including automatic command review: neither grants the other. Repository guidance cannot enable a missing tool, change collaboration mode or expand the host's permissions.
 
+## Code review
+
+`CLAUDE.md`, **Review stages**, requires built-in Codex GitHub Code Review regardless of which coding agent authored the work. A Claude Code author first runs `/code-review` with `low` effort, then posts `@codex review`; a Codex author posts `@codex review`. Both checks inspect the same committed and pushed head. Collect both results before agreeing fixes. Repeated review follows the existing conditions in **Review every finished issue** rather than running after every push.
+
+GitHub review requires the repository's Codex integration and access to Code Review. Manual trigger comments and the automatic All PRs setting are separate mechanisms; a plan restriction on All PRs does not itself establish whether a manual request works. Verify the service through its response and completed result. Repository instructions cannot enable a plan-restricted option or control hosted settings that the trigger does not expose.
+
+An acknowledgement reaction establishes that a request was seen, not that review completed. Match the completed result to the current PR head before reporting success, and report rejected or unavailable reviews as incomplete. If settings cannot be saved, inspect the failed request's response before inferring a cause or changing credentials.
+
 ## Tools and startup
 
 Install Git, GitHub CLI, the agent you use, and Docker Desktop for backend work. Launch Docker Desktop before running container commands. Black and isort may run locally; the project's Docker fallback is in `CLAUDE.md`.
@@ -150,6 +158,7 @@ A worktree nested under the main checkout can also inherit ancestor `CLAUDE.md` 
 
 ## Sources
 
+- [Codex GitHub Code Review and repository review rules](https://learn.chatgpt.com/docs/third-party/github)
 - [Codex instruction loading](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 - [Codex skill discovery](https://learn.chatgpt.com/docs/build-skills)
 - [Codex permission modes](https://learn.chatgpt.com/docs/permission-modes)

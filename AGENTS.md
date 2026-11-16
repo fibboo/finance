@@ -16,6 +16,20 @@ If native Plan mode or its plan-approval UI is unavailable or prohibited, state 
 
 Preserve the applicable workflow's requirements for the proposal's contents and approval timing. Continue only independent work while approval is pending; silence, elapsed time and a preselected option are not approval. Do not request approval again for an unchanged proposal the user already approved. Task approval and the host's command permissions are separate: neither replaces the other.
 
+## Review workflow
+
+Follow the shared sequence in `CLAUDE.md`, **Review stages** and **Review every finished issue**. For Codex authoring tasks, request built-in GitHub Code Review by posting `@codex review` on the issue's PR. Do not invoke Claude CLI, a local review command or a reviewer subagent as a substitute.
+
+The shared workflow authorizes its review-trigger comments. It does not authorize unapproved fixes, changes to review settings or a different review mechanism when the required service is unavailable. Report such a limitation and ask the user how to proceed.
+
+For each GitHub review, record the current PR head and wait for the integration's result for that commit. Report the actual reviewed commit, findings and any incomplete stage; an acknowledgement reaction, successful CI or an older review does not establish completion for the current head. Preserve the shared requirements for approval of fixes, commit checks and frontend verification.
+
+## Code Review Rules
+
+Read `.claude/rules/pr-review.md` in full and apply its finding criteria and severity rules. Read every rule applicable to the changed paths as described in **Load applicable rules**, even when examining a diff without opening those files.
+
+Use the shared rules as the source of truth rather than maintaining a second set of review criteria here. A reviewer inspects and reports; the author applies approved fixes. Review instructions do not authorize editing files, committing, pushing, posting GitHub comments or launching another reviewer.
+
 ## Skills
 
 Codex discovers entrypoints in `.agents/skills/`. Each entrypoint points to the complete shared workflow in `.claude/skills/`; read and follow that workflow before acting. Do not maintain a second copy of its instructions.
