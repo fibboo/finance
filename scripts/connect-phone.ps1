@@ -21,11 +21,13 @@ function Find-MdnsServices([string]$ServiceType) {
     return @($addresses)
 }
 
-function Wait-MdnsServices([string]$ServiceType, [string]$Prompt) {
+function Wait-MdnsServices([string[]]$ServiceTypes, [string]$Prompt) {
     Write-Host $Prompt
     $deadline = (Get-Date).AddSeconds($WaitSeconds)
     while ((Get-Date) -lt $deadline) {
-        $addresses = Find-MdnsServices $ServiceType
+        $addresses = foreach ($serviceType in $ServiceTypes) {
+            Find-MdnsServices $serviceType
+        }
         if ($addresses) {
             return $addresses
         }
@@ -166,7 +168,7 @@ try {
 
     $connectAddress = Find-ConnectedPhone
     if (-not $connectAddress) {
-        Wait-MdnsServices '_adb-tls-connect._tcp' 'Looking for the phone. If wireless debugging is off, turn on Developer options > Wireless debugging...' | Out-Null
+        Wait-MdnsServices @('_adb-tls-connect._tcp', '_adb-tls-pairing._tcp') 'Looking for the phone. If wireless debugging is off, turn on Developer options > Wireless debugging...' | Out-Null
         $connectAddress = Connect-AnyPhone
     }
 
