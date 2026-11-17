@@ -12,11 +12,14 @@ $ConnectRetrySeconds = 10
 $WatchIntervalSeconds = 5
 
 function Find-MdnsServices([string]$ServiceType) {
+    Write-Host "Searching the local network for $ServiceType..."
     $networkAddresses = @(Find-NetworkMdnsServices $ServiceType)
     if ($networkAddresses.Count -gt 0) {
+        Write-Host "Found on the network: $($networkAddresses -join ', ')."
         return $networkAddresses
     }
 
+    Write-Host 'No network response. Checking ADB discovery...'
     $services = adb mdns services 2>$null
     $addresses = @(foreach ($line in $services) {
         if ($line -match "$([regex]::Escape($ServiceType))\.?\s+(\S+:\d+)") {
@@ -24,11 +27,17 @@ function Find-MdnsServices([string]$ServiceType) {
         }
     })
 
+    if ($addresses.Count -gt 0) {
+        Write-Host "Found in ADB discovery: $($addresses -join ', ')."
+    } else {
+        Write-Host "No $ServiceType service found yet."
+    }
     return @($addresses)
 }
 
 function Wait-MdnsServices([string[]]$ServiceTypes, [string]$Prompt) {
     Write-Host $Prompt
+    Write-Host "Waiting up to $WaitSeconds seconds for the pairing service..."
     $deadline = (Get-Date).AddSeconds($WaitSeconds)
     while ((Get-Date) -lt $deadline) {
         $addresses = foreach ($serviceType in $ServiceTypes) {
@@ -49,12 +58,15 @@ function Connect-AnyPhone([string[]]$KnownAddresses = @(), [ref]$AuthenticationF
     while ((Get-Date) -lt $deadline) {
         $wasRejected = $false
         foreach ($address in (@($KnownAddresses) + (Find-MdnsServices '_adb-tls-connect._tcp') | Select-Object -Unique)) {
+            Write-Host "Connecting to $address..."
             $output = adb connect $address 2>&1 | Out-String
+            Write-Host $output.Trim()
             if ($output -match 'connected to') {
                 return $address
             }
 
             if ($output -match 'failed to authenticate') {
+                Write-Host "Authentication was rejected by $address. Pairing is required."
                 $wasRejected = $true
                 $AuthenticationFailed.Value = $true
             }
@@ -84,6 +96,7 @@ function Remove-StaleConnections {
     foreach ($line in adb devices 2>$null) {
         if ($line -match '^(\S+:\d+)\s+(\S+)$' -and $Matches[2] -ne 'device') {
             $address = $Matches[1]
+            Write-Host "Removing stale ADB connection: $address ($($Matches[2]))."
             adb disconnect $address 2>&1 | Out-Null
             $address
         }
@@ -91,6 +104,7 @@ function Remove-StaleConnections {
 }
 
 function Test-StableDevice([string]$Serial) {
+    Write-Host "Checking that $Serial stays connected..."
     $stableChecks = 0
     $deadline = (Get-Date).AddSeconds($WaitSeconds)
     while ((Get-Date) -lt $deadline) {
@@ -98,6 +112,7 @@ function Test-StableDevice([string]$Serial) {
         if ($state -eq 'device') {
             $stableChecks++
             if ($stableChecks -ge 3) {
+                Write-Host 'The connection is stable.'
                 return $true
             }
         } else {
@@ -111,12 +126,14 @@ function Test-StableDevice([string]$Serial) {
 }
 
 function Set-Forwards([string]$Serial) {
+    Write-Host "Clearing old port forwards on $Serial..."
     adb -s $Serial reverse --remove-all | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Could not clear the old forwards on $Serial."
     }
 
     foreach ($port in $ForwardedPorts.Keys) {
+        Write-Host "Forwarding phone localhost:$port to computer localhost:$port..."
         adb -s $Serial reverse "tcp:$port" "tcp:$port" | Out-Null
         if ($LASTEXITCODE -ne 0) {
             throw "Could not forward port $port to $Serial."
@@ -181,11 +198,15 @@ if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
 $previousAutoConnect = $env:ADB_MDNS_AUTO_CONNECT
 try {
     $env:ADB_MDNS_AUTO_CONNECT = '0'
+    Write-Host 'Starting ADB and checking existing wireless connections...'
     adb start-server 2>$null | Out-Null
     $knownAddresses = @(Remove-StaleConnections)
     $authenticationFailed = $false
 
     $connectAddress = Find-ConnectedPhone
+    if ($connectAddress) {
+        Write-Host "Using the existing connection to $connectAddress."
+    }
     if (-not $connectAddress -and $knownAddresses.Count -gt 0) {
         $connectAddress = Connect-AnyPhone -KnownAddresses $knownAddresses -AuthenticationFailed ([ref]$authenticationFailed)
     }
@@ -198,6 +219,7 @@ try {
         }
 
         if (-not $connectAddress -and -not $authenticationFailed -and $pairingAddresses.Count -eq 0) {
+            Write-Host 'Automatic discovery did not produce a working connection.'
             $manualAddress = (Read-Host 'Press Enter to pair a new device, or enter IP:port to reconnect a paired device').Trim()
             if ($manualAddress -ne '') {
                 $phoneEndpoint = $null
@@ -214,8 +236,11 @@ try {
     }
 
     if (-not $connectAddress) {
+        Write-Host 'Starting device pairing.'
         $pairingAddress = @(Wait-MdnsServices '_adb-tls-pairing._tcp' 'On the phone, open Wireless debugging > Pair device with pairing code...')[0]
+        Write-Host "Found pairing service at $pairingAddress."
         $pairingCode = Read-Host 'Pairing code shown on the phone'
+        Write-Host "Pairing with $pairingAddress..."
         $pairingOutput = adb pair $pairingAddress $pairingCode 2>&1 | Out-String
         Write-Host $pairingOutput.Trim()
         if ($LASTEXITCODE -ne 0 -or $pairingOutput -notmatch 'Successfully paired to ') {
@@ -236,6 +261,7 @@ try {
     Set-Forwards $connectAddress
 
     foreach ($service in $ForwardedPorts.GetEnumerator()) {
+        Write-Host "Checking $($service.Value) on computer localhost:$($service.Key)..."
         if (-not (Test-Connection -TargetName localhost -TcpPort $service.Key -TimeoutSeconds 5 -Quiet)) {
             Write-Warning "$($service.Value) does not answer on localhost:$($service.Key). Start the app with: docker compose up -d"
         }
