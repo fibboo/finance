@@ -13,7 +13,7 @@ $WatchIntervalSeconds = 5
 function Find-MdnsServices([string]$ServiceType) {
     $services = adb mdns services 2>$null
     $addresses = foreach ($line in $services) {
-        if ($line -match "$([regex]::Escape($ServiceType))\s+(\S+:\d+)") {
+        if ($line -match "$([regex]::Escape($ServiceType))\.?\s+(\S+:\d+)") {
             $Matches[1]
         }
     }
@@ -171,7 +171,7 @@ try {
     }
 
     if (-not $connectAddress) {
-        $pairingAddress = (Wait-MdnsServices '_adb-tls-pairing._tcp' 'No phone accepted the connection, so it is not paired yet. On the phone open Wireless debugging > Pair device with pairing code...')[0]
+        $pairingAddress = @(Wait-MdnsServices '_adb-tls-pairing._tcp' 'No phone accepted the connection, so it is not paired yet. On the phone open Wireless debugging > Pair device with pairing code...')[0]
         $pairingCode = Read-Host 'Pairing code shown on the phone'
         adb pair $pairingAddress $pairingCode
         if ($LASTEXITCODE -ne 0) {
