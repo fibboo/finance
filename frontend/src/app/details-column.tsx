@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router';
 
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
+import type { AccountDetailsForm } from '@/features/accounts/components/account-details';
 import { readSelectedAccountId } from '@/features/accounts/api/selected-account';
 import {
   readLocationLinkId,
@@ -156,6 +157,7 @@ function TransactionOrEntry({
 }
 
 type DetailsColumnProps = Readonly<{
+  accountForm?: AccountDetailsForm;
   baseCurrency: string;
   defaultTransactionId: string | undefined;
   isDefaultTransactionPending: boolean;
@@ -165,6 +167,7 @@ type DetailsColumnProps = Readonly<{
 }>;
 
 export function DetailsColumn({
+  accountForm = 'panel',
   baseCurrency,
   defaultTransactionId,
   isDefaultTransactionPending,
@@ -202,7 +205,7 @@ export function DetailsColumn({
     <div className={styles['detailsColumn']}>
       <div className={isAccountOpenedLast ? styles['selection'] : styles['earlierSelection']}>
         <SelectedAccountDetails
-          form="panel"
+          form={accountForm}
           baseCurrency={baseCurrency}
           accountCount={accountCount}
           shownAccount={{

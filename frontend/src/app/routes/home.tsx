@@ -69,6 +69,7 @@ export function Component() {
           )}
           <div className={styles['details']}>
             <DetailsColumn
+              accountForm="compact-panel"
               baseCurrency={baseCurrency}
               defaultTransactionId={topTransactionId}
               isDefaultTransactionPending={feed.query.isPending}

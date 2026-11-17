@@ -6,6 +6,7 @@ import type { components } from '@/lib/api-schema';
 
 import { AccountActions } from './account-actions';
 import { AccountBalance } from './account-balance';
+import detailsStyles from './account-details.module.css';
 import { AccountMark } from './account-mark';
 import styles from './account-overview.module.css';
 
@@ -32,6 +33,7 @@ function readMetaText({
 }
 
 type AccountOverviewProps = Readonly<{
+  isCompact: boolean;
   account: Readonly<Account>;
   baseCurrency: string;
   accountKinds: readonly DictionaryItem[];
@@ -45,6 +47,7 @@ type AccountOverviewProps = Readonly<{
 }>;
 
 export function AccountOverview({
+  isCompact,
   account,
   baseCurrency,
   accountKinds,
@@ -60,7 +63,10 @@ export function AccountOverview({
   const isMoneyAccount = isMoneyAccountKind(account.kind);
   const isDeleted = account.status === 'DELETED';
   return (
-    <article aria-labelledby={titleId} className={styles['accountOverview']}>
+    <article
+      aria-labelledby={titleId}
+      className={`${styles['accountOverview'] ?? ''} ${isCompact ? `${styles['compact'] ?? ''} ${detailsStyles['squareActions'] ?? ''}` : ''}`}
+    >
       <div className={styles['header']} data-sheet-drag-area>
         {isMoneyAccount ? (
           <AccountMark account={account} isLarge />

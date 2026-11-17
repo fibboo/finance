@@ -1080,6 +1080,7 @@ function serveAccountTransactions() {
 
 test('shows the transactions of the top account with its balance and actions and the details of its first transaction on a wide desktop', async () => {
   // arrange
+  const user = userEvent.setup();
   vi.stubGlobal('innerWidth', 1280);
   serveAccountTransactions();
 
@@ -1105,6 +1106,12 @@ test('shows the transactions of the top account with its balance and actions and
   expect(
     within(walletTransactions).getByRole('button', { name: 'Delete account' }),
   ).toBeInTheDocument();
+  const deleteButton = within(walletTransactions).getByRole('button', { name: 'Delete account' });
+  await user.hover(deleteButton);
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Bring the balance to zero to delete.');
+  expect(deleteButton).toHaveAccessibleDescription('Bring the balance to zero to delete.');
+  await user.unhover(deleteButton);
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   expect(within(walletTransactions).getByRole('link', { name: 'All' })).toHaveAttribute(
     'href',
     `/transactions?account_ids=${wallet.id}`,

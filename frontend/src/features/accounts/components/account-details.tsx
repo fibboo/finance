@@ -20,7 +20,7 @@ import { RestoreAccount } from './restore-account';
 type Account = components['schemas']['Account'];
 type AccountingDictionaries = components['schemas']['AccountingDictionaries'];
 
-export type AccountDetailsForm = 'panel' | 'summary';
+export type AccountDetailsForm = 'panel' | 'compact-panel' | 'summary';
 
 const LOAD_ERROR_MESSAGE = "Couldn't load the account";
 
@@ -111,7 +111,7 @@ export function AccountDetails({
     }
 
     return (
-      <div className={styles['summary']}>
+      <div className={`${styles['summary'] ?? ''} ${styles['squareActions'] ?? ''}`}>
         <AccountBalance account={account} baseCurrency={baseCurrency} isInline />
         {account.description !== undefined &&
           account.description !== null &&
@@ -150,6 +150,7 @@ export function AccountDetails({
       onChoose={onChoose}
       renderSkeleton={(closeButton) => (
         <AccountOverviewSkeleton
+          isCompact={form === 'compact-panel'}
           isMoneyAccount={account === undefined || isMoneyAccountKind(account.kind)}
           closeButton={closeButton}
         />
@@ -158,6 +159,7 @@ export function AccountDetails({
         account !== undefined &&
         dictionaries !== undefined && (
           <AccountOverview
+            isCompact={form === 'compact-panel'}
             account={account}
             baseCurrency={baseCurrency}
             accountKinds={dictionaries.account_kinds}

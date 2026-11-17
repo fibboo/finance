@@ -51,6 +51,7 @@ test('ignores a tap while blocked and shows the reason over it', async () => {
   expect(button).toHaveAttribute('aria-disabled', 'true');
   expect(button).toHaveAccessibleDescription(HINT);
   expect(screen.getByRole('tooltip')).toHaveTextContent(HINT);
+  expect(button).toHaveAttribute('aria-describedby', screen.getByRole('tooltip').id);
 });
 
 test('closes the reason on the next tap elsewhere', async () => {

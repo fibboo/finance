@@ -20,6 +20,7 @@ type ActionButtonProps = Readonly<{
 
 export function ActionButton({ id, label, iconPath, isDanger, action }: ActionButtonProps) {
   const hintId = useId();
+  const tooltipId = useId();
   const isBlocked = action.kind === 'button' && action.blockingHint !== undefined;
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -108,7 +109,7 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
         aria-label={label}
         title={isBlocked ? undefined : label}
         aria-disabled={isBlocked}
-        aria-describedby={isBlocked ? hintId : undefined}
+        aria-describedby={isBlocked ? (isTipShown ? tooltipId : hintId) : undefined}
         className={className}
         data-tip-shown={isTipShown}
         onClick={() => {
@@ -137,7 +138,7 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
       >
         {icon}
         {isTipShown && (
-          <span role="tooltip" className={styles['tip']}>
+          <span id={tooltipId} role="tooltip" className={styles['tip']}>
             {blockingHint}
           </span>
         )}
