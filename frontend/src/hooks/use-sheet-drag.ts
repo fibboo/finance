@@ -81,23 +81,27 @@ export function useSheetDrag({
     delete sheet.dataset['dragging'];
     sheet.dataset['slidingAway'] = '';
     sheet.style.transform = `translateY(${String(offScreenDistance)}px)`;
-    const hasTransition = Number.parseFloat(getComputedStyle(sheet).transitionDuration) > 0;
-    if (!hasTransition || offScreenDistance <= distance) {
-      onClose();
-      return;
-    }
 
-    function closeAfterSlide(event: TransitionEvent) {
-      if (event.target !== sheet) {
+    function closeAfterSlide(event?: TransitionEvent) {
+      if (event !== undefined && event.target !== sheet) {
         return;
       }
 
       sheet.removeEventListener('transitionend', closeAfterSlide);
       sheet.removeEventListener('transitioncancel', closeAfterSlide);
+      delete sheet.dataset['slidingAway'];
+      sheet.style.removeProperty('transform');
       if (sheet.isConnected && getComputedStyle(sheet).display !== 'none') {
         onClose();
       }
     }
+
+    const hasTransition = Number.parseFloat(getComputedStyle(sheet).transitionDuration) > 0;
+    if (!hasTransition || offScreenDistance <= distance) {
+      closeAfterSlide();
+      return;
+    }
+
     sheet.addEventListener('transitionend', closeAfterSlide);
     sheet.addEventListener('transitioncancel', closeAfterSlide);
   }
