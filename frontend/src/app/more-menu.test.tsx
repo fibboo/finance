@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
+import { Link } from 'react-router';
 import { expect, test } from 'vitest';
 
 import { MoreMenu } from '@/app/more-menu';
@@ -76,6 +77,39 @@ test('stays open on a click on one of its sections', async () => {
   // assert
   expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'true');
 });
+
+test.each(['click', 'tap'])(
+  'only dismisses More on an outside account-link %s',
+  async (interaction) => {
+    // arrange
+    const user = userEvent.setup();
+    const { router } = render(
+      <>
+        <MoreMenu isCurrent={false} renderSections={() => 'Sections'} />
+        <Link to="?account=wallet">Wallet</Link>
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    const account = screen.getByRole('link', { name: 'Wallet' });
+
+    // act
+    if (interaction === 'tap') {
+      await user.pointer({ keys: '[TouchA]', target: account });
+    } else {
+      await user.click(account);
+    }
+
+    // assert
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+    expect(router.state.location.search).toBe('');
+    if (interaction === 'tap') {
+      await user.pointer({ keys: '[TouchA]', target: account });
+    } else {
+      await user.click(account);
+    }
+    expect(router.state.location.search).toBe('?account=wallet');
+  },
+);
 
 test('marks More as current while one of its sections is open', () => {
   // act

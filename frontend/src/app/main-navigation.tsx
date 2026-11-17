@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { type RefObject, useRef } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router';
 
 import { CATEGORY_ICON_PATH } from './category-icon';
@@ -54,6 +54,7 @@ export function MainNavigation({
   onMenuToggle,
   onSectionChoose,
 }: MainNavigationProps) {
+  const navigationRef = useRef<HTMLElement>(null);
   const isCollapsed = readIsMenuCollapsed(menuState);
   const labelClassName = `${styles['label'] ?? ''} ${isCollapsed ? 'visually-hidden-on-desktop' : ''}`;
 
@@ -65,6 +66,7 @@ export function MainNavigation({
 
   return (
     <nav
+      ref={navigationRef}
       aria-label="Main"
       className={isCollapsed ? styles['collapsedNavigation'] : styles['mainNavigation']}
     >
@@ -101,6 +103,7 @@ export function MainNavigation({
       ))}
       <MoreMenu
         isCurrent={isMoreSectionOpen}
+        navigationRef={navigationRef}
         renderSections={(closeMenu) =>
           MORE_SECTIONS.map((section) => (
             <NavLink

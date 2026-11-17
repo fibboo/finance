@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from 'react';
 
 import { useOutsideClick } from '@/hooks/use-outside-click';
 
@@ -9,10 +9,11 @@ const MORE_ICON_PATH = 'M5 12h.01M12 12h.01M19 12h.01';
 
 type MoreMenuProps = Readonly<{
   isCurrent: boolean;
+  navigationRef?: RefObject<HTMLElement | null>;
   renderSections: (closeMenu: () => void) => ReactNode;
 }>;
 
-export function MoreMenu({ isCurrent, renderSections }: MoreMenuProps) {
+export function MoreMenu({ isCurrent, navigationRef, renderSections }: MoreMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -40,6 +41,10 @@ export function MoreMenu({ isCurrent, renderSections }: MoreMenuProps) {
   useOutsideClick({
     isActive: isOpen,
     readIsInside: (target) => menuRef.current?.contains(target) === true,
+    readIsOutsideClickAllowed: (target) =>
+      target instanceof Element &&
+      target.closest('a') !== null &&
+      navigationRef?.current?.contains(target) === true,
     onOutsideClick: () => {
       setIsOpen(false);
     },
