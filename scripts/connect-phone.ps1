@@ -12,16 +12,17 @@ $ConnectRetrySeconds = 10
 $WatchIntervalSeconds = 5
 
 function Find-MdnsServices([string]$ServiceType) {
+    $networkAddresses = @(Find-NetworkMdnsServices $ServiceType)
+    if ($networkAddresses.Count -gt 0) {
+        return $networkAddresses
+    }
+
     $services = adb mdns services 2>$null
     $addresses = @(foreach ($line in $services) {
         if ($line -match "$([regex]::Escape($ServiceType))\.?\s+(\S+:\d+)") {
             $Matches[1]
         }
     })
-
-    if ($addresses.Count -eq 0) {
-        $addresses = @(Find-NetworkMdnsServices $ServiceType)
-    }
 
     return @($addresses)
 }
@@ -46,7 +47,7 @@ function Wait-MdnsServices([string[]]$ServiceTypes, [string]$Prompt) {
 function Connect-AnyPhone([string[]]$KnownAddresses = @()) {
     $deadline = (Get-Date).AddSeconds($ConnectRetrySeconds)
     while ((Get-Date) -lt $deadline) {
-        foreach ($address in @($KnownAddresses) + (Find-MdnsServices '_adb-tls-connect._tcp')) {
+        foreach ($address in (@($KnownAddresses) + (Find-MdnsServices '_adb-tls-connect._tcp') | Select-Object -Unique)) {
             $output = adb connect $address 2>&1 | Out-String
             if ($output -match 'connected to') {
                 return $address
@@ -179,13 +180,13 @@ try {
     }
 
     if (-not $connectAddress) {
-        $discoveredAddresses = @(
-            Find-MdnsServices '_adb-tls-connect._tcp'
-            Find-MdnsServices '_adb-tls-pairing._tcp'
-        )
+        $discoveredAddresses = @(Find-MdnsServices '_adb-tls-connect._tcp')
+        $pairingAddresses = @(Find-MdnsServices '_adb-tls-pairing._tcp')
         if ($discoveredAddresses.Count -gt 0) {
-            $connectAddress = Connect-AnyPhone
-        } else {
+            $connectAddress = Connect-AnyPhone $discoveredAddresses
+        }
+
+        if (-not $connectAddress -and $pairingAddresses.Count -eq 0) {
             $manualAddress = (Read-Host 'IP address and port from the main Wireless debugging screen').Trim()
             $phoneEndpoint = $null
             if (-not [System.Net.IPEndPoint]::TryParse($manualAddress, [ref]$phoneEndpoint) -or $phoneEndpoint.Port -eq 0) {

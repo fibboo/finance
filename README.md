@@ -251,6 +251,7 @@ The app needs a secure context, which a phone has only on `localhost`, so an And
 2. On the phone, turn on Developer options (tap Build number seven times) and then Developer options → Wireless debugging.
    Developer options → Stay awake keeps the screen on while the phone charges, which keeps the phone from dropping the
    connection when the screen turns off.
+   For first-time pairing, open Wireless debugging → Pair device with pairing code before running the script.
 3. Close Android Studio, which restarts adb with its own settings. With the app running (`docker compose up -d`), run
    from the repository root in PowerShell 7 (`winget install Microsoft.PowerShell`), whose default execution policy
    runs local scripts:

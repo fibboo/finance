@@ -148,7 +148,7 @@ function Find-NetworkMdnsServices([string]$ServiceType) {
                 $targets = [System.Collections.Generic.List[System.Net.IPEndPoint]]::new()
                 $targets.Add($destination)
                 foreach ($neighbor in Get-NetNeighbor -InterfaceIndex $localAddress.InterfaceIndex -AddressFamily IPv4 -ErrorAction Stop) {
-                    if ($neighbor.LinkLayerAddress -in @('', '00-00-00-00-00-00', 'FF-FF-FF-FF-FF-FF')) {
+                    if ($neighbor.LinkLayerAddress -eq 'FF-FF-FF-FF-FF-FF') {
                         continue
                     }
 
