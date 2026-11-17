@@ -174,8 +174,24 @@ try {
     }
 
     if (-not $connectAddress) {
-        Wait-MdnsServices @('_adb-tls-connect._tcp', '_adb-tls-pairing._tcp') 'Looking for the phone. If wireless debugging is off, turn on Developer options > Wireless debugging...' | Out-Null
-        $connectAddress = Connect-AnyPhone
+        $discoveredAddresses = @(
+            Find-MdnsServices '_adb-tls-connect._tcp'
+            Find-MdnsServices '_adb-tls-pairing._tcp'
+        )
+        if ($discoveredAddresses.Count -gt 0) {
+            $connectAddress = Connect-AnyPhone
+        } else {
+            $manualAddress = (Read-Host 'IP address and port from the main Wireless debugging screen').Trim()
+            $phoneEndpoint = $null
+            if (-not [System.Net.IPEndPoint]::TryParse($manualAddress, [ref]$phoneEndpoint) -or $phoneEndpoint.Port -eq 0) {
+                throw 'Enter the IP address and port shown on the main Wireless debugging screen.'
+            }
+
+            $connectAddress = Connect-AnyPhone $manualAddress
+            if (-not $connectAddress) {
+                throw "Could not connect to $manualAddress. Check the address on the main Wireless debugging screen and rerun this script."
+            }
+        }
     }
 
     if (-not $connectAddress) {
