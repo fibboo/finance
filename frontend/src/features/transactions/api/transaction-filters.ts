@@ -63,6 +63,19 @@ const transactionFiltersSchema = z.object({
 
 export type TransactionFilters = Readonly<z.output<typeof transactionFiltersSchema>>;
 
+export function readAppliedFilterCount(filters: TransactionFilters): number {
+  const count =
+    Number(filters.date_from !== undefined) +
+    Number(filters.transaction_types.length > 0) +
+    Number(
+      filters.base_currency_amount_from !== undefined ||
+        filters.base_currency_amount_to !== undefined,
+    ) +
+    Number(filters.order !== undefined) +
+    LIST_PARAMS.filter((name) => name !== 'transaction_types' && filters[name].length > 0).length;
+  return count;
+}
+
 export type TransactionFilterQuery = Omit<TransactionListQuery, 'page' | 'size'>;
 
 export function readTransactionFilters({

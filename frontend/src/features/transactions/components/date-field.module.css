@@ -1,0 +1,23 @@
+.clear {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: var(--size-touch);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-ground);
+  color: var(--color-muted);
+  font-size: var(--font-size-xl);
+  cursor: pointer;
+}
+.clear:hover {
+  color: var(--color-ink);
+}
+.clear:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+}
+.clear:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}

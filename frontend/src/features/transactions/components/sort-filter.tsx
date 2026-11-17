@@ -25,7 +25,6 @@ export function SortFilter({ order, transactionOrders, baseCurrency, onApply }: 
             onApply({ order: transactionOrder.key });
           }}
         >
-          <span className={styles['mark']} aria-hidden="true" />
           <span className={styles['label']}>{transactionOrder.label}</span>
           <span className={styles['hint']}>
             {transactionOrder.key.startsWith(DATE_ORDER_PREFIX) ? 'By date' : `In ${baseCurrency}`}

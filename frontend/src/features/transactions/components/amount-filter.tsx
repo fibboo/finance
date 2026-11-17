@@ -1,14 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
+import { useDebouncedAction } from '@/hooks/use-debounced-value';
 import { formatAmountText } from '@/lib/amount-input';
 
 import type { TransactionFilters } from '../api/transaction-filters';
 import { amountFilterFormSchema } from '../schemas/transaction-filter-forms';
 import styles from './amount-filter.module.css';
 import { readAmountInputProps } from './amount-input';
-import { FilterActions } from './filter-actions';
 import { FilterField } from './filter-field';
 
 type AmountFilterFormInput = z.input<typeof amountFilterFormSchema>;
@@ -23,22 +23,31 @@ type AmountFilterProps = Readonly<{
 }>;
 
 export function AmountFilter({ filters, baseCurrency, onApply }: AmountFilterProps) {
-  const { register, handleSubmit, setValue, formState } = useForm<
+  const { register, handleSubmit, control, formState } = useForm<
     AmountFilterFormInput,
     unknown,
     AmountFilterFormOutput
   >({
     resolver: zodResolver(amountFilterFormSchema),
-    defaultValues: {
+    values: {
       base_currency_amount_from: formatAmountText(filters.base_currency_amount_from ?? ''),
       base_currency_amount_to: formatAmountText(filters.base_currency_amount_to ?? ''),
     },
+  });
+
+  const [amountFrom, amountTo] = useWatch({
+    control,
+    name: ['base_currency_amount_from', 'base_currency_amount_to'],
+  });
+  const schedule = useDebouncedAction(() => {
+    void handleSubmit(onApply)();
   });
 
   return (
     <form
       className={styles['amountFilter']}
       noValidate
+      onChange={schedule}
       onSubmit={(event) => {
         void handleSubmit(onApply)(event);
       }}
@@ -52,6 +61,7 @@ export function AmountFilter({ filters, baseCurrency, onApply }: AmountFilterPro
               registration: register('base_currency_amount_from'),
               isNegativeAllowed: false,
             }),
+            value: amountFrom,
             placeholder: '0',
           }}
         />
@@ -63,17 +73,12 @@ export function AmountFilter({ filters, baseCurrency, onApply }: AmountFilterPro
               registration: register('base_currency_amount_to'),
               isNegativeAllowed: false,
             }),
+            value: amountTo,
             placeholder: 'Any',
           }}
         />
       </div>
       <p className={styles['note']}>Compared in your main currency, {baseCurrency}.</p>
-      <FilterActions
-        onReset={() => {
-          setValue('base_currency_amount_from', '');
-          setValue('base_currency_amount_to', '');
-        }}
-      />
     </form>
   );
 }

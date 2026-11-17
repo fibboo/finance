@@ -341,9 +341,12 @@ test('shows the empty state without transactions', async () => {
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 
-test('keeps the filter row and the transaction card in place while the accounts load', async () => {
+test('keeps Filters disabled and the transaction card busy while the accounts load', async () => {
   // arrange
   server.use(
+    http.get('http://localhost/api/accounting/transactions', async () => {
+      await delay('infinite');
+    }),
     http.get('http://localhost/api/accounting/accounts', async () => {
       await delay('infinite');
     }),
@@ -353,11 +356,11 @@ test('keeps the filter row and the transaction card in place while the accounts 
   render(<Component />);
 
   // assert
-  // the card stands busy with its frame while the chips of the filters wait for the accounts
+  // The card stays busy while Filters waits for the accounts.
   const details = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(details).toHaveAttribute('aria-busy', 'true');
   expect(within(details).getByText('Location')).toBeInTheDocument();
-  expect(screen.queryByRole('group', { name: 'Filters' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeDisabled();
 });
 
 test('shows a busy list while the first page loads', async () => {
@@ -379,7 +382,7 @@ test('shows a busy list while the first page loads', async () => {
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });
 
-test('requests the checked types and names them on the chip', async () => {
+test('applies every type toggle immediately and lists all types in the summary', async () => {
   // arrange
   const user = userEvent.setup();
   const requestedTypes: string[][] = [];
@@ -396,23 +399,30 @@ test('requests the checked types and names them on the chip', async () => {
     }),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Type' }));
-  const typeFilter = screen.getByRole('dialog', { name: 'Type' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
+  const typeFilter = screen.getByRole('dialog', { name: 'Filters' });
   await user.click(within(typeFilter).getByRole('checkbox', { name: 'Expense' }));
   await user.click(within(typeFilter).getByRole('checkbox', { name: 'Transfer' }));
 
   // act
-  await user.click(within(typeFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
-  expect(await screen.findByRole('button', { name: 'Type: Expense +1' })).toHaveFocus();
-  expect(screen.queryByRole('dialog', { name: 'Type' })).not.toBeInTheDocument();
+  expect(
+    await screen.findByRole('button', { name: 'Edit filters: Expense, Transfer' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument();
   await waitFor(() => {
-    expect(requestedTypes).toEqual([[], ['EXPENSE', 'TRANSFER']]);
+    expect(requestedTypes).toEqual([[], ['EXPENSE'], ['EXPENSE', 'TRANSFER']]);
   });
 });
 
-test('requests the checked accounts of every kind and counts them on their chips', async () => {
+test('applies account choices on the list screen and keeps them in the summary', async () => {
   // arrange
   const user = userEvent.setup();
   const requestedAccountIds: string[][] = [];
@@ -429,21 +439,37 @@ test('requests the checked accounts of every kind and counts them on their chips
     }),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Accounts' }));
-  const accountFilter = screen.getByRole('dialog', { name: 'Accounts' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Accounts/ }));
+  const accountFilter = screen.getByRole('dialog', { name: 'Filters' });
   expect(within(accountFilter).getByText('USD')).toBeInTheDocument();
   await user.click(within(accountFilter).getByRole('checkbox', { name: /Wallet/ }));
-  await user.click(within(accountFilter).getByRole('button', { name: 'Apply' }));
-  await user.click(await screen.findByRole('button', { name: 'Categories' }));
-  const categoryFilter = screen.getByRole('dialog', { name: 'Categories' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Categories/ }));
+  const categoryFilter = screen.getByRole('dialog', { name: 'Filters' });
   await user.click(within(categoryFilter).getByRole('checkbox', { name: 'Cafes' }));
 
   // act
-  await user.click(within(categoryFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
-  expect(await screen.findByRole('button', { name: 'Categories: Categories · 1' })).toHaveFocus();
-  expect(screen.getByRole('button', { name: 'Accounts: Accounts · 1' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: /^Edit filters:.*Cafes/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /^Edit filters:.*Wallet/ })).toBeInTheDocument();
   await waitFor(() => {
     expect(requestedAccountIds).toEqual([[], [wallet.id], [wallet.id, cafes.id]]);
   });
@@ -466,10 +492,19 @@ test('lists the accounts of a filter panel in the order of their recent use', as
   render(<Component />);
 
   // act
-  await user.click(await screen.findByRole('button', { name: 'Categories' }));
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Categories/ }));
 
   // assert
-  const checkboxes = within(screen.getByRole('dialog', { name: 'Categories' })).getAllByRole(
+  const checkboxes = within(screen.getByRole('dialog', { name: 'Filters' })).getAllByRole(
     'checkbox',
   );
   // Groceries before Cafes, as the list answers, not by name
@@ -517,19 +552,27 @@ test('clears the income sources when categories are applied', async () => {
     }),
   );
   render(<Component />, { initialEntries: [`/transactions?income_source_ids=${salary.id}`] });
-  await user.click(await screen.findByRole('button', { name: 'Categories' }));
-  const categoryFilter = screen.getByRole('dialog', { name: 'Categories' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Categories/ }));
+  const categoryFilter = screen.getByRole('dialog', { name: 'Filters' });
   expect(
     within(categoryFilter).getByText('Choosing categories clears the income sources filter.'),
   ).toBeInTheDocument();
   await user.click(within(categoryFilter).getByRole('checkbox', { name: 'Cafes' }));
 
   // act
-  await user.click(within(categoryFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
-  expect(await screen.findByRole('button', { name: 'Categories: Categories · 1' })).toHaveFocus();
-  expect(screen.getByRole('button', { name: 'Income sources: Income' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: /^Edit filters:.*Cafes/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
   await waitFor(() => {
     expect(requestedAccountIds).toEqual([[salary.id], [cafes.id]]);
   });
@@ -579,10 +622,8 @@ test('drops the income sources of a URL that also has categories', async () => {
   });
 
   // assert
-  expect(
-    await screen.findByRole('button', { name: 'Categories: Categories · 1' }),
-  ).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Income sources: Income' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: /^Edit filters:.*Cafes/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
   expect(requestedAccountIds).toEqual([[cafes.id]]);
 });
 
@@ -629,10 +670,19 @@ test('shows a note instead of the list for a kind without accounts', async () =>
   render(<Component />);
 
   // act
-  await user.click(await screen.findByRole('button', { name: 'Income sources: Income' }));
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Income sources/ }));
 
   // assert
-  const incomeSourceFilter = screen.getByRole('dialog', { name: 'Income sources' });
+  const incomeSourceFilter = screen.getByRole('dialog', { name: 'Filters' });
   expect(within(incomeSourceFilter).getByText('No income sources yet.')).toBeInTheDocument();
   expect(
     within(incomeSourceFilter).queryByRole('button', { name: 'Apply' }),
@@ -678,8 +728,17 @@ test('requests the checked locations in the order of their recent use', async ()
     }),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Locations' }));
-  const locationFilter = screen.getByRole('dialog', { name: 'Locations' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Locations/ }));
+  const locationFilter = screen.getByRole('dialog', { name: 'Filters' });
   const checkboxes = within(locationFilter).getAllByRole('checkbox');
   // Market before Bakery, as the list answers, not by name
   expect(checkboxes).toHaveLength(2);
@@ -688,10 +747,9 @@ test('requests the checked locations in the order of their recent use', async ()
   await user.click(within(locationFilter).getByRole('checkbox', { name: 'Bakery' }));
 
   // act
-  await user.click(within(locationFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
-  expect(await screen.findByRole('button', { name: 'Locations: Locations · 1' })).toHaveFocus();
+  expect(await screen.findByRole('button', { name: 'Filters' })).toBeInTheDocument();
   await waitFor(() => {
     expect(requestedLocationIds).toEqual([[], [bakery.id]]);
   });
@@ -722,9 +780,7 @@ test('filters by a location of the URL that is not in the list once and drops an
   });
 
   // assert
-  expect(
-    await screen.findByRole('button', { name: 'Locations: Locations · 1' }),
-  ).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Filters' })).toBeInTheDocument();
   await waitFor(() => {
     expect(requestedSearch).toBe(
       `?location_ids=${deletedLocationId}&size=15&date_to=2026-10-20&page=1`,
@@ -750,15 +806,24 @@ test('clears a location of the URL that is not in the list from the panel', asyn
     }),
   );
   render(<Component />, { initialEntries: [`/transactions?location_ids=${deletedLocationId}`] });
-  await user.click(await screen.findByRole('button', { name: 'Locations: Locations · 1' }));
-  const locationFilter = screen.getByRole('dialog', { name: 'Locations' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Locations/ }));
+  const locationFilter = screen.getByRole('dialog', { name: 'Filters' });
   expect(within(locationFilter).getByText('No locations yet.')).toBeInTheDocument();
 
   // act
-  await user.click(within(locationFilter).getByRole('button', { name: 'Apply' }));
+  await user.click(within(locationFilter).getByRole('button', { name: 'Clear' }));
 
   // assert
-  expect(await screen.findByRole('button', { name: 'Locations' })).toHaveFocus();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
   await waitFor(() => {
     expect(requestedLocationIds).toEqual([[deletedLocationId], []]);
   });
@@ -781,10 +846,19 @@ test('shows a note instead of the list without locations', async () => {
   render(<Component />);
 
   // act
-  await user.click(await screen.findByRole('button', { name: 'Locations' }));
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Locations/ }));
 
   // assert
-  const locationFilter = screen.getByRole('dialog', { name: 'Locations' });
+  const locationFilter = screen.getByRole('dialog', { name: 'Filters' });
   expect(within(locationFilter).getByText('No locations yet.')).toBeInTheDocument();
   expect(within(locationFilter).queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
 });
@@ -807,16 +881,21 @@ test('requests the period typed in its dates', async () => {
     }),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Period' }));
-  const periodFilter = screen.getByRole('dialog', { name: 'Period' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
+  const periodFilter = screen.getByRole('dialog', { name: 'Filters' });
   await user.type(within(periodFilter).getByLabelText('From'), '01102026');
 
   // act
-  await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
   expect(
-    await screen.findByRole('button', { name: 'Period: From 01.10.2026' }),
+    await screen.findByRole('button', { name: 'Edit filters: From 01.10.2026' }),
   ).toBeInTheDocument();
   await waitFor(() => {
     expect(requestedPeriods).toEqual([
@@ -841,20 +920,25 @@ test('keeps the amount filter open on an invalid amount', async () => {
     ),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Amount' }));
-  const amountFilter = screen.getByRole('dialog', { name: 'Amount' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
+  const amountFilter = screen.getByRole('dialog', { name: 'Filters' });
   await user.type(within(amountFilter).getByLabelText('From, USD'), '500');
   await user.type(within(amountFilter).getByLabelText('To, USD'), '.');
 
   // act
-  await user.click(within(amountFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
   expect(
     await within(amountFilter).findByText('Enter an amount such as 100 or 99.50.'),
   ).toBeInTheDocument();
   expect(within(amountFilter).getByLabelText('To, USD')).toHaveAttribute('aria-invalid', 'true');
-  expect(screen.getByRole('button', { name: 'Amount' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
 });
 
 test('shows the rows without days and with their dates when sorted by amount', async () => {
@@ -874,7 +958,12 @@ test('shows the rows without days and with their dates when sorted by amount', a
     }),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Sort: Newest first' }));
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
 
   // act
   await user.click(screen.getByRole('button', { name: /^Largest first/ }));
@@ -884,7 +973,7 @@ test('shows the rows without days and with their dates when sorted by amount', a
   expect(await within(transactions).findByText('Groceries')).toBeInTheDocument();
   expect(within(transactions).getByText('Today')).toBeInTheDocument();
   expect(within(transactions).queryByRole('heading')).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Sort: Largest first' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Edit filters: Largest first' })).toBeInTheDocument();
 });
 
 test('resets the filters that match nothing', async () => {
@@ -906,16 +995,20 @@ test('resets the filters that match nothing', async () => {
     initialEntries: ['/transactions?base_currency_amount_from=5000&transaction_types=TRANSFER'],
   });
   expect(await screen.findByText('Nothing matches these filters')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Amount: Over $5,000' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Type: Transfer' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Edit filters: Transfer · Over $5,000' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Edit filters: Transfer · Over $5,000' }),
+  ).toBeInTheDocument();
 
   // act
   await user.click(screen.getByRole('button', { name: 'Reset filters' }));
 
   // assert
   expect(await screen.findByText('Groceries')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Amount' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Type' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
 });
 
 test('requests the typed search once it has 3 characters and keeps it in the URL', async () => {
@@ -1036,7 +1129,7 @@ test('drops the filters of the URL that are not valid', async () => {
   );
 });
 
-test('closes a filter without applying it on a press outside', async () => {
+test('closes Filters on a press outside and keeps the applied type', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
@@ -1051,17 +1144,25 @@ test('closes a filter without applying it on a press outside', async () => {
     ),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Type' }));
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
   await user.click(
-    within(screen.getByRole('dialog', { name: 'Type' })).getByRole('checkbox', { name: 'Income' }),
+    within(screen.getByRole('dialog', { name: 'Filters' })).getByRole('checkbox', {
+      name: 'Income',
+    }),
   );
 
   // act
   await user.click(screen.getByRole('heading', { level: 1 }));
 
   // assert
-  expect(screen.queryByRole('dialog', { name: 'Type' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Type' })).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
 });
 
 test('clears the typed amounts on Reset', async () => {
@@ -1079,16 +1180,29 @@ test('clears the typed amounts on Reset', async () => {
     ),
   );
   render(<Component />, { initialEntries: ['/transactions?base_currency_amount_from=100'] });
-  await user.click(await screen.findByRole('button', { name: 'Amount: Over $100' }));
-  const amountFilter = screen.getByRole('dialog', { name: 'Amount' });
-  await user.type(within(amountFilter).getByLabelText('To, USD'), '500');
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
+  const amountFilter = screen.getByRole('dialog', { name: 'Filters' });
+  await user.type(
+    within(screen.getByRole('dialog', { name: 'Filters' })).getByLabelText('To, USD'),
+    '500',
+  );
 
   // act
-  await user.click(within(amountFilter).getByRole('button', { name: 'Reset' }));
+  await user.click(within(amountFilter).getByRole('button', { name: 'Reset all' }));
 
   // assert
-  expect(within(amountFilter).getByLabelText('From, USD')).toHaveValue('');
-  expect(within(amountFilter).getByLabelText('To, USD')).toHaveValue('');
+  expect(
+    within(screen.getByRole('dialog', { name: 'Filters' })).getByLabelText('From, USD'),
+  ).toHaveValue('');
+  expect(
+    within(screen.getByRole('dialog', { name: 'Filters' })).getByLabelText('To, USD'),
+  ).toHaveValue('');
 });
 
 test('opens a recent month with one request and keeps the newer days above it', async () => {
@@ -1121,11 +1235,16 @@ test('opens a recent month with one request and keeps the newer days above it', 
   );
   const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Period' }));
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
 
   // act
   await user.click(
-    within(screen.getByRole('dialog', { name: 'Period' })).getByRole('button', {
+    within(screen.getByRole('dialog', { name: 'Filters' })).getByRole('button', {
       name: 'September',
     }),
   );
@@ -1169,19 +1288,24 @@ test('opens the To date with one request', async () => {
     }),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Period' }));
-  const periodFilter = screen.getByRole('dialog', { name: 'Period' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
+  const periodFilter = screen.getByRole('dialog', { name: 'Filters' });
   await user.clear(within(periodFilter).getByLabelText('To'));
   await user.type(within(periodFilter).getByLabelText('To'), '01032024');
 
   // act
-  await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
   await waitFor(() => {
     expect(requestedDateTos).toEqual(['2026-10-20', '2024-03-01']);
   });
-  expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
 });
 
 test('keeps the period open on a date that does not exist', async () => {
@@ -1199,17 +1323,22 @@ test('keeps the period open on a date that does not exist', async () => {
     ),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Period' }));
-  const periodFilter = screen.getByRole('dialog', { name: 'Period' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
+  const periodFilter = screen.getByRole('dialog', { name: 'Filters' });
   await user.type(within(periodFilter).getByLabelText('From'), '30022026');
 
   // act
-  await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
   expect(within(periodFilter).getByLabelText('From')).toHaveValue('30.02.2026');
   expect(await within(periodFilter).findByText('Enter a date as dd.mm.yyyy.')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
 });
 
 test('shows a retry above the month when its newer days fail to load', async () => {
@@ -1246,9 +1375,15 @@ test('shows a retry above the month when its newer days fail to load', async () 
     }),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Period' }));
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
   await user.click(
-    within(screen.getByRole('dialog', { name: 'Period' })).getByRole('button', {
+    within(screen.getByRole('dialog', { name: 'Filters' })).getByRole('button', {
       name: 'September',
     }),
   );
@@ -1280,18 +1415,23 @@ test('keeps the period open on a date after today', async () => {
     ),
   );
   render(<Component />);
-  await user.click(await screen.findByRole('button', { name: 'Period' }));
-  const periodFilter = screen.getByRole('dialog', { name: 'Period' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
+  const periodFilter = screen.getByRole('dialog', { name: 'Filters' });
   await user.type(within(periodFilter).getByLabelText('From'), '01122026');
 
   // act
-  await user.click(within(periodFilter).getByRole('button', { name: 'Apply' }));
 
   // assert
   expect(
     await within(periodFilter).findByText('Pick a date no later than today.'),
   ).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Period' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
 });
 
 test('shows the selected transaction with its From and To, location and comment', async () => {
@@ -1734,14 +1874,20 @@ test('keeps the details open when Escape closes a filter', async () => {
   );
   render(<Component />, { initialEntries: [`/transactions?transaction=${expense.id}`] });
   expect(await screen.findByRole('heading', { level: 2, name: 'Groceries' })).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Amount' }));
-  expect(screen.getByRole('dialog', { name: 'Amount' })).toBeInTheDocument();
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+
+  expect(screen.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument();
 
   // act
   await user.keyboard('{Escape}');
 
   // assert
-  expect(screen.queryByRole('dialog', { name: 'Amount' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
   expect(screen.getByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
 });
 
@@ -2140,8 +2286,17 @@ test('keeps the list on screen when the accounts of the filters fail to refetch'
   document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
   Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
   document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
-  await user.click(screen.getByRole('button', { name: 'Accounts' }));
-  const accountFilter = screen.getByRole('dialog', { name: 'Accounts' });
+  if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+  }
+  if (screen.queryByRole('button', { name: 'Back to filters' }) !== null) {
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  }
+  await user.click(screen.getByRole('button', { name: /^Accounts/ }));
+  const accountFilter = screen.getByRole('dialog', { name: 'Filters' });
   expect(await within(accountFilter).findByRole('checkbox', { name: /Cash/ })).toBeInTheDocument();
 });
 
@@ -2546,4 +2701,185 @@ test('chooses the first row with the Down key in the details of a transaction th
   await waitFor(() => {
     expect(new URLSearchParams(router.state.location.search).get('transaction')).toBe(expense.id);
   });
+});
+
+test('counts each applied group once and Clear keeps the search while resetting every filter', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: [
+      `/transactions?search=food&date_from=2026-10-01&transaction_types=EXPENSE&transaction_types=TRANSFER&account_ids=${wallet.id}&category_ids=${category.id}&category_ids=${cafes.id}&location_ids=6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d92&base_currency_amount_from=10&order=base_currency_amount:desc`,
+    ],
+  });
+  const summary = await screen.findByRole('button', {
+    name: 'Edit filters: From 01.10.2026 · Expense, Transfer · Wallet · Groceries +1 · 1 selected · Over $10 · Largest first',
+  });
+  expect(screen.getByRole('button', { name: 'Filters' })).toHaveTextContent('7');
+  await user.click(summary);
+  expect(screen.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'To' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'September' })).toBeDisabled();
+  expect(screen.getByText('Months and To jump with Newest first only.')).toBeInTheDocument();
+  await user.keyboard('{Escape}');
+  expect(screen.getByRole('button', { name: 'Filters' })).toHaveFocus();
+  await user.click(screen.getByRole('button', { name: 'Clear' }));
+  await waitFor(() => {
+    expect(router.state.location.search).toBe('?search=food');
+  });
+  expect(screen.queryByRole('button', { name: /^Edit filters:/ })).not.toBeInTheDocument();
+  expect(screen.getByRole('searchbox', { name: 'Search transactions' })).toHaveValue('food');
+});
+
+test('searches within a list without clearing hidden selections and Back returns to the sections', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  const { router } = render(<Component />);
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+  });
+  await user.click(screen.getByRole('button', { name: 'Filters' }));
+  await user.click(screen.getByRole('button', { name: /^Categories/ }));
+  await user.click(screen.getByRole('checkbox', { name: 'Groceries' }));
+  await user.type(screen.getByRole('searchbox', { name: 'Search categories' }), 'caf');
+  expect(screen.queryByRole('checkbox', { name: 'Groceries' })).not.toBeInTheDocument();
+  await user.click(screen.getByRole('checkbox', { name: 'Cafes' }));
+  await waitFor(() => {
+    expect(new URLSearchParams(router.state.location.search).getAll('category_ids')).toEqual([
+      category.id,
+      cafes.id,
+    ]);
+  });
+  await user.clear(screen.getByRole('searchbox', { name: 'Search categories' }));
+  expect(screen.getByRole('checkbox', { name: 'Groceries' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Cafes' })).toBeChecked();
+  await user.type(screen.getByRole('searchbox', { name: 'Search categories' }), 'absent');
+  expect(screen.getByText('No matches.')).toBeInTheDocument();
+  await user.click(
+    within(screen.getByRole('dialog', { name: 'Filters' })).getByRole('button', { name: 'Clear' }),
+  );
+  await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+  expect(screen.getByRole('button', { name: /^Categories/ })).toHaveTextContent('Any');
+  expect(screen.getByRole('region', { name: 'Sort' })).toBeInTheDocument();
+});
+
+test('shows a pending total and then closes with the loaded total', async () => {
+  const user = userEvent.setup();
+  let releaseResponse: (() => void) | undefined;
+  const responseReady = new Promise<void>((resolve) => {
+    releaseResponse = resolve;
+  });
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', async ({ request }) => {
+      const isFiltered = new URL(request.url).searchParams.has('transaction_types');
+      if (isFiltered) {
+        await responseReady;
+      }
+      return HttpResponse.json({
+        items: [],
+        total: isFiltered ? 7 : 0,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+  });
+  await user.click(screen.getByRole('button', { name: 'Filters' }));
+  await user.click(screen.getByRole('checkbox', { name: 'Expense' }));
+  expect(await screen.findByRole('button', { name: 'Show transactions' })).toBeInTheDocument();
+  releaseResponse?.();
+  await user.click(await screen.findByRole('button', { name: 'Show 7 transactions' }));
+  expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Filters' })).toHaveFocus();
+});
+
+test('clears a typed From date after a pause and keeps the panel open', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: ['/transactions?date_from=2026-10-01'],
+  });
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+  });
+  await user.click(screen.getByRole('button', { name: 'Filters' }));
+  await user.click(screen.getByRole('button', { name: 'Clear From' }));
+  expect(screen.getByRole('textbox', { name: 'From' })).toHaveValue('');
+  expect(screen.queryByRole('button', { name: 'Clear From' })).not.toBeInTheDocument();
+  await waitFor(() => {
+    expect(router.state.location.search).toBe('');
+  });
+  expect(screen.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Clear To' }));
+  expect(screen.getByRole('textbox', { name: 'To' })).toHaveValue('');
+  expect(screen.queryByRole('button', { name: 'Clear To' })).not.toBeInTheDocument();
+});
+
+test('keeps a newly toggled type when a pending amount applies and Reset all cancels pending input', async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  const { router } = render(<Component />);
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+  });
+  await user.click(screen.getByRole('button', { name: 'Filters' }));
+  await user.type(screen.getByLabelText('From, USD'), '100');
+  await user.click(screen.getByRole('checkbox', { name: 'Expense' }));
+  expect(
+    await screen.findByRole('button', { name: 'Edit filters: Expense · Over $100' }),
+  ).toBeInTheDocument();
+  await user.type(screen.getByLabelText('To, USD'), '500');
+  await user.click(screen.getByRole('button', { name: 'Reset all' }));
+  await waitFor(() => {
+    expect(screen.getByLabelText('From, USD')).toHaveValue('');
+  });
+  await user.type(screen.getByLabelText('From, USD'), '20');
+  expect(await screen.findByRole('button', { name: 'Edit filters: Over $20' })).toBeInTheDocument();
+  expect(new URLSearchParams(router.state.location.search).has('base_currency_amount_to')).toBe(
+    false,
+  );
+  expect(new URLSearchParams(router.state.location.search).has('transaction_types')).toBe(false);
 });
