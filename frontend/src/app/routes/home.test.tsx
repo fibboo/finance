@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, expect, onTestFinished, test, vi } from 'vitest';
@@ -391,6 +391,65 @@ test('opens the account of a posting on Home in place of the card under the chos
   expect(screen.getAllByRole('dialog', { name: 'Account details' })).toHaveLength(2);
   expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
 });
+
+test.each([
+  { region: 'Accounts', link: /^Wallet/, panel: 'Account details', heading: 'Wallet' },
+  {
+    region: 'Recent transactions',
+    link: /^Groceries/,
+    panel: 'Transaction details',
+    heading: 'Groceries',
+  },
+])(
+  'dismisses and reopens $panel on Home after a swipe',
+  async ({ region, link, panel, heading }) => {
+    // arrange
+    const user = userEvent.setup();
+    render(<Component />);
+    const section = await screen.findByRole('region', { name: region });
+    const entryLink = await within(section).findByRole('link', { name: link });
+
+    for (const second of [0, 1]) {
+      // act
+      await user.click(entryLink);
+
+      // assert
+      const details = await screen.findByRole('dialog', { name: panel });
+      const title = await within(details).findByRole('heading', { name: heading });
+      expect(title).toBeVisible();
+      expect(details).toHaveFocus();
+      expect(entryLink).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByTestId('details-panel-backdrop')).toBeInTheDocument();
+
+      // user-event emits a compatibility click after a touch drag; browsers suppress it.
+      title.addEventListener(
+        'pointerdown',
+        (event) => {
+          event.preventDefault();
+        },
+        { once: true },
+      );
+
+      // act
+      vi.setSystemTime(new Date(2026, 9, 20, 12, 0, second));
+      await user.pointer({
+        keys: '[TouchA>]',
+        target: title,
+        coords: { clientY: 100 },
+      });
+      vi.setSystemTime(new Date(2026, 9, 20, 12, 0, second, 100));
+      await user.pointer({ pointerName: 'TouchA', coords: { clientY: 200 } });
+      await user.pointer({ keys: '[/TouchA]' });
+
+      // assert
+      await waitFor(() => {
+        expect(screen.queryByTestId('details-panel-backdrop')).not.toBeInTheDocument();
+      });
+      expect(entryLink).not.toHaveAttribute('aria-current');
+      expect(entryLink).toHaveFocus();
+    }
+  },
+);
 
 test.each([
   {
