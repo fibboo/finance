@@ -2871,6 +2871,7 @@ test('keeps a newly toggled type when a pending amount applies and Reset all can
   expect(
     await screen.findByRole('button', { name: 'Edit filters: Expense · Over $100' }),
   ).toBeInTheDocument();
+  await user.type(screen.getByRole('textbox', { name: 'From' }), '01102026');
   await user.type(screen.getByLabelText('To, USD'), '500');
   await user.click(screen.getByRole('button', { name: 'Reset all' }));
   await waitFor(() => {
@@ -2883,3 +2884,170 @@ test('keeps a newly toggled type when a pending amount applies and Reset all can
   );
   expect(new URLSearchParams(router.state.location.search).has('transaction_types')).toBe(false);
 });
+
+test.each([
+  'Show transactions',
+  'Close filters',
+  'Escape',
+  'outside',
+  'Filters',
+  'Accounts',
+  'Categories',
+  'Income sources',
+  'Locations',
+  'September',
+  'swipe',
+])('applies pending dates and amounts together before %s', async (action) => {
+  const user = userEvent.setup();
+  const requestedPeriods: (string | null)[] = [];
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedPeriods.push(new URL(request.url).searchParams.get('date_to'));
+      return HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 15,
+        pages: 0,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  const { router } = render(<Component />);
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+  });
+  await user.click(screen.getByRole('button', { name: 'Filters' }));
+  await user.type(screen.getByRole('textbox', { name: 'From' }), '01102026');
+  await user.type(screen.getByLabelText('From, USD'), '100');
+  expect(router.state.location.search).toBe('');
+  if (action === 'Escape') {
+    await user.keyboard('{Escape}');
+  } else if (action === 'swipe') {
+    await user.pointer({
+      keys: '[TouchA>]',
+      target: screen.getByRole('heading', { name: 'Filters' }),
+      coords: { clientY: 100 },
+    });
+    await user.pointer({ pointerName: 'TouchA', coords: { clientY: 500 } });
+    await user.pointer({ keys: '[/TouchA]' });
+  } else if (action === 'outside') {
+    await user.click(screen.getByRole('heading', { level: 1 }));
+  } else if (action === 'Show transactions') {
+    await user.click(screen.getByRole('button', { name: 'Show 0 transactions' }));
+  } else if (['Accounts', 'Categories', 'Income sources', 'Locations'].includes(action)) {
+    await user.click(screen.getByRole('button', { name: new RegExp(`^${action}`) }));
+  } else {
+    await user.click(screen.getByRole('button', { name: action }));
+  }
+  await waitFor(() => {
+    const searchParams = new URLSearchParams(router.state.location.search);
+    expect(searchParams.get('date_from')).toBe('2026-10-01');
+    expect(searchParams.get('base_currency_amount_from')).toBe('100.00');
+  });
+  if (['Accounts', 'Categories', 'Income sources', 'Locations'].includes(action)) {
+    expect(screen.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+    expect(screen.getByRole('textbox', { name: 'From' })).toHaveValue('01.10.2026');
+    expect(screen.getByLabelText('From, USD')).toHaveValue('100.00');
+  } else {
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+  }
+  if (action === 'September') {
+    await waitFor(() => {
+      expect(requestedPeriods).toContain('2026-10-01');
+    });
+  }
+});
+
+test.each([
+  {
+    date: '30022026',
+    amount: '100',
+    upperAmount: '',
+    expectedDate: null,
+    expectedAmount: '100.00',
+  },
+  {
+    date: '01102026',
+    amount: '100',
+    upperAmount: '5',
+    expectedDate: '2026-10-01',
+    expectedAmount: null,
+  },
+  { date: '30022026', amount: '100', upperAmount: '5', expectedDate: null, expectedAmount: null },
+])(
+  'applies only valid pending filter groups on close: $date / $amount–$upperAmount',
+  async ({ date, amount, upperAmount, expectedDate, expectedAmount }) => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('http://localhost/api/accounting/transactions', () =>
+        HttpResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          size: 15,
+          pages: 0,
+        } satisfies components['schemas']['Page_Transaction_']),
+      ),
+    );
+    const { router } = render(<Component />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.type(screen.getByRole('textbox', { name: 'From' }), date);
+    await user.type(screen.getByLabelText('From, USD'), amount);
+    if (upperAmount !== '') {
+      await user.type(screen.getByLabelText('To, USD'), upperAmount);
+    }
+    await user.click(screen.getByRole('button', { name: 'Show 0 transactions' }));
+    await waitFor(() => {
+      const searchParams = new URLSearchParams(router.state.location.search);
+      expect(searchParams.get('date_from')).toBe(expectedDate);
+      expect(searchParams.get('base_currency_amount_from')).toBe(expectedAmount);
+      expect(searchParams.has('base_currency_amount_to')).toBe(false);
+    });
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+  },
+);
+
+test.each(['Show 0 transactions', 'Accounts'])(
+  'keeps a pending To jump before %s',
+  async (action) => {
+    const user = userEvent.setup();
+    const requestedDateTos: (string | null)[] = [];
+    server.use(
+      http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+        requestedDateTos.push(new URL(request.url).searchParams.get('date_to'));
+        return HttpResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          size: 15,
+          pages: 0,
+        } satisfies components['schemas']['Page_Transaction_']);
+      }),
+    );
+    render(<Component />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.clear(screen.getByRole('textbox', { name: 'To' }));
+    await user.type(screen.getByRole('textbox', { name: 'To' }), '01032024');
+    if (action === 'Accounts') {
+      await user.click(screen.getByRole('button', { name: /^Accounts/ }));
+    } else {
+      await user.click(screen.getByRole('button', { name: action }));
+    }
+    await waitFor(() => {
+      expect(requestedDateTos).toContain('2024-03-01');
+    });
+    if (action === 'Accounts') {
+      await user.click(screen.getByRole('button', { name: 'Back to filters' }));
+      expect(screen.getByRole('textbox', { name: 'To' })).toHaveValue('01.03.2024');
+    } else {
+      expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+    }
+  },
+);

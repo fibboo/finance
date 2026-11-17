@@ -1,5 +1,5 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { DetailsColumn } from '@/app/details-column';
@@ -27,7 +27,10 @@ import {
   writeTransactionSearch,
 } from '@/features/transactions/api/transaction-filters';
 import { FilterPanel } from '@/features/transactions/components/filter-panel';
-import { FiltersPanel } from '@/features/transactions/components/filters-panel';
+import {
+  FiltersPanel,
+  type FiltersPanelHandle,
+} from '@/features/transactions/components/filters-panel';
 import { FilterSummary } from '@/features/transactions/components/filter-summary';
 import { readFilterSummary } from '@/features/transactions/components/filter-labels';
 import { readTopTransactionId } from '@/features/transactions/components/feed-transactions';
@@ -73,6 +76,7 @@ function readJumpDate({
 }
 
 export function Component() {
+  const filtersPanelRef = useRef<FiltersPanelHandle>(null);
   const [filterResetVersion, setFilterResetVersion] = useState(0);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const baseCurrency = useBaseCurrency();
@@ -193,6 +197,9 @@ export function Component() {
               filterItems === undefined
             }
             onOpenChange={setIsFiltersOpen}
+            onBeforeClose={() => {
+              filtersPanelRef.current?.applyPendingChanges();
+            }}
           >
             {(close) =>
               baseCurrency !== undefined &&
@@ -200,6 +207,7 @@ export function Component() {
               filters !== undefined &&
               filterItems !== undefined && (
                 <FiltersPanel
+                  ref={filtersPanelRef}
                   key={filterResetVersion}
                   filters={filters}
                   today={today}

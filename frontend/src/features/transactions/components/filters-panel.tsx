@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type Ref, useImperativeHandle, useRef, useState } from 'react';
 
 import type { components } from '@/lib/api-schema';
 
@@ -14,8 +14,12 @@ import { ItemFilter } from './item-filter';
 import { PeriodFilter } from './period-filter';
 import { SortFilter } from './sort-filter';
 import { TypeFilter } from './type-filter';
+import type { PendingFilter } from './pending-filter';
+
+export type FiltersPanelHandle = Readonly<{ applyPendingChanges: (jumpDate?: string) => boolean }>;
 
 type FiltersPanelProps = Readonly<{
+  ref?: Ref<FiltersPanelHandle>;
   filters: TransactionFilters;
   today: string;
   anchorDate: string | undefined;
@@ -35,6 +39,7 @@ function focusTitle(title: HTMLHeadingElement | null) {
 }
 
 export function FiltersPanel({
+  ref,
   filters,
   today,
   anchorDate,
@@ -48,12 +53,25 @@ export function FiltersPanel({
   onReset,
   onClose,
 }: FiltersPanelProps) {
+  const periodRef = useRef<PendingFilter>(null);
+  const amountRef = useRef<PendingFilter>(null);
   const [selectedList, setSelectedList] = useState<ItemIdParam | undefined>();
   const selectedFilter = itemFilters.find((filter) => filter.name === selectedList);
   const excluded =
     selectedFilter !== undefined && 'excluded' in selectedFilter
       ? selectedFilter.excluded
       : undefined;
+
+  function applyPendingChanges(jumpDate?: string) {
+    const period = periodRef.current?.readPendingChange();
+    const amounts = amountRef.current?.readPendingChange();
+    if (period === undefined && amounts === undefined) {
+      return false;
+    }
+    onApply({ ...period?.filters, ...amounts?.filters }, jumpDate ?? period?.jumpDate);
+    return true;
+  }
+  useImperativeHandle(ref, () => ({ applyPendingChanges }));
   return (
     <>
       <div className={styles['header']} data-sheet-drag-area>
@@ -116,12 +134,15 @@ export function FiltersPanel({
             <section className={styles['section']} aria-label="Period">
               <h3 className={styles['sectionTitle']}>Period</h3>
               <PeriodFilter
+                ref={periodRef}
                 filters={filters}
                 today={today}
                 anchorDate={anchorDate}
                 isJumpAvailable={filters.order === undefined}
                 onJump={(monthEnd) => {
-                  onJump(monthEnd);
+                  if (!applyPendingChanges(monthEnd)) {
+                    onJump(monthEnd);
+                  }
                   onClose();
                 }}
                 onApply={onApply}
@@ -138,6 +159,7 @@ export function FiltersPanel({
                   type="button"
                   className={styles['listRow']}
                   onClick={() => {
+                    applyPendingChanges();
                     setSelectedList(name);
                   }}
                 >
@@ -150,7 +172,12 @@ export function FiltersPanel({
             </div>
             <section className={styles['section']} aria-label="Amount">
               <h3 className={styles['sectionTitle']}>Amount, {baseCurrency}</h3>
-              <AmountFilter filters={filters} baseCurrency={baseCurrency} onApply={onApply} />
+              <AmountFilter
+                ref={amountRef}
+                filters={filters}
+                baseCurrency={baseCurrency}
+                onApply={onApply}
+              />
             </section>
           </>
         ) : (

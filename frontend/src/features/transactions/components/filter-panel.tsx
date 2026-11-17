@@ -10,6 +10,7 @@ type FilterPanelProps = Readonly<{
   count: number;
   isOpen: boolean;
   isDisabled?: boolean;
+  onBeforeClose?: () => void;
   onOpenChange: (isOpen: boolean) => void;
   children: (close: () => void) => ReactNode;
 }>;
@@ -22,6 +23,7 @@ export function FilterPanel({
   count,
   isOpen,
   isDisabled = false,
+  onBeforeClose,
   onOpenChange,
   children,
 }: FilterPanelProps) {
@@ -29,6 +31,7 @@ export function FilterPanel({
   const panelId = useId();
   const handleRef = useRef<HTMLSpanElement>(null);
   function close() {
+    onBeforeClose?.();
     onOpenChange(false);
     document.getElementById(buttonId)?.focus();
   }
@@ -66,7 +69,11 @@ export function FilterPanel({
         aria-controls={panelId}
         disabled={isDisabled}
         onClick={() => {
-          onOpenChange(!isOpen);
+          if (isOpen) {
+            close();
+          } else {
+            onOpenChange(true);
+          }
         }}
       >
         <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
