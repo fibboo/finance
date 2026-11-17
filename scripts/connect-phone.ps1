@@ -1,5 +1,6 @@
 #Requires -Version 7
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'mdns-discovery.psm1')
 
 $DevServerPort = 5173
 $ForwardedPorts = [ordered]@{
@@ -12,10 +13,14 @@ $WatchIntervalSeconds = 5
 
 function Find-MdnsServices([string]$ServiceType) {
     $services = adb mdns services 2>$null
-    $addresses = foreach ($line in $services) {
+    $addresses = @(foreach ($line in $services) {
         if ($line -match "$([regex]::Escape($ServiceType))\.?\s+(\S+:\d+)") {
             $Matches[1]
         }
+    })
+
+    if ($addresses.Count -eq 0) {
+        $addresses = @(Find-NetworkMdnsServices $ServiceType)
     }
 
     return @($addresses)

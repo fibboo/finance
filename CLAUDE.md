@@ -69,7 +69,7 @@ Packages under `backend/app/` are split by layer, and each layer is split by dom
 
 Everything runs in Docker through `docker-compose.yml`, which has the `postgres`, `mock-oidc`, `backend` and `frontend` services. `mock-oidc` is a mock OpenID Connect server that stands in for Telegram and Google locally. Rebuild the image only when `backend/tests/Dockerfile` or `backend/requirements/` change. The `backend` service builds from `backend/`, mounts it as `/app` and reads its settings from the committed `backend/.env` through `env_file`. The `frontend` service runs the `node` image with `frontend/` mounted over its own `node_modules` volume, and installs with `npm ci` on start. Production and its deploy: `.claude/rules/ci.md`.
 
-`scripts/connect-phone.ps1` connects an Android phone to the local app over wireless debugging and forwards its ports with `adb reverse` (README, Testing on a phone).
+`scripts/connect-phone.ps1` connects an Android phone to the local app over wireless debugging and forwards its ports with `adb reverse`; `scripts/mdns-discovery.psm1` supplies its independent mDNS discovery (README, Testing on a phone).
 
 ### Format
 

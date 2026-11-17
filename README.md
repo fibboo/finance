@@ -257,10 +257,12 @@ The app needs a secure context, which a phone has only on `localhost`, so an And
    ```powershell
    pwsh ./scripts/connect-phone.ps1
    ```
-   The script reuses a phone adb has already connected, otherwise finds the phone on the network, tries every phone
-   that wireless debugging advertises and pairs it when none accepts (it asks for the code shown under Pair device with
-   pairing code). It forwards ports 5173 and 8080 and checks that the dev server and the mock sign-in server answer on
-   them.
+   The script reuses a connected phone or retries its known address. It finds advertised phones through adb and, when
+   adb returns no services, through direct mDNS queries on the active IPv4 interfaces and to devices in Windows' neighbor
+   table. It tries the discovered phones and pairs when needed, asking for the code shown under Pair device with pairing
+   code. If automatic discovery finds no address, it asks for the IP address and port from the main Wireless debugging
+   screen. Addresses are kept only for the running script. It forwards ports 5173 and 8080 and checks that the dev server
+   and the mock sign-in server answer on them.
 4. Open `http://localhost:5173` in Chrome on the phone.
 
 The script keeps running and checks the forwards every few seconds. When the connection drops, it reconnects to the
