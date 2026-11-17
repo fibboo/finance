@@ -178,8 +178,8 @@ test.each([
   await user.click(screen.getByRole('button', { name: /^Location/ }));
   await user.click(screen.getByRole('button', { name: /^Central market/ }));
   if (sellerAmount !== null) {
-    await user.click(screen.getByRole('checkbox', { name: 'Paid in another currency' }));
-    await user.type(screen.getByLabelText('Seller’s amount'), sellerAmount);
+    await user.click(screen.getByRole('switch', { name: 'Different currency' }));
+    await user.type(screen.getByLabelText('Original amount'), sellerAmount);
     await user.selectOptions(screen.getByRole('combobox', { name: 'Seller’s currency' }), 'GEL');
   }
 
@@ -272,8 +272,8 @@ test('asks for the category, the location and the seller’s currency before sen
   await user.type(screen.getByLabelText('Amount'), '42.80');
   await user.click(screen.getByRole('button', { name: /^From/ }));
   await user.click(screen.getByRole('button', { name: /^Euro card/ }));
-  await user.click(screen.getByRole('checkbox', { name: 'Paid in another currency' }));
-  await user.type(screen.getByLabelText('Seller’s amount'), '125.50');
+  await user.click(screen.getByRole('switch', { name: 'Different currency' }));
+  await user.type(screen.getByLabelText('Original amount'), '125.50');
 
   // act
   await user.click(screen.getByRole('button', { name: 'Add expense' }));
@@ -290,7 +290,7 @@ test('asks for the category, the location and the seller’s currency before sen
   expect(screen.getByRole('combobox', { name: 'Seller’s currency' })).toHaveAccessibleDescription(
     'Choose the seller’s currency',
   );
-  expect(screen.getByLabelText('Seller’s amount')).toBeValid();
+  expect(screen.getByLabelText('Original amount')).toBeValid();
   expect(isRequestSent).toBe(false);
 });
 
@@ -486,8 +486,8 @@ test.each([
     await user.click(screen.getByRole('button', { name: /^To/ }));
     await user.click(screen.getByRole('button', { name: /^Euro card/ }));
     if (paidAmount !== null) {
-      await user.click(screen.getByRole('checkbox', { name: 'Paid in another currency' }));
-      await user.type(screen.getByLabelText('Paid amount'), paidAmount);
+      await user.click(screen.getByRole('switch', { name: 'Different currency' }));
+      await user.type(screen.getByLabelText('Original amount'), paidAmount);
       await user.selectOptions(screen.getByRole('combobox', { name: 'Paid currency' }), 'GEL');
     }
     await user.type(screen.getByLabelText('In USD'), '3491.20');
@@ -550,7 +550,7 @@ test.each([
 
     // act
     if (paidCurrency !== null) {
-      await user.click(screen.getByRole('checkbox', { name: 'Paid in another currency' }));
+      await user.click(screen.getByRole('switch', { name: 'Different currency' }));
       await user.selectOptions(
         screen.getByRole('combobox', { name: 'Paid currency' }),
         paidCurrency,
@@ -599,8 +599,9 @@ test('shows the base currency amount of an income right under the amount receive
       Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
   expect(
-    baseCurrencyAmount.compareDocumentPosition(screen.getByRole('button', { name: /^Source/ })) &
-      Node.DOCUMENT_POSITION_FOLLOWING,
+    baseCurrencyAmount.compareDocumentPosition(
+      screen.getByRole('switch', { name: 'Different currency' }),
+    ) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
 });
 
@@ -891,7 +892,7 @@ test('leaves out the base currency estimate of an income paid in another currenc
   expect(screen.getByLabelText('Amount received')).toHaveAccessibleDescription('≈ $47.08');
 
   // act
-  await user.click(screen.getByRole('checkbox', { name: 'Paid in another currency' }));
+  await user.click(screen.getByRole('switch', { name: 'Different currency' }));
 
   // assert
   expect(screen.getByLabelText('Amount received')).toHaveAccessibleDescription('');
@@ -1209,6 +1210,12 @@ test.each([
     );
     expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    if (transactionType !== 'TRANSFER') {
+      expect(screen.getByRole('switch', { name: 'Different currency' })).toBeChecked();
+      expect(screen.getByLabelText('Original amount')).toHaveValue(
+        transactionType === 'EXPENSE' ? '125.50' : '8,800.00',
+      );
+    }
 
     // act
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -1461,3 +1468,88 @@ test('lists both accounts of an edited transfer on either side when the choices 
   expect(screen.getByRole('button', { name: /^Euro savings/ })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /^Euro card/ })).toBeInTheDocument();
 });
+
+test.each(['EXPENSE', 'INCOME'] as const)(
+  'toggles the original amount with the keyboard and submits %s in the account currency when off',
+  async (transactionType) => {
+    // arrange
+    let requestBody: unknown = null;
+    server.use(
+      http.post('http://localhost/api/accounting/transactions', async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json(expense);
+      }),
+    );
+    const user = userEvent.setup();
+    render(
+      <MovementForm
+        transactionType={transactionType}
+        mode={{ kind: 'create', typeChoice: { transactionTypes, onTypeChange: vi.fn() } }}
+        categoryTypes={categoryTypes}
+        currencies={currencies}
+        moneyAccounts={[dollarCash]}
+        categories={[groceries]}
+        incomeSources={[salary]}
+        locations={[market]}
+        baseCurrency="USD"
+        relatedQueryKeys={[]}
+        renderCategoryForm={() => null}
+        renderIncomeSourceForm={() => null}
+        renderMoneyAccountForm={() => null}
+        renderLocationForm={() => null}
+        onClose={vi.fn()}
+      />,
+    );
+    const isIncome = transactionType === 'INCOME';
+    await user.type(screen.getByLabelText(isIncome ? 'Amount received' : 'Amount'), '50');
+    await user.click(screen.getByRole('button', { name: isIncome ? /^Source/ : /^From/ }));
+    await user.click(screen.getByRole('button', { name: isIncome ? /^Salary/ : /^Cash/ }));
+    await user.click(screen.getByRole('button', { name: isIncome ? /^To/ : /^Category/ }));
+    await user.click(screen.getByRole('button', { name: isIncome ? /^Cash/ : /^Groceries/ }));
+    if (!isIncome) {
+      await user.click(screen.getByRole('button', { name: /^Location/ }));
+      await user.click(screen.getByRole('button', { name: /^Central market/ }));
+    }
+    const toggle = screen.getByRole('switch', { name: 'Different currency' });
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByLabelText('Original amount')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('In USD')).not.toBeInTheDocument();
+
+    // act
+    await user.click(toggle);
+    await user.type(screen.getByLabelText('Original amount'), '42');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: isIncome ? 'Paid currency' : 'Seller’s currency' }),
+      'EUR',
+    );
+    expect(
+      toggle.compareDocumentPosition(screen.getByLabelText('Original amount')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByLabelText('Original amount')
+        .compareDocumentPosition(
+          screen.getByRole('button', { name: isIncome ? /^Source/ : /^From/ }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await user.click(toggle);
+    await user.keyboard(' ');
+    expect(toggle).toBeChecked();
+    expect(screen.getByLabelText('Original amount')).toHaveValue('42.00');
+    await user.keyboard(' ');
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByLabelText('Original amount')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: isIncome ? 'Add income' : 'Add expense' }));
+
+    // assert
+    await waitFor(() => {
+      expect(requestBody).toMatchObject({
+        source_amount: '50.00',
+        source_currency: 'USD',
+        destination_amount: '50.00',
+        destination_currency: 'USD',
+      });
+    });
+  },
+);

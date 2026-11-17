@@ -25,7 +25,7 @@ import {
   readAccountCurrency,
 } from '../schemas/transaction-form';
 import { AmountField } from './amount-field';
-import { BaseCurrencyAmountRow } from './base-currency-amount-row';
+import { readAmountInputProps } from './amount-input';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { ExpenseExtraRows } from './expense-extra-rows';
@@ -310,12 +310,31 @@ export function MovementForm({
               ?.message
           }
         />
-        {isIncome && isBaseCurrencyAmountAsked && (
-          <BaseCurrencyAmountRow
-            baseCurrency={baseCurrency}
-            registration={register('base_currency_amount')}
-            error={formState.errors.base_currency_amount?.message}
-          />
+        {!isTransfer && (
+          <div className={[styles['rows'], styles['currencyGroup']].join(' ')}>
+            {isIncome && isBaseCurrencyAmountAsked && (
+              <InputRow
+                label={`In ${baseCurrency}`}
+                input={readAmountInputProps({
+                  registration: register('base_currency_amount'),
+                  isNegativeAllowed: false,
+                })}
+                suffix={baseCurrency}
+                error={formState.errors.base_currency_amount?.message}
+              />
+            )}
+            <label className={styles['anotherCurrency']}>
+              Different currency
+              <input
+                {...register('is_paid_in_another_currency')}
+                type="checkbox"
+                role="switch"
+                className={styles['switch']}
+              />
+            </label>
+            {transactionType === 'EXPENSE' && <ExpenseExtraRows currencies={currencies} />}
+            {isIncome && <IncomeExtraRows currencies={currencies} />}
+          </div>
         )}
         <div className={styles['rows']}>
           <PickerRow
@@ -382,18 +401,6 @@ export function MovementForm({
             error={formState.errors.transaction_date?.message}
           />
         </div>
-        {!isTransfer && (
-          <label className={styles['anotherCurrency']}>
-            <input
-              {...register('is_paid_in_another_currency')}
-              type="checkbox"
-              className={styles['checkbox']}
-            />
-            Paid in another currency
-          </label>
-        )}
-        {transactionType === 'EXPENSE' && <ExpenseExtraRows currencies={currencies} />}
-        {isIncome && <IncomeExtraRows currencies={currencies} />}
         {isTransfer && (
           <TransferExtraRows
             destinationCurrency={destination}
