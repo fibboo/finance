@@ -251,19 +251,19 @@ The app needs a secure context, which a phone has only on `localhost`, so an And
 2. On the phone, turn on Developer options (tap Build number seven times) and then Developer options → Wireless debugging.
    Developer options → Stay awake keeps the screen on while the phone charges, which keeps the phone from dropping the
    connection when the screen turns off.
-   For first-time pairing, open Wireless debugging → Pair device with pairing code before running the script.
 3. Close Android Studio, which restarts adb with its own settings. With the app running (`docker compose up -d`), run
    from the repository root in PowerShell 7 (`winget install Microsoft.PowerShell`), whose default execution policy
    runs local scripts:
    ```powershell
    pwsh ./scripts/connect-phone.ps1
    ```
-   The script reuses a connected phone or retries its known address. It finds advertised phones through adb and, when
-   adb returns no services, through direct mDNS queries on the active IPv4 interfaces and to devices in Windows' neighbor
-   table. It tries the discovered phones and pairs when needed, asking for the code shown under Pair device with pairing
-   code. If automatic discovery finds no address, it asks for the IP address and port from the main Wireless debugging
-   screen. Addresses are kept only for the running script. It forwards ports 5173 and 8080 and checks that the dev server
-   and the mock sign-in server answer on them.
+   The script reuses a connected phone or retries its known address. It finds advertised phones through direct mDNS
+   queries on the active IPv4 interfaces and to devices in Windows' neighbor table, then falls back to adb's discovery.
+   If adb rejects authentication, the script starts pairing and asks you to open Wireless debugging → Pair device with
+   pairing code. If it cannot establish whether pairing is needed, press Enter to pair a new device, or enter the IP
+   address and port from the main Wireless debugging screen to reconnect a paired one. The pairing port is discovered
+   automatically, and the script asks only for the pairing code. Addresses are kept only for the running script. It
+   forwards ports 5173 and 8080 and checks that the dev server and the mock sign-in server answer on them.
 4. Open `http://localhost:5173` in Chrome on the phone.
 
 The script keeps running and checks the forwards every few seconds. When the connection drops, it reconnects to the

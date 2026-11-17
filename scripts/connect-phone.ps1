@@ -44,14 +44,24 @@ function Wait-MdnsServices([string[]]$ServiceTypes, [string]$Prompt) {
     throw "The phone did not show up on the network within $WaitSeconds seconds. Check that wireless debugging is on and that the phone is on the same Wi-Fi as this computer."
 }
 
-function Connect-AnyPhone([string[]]$KnownAddresses = @()) {
+function Connect-AnyPhone([string[]]$KnownAddresses = @(), [ref]$AuthenticationFailed = [ref]$false) {
     $deadline = (Get-Date).AddSeconds($ConnectRetrySeconds)
     while ((Get-Date) -lt $deadline) {
+        $wasRejected = $false
         foreach ($address in (@($KnownAddresses) + (Find-MdnsServices '_adb-tls-connect._tcp') | Select-Object -Unique)) {
             $output = adb connect $address 2>&1 | Out-String
             if ($output -match 'connected to') {
                 return $address
             }
+
+            if ($output -match 'failed to authenticate') {
+                $wasRejected = $true
+                $AuthenticationFailed.Value = $true
+            }
+        }
+
+        if ($wasRejected) {
+            return $null
         }
 
         Start-Sleep -Seconds 2
@@ -173,35 +183,38 @@ try {
     $env:ADB_MDNS_AUTO_CONNECT = '0'
     adb start-server 2>$null | Out-Null
     $knownAddresses = @(Remove-StaleConnections)
+    $authenticationFailed = $false
 
     $connectAddress = Find-ConnectedPhone
     if (-not $connectAddress -and $knownAddresses.Count -gt 0) {
-        $connectAddress = Connect-AnyPhone $knownAddresses
+        $connectAddress = Connect-AnyPhone -KnownAddresses $knownAddresses -AuthenticationFailed ([ref]$authenticationFailed)
     }
 
-    if (-not $connectAddress) {
+    if (-not $connectAddress -and -not $authenticationFailed) {
         $discoveredAddresses = @(Find-MdnsServices '_adb-tls-connect._tcp')
         $pairingAddresses = @(Find-MdnsServices '_adb-tls-pairing._tcp')
         if ($discoveredAddresses.Count -gt 0) {
-            $connectAddress = Connect-AnyPhone $discoveredAddresses
+            $connectAddress = Connect-AnyPhone -KnownAddresses $discoveredAddresses -AuthenticationFailed ([ref]$authenticationFailed)
         }
 
-        if (-not $connectAddress -and $pairingAddresses.Count -eq 0) {
-            $manualAddress = (Read-Host 'IP address and port from the main Wireless debugging screen').Trim()
-            $phoneEndpoint = $null
-            if (-not [System.Net.IPEndPoint]::TryParse($manualAddress, [ref]$phoneEndpoint) -or $phoneEndpoint.Port -eq 0) {
-                throw 'Enter the IP address and port shown on the main Wireless debugging screen.'
-            }
+        if (-not $connectAddress -and -not $authenticationFailed -and $pairingAddresses.Count -eq 0) {
+            $manualAddress = (Read-Host 'Press Enter to pair a new device, or enter IP:port to reconnect a paired device').Trim()
+            if ($manualAddress -ne '') {
+                $phoneEndpoint = $null
+                if (-not [System.Net.IPEndPoint]::TryParse($manualAddress, [ref]$phoneEndpoint) -or $phoneEndpoint.Port -eq 0) {
+                    throw 'Enter the IP address and port shown on the main Wireless debugging screen.'
+                }
 
-            $connectAddress = Connect-AnyPhone $manualAddress
-            if (-not $connectAddress) {
-                throw "Could not connect to $manualAddress. Check the address on the main Wireless debugging screen and rerun this script."
+                $connectAddress = Connect-AnyPhone -KnownAddresses $manualAddress -AuthenticationFailed ([ref]$authenticationFailed)
+                if (-not $connectAddress -and -not $authenticationFailed) {
+                    throw "Could not connect to $manualAddress. Check the address on the main Wireless debugging screen and rerun this script."
+                }
             }
         }
     }
 
     if (-not $connectAddress) {
-        $pairingAddress = @(Wait-MdnsServices '_adb-tls-pairing._tcp' 'Could not connect to the phone. To pair it, open Wireless debugging > Pair device with pairing code...')[0]
+        $pairingAddress = @(Wait-MdnsServices '_adb-tls-pairing._tcp' 'On the phone, open Wireless debugging > Pair device with pairing code...')[0]
         $pairingCode = Read-Host 'Pairing code shown on the phone'
         $pairingOutput = adb pair $pairingAddress $pairingCode 2>&1 | Out-String
         Write-Host $pairingOutput.Trim()
