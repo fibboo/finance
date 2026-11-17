@@ -176,14 +176,18 @@ function Find-NetworkMdnsServices([string]$ServiceType) {
         while ($clients.Count -gt 0 -and $discoveryTime.Elapsed.TotalSeconds -lt 3) {
             if ($discoveryTime.Elapsed.TotalSeconds -ge $nextQuerySeconds) {
                 foreach ($client in $clients) {
-                    foreach ($destination in $destinations[$client]) {
-                        $client.Send($query, $query.Length, $destination) | Out-Null
-                        foreach ($target in $queriedHosts) {
-                            if (-not $hostAddresses.ContainsKey($target)) {
-                                $hostQuery = New-MdnsQuery $target 1
-                                $client.Send($hostQuery, $hostQuery.Length, $destination) | Out-Null
+                    try {
+                        foreach ($destination in $destinations[$client]) {
+                            $client.Send($query, $query.Length, $destination) | Out-Null
+                            foreach ($target in $queriedHosts) {
+                                if (-not $hostAddresses.ContainsKey($target)) {
+                                    $hostQuery = New-MdnsQuery $target 1
+                                    $client.Send($hostQuery, $hostQuery.Length, $destination) | Out-Null
+                                }
                             }
                         }
+                    } catch [System.Net.Sockets.SocketException] {
+                        Write-Verbose "mDNS query could not be retried: $($_.Exception.Message)"
                     }
                 }
 
@@ -191,12 +195,12 @@ function Find-NetworkMdnsServices([string]$ServiceType) {
             }
 
             foreach ($client in $clients) {
-                if (-not $client.Client.Poll(0, [System.Net.Sockets.SelectMode]::SelectRead)) {
-                    continue
-                }
-
-                $sender = [System.Net.IPEndPoint]::new([System.Net.IPAddress]::Any, 0)
                 try {
+                    if (-not $client.Client.Poll(0, [System.Net.Sockets.SelectMode]::SelectRead)) {
+                        continue
+                    }
+
+                    $sender = [System.Net.IPEndPoint]::new([System.Net.IPAddress]::Any, 0)
                     $packet = $client.Receive([ref]$sender)
                 } catch [System.Net.Sockets.SocketException] {
                     Write-Verbose "mDNS response could not be received: $($_.Exception.Message)"
@@ -224,7 +228,11 @@ function Find-NetworkMdnsServices([string]$ServiceType) {
                 foreach ($service in $services.Values) {
                     if (-not $hostAddresses.ContainsKey($service.Target) -and $queriedHosts.Add($service.Target)) {
                         $hostQuery = New-MdnsQuery $service.Target 1
-                        $client.Send($hostQuery, $hostQuery.Length, $sender) | Out-Null
+                        try {
+                            $client.Send($hostQuery, $hostQuery.Length, $sender) | Out-Null
+                        } catch [System.Net.Sockets.SocketException] {
+                            Write-Verbose "mDNS hostname query could not be sent: $($_.Exception.Message)"
+                        }
                     }
                 }
             }
