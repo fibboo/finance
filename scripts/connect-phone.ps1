@@ -67,7 +67,9 @@ function Find-ConnectedPhone {
 function Remove-StaleConnections {
     foreach ($line in adb devices 2>$null) {
         if ($line -match '^(\S+:\d+)\s+(\S+)$' -and $Matches[2] -ne 'device') {
-            adb disconnect $Matches[1] 2>&1 | Out-Null
+            $address = $Matches[1]
+            adb disconnect $address 2>&1 | Out-Null
+            $address
         }
     }
 }
@@ -164,19 +166,24 @@ $previousAutoConnect = $env:ADB_MDNS_AUTO_CONNECT
 try {
     $env:ADB_MDNS_AUTO_CONNECT = '0'
     adb start-server 2>$null | Out-Null
-    Remove-StaleConnections
+    $knownAddresses = @(Remove-StaleConnections)
 
     $connectAddress = Find-ConnectedPhone
+    if (-not $connectAddress -and $knownAddresses.Count -gt 0) {
+        $connectAddress = Connect-AnyPhone $knownAddresses
+    }
+
     if (-not $connectAddress) {
         Wait-MdnsServices @('_adb-tls-connect._tcp', '_adb-tls-pairing._tcp') 'Looking for the phone. If wireless debugging is off, turn on Developer options > Wireless debugging...' | Out-Null
         $connectAddress = Connect-AnyPhone
     }
 
     if (-not $connectAddress) {
-        $pairingAddress = @(Wait-MdnsServices '_adb-tls-pairing._tcp' 'No phone accepted the connection, so it is not paired yet. On the phone open Wireless debugging > Pair device with pairing code...')[0]
+        $pairingAddress = @(Wait-MdnsServices '_adb-tls-pairing._tcp' 'Could not connect to the phone. To pair it, open Wireless debugging > Pair device with pairing code...')[0]
         $pairingCode = Read-Host 'Pairing code shown on the phone'
-        adb pair $pairingAddress $pairingCode
-        if ($LASTEXITCODE -ne 0) {
+        $pairingOutput = adb pair $pairingAddress $pairingCode 2>&1 | Out-String
+        Write-Host $pairingOutput.Trim()
+        if ($LASTEXITCODE -ne 0 -or $pairingOutput -notmatch 'Successfully paired to ') {
             throw 'Pairing failed. Open the pairing dialog again and rerun this script.'
         }
 
