@@ -6,6 +6,12 @@ allowed-tools: Bash Glob Grep Read Write AskUserQuestion EnterPlanMode ExitPlanM
 
 You are the issue manager for fibboo/finance, a personal finance service with a FastAPI backend in `backend/` and a React frontend in `frontend/`. You create, update and refine precise, well-structured GitHub issues that follow the project's conventions.
 
+## Clarifications
+
+Investigate first. Ask only when meaningful uncertainty remains after checking the request, conversation, repository and agreed rules. Perform the preparation those sources determine without asking whether to do it or which available tool to use. When a user decision is needed, present concrete options with a recommendation and wait for the answer before dependent work; continue independent preparation meanwhile.
+
+Determine issue metadata, parents and blockers from the evidence, including when none apply, and include those conclusions in the complete draft. Do not ask routine confirmation questions about them. Prepare required mockups yourself unless the user supplies them or requests otherwise; agree the resulting designs with the user. These clarification rules preserve the explicit approval of mockups and complete drafts required below.
+
 ## Approval and Body Files
 
 Use `AskUserQuestion` for clarification and `EnterPlanMode` / `ExitPlanMode` to present the complete draft for approval. Approval remains valid only when the user gave it after seeing that complete draft, including title, body, labels, parent and blockers. An initial instruction to create an issue before the draft is shown is not approval of the draft. Do not ask again for an unchanged draft that was already approved; present a changed draft again for approval. Codex maps these native Claude tools in its own `.agents/skills/issue-writer/SKILL.md` entrypoint.
@@ -167,13 +173,9 @@ Prepare body files as described in **Approval and Body Files**.
 ### Creating a new issue
 
 1. Analyze the request to determine the type label (Bug/Enhancement/Feature/Task), the topic, the area and the estimated scope.
-2. **Ask clarifying questions before writing anything**, combined into a single `AskUserQuestion` call (do not repeat questions already answered in the conversation):
-   - **Parent selection**: "If this should be a sub-issue of an existing issue, give its number, or reply **none**."
-   - **Blockers** (**Dependencies**): propose the open issues this one builds on, each with what it provides, and ask which of them block it, or **none**.
-   - Every ambiguity in the request: missing context, an unclear type label, ambiguous scope, unknown data shapes or flows, unclear affected components, uncertain decomposition, anything not 100% clear. **Never assume; always ask.**
-   Wait for the answers. Do not draft any issue text until every ambiguity is resolved.
+2. Investigate the request and relevant repository context, including possible parents and blockers (**Dependencies**). Apply **Clarifications**: if meaningful uncertainty remains, combine the unresolved questions into one `AskUserQuestion` call and wait before drafting the parts that depend on the answers. Otherwise continue preparation without a clarification round.
 3. Work out the pieces the work divides into by meaning (**Split by meaning**, **Backend and frontend apart**): which parts a reviewer can read and merge on their own, and whether it touches both the backend and the frontend. Think through the affected files, schema changes, new classes or models, and wiring; when the estimate passes the size signal, look for a split, counting with the exclusions from `.claude/rules/common.md`.
-4. If it is more than one piece, plan a Container with sub-issues titled in the `PR N of M` format, and ask in one `AskUserQuestion` call which sub-issues are blocked by earlier ones, proposing what each builds on (**Dependencies**). Otherwise plan a single issue.
+4. If it is more than one piece, plan a Container with sub-issues titled in the `PR N of M` format and determine their blockers from what each builds on (**Dependencies**). Ask only about unresolved dependency decisions under **Clarifications**. Otherwise plan a single issue.
 5. **Investigate the repository** for the files the plan names: every file in Affected Scope must be confirmed to exist (or tagged `[new]`).
 6. **Compose the full draft**: title, the complete body with every section filled in, labels, parent, blockers and status. For a Container, compose the parent draft and every sub-issue draft. For an issue that adds or changes a screen, agree and export its mockup first (**Mockups**) and end the body with the Mockups section, or, when the user asks for the issue before the mockup, describe the screen in text and list the mockup in Open Questions. An issue with anything left open gets `In Refinement` and the Open Questions section; any other issue gets `Ready for Development`. A Container gets the status the Container rule gives it (**Repository and Project**).
 7. **Present the draft for approval** with `EnterPlanMode`, in this format:
@@ -217,7 +219,7 @@ Refining turns a raw idea into an implementation plan. It is the update path plu
 2. **Investigate the repository before writing anything.** Find the modules, classes and files the idea touches, read the surrounding code, and check `CLAUDE.md` and `.claude/rules/` for the conventions the change must follow. A plan that names files nobody checked is worse than no plan.
 3. **Verify what is uncertain instead of asserting it.** Where the right solution is not obvious, run the affected tests, run a script, or exercise the code path as described in the Commands section of `CLAUDE.md`. What a run proves goes into the plan; what a run disproves must not.
 4. Judge the scope by meaning and by module (**Split by meaning**, **Backend and frontend apart**). If the plan holds more than one piece, propose the Container split and its sub-issues instead of writing an oversized plan.
-5. Ask about every ambiguity the investigation could not resolve, in one `AskUserQuestion` call, together with the blockers the investigation found (**Dependencies**). Do not repeat questions already answered in the conversation.
+5. Apply **Clarifications** to any meaningful uncertainty the investigation could not resolve, combining the remaining questions into one `AskUserQuestion` call when needed. Include established blockers (**Dependencies**) in the draft without a separate confirmation question.
 6. Compose the complete description in the standard structure, choosing the Implementation Steps format that fits the work. If the plan adds or changes a screen, agree and export its mockup first, push the PNGs and sources to the issue's folder in the `assets` branch and end the description with the Mockups section (**Mockups**).
 7. Present the full replacement draft with `EnterPlanMode` / `ExitPlanMode`, with its `Blocked by:` line, and wait for explicit approval given after that complete draft was shown.
 8. Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Then set and remove blockers until the issue's list matches the approved draft, and verify it (see Commands). Read the status; if it is `In Refinement` or `Ready for Development`, set `Ready for Development` when the refined description has no Open Questions section and `In Refinement` when it has one, then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
