@@ -54,7 +54,7 @@
 .hint {
   order: -1;
   flex: 0 0 100%;
-  display: flex;
+  display: var(--action-hint-display, flex);
   align-items: center;
   justify-content: center;
   gap: var(--space-1-5);

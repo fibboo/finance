@@ -223,6 +223,7 @@ test('hides Recent when the accounting dictionary fails to load', async () => {
 
 test('shows the first account and the top recent transaction while none is chosen', async () => {
   // arrange
+  const user = userEvent.setup();
   server.use(
     http.get(`http://localhost/api/accounting/accounts/${wallet.id}`, () =>
       HttpResponse.json(wallet),
@@ -243,6 +244,23 @@ test('shows the first account and the top recent transaction while none is chose
     await within(accountDetails).findByRole('heading', { level: 2, name: 'Wallet' }),
   ).toBeInTheDocument();
   expect(accountDetails).not.toHaveFocus();
+  expect(within(accountDetails).getByRole('link', { name: 'Adjust balance' })).toHaveAttribute(
+    'href',
+    `/?new_transaction=ADJUSTMENT&new_transaction_account=${wallet.id}`,
+  );
+  expect(within(accountDetails).getByRole('link', { name: 'Transactions' })).toHaveAttribute(
+    'href',
+    `/transactions?account_ids=${wallet.id}`,
+  );
+  expect(within(accountDetails).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  const deleteButton = within(accountDetails).getByRole('button', { name: 'Delete account' });
+  expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+  await user.hover(deleteButton);
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Bring the balance to zero to delete.');
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  expect(accountDetails).toBeInTheDocument();
+  expect(details).toBeInTheDocument();
 });
 
 test('shows the framed transaction skeleton before Recent answers and keeps it until the details do', async () => {

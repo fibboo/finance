@@ -1,7 +1,6 @@
-.summary {
-  --action-button-flex: 0 0 var(--size-touch);
-  --action-button-min-height: var(--size-touch);
+@import '@/styles/media.css';
 
+.summary {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -18,4 +17,12 @@
 .balanceSkeleton {
   width: var(--size-skeleton-label-lg);
   height: var(--size-skeleton-text-lg);
+}
+
+@media (--desktop) {
+  .squareActions {
+    --action-button-flex: 0 0 var(--size-touch);
+    --action-button-min-height: var(--size-touch);
+    --action-hint-display: none;
+  }
 }
