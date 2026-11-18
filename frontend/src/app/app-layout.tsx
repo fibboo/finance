@@ -8,7 +8,7 @@ import { NewTransaction } from './new-transaction';
 import { PendingSection } from './pending-section';
 import { findShownSection } from './sections';
 import { readIsMenuCollapsed, useMenuCollapse } from './use-menu-collapse';
-import { useShownPathname } from './use-shown-pathname';
+import { useShownPathname } from '@/hooks/use-shown-pathname';
 
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';

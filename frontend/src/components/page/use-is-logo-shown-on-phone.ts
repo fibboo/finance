@@ -1,5 +1,7 @@
 import { useMatches } from 'react-router';
 
+import { useShownPathname } from '@/hooks/use-shown-pathname';
+
 function readIsLogoShownOnPhone(handle: unknown): boolean {
   const isLogoShownOnPhone =
     typeof handle === 'object' &&
@@ -10,6 +12,9 @@ function readIsLogoShownOnPhone(handle: unknown): boolean {
 }
 
 export function useIsLogoShownOnPhone(): boolean {
-  const isLogoShownOnPhone = useMatches().some((match) => readIsLogoShownOnPhone(match.handle));
+  const { isPending } = useShownPathname();
+  const matches = useMatches();
+  const isLogoShownOnPhone =
+    !isPending && matches.some((match) => readIsLogoShownOnPhone(match.handle));
   return isLogoShownOnPhone;
 }

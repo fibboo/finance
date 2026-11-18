@@ -6,7 +6,7 @@ import { MoreMenu } from './more-menu';
 import { isSectionShown, MORE_SECTIONS, SECTIONS } from './sections';
 import { type MenuState, readIsMenuCollapsed } from './use-menu-collapse';
 import { useOpenNewTransaction } from './use-open-new-transaction';
-import { useShownPathname } from './use-shown-pathname';
+import { useShownPathname } from '@/hooks/use-shown-pathname';
 
 const ADD_ICON_PATH = 'M12 5v14M5 12h14';
 const COLLAPSE_ICON_PATH = 'M11 6l-6 6 6 6M19 6l-6 6 6 6';
