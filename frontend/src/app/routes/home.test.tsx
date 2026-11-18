@@ -809,4 +809,5 @@ test('shows skeleton rows instead of the previous transactions while the next da
   expect(screen.getByRole('region', { name: 'Recent transactions' })).not.toHaveTextContent(
     'Design project',
   );
+  expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });

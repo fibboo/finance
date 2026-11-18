@@ -215,7 +215,7 @@ export function Component() {
                   transactionTypes={dictionaries.transaction_types}
                   transactionOrders={dictionaries.transaction_orders}
                   items={filterItems}
-                  total={feed.total ?? feed.query.data?.pages.at(-1)?.total}
+                  total={feed.total}
                   isTotalPending={feed.total === undefined}
                   onApply={applyFilters}
                   onJump={(monthEnd) => {

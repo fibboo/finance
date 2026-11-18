@@ -4,14 +4,38 @@ import { RootErrorBoundary } from '@/app/root-error-boundary';
 import { BootScreen } from '@/components/boot-screen/boot-screen';
 import { restoreSession } from '@/features/auth/api/session';
 
+function importHomeRoute() {
+  return import('@/app/routes/home');
+}
+
+function importTransactionsRoute() {
+  return import('@/app/routes/transactions');
+}
+
+function importAccountsRoute() {
+  return import('@/app/routes/accounts');
+}
+
+function importCategoriesRoute() {
+  return import('@/app/routes/categories');
+}
+
+function importLocationsRoute() {
+  return import('@/app/routes/locations');
+}
+
+function importIncomeSourcesRoute() {
+  return import('@/app/routes/income-sources');
+}
+
 function preloadSectionRoutes() {
   void Promise.allSettled([
-    import('@/app/routes/home'),
-    import('@/app/routes/transactions'),
-    import('@/app/routes/accounts'),
-    import('@/app/routes/categories'),
-    import('@/app/routes/locations'),
-    import('@/app/routes/income-sources'),
+    importHomeRoute(),
+    importTransactionsRoute(),
+    importAccountsRoute(),
+    importCategoriesRoute(),
+    importLocationsRoute(),
+    importIncomeSourcesRoute(),
   ]);
 }
 
@@ -57,40 +81,41 @@ const routes: RouteObject[] = [
                 ErrorBoundary: RootErrorBoundary,
                 lazy: {
                   Component: async () => {
+                    const { AppLayout } = await import('@/app/app-layout');
                     preloadSectionRoutes();
-                    return (await import('@/app/app-layout')).AppLayout;
+                    return AppLayout;
                   },
                 },
                 children: [
                   {
                     index: true,
                     ErrorBoundary: RootErrorBoundary,
-                    lazy: () => import('@/app/routes/home'),
+                    lazy: importHomeRoute,
                   },
                   {
                     path: 'transactions',
                     ErrorBoundary: RootErrorBoundary,
-                    lazy: () => import('@/app/routes/transactions'),
+                    lazy: importTransactionsRoute,
                   },
                   {
                     path: 'accounts',
                     ErrorBoundary: RootErrorBoundary,
-                    lazy: () => import('@/app/routes/accounts'),
+                    lazy: importAccountsRoute,
                   },
                   {
                     path: 'categories',
                     ErrorBoundary: RootErrorBoundary,
-                    lazy: () => import('@/app/routes/categories'),
+                    lazy: importCategoriesRoute,
                   },
                   {
                     path: 'locations',
                     ErrorBoundary: RootErrorBoundary,
-                    lazy: () => import('@/app/routes/locations'),
+                    lazy: importLocationsRoute,
                   },
                   {
                     path: 'income-sources',
                     ErrorBoundary: RootErrorBoundary,
-                    lazy: () => import('@/app/routes/income-sources'),
+                    lazy: importIncomeSourcesRoute,
                   },
                   {
                     path: 'auth/link-callback',

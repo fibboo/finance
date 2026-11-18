@@ -3150,4 +3150,5 @@ test('shows skeleton rows instead of the previous transactions while a filter ch
   const feed = screen.getByRole('region', { name: 'Transactions' });
   expect(feed).toHaveAttribute('aria-busy', 'true');
   expect(feed).not.toHaveTextContent(category.name);
+  expect(screen.queryByText('Nothing matches these filters')).not.toBeInTheDocument();
 });

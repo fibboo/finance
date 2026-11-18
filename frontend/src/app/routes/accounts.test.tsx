@@ -1366,6 +1366,7 @@ test('shows the list skeleton instead of the previous accounts while a search lo
   // assert
   expect(screen.queryByRole('region', { name: 'Assets' })).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Liabilities' })).not.toBeInTheDocument();
+  expect(screen.queryByText('No accounts match this search')).not.toBeInTheDocument();
   expect(
     screen.getByRole('heading', { level: 1, name: 'Accounts, 2 accounts' }),
   ).toBeInTheDocument();

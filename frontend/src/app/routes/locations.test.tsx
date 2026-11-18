@@ -804,4 +804,5 @@ test('shows the list skeleton instead of the previous locations while a search l
   const list = screen.getByRole('region', { name: 'Locations' });
   expect(list).toHaveAttribute('aria-busy', 'true');
   expect(list).not.toHaveTextContent(spar.name);
+  expect(screen.queryByText('No locations match this search')).not.toBeInTheDocument();
 });

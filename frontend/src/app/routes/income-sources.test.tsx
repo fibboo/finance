@@ -662,4 +662,5 @@ test('shows the list skeleton instead of the previous income sources while a sea
   const list = screen.getByRole('region', { name: 'Income sources' });
   expect(list).toHaveAttribute('aria-busy', 'true');
   expect(list).not.toHaveTextContent(salary.name);
+  expect(screen.queryByText('No income sources match this search')).not.toBeInTheDocument();
 });

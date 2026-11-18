@@ -1771,4 +1771,5 @@ test('shows the list skeleton instead of the previous categories while a search 
   const list = screen.getByRole('region', { name: 'Categories' });
   expect(list).toHaveAttribute('aria-busy', 'true');
   expect(list).not.toHaveTextContent(groceries.name);
+  expect(screen.queryByText('No categories match this search')).not.toBeInTheDocument();
 });
