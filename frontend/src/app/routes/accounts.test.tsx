@@ -368,6 +368,40 @@ test.each([
   },
 );
 
+test('shows the estimate of a balance with unvalued amounts and the rate it gives in place of the valued ones', async () => {
+  // arrange
+  const account = {
+    ...mainCard,
+    balance: '-300.00',
+    base_currency_rate: '0',
+    base_currency_balance: '0.00',
+    estimated_base_balance: '-324.00',
+  };
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [account],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get(`http://localhost/api/accounting/accounts/${mainCard.id}`, () =>
+      HttpResponse.json(account),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/?account=${mainCard.id}`] });
+
+  // assert
+  const details = await screen.findByRole('dialog', { name: 'Account details' });
+  await within(details).findByRole('heading', { name: 'Main card' });
+  expect(details).toHaveTextContent('-€300.00≈ -$324.00 · rate 0.9259');
+  expect(details).not.toHaveTextContent('$0.00');
+});
+
 test('closes the account with Escape, returns focus to its row and shows the top account', async () => {
   // arrange
   const user = userEvent.setup();

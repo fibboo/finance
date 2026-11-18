@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
+import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
@@ -11,6 +12,7 @@ import { formatMoney } from '@/lib/format-money';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '../api/account-queries';
 import { readAccountLinkId, writeSelectedAccount } from '../api/selected-account';
 import { useStripEdges } from '../hooks/use-strip-edges';
+import { readEstimatedBaseBalance } from './account-estimate';
 import { AccountMark } from './account-mark';
 import styles from './account-list.module.css';
 import { readAccountRateText } from './account-rate';
@@ -99,69 +101,76 @@ export function AccountList({
                   </span>
                 </li>
               ))}
-            {accounts.map((account, index) => (
-              <li
-                key={account.id}
-                ref={
-                  index === 0
-                    ? observeFirst
-                    : index === accounts.length - 1
-                      ? observeLast
-                      : undefined
-                }
-                className={styles['accountItem']}
-              >
-                <Link
-                  {...arrowKeySelection}
-                  data-shown-by-default={
-                    chosenAccountId === undefined && account.id === defaultAccountId
-                      ? ''
-                      : undefined
+            {accounts.map((account, index) => {
+              const estimatedBaseBalance = readEstimatedBaseBalance(account);
+              return (
+                <li
+                  key={account.id}
+                  ref={
+                    index === 0
+                      ? observeFirst
+                      : index === accounts.length - 1
+                        ? observeLast
+                        : undefined
                   }
-                  id={readAccountLinkId(account.id)}
-                  to={{
-                    search: writeSelectedAccount({
-                      searchParams,
-                      accountId: account.id,
-                    }).toString(),
-                  }}
-                  preventScrollReset
-                  aria-current={account.id === chosenAccountId ? 'true' : undefined}
-                  className={`${styles['account'] ?? ''} ${account.id === chosenAccountId ? (styles['selected'] ?? '') : ''} ${chosenAccountId === undefined && account.id === defaultAccountId ? (styles['shownByDefault'] ?? '') : ''}`}
+                  className={styles['accountItem']}
                 >
-                  <AccountMark account={account} />
-                  <span className={styles['identity']}>
-                    <span className={styles['name']}>{account.name}</span>
-                  </span>
-                  <span className={styles['detail']}>
-                    {account.currency}
-                    <span className={styles['rate']}>
-                      {readAccountRateText({ account, baseCurrency })}
-                    </span>
-                  </span>
-                  <span
-                    className={
-                      Number(account.balance) < 0 ? styles['debtAmounts'] : styles['amounts']
+                  <Link
+                    {...arrowKeySelection}
+                    data-shown-by-default={
+                      chosenAccountId === undefined && account.id === defaultAccountId
+                        ? ''
+                        : undefined
                     }
+                    id={readAccountLinkId(account.id)}
+                    to={{
+                      search: writeSelectedAccount({
+                        searchParams,
+                        accountId: account.id,
+                      }).toString(),
+                    }}
+                    preventScrollReset
+                    aria-current={account.id === chosenAccountId ? 'true' : undefined}
+                    className={`${styles['account'] ?? ''} ${account.id === chosenAccountId ? (styles['selected'] ?? '') : ''} ${chosenAccountId === undefined && account.id === defaultAccountId ? (styles['shownByDefault'] ?? '') : ''}`}
                   >
-                    <span className={styles['balance']}>
-                      {formatMoney({
-                        amount: Number(account.base_currency_balance),
-                        currency: baseCurrency,
-                      })}
+                    <AccountMark account={account} />
+                    <span className={styles['identity']}>
+                      <span className={styles['name']}>{account.name}</span>
                     </span>
-                    {account.currency !== baseCurrency && (
-                      <span className={styles['accountBalance']}>
-                        {formatMoney({
-                          amount: Number(account.balance),
-                          currency: account.currency,
-                        })}
+                    <span className={styles['detail']}>
+                      {account.currency}
+                      <span className={styles['rate']}>
+                        {readAccountRateText({ account, baseCurrency })}
                       </span>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            ))}
+                    </span>
+                    <span
+                      className={
+                        Number(account.balance) < 0 ? styles['debtAmounts'] : styles['amounts']
+                      }
+                    >
+                      <span className={styles['balance']}>
+                        {estimatedBaseBalance === null ? (
+                          formatMoney({
+                            amount: Number(account.base_currency_balance),
+                            currency: baseCurrency,
+                          })
+                        ) : (
+                          <EstimatedAmount amount={estimatedBaseBalance} currency={baseCurrency} />
+                        )}
+                      </span>
+                      {account.currency !== baseCurrency && (
+                        <span className={styles['accountBalance']}>
+                          {formatMoney({
+                            amount: Number(account.balance),
+                            currency: account.currency,
+                          })}
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
           {accounts.length > 1 && !isLastInView && (
             <button

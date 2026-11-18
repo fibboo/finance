@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from 'react-router';
 
+import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
 import type { ArrowKeySelectionProps } from '@/hooks/use-arrow-key-selection';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
@@ -64,6 +65,11 @@ export function TransactionRow({
   const rateText = isForeign
     ? readRateText({ amount: view.amount, baseAmount: view.baseAmount })
     : undefined;
+  const originalAmount = formatMoney({
+    amount: view.amount,
+    currency: view.currency,
+    signDisplay: view.signDisplay,
+  });
   const isEntryInTitle = view.rowTitle.some(
     (part) => typeof part !== 'string' && omittedAccountIds.includes(part.id),
   );
@@ -145,27 +151,27 @@ export function TransactionRow({
       </span>
       <span className={styles['amounts']}>
         <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
-          {view.baseAmount === null ? (
-            <>
-              <span aria-hidden="true">—</span>
-              <span className="visually-hidden">not valued yet</span>
-            </>
-          ) : (
+          {view.baseAmount !== null ? (
             formatMoney({
               amount: view.baseAmount,
               currency: baseCurrency,
               signDisplay: view.signDisplay,
             })
+          ) : view.estimatedBaseAmount !== null ? (
+            <EstimatedAmount
+              amount={view.estimatedBaseAmount}
+              currency={baseCurrency}
+              signDisplay={view.signDisplay}
+            />
+          ) : (
+            <>
+              {originalAmount}
+              <span className="visually-hidden">, not valued yet</span>
+            </>
           )}
         </span>
-        {isForeign && (
-          <span className={styles['originalAmount']}>
-            {formatMoney({
-              amount: view.amount,
-              currency: view.currency,
-              signDisplay: view.signDisplay,
-            })}
-          </span>
+        {isForeign && (view.baseAmount !== null || view.estimatedBaseAmount !== null) && (
+          <span className={styles['originalAmount']}>{originalAmount}</span>
         )}
       </span>
     </li>

@@ -1,24 +1,12 @@
+import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import styles from './account-balance.module.css';
+import { readEstimatedBaseBalance } from './account-estimate';
 import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
-
-function readBaseBalanceText({
-  account,
-  baseCurrency,
-}: Readonly<{ account: Readonly<Account>; baseCurrency: string }>): string {
-  const baseBalance = formatMoney({
-    amount: Number(account.base_currency_balance),
-    currency: baseCurrency,
-  });
-  const rateText = readAccountRateText({ account, baseCurrency });
-  const baseBalanceText =
-    rateText === undefined ? baseBalance : `${baseBalance} · rate ${rateText}`;
-  return baseBalanceText;
-}
 
 type AccountBalanceProps = Readonly<{
   account: Readonly<Account>;
@@ -27,6 +15,8 @@ type AccountBalanceProps = Readonly<{
 }>;
 
 export function AccountBalance({ account, baseCurrency, isInline }: AccountBalanceProps) {
+  const estimatedBaseBalance = readEstimatedBaseBalance(account);
+  const rateText = readAccountRateText({ account, baseCurrency });
   return (
     <div className={isInline ? styles['inlineAmounts'] : styles['amounts']}>
       <span
@@ -38,7 +28,12 @@ export function AccountBalance({ account, baseCurrency, isInline }: AccountBalan
         })}
       </span>
       <span className={styles['baseBalance']}>
-        {readBaseBalanceText({ account, baseCurrency })}
+        {estimatedBaseBalance === null ? (
+          formatMoney({ amount: Number(account.base_currency_balance), currency: baseCurrency })
+        ) : (
+          <EstimatedAmount amount={estimatedBaseBalance} currency={baseCurrency} />
+        )}
+        {rateText !== undefined && ` · rate ${rateText}`}
       </span>
     </div>
   );
