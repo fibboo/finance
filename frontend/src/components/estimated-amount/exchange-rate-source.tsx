@@ -10,10 +10,10 @@ export function ExchangeRateSource({ className }: ExchangeRateSourceProps) {
       href={EXCHANGE_RATE_PROVIDER_URL}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label="ExchangeRate-API, opens in a new tab"
       className={`${styles['exchangeRateSource'] ?? ''} ${className ?? ''}`}
     >
-      ExchangeRate-API<span aria-hidden="true"> ↗</span>
-      <span className="visually-hidden">, opens in a new tab</span>
+      ExchangeRate-API ↗
     </a>
   );
 }

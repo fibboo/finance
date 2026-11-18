@@ -6,7 +6,7 @@ import { render } from '@/test/render';
 
 import { TransactionRow } from './transaction-row';
 
-const EXCHANGE_RATE_SOURCE = 'ExchangeRate-API ↗, opens in a new tab';
+const EXCHANGE_RATE_SOURCE = 'ExchangeRate-API ↗';
 
 const wallet = {
   name: 'Wallet',

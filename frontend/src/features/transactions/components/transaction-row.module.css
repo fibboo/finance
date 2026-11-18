@@ -96,6 +96,8 @@
 
 .dot {
   grid-area: 1 / 1;
+  align-self: end;
+  margin-bottom: calc((1lh - var(--size-dot)) / 2);
 }
 
 .text,

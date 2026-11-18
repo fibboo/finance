@@ -76,6 +76,12 @@ function readOptionalAmount(amount: string | null | undefined): number | null {
   return optionalAmount;
 }
 
+function readNegatedAmount(amount: string | null | undefined): number | null {
+  const optionalAmount = readOptionalAmount(amount);
+  const negatedAmount = optionalAmount === null ? null : -optionalAmount;
+  return negatedAmount;
+}
+
 function requireField<Field>({
   value,
   name,
@@ -198,10 +204,7 @@ export function readTransactionView({
         titleMarkedAccount: credit.account,
         amount: -Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : -Number(debit.base_amount),
-        estimatedBaseAmount:
-          debit.estimated_base_amount === null || debit.estimated_base_amount === undefined
-            ? null
-            : -Number(debit.estimated_base_amount),
+        estimatedBaseAmount: readNegatedAmount(debit.estimated_base_amount),
         currency: debit.currency,
         signDisplay: 'auto',
         isIncome: false,
