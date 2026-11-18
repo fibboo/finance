@@ -713,6 +713,13 @@ export interface components {
             /** Amount */
             amount: string;
         };
+        /** CurrencyRate */
+        CurrencyRate: {
+            /** Currency */
+            currency: string;
+            /** Rate */
+            rate: string;
+        };
         /** DictionaryItem */
         DictionaryItem: {
             /** Key */
@@ -993,6 +1000,8 @@ export interface components {
             unvalued_spent: components["schemas"]["CurrencyAmount"][];
             /** Estimated Unvalued Spent */
             estimated_unvalued_spent: string | null;
+            /** Estimate Rates */
+            estimate_rates: components["schemas"]["CurrencyRate"][];
         };
         /** TokenRequest */
         TokenRequest: {

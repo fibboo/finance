@@ -283,6 +283,7 @@ async def test_get_summary_ok(db: AsyncSession):
         "left_over": "1265.30",
         "unvalued_spent": [],
         "estimated_unvalued_spent": None,
+        "estimate_rates": [],
     }
 
 
@@ -316,6 +317,7 @@ async def test_get_summary_empty_month(db: AsyncSession):
         "left_over": "0.00",
         "unvalued_spent": [],
         "estimated_unvalued_spent": None,
+        "estimate_rates": [],
     }
 
 
@@ -379,6 +381,7 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
         "left_over": "-800.25",
         "unvalued_spent": [],
         "estimated_unvalued_spent": None,
+        "estimate_rates": [],
     }
 
 
@@ -572,6 +575,7 @@ async def test_get_summary_unvalued_spent_by_currency(db: AsyncSession):
         "left_over": "-20.00",
         "unvalued_spent": [{"currency": "EUR", "amount": "45.50"}, {"currency": "RSD", "amount": "1200"}],
         "estimated_unvalued_spent": None,
+        "estimate_rates": [],
     }
 
 
@@ -655,4 +659,76 @@ async def test_get_summary_estimates_unvalued_at_market_rate(db: AsyncSession, h
         "left_over": "0.00",
         "unvalued_spent": [{"currency": "EUR", "amount": "30"}],
         "estimated_unvalued_spent": "37.50",
+        "estimate_rates": [{"currency": "EUR", "rate": "1.25"}],
     }
+
+
+async def test_get_summary_estimate_rates_of_estimated_currencies(db: AsyncSession, httpx_mock: HTTPXMock):
+    # Arrange
+    user_db: UserModel = await user_crud.create(
+        db=db,
+        obj_in=UserCreate(username="estimate_rates", registration_provider=ProviderType.TELEGRAM, base_currency="USD"),
+        commit=True,
+    )
+    category_db: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_db.id, name="Shop"), commit=True
+    )
+
+    # RSD only through the account (September), EUR through the account and the month's spending,
+    # GEL through both but without a rate
+    unvalued_expenses: list[tuple[str, Decimal, date]] = [
+        ("RSD", Decimal("1200"), date(2026, 9, 12)),
+        ("EUR", Decimal("30"), date(2026, 10, 3)),
+        ("GEL", Decimal("10"), date(2026, 10, 8)),
+    ]
+    for currency, amount, transaction_date in unvalued_expenses:
+        card_db: AccountModel = await account_crud.create(
+            db=db,
+            obj_in={
+                "kind": AccountKind.LIABILITY,
+                "user_id": user_db.id,
+                "name": f"Card {currency}",
+                "currency": currency,
+                "balance": -amount,
+            },
+            commit=True,
+        )
+        await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_db.id,
+                transaction_type=TransactionType.EXPENSE,
+                transaction_date=transaction_date,
+                base_currency_amount=None,
+                location_id=location_db.id,
+            ),
+            postings=[
+                PostingCreate(account_id=card_db.id, amount=-amount, currency=currency, base_amount=None),
+                PostingCreate(account_id=category_db.id, amount=amount, currency=currency, base_amount=None),
+            ],
+        )
+
+    await db.commit()
+
+    # 1 EUR is 1.25 USD and 1 RSD is 0.01 USD; GEL has no rate
+    httpx_mock.add_response(
+        method="GET",
+        url="https://open.er-api.test/v6/latest/USD",
+        json={"result": "success", "base_code": "USD", "rates": {"USD": 1, "RSD": 100, "EUR": 0.8}},
+    )
+
+    # Act
+    summary: Summary = await summary_service.get_summary(db=db, user_id=user_db.id, month=date(2026, 10, 1))
+
+    # Assert
+    assert summary.model_dump(mode="json")["estimate_rates"] == [
+        {"currency": "EUR", "rate": "1.25"},
+        {"currency": "RSD", "rate": "0.01"},
+    ]
