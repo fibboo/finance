@@ -1,40 +1,16 @@
 import { type RefObject, useRef } from 'react';
-import { matchPath, NavLink, useLocation } from 'react-router';
+import { Link } from 'react-router';
 
-import { TRANSACTIONS_ICON_PATH } from '@/components/action-button/action-icons';
-
-import { CATEGORY_ICON_PATH } from './category-icon';
-import { INCOME_SOURCE_ICON_PATH } from './income-source-icon';
-import { LOCATION_ICON_PATH } from './location-icon';
 import styles from './main-navigation.module.css';
 import { MoreMenu } from './more-menu';
+import { isSectionShown, MORE_SECTIONS, SECTIONS } from './sections';
 import { type MenuState, readIsMenuCollapsed } from './use-menu-collapse';
 import { useOpenNewTransaction } from './use-open-new-transaction';
+import { useShownPathname } from './use-shown-pathname';
 
-const HOME_ICON_PATH = 'M4 11 12 4l8 7v9h-5v-6H9v6H4z';
-const ACCOUNTS_ICON_PATH =
-  'M6 6h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3M3 10h18M16 14.5h2';
 const ADD_ICON_PATH = 'M12 5v14M5 12h14';
 const COLLAPSE_ICON_PATH = 'M11 6l-6 6 6 6M19 6l-6 6 6 6';
 const SHOW_ICON_PATH = 'M5 6l6 6-6 6M13 6l6 6-6 6';
-const SECTIONS = [
-  { name: 'Home', path: '/', iconPath: HOME_ICON_PATH },
-  { name: 'Transactions', path: '/transactions', iconPath: TRANSACTIONS_ICON_PATH },
-  { name: 'Accounts', path: '/accounts', iconPath: ACCOUNTS_ICON_PATH },
-  { name: 'Categories', path: '/categories', iconPath: CATEGORY_ICON_PATH },
-] as const;
-const MORE_SECTIONS = [
-  {
-    name: 'Locations',
-    path: '/locations',
-    iconPath: LOCATION_ICON_PATH,
-  },
-  {
-    name: 'Income sources',
-    path: '/income-sources',
-    iconPath: INCOME_SOURCE_ICON_PATH,
-  },
-] as const;
 const IS_EXPANDED_BY_MENU_STATE = {
   full: true,
   collapsed: false,
@@ -60,10 +36,8 @@ export function MainNavigation({
   const labelClassName = `${styles['label'] ?? ''} ${isCollapsed ? 'visually-hidden-on-desktop' : ''}`;
 
   const openNewTransaction = useOpenNewTransaction();
-  const { pathname } = useLocation();
-  const isMoreSectionOpen = MORE_SECTIONS.some(
-    (section) => matchPath({ path: section.path, end: false }, pathname) !== null,
-  );
+  const { pathname } = useShownPathname();
+  const isMoreSectionOpen = MORE_SECTIONS.some((section) => isSectionShown({ section, pathname }));
 
   return (
     <nav
@@ -88,10 +62,10 @@ export function MainNavigation({
         </span>
       </button>
       {SECTIONS.map((section) => (
-        <NavLink
+        <Link
           key={section.name}
           to={section.path}
-          end={section.path === '/'}
+          aria-current={isSectionShown({ section, pathname }) ? 'page' : undefined}
           className={styles['section'] ?? ''}
           title={isCollapsed ? section.name : undefined}
           onClick={onSectionChoose}
@@ -100,16 +74,17 @@ export function MainNavigation({
             <path d={section.iconPath} />
           </svg>
           <span className={labelClassName}>{section.name}</span>
-        </NavLink>
+        </Link>
       ))}
       <MoreMenu
         isCurrent={isMoreSectionOpen}
         navigationRef={navigationRef}
         renderSections={(closeMenu) =>
           MORE_SECTIONS.map((section) => (
-            <NavLink
+            <Link
               key={section.name}
               to={section.path}
+              aria-current={isSectionShown({ section, pathname }) ? 'page' : undefined}
               className={styles['moreSection'] ?? ''}
               title={isCollapsed ? section.name : undefined}
               onClick={() => {
@@ -121,7 +96,7 @@ export function MainNavigation({
                 <path d={section.iconPath} />
               </svg>
               <span className={labelClassName}>{section.name}</span>
-            </NavLink>
+            </Link>
           ))
         }
       />

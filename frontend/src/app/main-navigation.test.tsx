@@ -281,3 +281,38 @@ test.each([
     ).toHaveAttribute('aria-expanded', isExpanded);
   },
 );
+
+test.each([
+  { name: 'Accounts', path: 'accounts', currentName: 'Accounts', role: 'link' },
+  { name: 'Locations', path: 'locations', currentName: 'More', role: 'button' },
+] as const)(
+  'marks $currentName as current at the click while the $name page loads',
+  async ({ name, path, currentName, role }) => {
+    // arrange
+    const user = userEvent.setup();
+    render(
+      <MainNavigation
+        menuState="full"
+        menuToggleRef={{ current: null }}
+        onMenuToggle={() => undefined}
+        onSectionChoose={() => undefined}
+      />,
+      {
+        children: [
+          { index: true, element: null },
+          { path, lazy: () => new Promise<never>(() => undefined) },
+        ],
+      },
+    );
+    if (role === 'button') {
+      await user.click(screen.getByRole('button', { name: 'More' }));
+    }
+
+    // act
+    await user.click(screen.getByRole('link', { name }));
+
+    // assert
+    expect(screen.getByRole(role, { name: currentName })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
+  },
+);

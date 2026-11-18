@@ -1,6 +1,7 @@
 import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import type { ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
 
 import { AppLayout } from '@/app/app-layout';
@@ -455,4 +456,53 @@ test('leaves the focus on the page when Escape closes the menu over the page', a
 
   // assert
   expect(accountMenuButton).toHaveFocus();
+});
+
+test('shows the title and a skeleton of the chosen section at the click until its page loads', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  let loadCategories: (() => void) | undefined;
+  const categoriesModule = new Promise<{ Component: () => ReactNode }>((resolve) => {
+    loadCategories = () => {
+      resolve({ Component: () => <p>Categories page</p> });
+    };
+  });
+  render(<AppLayout />, {
+    children: [
+      { index: true, element: <p>Home page</p> },
+      { path: 'categories', lazy: () => categoriesModule },
+    ],
+  });
+  expect(screen.getByText('Home page')).toBeInTheDocument();
+
+  // act
+  await user.click(screen.getByRole('link', { name: 'Categories' }));
+
+  // assert
+  expect(screen.getByRole('heading', { level: 1, name: 'Categories' })).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Categories' })).toHaveAttribute('aria-busy', 'true');
+  expect(screen.queryByText('Home page')).not.toBeInTheDocument();
+  await act(async () => {
+    loadCategories?.();
+    await categoriesModule;
+  });
+  expect(await screen.findByText('Categories page')).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Categories' })).not.toBeInTheDocument();
 });
