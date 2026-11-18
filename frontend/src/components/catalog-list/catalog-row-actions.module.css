@@ -24,8 +24,10 @@
   color: var(--color-danger);
 }
 
-.action:hover {
-  opacity: var(--opacity-hover);
+@media (hover: hover) {
+  .action:hover {
+    opacity: var(--opacity-hover);
+  }
 }
 
 .action[aria-disabled='true'] {
