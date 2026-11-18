@@ -5,7 +5,10 @@ import { Link, Outlet } from 'react-router';
 import styles from './app-layout.module.css';
 import { MainNavigation } from './main-navigation';
 import { NewTransaction } from './new-transaction';
+import { PendingSection } from './pending-section';
+import { findShownSection } from './sections';
 import { readIsMenuCollapsed, useMenuCollapse } from './use-menu-collapse';
+import { useShownPathname } from '@/hooks/use-shown-pathname';
 
 import { AccountMenu } from '@/components/account-menu/account-menu';
 import { Logo } from '@/components/logo/logo';
@@ -31,6 +34,10 @@ export function AppLayout() {
       navigationRef.current?.contains(target) === true,
   });
   const isMenuCollapsed = readIsMenuCollapsed(menuState);
+  const shownPathname = useShownPathname();
+  const pendingSection = shownPathname.isPending
+    ? findShownSection(shownPathname.pathname)
+    : undefined;
   const logoLinkClassName = isLogoShownOnPhone ? styles['logoLinkOnPhone'] : styles['logoLink'];
 
   return (
@@ -76,7 +83,7 @@ export function AppLayout() {
         />
       </div>
       <main className={styles['main']}>
-        <Outlet />
+        {pendingSection === undefined ? <Outlet /> : <PendingSection name={pendingSection.name} />}
       </main>
       <NewTransaction />
     </div>

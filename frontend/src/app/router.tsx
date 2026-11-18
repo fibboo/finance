@@ -3,29 +3,57 @@ import { createBrowserRouter, type RouteObject } from 'react-router';
 import { RootErrorBoundary } from '@/app/root-error-boundary';
 import { BootScreen } from '@/components/boot-screen/boot-screen';
 import { restoreSession } from '@/features/auth/api/session';
+import { markRouteLoaded } from '@/hooks/loaded-routes';
+
+async function loadSectionRoute<RouteModule>({
+  pathname,
+  importRoute,
+}: Readonly<{ pathname: string; importRoute: () => Promise<RouteModule> }>): Promise<RouteModule> {
+  const routeModule = await importRoute();
+  markRouteLoaded(pathname);
+  return routeModule;
+}
 
 function importHomeRoute() {
-  return import('@/app/routes/home');
+  return loadSectionRoute({
+    pathname: '/',
+    importRoute: () => import('@/app/routes/home'),
+  });
 }
 
 function importTransactionsRoute() {
-  return import('@/app/routes/transactions');
+  return loadSectionRoute({
+    pathname: '/transactions',
+    importRoute: () => import('@/app/routes/transactions'),
+  });
 }
 
 function importAccountsRoute() {
-  return import('@/app/routes/accounts');
+  return loadSectionRoute({
+    pathname: '/accounts',
+    importRoute: () => import('@/app/routes/accounts'),
+  });
 }
 
 function importCategoriesRoute() {
-  return import('@/app/routes/categories');
+  return loadSectionRoute({
+    pathname: '/categories',
+    importRoute: () => import('@/app/routes/categories'),
+  });
 }
 
 function importLocationsRoute() {
-  return import('@/app/routes/locations');
+  return loadSectionRoute({
+    pathname: '/locations',
+    importRoute: () => import('@/app/routes/locations'),
+  });
 }
 
 function importIncomeSourcesRoute() {
-  return import('@/app/routes/income-sources');
+  return loadSectionRoute({
+    pathname: '/income-sources',
+    importRoute: () => import('@/app/routes/income-sources'),
+  });
 }
 
 function preloadSectionRoutes() {
