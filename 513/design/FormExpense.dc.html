@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Form, expense in another currency</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',system-ui,sans-serif}
+.dark{--ground:#0b0c0e;--panel:#17191c;--border:#2a2d32;--ink:#ecedee;--muted:#9a9ea6;--accent:#4cc38a;--band:#1e2125;--track:#24272b}
+.light{--ground:#eeeeeb;--panel:#ffffff;--border:#e2e2de;--ink:#17181a;--muted:#5a5d64;--accent:#1f7a55;--band:#f4f4f1;--track:#dcdcd7}
+.sheet{background:var(--panel);border-radius:18px 18px 0 0;padding:12px 16px 16px;display:flex;flex-direction:column;gap:12px;flex:1}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:3px;border-radius:12px;background:var(--track)}
+.seg span{height:34px;display:flex;align-items:center;justify-content:center;font-size:14px;border-radius:10px;color:var(--muted)}
+.seg .on{background:var(--panel);color:var(--ink);font-weight:500;box-shadow:0 1px 3px rgb(0 0 0 / 18%)}
+.field{display:flex;flex-direction:column;gap:4px}
+.inrow{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:48px;padding:0 12px;border-radius:12px;background:var(--band);font-size:15px}
+.lbl{color:var(--muted);font-size:14px}
+.val{font-weight:500}
+.suffix{color:var(--muted);font-size:14px}
+.hint{padding-left:112px;font-size:13px;color:var(--muted)}
+.new{color:var(--ink)}
+.pick{display:flex;align-items:center;gap:10px}
+.dot{width:10px;height:10px;border-radius:3px}
+.tog{width:36px;height:22px;border-radius:999px;background:var(--accent);position:relative}
+.tog::after{content:'';position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:999px;background:#fff}
+.btn{height:46px;border-radius:14px;border:0;background:var(--accent);color:var(--panel);font:600 15px 'Geist',system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 900px; height: 760px; box-sizing: border-box; padding: 40px; display: flex; gap: 40px; background: #3a3b3e">
+<sc-for list="{{themes}}" as="th" hint-placeholder-count="2">
+<div class="{{th.cls}}" style="width: 390px; height: 680px; box-sizing: border-box; padding-top: 40px; background: rgb(0 0 0 / 35%); color: var(--ink); display: flex; flex-direction: column; border-radius: 12px; overflow: hidden">
+<div class="sheet">
+<div style="align-self: center; width: 36px; height: 4px; border-radius: 999px; background: var(--border)"></div>
+<h2 style="margin: 0; font-size: 18px; font-weight: 600">New transaction</h2>
+<div class="seg"><span class="on">Expense</span><span>Income</span><span>Transfer</span></div>
+<div class="inrow"><span class="lbl">From</span><span class="pick val"><span class="dot" style="background: #3b82f6"></span>Revolut</span><span class="suffix">€1,254.29</span></div>
+<div class="field">
+<div class="inrow"><span class="lbl">Amount</span><span class="val">49.79</span><span class="suffix">EUR</span></div>
+<span class="hint">≈ $54.35 · <span class="new">rate 0.9161</span></span>
+</div>
+<div class="inrow"><span class="lbl">To</span><span class="pick val"><span class="dot" style="background: var(--muted); border-radius: 999px"></span>Groceries</span><span class="suffix">›</span></div>
+<div class="inrow"><span class="lbl">Different currency</span><span></span><span class="tog"></span></div>
+<div class="field">
+<div class="inrow"><span class="lbl">Original amount</span><span class="val">45.00</span><span class="suffix">GBP ▾</span></div>
+<span class="hint new">rate GBP 0.9038</span>
+</div>
+<div class="inrow"><span class="lbl">Date</span><span class="val">18.11.2026</span><span></span></div>
+<div class="inrow"><span class="lbl">Comment</span><span class="val">Weekly shop at Lidl</span><span></span></div>
+<div style="flex: 1"></div>
+<button class="btn" type="button">Save</button>
+</div>
+<p style="margin: 0; padding: 8px 16px; font-size: 11px; line-height: 1.5; color: #c9cbd0; background: #3a3b3e">{{th.label}}. The rate joins the ≈ hint the form has now and appears under the Original amount while both amounts are filled in.</p>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":900,"height":760}}'>
+class Component extends DCLogic {
+renderVals() {
+return { themes: [{ cls: 'dark', label: 'Dark' }, { cls: 'light', label: 'Light' }] };
+}
+}
+</script>
+</body>
+</html>

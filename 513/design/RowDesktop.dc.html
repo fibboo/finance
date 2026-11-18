@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Row, desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',system-ui,sans-serif}
+.dark{--ground:#0b0c0e;--panel:#17191c;--border:#2a2d32;--ink:#ecedee;--muted:#9a9ea6;--accent:#4cc38a;--income:#14241c;--transfer:#172131;--adjustment:#2a2216}
+.light{--ground:#eeeeeb;--panel:#ffffff;--border:#e2e2de;--ink:#17181a;--muted:#5a5d64;--accent:#1f7a55;--income:#e8f4ed;--transfer:#e8eef9;--adjustment:#f8efdf}
+.row{position:relative;display:grid;grid-template-columns:8px minmax(0,1fr) minmax(0,1fr) auto;column-gap:16px;align-items:center;min-height:52px;padding:4px 0;font-size:15px}
+.row+.row{border-top:1px solid var(--border)}
+.tint::before{content:'';position:absolute;inset:4px -8px;border-radius:10px;background:var(--tint);z-index:0}
+.row>*{position:relative}
+.d{width:8px;height:8px;border-radius:999px;grid-row:1/3}
+.t,.s,.c{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t{grid-column:2;grid-row:1}
+.s{grid-column:2;grid-row:2;font-size:13px;line-height:1.4;color:var(--muted)}
+.c{grid-column:3;grid-row:1/3;font-size:13px;color:var(--muted);font-style:italic}
+.a{grid-column:4;grid-row:1;justify-self:end;font-weight:500;white-space:nowrap}
+.o{grid-column:4;grid-row:2;justify-self:end;font-size:13px;line-height:1.4;color:var(--muted);white-space:nowrap}
+.only{grid-row:1/3}
+.rate{color:var(--ink)}
+</style>
+</helmet>
+<div style="width: 1880px; height: 620px; box-sizing: border-box; padding: 40px; display: flex; gap: 40px; background: #3a3b3e">
+<sc-for list="{{themes}}" as="th" hint-placeholder-count="2">
+<div class="{{th.cls}}" style="width: 880px; height: 540px; box-sizing: border-box; padding: 24px; background: var(--ground); color: var(--ink); display: flex; flex-direction: column; gap: 16px; border-radius: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h1 style="margin: 0; font-size: 22px; font-weight: 600">Recent</h1>
+<span style="font-size: 13px; color: var(--muted)">{{th.label}} · desktop width</span>
+</div>
+<div style="background: var(--panel); border-radius: 20px; padding: 8px 24px 12px">
+<div style="height: 30px; display: flex; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase">Wed, 18.11.2026</div>
+<div class="row">
+<span class="d" style="background: #3b82f6"></span>
+<span class="t">Groceries</span>
+<span class="s">Revolut · EUR · <span class="rate">0.9161</span></span>
+<span class="c">Weekly shop at Lidl</span>
+<span class="a">-$54.35</span>
+<span class="o">-€49.79</span>
+</div>
+<div class="row">
+<span class="d" style="background: #a855f7"></span>
+<span class="t">Coffee</span>
+<span class="s">Chase · USD · <span class="rate">GBP 0.7867</span></span>
+<span class="c">Flat white at Heathrow</span>
+<span class="a">-$5.72</span>
+<span class="o">-£4.50</span>
+</div>
+<div class="row tint" style="--tint: var(--transfer)">
+<span class="d" style="background: #a855f7"></span>
+<span class="t">Chase → <span style="display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: #3b82f6; margin-right: 8px"></span>Revolut</span>
+<span class="s">USD · <span class="rate">EUR 0.9161</span></span>
+<span class="c">Top up for the trip</span>
+<span class="a">$500.00</span>
+<span class="o">€458.05</span>
+</div>
+<div class="row tint" style="--tint: var(--transfer)">
+<span class="d" style="background: #3b82f6"></span>
+<span class="t">Revolut → <span style="display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: #f59e0b; margin-right: 8px"></span>Wise</span>
+<span class="s">EUR · <span class="rate">0.9161</span> · <span class="rate">GBP 0.8790</span></span>
+<span class="c"></span>
+<span class="a">$109.16</span>
+<span class="o">€100.00 → £87.90</span>
+</div>
+<div class="row tint" style="--tint: var(--income)">
+<span class="d" style="background: #a855f7"></span>
+<span class="t">Salary</span>
+<span class="s">Chase · USD</span>
+<span class="c">October</span>
+<span class="a only" style="color: var(--accent)">+$4,200.00</span>
+</div>
+<div class="row">
+<span class="d" style="background: #a855f7"></span>
+<span class="t">Rent</span>
+<span class="s">Chase · USD</span>
+<span class="c"></span>
+<span class="a only">-$1,350.00</span>
+</div>
+<div class="row tint" style="--tint: var(--adjustment)">
+<span class="d" style="background: #3b82f6"></span>
+<span class="t">Balance adjustment</span>
+<span class="s">Revolut · EUR · <span class="rate">0.9161</span></span>
+<span class="c"></span>
+<span class="a">+$10.92</span>
+<span class="o">+€10.00</span>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1880,"height":620}}'>
+class Component extends DCLogic {
+renderVals() {
+return { themes: [{ cls: 'dark', label: 'Dark' }, { cls: 'light', label: 'Light' }] };
+}
+}
+</script>
+</body>
+</html>

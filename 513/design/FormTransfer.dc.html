@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Form, transfer and balance adjustment</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',system-ui,sans-serif}
+.dark{--ground:#0b0c0e;--panel:#17191c;--border:#2a2d32;--ink:#ecedee;--muted:#9a9ea6;--accent:#4cc38a;--band:#1e2125;--track:#24272b}
+.light{--ground:#eeeeeb;--panel:#ffffff;--border:#e2e2de;--ink:#17181a;--muted:#5a5d64;--accent:#1f7a55;--band:#f4f4f1;--track:#dcdcd7}
+.sheet{background:var(--panel);border-radius:18px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:3px;border-radius:12px;background:var(--track)}
+.seg span{height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;border-radius:10px;color:var(--muted)}
+.seg .on{background:var(--panel);color:var(--ink);font-weight:500;box-shadow:0 1px 3px rgb(0 0 0 / 18%)}
+.field{display:flex;flex-direction:column;gap:4px}
+.inrow{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:46px;padding:0 12px;border-radius:12px;background:var(--band);font-size:15px}
+.lbl{color:var(--muted);font-size:14px}
+.val{font-weight:500}
+.suffix{color:var(--muted);font-size:14px}
+.hint{padding-left:112px;font-size:13px;color:var(--muted)}
+.new{color:var(--ink)}
+.pick{display:flex;align-items:center;gap:10px}
+.dot{width:10px;height:10px;border-radius:3px}
+h2{margin:0;font-size:18px;font-weight:600}
+</style>
+</helmet>
+<div style="width: 900px; height: 760px; box-sizing: border-box; padding: 40px; display: flex; gap: 40px; background: #3a3b3e">
+<sc-for list="{{themes}}" as="th" hint-placeholder-count="2">
+<div class="{{th.cls}}" style="width: 390px; height: 680px; box-sizing: border-box; padding: 16px; background: var(--ground); color: var(--ink); display: flex; flex-direction: column; gap: 14px; border-radius: 12px">
+<div class="sheet">
+<h2>New transaction</h2>
+<div class="seg"><span>Expense</span><span>Income</span><span class="on">Transfer</span></div>
+<div class="inrow"><span class="lbl">From</span><span class="pick val"><span class="dot" style="background: #a855f7"></span>Chase</span><span class="suffix">$3,710.00</span></div>
+<div class="inrow"><span class="lbl">Amount</span><span class="val">500.00</span><span class="suffix">USD</span></div>
+<div class="inrow"><span class="lbl">To</span><span class="pick val"><span class="dot" style="background: #3b82f6"></span>Revolut</span><span class="suffix">€746.45</span></div>
+<div class="field">
+<div class="inrow"><span class="lbl">Amount</span><span class="val">458.05</span><span class="suffix">EUR</span></div>
+<span class="hint new">rate EUR 0.9161</span>
+</div>
+</div>
+<div class="sheet">
+<h2>Adjust balance · Revolut</h2>
+<div class="field">
+<div class="inrow"><span class="lbl">Amount</span><span class="val">+10.00</span><span class="suffix">EUR</span></div>
+<span class="hint">≈ $10.92 · <span class="new">rate 0.9161</span></span>
+</div>
+<div style="font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; padding-top: 4px">On a date without a rate</div>
+<div class="inrow"><span class="lbl">Amount</span><span class="val">+10.00</span><span class="suffix">EUR</span></div>
+<div class="field">
+<div class="inrow"><span class="lbl">In USD</span><span class="val">10.95</span><span class="suffix">USD</span></div>
+<span class="hint new">rate 0.9132</span>
+</div>
+</div>
+<p style="margin: 0; font-size: 11px; line-height: 1.5; color: var(--muted)">{{th.label}}. A transfer between two currencies shows its rate under the second amount; a balance adjustment adds the rate to its ≈ hint, or, where it asks for the amount in the base currency, under that amount.</p>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":900,"height":760}}'>
+class Component extends DCLogic {
+renderVals() {
+return { themes: [{ cls: 'dark', label: 'Dark' }, { cls: 'light', label: 'Light' }] };
+}
+}
+</script>
+</body>
+</html>

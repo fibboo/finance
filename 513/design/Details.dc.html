@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Details panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist',system-ui,sans-serif}
+.dark{--ground:#0b0c0e;--panel:#17191c;--border:#2a2d32;--ink:#ecedee;--muted:#9a9ea6;--bone:#24272b}
+.light{--ground:#eeeeeb;--panel:#ffffff;--border:#e2e2de;--ink:#17181a;--muted:#5a5d64;--bone:#e4e4e0}
+.panel{background:var(--panel);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.meta{font-size:13px;color:var(--muted)}
+.title{margin:0;font-size:20px;font-weight:600}
+.amount{font-size:36px;font-weight:600;line-height:1.1;letter-spacing:-0.03em}
+.base{font-size:14px;color:var(--muted)}
+.role{margin:0;font-size:12px;font-weight:400;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
+.entry{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--ground)}
+.mark{flex:none;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:600;color:#fff}
+.id{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.name{font-size:15px;font-weight:500}
+.note{font-size:13px;color:var(--muted)}
+.amts{display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap}
+.eamt{font-size:16px;font-weight:600}
+.facts{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 24px;font-size:14px}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;text-align:right}
+.new{color:var(--ink)}
+</style>
+</helmet>
+<div style="width: 900px; height: 900px; box-sizing: border-box; padding: 40px; display: flex; gap: 40px; background: #3a3b3e">
+<sc-for list="{{themes}}" as="th" hint-placeholder-count="2">
+<div class="{{th.cls}}" style="width: 390px; height: 820px; box-sizing: border-box; padding: 16px; background: var(--ground); color: var(--ink); display: flex; flex-direction: column; gap: 12px; border-radius: 12px">
+<article class="panel">
+<div><div class="meta">Transfer · Wed, 18.11.2026</div><h2 class="title">Transfer Chase → Revolut</h2></div>
+<div class="amount">$500.00</div>
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h3 class="role">From</h3>
+<div class="entry"><span class="mark" style="background: #a855f7">C</span><span class="id"><span class="name">Chase</span><span class="note">Money account · USD</span><span class="note">Balance $3,210.00</span></span><span class="amts"><span class="eamt">-$500.00</span></span></div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h3 class="role">To</h3>
+<div class="entry"><span class="mark" style="background: #3b82f6">R</span><span class="id"><span class="name">Revolut</span><span class="note">Money account · EUR</span><span class="note">Balance €1,204.50</span></span><span class="amts"><span class="eamt">+€458.05</span><span class="note">≈ +$500.00 · rate 0.9161</span></span></div>
+</section>
+<dl class="facts">
+<dt>Rate</dt><dd class="new">EUR 0.9161</dd>
+<dt>Location</dt><dd>—</dd>
+<dt>Comment</dt><dd>Top up for the trip</dd>
+</dl>
+</article>
+<article class="panel">
+<div><div class="meta">Expense · Wed, 18.11.2026</div><h2 class="title">Groceries</h2></div>
+<div><div class="amount">-€49.79</div><div class="base">≈ -$54.35 · rate 0.9161</div></div>
+<dl class="facts">
+<dt>Location</dt><dd>Lidl</dd>
+<dt>Comment</dt><dd>Weekly shop at Lidl</dd>
+</dl>
+</article>
+<p style="margin: 0; font-size: 11px; line-height: 1.5; color: var(--muted)">{{th.label}}. The rate follows every ≈ amount in the base currency: under the amount and in a From / To block. A transaction in two currencies adds the Rate fact.</p>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":900,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return { themes: [{ cls: 'dark', label: 'Dark' }, { cls: 'light', label: 'Light' }] };
+}
+}
+</script>
+</body>
+</html>
