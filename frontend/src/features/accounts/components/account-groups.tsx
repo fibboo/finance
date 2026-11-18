@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from 'react-router';
 
+import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
@@ -12,6 +13,7 @@ import {
   readSelectedAccountId,
   writeSelectedAccount,
 } from '../api/selected-account';
+import { readEstimatedBaseBalance } from './account-estimate';
 import { readAccountGroups } from './account-grouping';
 import { AccountMark } from './account-mark';
 import styles from './account-groups.module.css';
@@ -35,8 +37,17 @@ type AccountGroupsProps = Readonly<{
 }>;
 
 function sumBaseCurrencyBalances(accounts: readonly Account[]): number {
-  const total = accounts.reduce((sum, account) => sum + Number(account.base_currency_balance), 0);
+  const total = accounts.reduce(
+    (sum, account) =>
+      sum + (readEstimatedBaseBalance(account) ?? Number(account.base_currency_balance)),
+    0,
+  );
   return total;
+}
+
+function hasEstimatedBalance(accounts: readonly Account[]): boolean {
+  const hasEstimate = accounts.some((account) => readEstimatedBaseBalance(account) !== null);
+  return hasEstimate;
 }
 
 function readAccountClassName({
@@ -102,12 +113,17 @@ export function AccountGroups({
                 {GROUP_HEADINGS[group.kind]}
               </h2>
               <span className={total < 0 ? styles['debt'] : undefined}>
-                {formatMoney({ amount: total, currency: baseCurrency })}
+                {hasEstimatedBalance(group.accounts) ? (
+                  <EstimatedAmount amount={total} currency={baseCurrency} />
+                ) : (
+                  formatMoney({ amount: total, currency: baseCurrency })
+                )}
               </span>
             </div>
             <ul className={styles['accounts']}>
               {group.accounts.map((account) => {
                 const rateText = readAccountRateText({ account, baseCurrency });
+                const estimatedBaseBalance = readEstimatedBaseBalance(account);
                 const isShownByDefault =
                   selectedAccountId === undefined && account.id === topAccountId;
                 return (
@@ -143,10 +159,19 @@ export function AccountGroups({
                       </span>
                     </span>
                     <span className={styles['balance']}>
-                      {formatMoney({
-                        amount: Number(account.base_currency_balance),
-                        currency: baseCurrency,
-                      })}
+                      {estimatedBaseBalance === null ? (
+                        <>
+                          {formatMoney({
+                            amount: Number(account.base_currency_balance),
+                            currency: baseCurrency,
+                          })}
+                          {account.currency !== baseCurrency && (
+                            <span className={styles['valued']}> valued</span>
+                          )}
+                        </>
+                      ) : (
+                        <EstimatedAmount amount={estimatedBaseBalance} currency={baseCurrency} />
+                      )}
                     </span>
                     {account.currency !== baseCurrency && (
                       <span className={styles['accountBalance']}>

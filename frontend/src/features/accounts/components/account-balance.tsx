@@ -1,7 +1,9 @@
+import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import styles from './account-balance.module.css';
+import { readEstimatedBaseBalance } from './account-estimate';
 import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
@@ -27,6 +29,7 @@ type AccountBalanceProps = Readonly<{
 }>;
 
 export function AccountBalance({ account, baseCurrency, isInline }: AccountBalanceProps) {
+  const estimatedBaseBalance = readEstimatedBaseBalance(account);
   return (
     <div className={isInline ? styles['inlineAmounts'] : styles['amounts']}>
       <span
@@ -38,7 +41,11 @@ export function AccountBalance({ account, baseCurrency, isInline }: AccountBalan
         })}
       </span>
       <span className={styles['baseBalance']}>
-        {readBaseBalanceText({ account, baseCurrency })}
+        {estimatedBaseBalance === null ? (
+          readBaseBalanceText({ account, baseCurrency })
+        ) : (
+          <EstimatedAmount amount={estimatedBaseBalance} currency={baseCurrency} />
+        )}
       </span>
     </div>
   );

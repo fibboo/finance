@@ -7,28 +7,18 @@ import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
-import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '../api/account-queries';
 import { readAccountLinkId, writeSelectedAccount } from '../api/selected-account';
 import { useStripEdges } from '../hooks/use-strip-edges';
+import { readEstimatedBaseBalance } from './account-estimate';
 import { AccountMark } from './account-mark';
 import styles from './account-list.module.css';
 import { readAccountRateText } from './account-rate';
 
 const ACCOUNT_SKELETON_COUNT = 3;
 const STRIP_PAGE_SHARE = 0.8;
-
-type Account = components['schemas']['Account'];
-
-function readEstimatedBaseBalance(account: Readonly<Account>): number | null {
-  const estimatedBaseBalance =
-    account.estimated_base_balance === null || account.estimated_base_balance === undefined
-      ? null
-      : Number(account.estimated_base_balance);
-  return estimatedBaseBalance;
-}
 
 type AccountListProps = Readonly<{
   baseCurrency: string;

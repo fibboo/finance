@@ -98,7 +98,7 @@ test('groups assets before liabilities, each with its total and its accounts in 
   expect(assetRows).toHaveLength(3);
   expect(assetRows[0]).toHaveTextContent('WalletUSD$412.50');
   expect(assetRows[0]).not.toHaveTextContent('$412.50$412.50');
-  expect(assetRows[1]).toHaveTextContent('Main cardEUR · 0.9161$3,471.20€3,180.00');
+  expect(assetRows[1]).toHaveTextContent('Main cardEUR · 0.9161$3,471.20 valued€3,180.00');
   expect(assetRows[2]).toHaveTextContent('Savings');
   expect(within(liabilities).getByRole('heading', { name: 'Liabilities' })).toBeInTheDocument();
   expect(liabilities).toHaveTextContent('-$2,469.60');
@@ -107,6 +107,40 @@ test('groups assets before liabilities, each with its total and its accounts in 
   expect(liabilityRows[0]).toHaveTextContent('Intesa credit');
   expect(liabilityRows[1]).toHaveTextContent('Visa credit');
   expect(liabilityRows[2]).toHaveTextContent('Amex credit');
+});
+
+test('shows the estimate of a balance with unvalued amounts and counts it in its group total', () => {
+  // act
+  render(
+    <AccountGroups
+      accounts={[
+        wallet,
+        mainCard,
+        {
+          ...intesaCredit,
+          base_currency_rate: '0',
+          base_currency_balance: '0.00',
+          estimated_base_balance: '-1500.00',
+        },
+        visaCredit,
+      ]}
+      topAccountId={undefined}
+      baseCurrency="USD"
+      listSearchParams={new URLSearchParams()}
+      isParamIgnored={false}
+    />,
+  );
+
+  // assert
+  const liabilities = screen.getByRole('region', { name: 'Liabilities' });
+  // the estimate already holds the valued balance, so the total adds the estimate in its place
+  expect(within(liabilities).getByText('≈ -$1,818.40')).toBeInTheDocument();
+  const liabilityRows = within(liabilities).getAllByRole('listitem');
+  expect(liabilityRows[0]).toHaveTextContent('Intesa creditEUR≈ -$1,500.00-€1,240.00');
+  expect(liabilityRows[0]).not.toHaveTextContent('valued');
+  const assets = screen.getByRole('region', { name: 'Assets' });
+  expect(assets).toHaveTextContent('$3,883.70');
+  expect(assets).not.toHaveTextContent('≈');
 });
 
 test('leaves out a group without accounts', () => {

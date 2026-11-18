@@ -163,6 +163,12 @@
   white-space: nowrap;
 }
 
+.valued {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-muted);
+}
+
 .accountBalance {
   grid-area: accountBalance;
   justify-self: end;

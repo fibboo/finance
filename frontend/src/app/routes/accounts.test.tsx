@@ -335,14 +335,21 @@ test('opens an account from its row with its balance, description and actions', 
 });
 
 test.each([
-  { currency: 'EUR', rate: '0.9161', baseBalance: '$3,471.20 · rate 0.9161' },
-  { currency: 'EUR', rate: '0', baseBalance: '$3,471.20' },
-  { currency: 'USD', rate: '1', baseBalance: '$3,471.20' },
+  { currency: 'EUR', rate: '0.9161', estimate: null, baseBalance: '$3,471.20 · rate 0.9161' },
+  { currency: 'EUR', rate: '0', estimate: null, baseBalance: '$3,471.20' },
+  { currency: 'USD', rate: '1', estimate: null, baseBalance: '$3,471.20' },
+  // the estimate of a balance with unvalued amounts takes the place of the valued one and its rate
+  { currency: 'EUR', rate: '0', estimate: '-324.00', baseBalance: '≈ -$324.00' },
 ])(
-  'shows the rate of a $currency account at rate $rate only outside the base currency',
-  async ({ currency, rate, baseBalance }) => {
+  'shows the base balance of a $currency account at rate $rate with an estimate of $estimate',
+  async ({ currency, rate, estimate, baseBalance }) => {
     // arrange
-    const account = { ...mainCard, currency, base_currency_rate: rate };
+    const account = {
+      ...mainCard,
+      currency,
+      base_currency_rate: rate,
+      estimated_base_balance: estimate,
+    };
     server.use(
       http.get('http://localhost/api/accounting/accounts', () =>
         HttpResponse.json({
