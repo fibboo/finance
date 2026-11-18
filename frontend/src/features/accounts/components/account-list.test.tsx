@@ -134,7 +134,8 @@ test('shows the estimate of a balance with unvalued amounts in its place, ', asy
 
   // assert
   const mainCardLink = await screen.findByRole('link', { name: /^Main card/ });
-  expect(mainCardLink).toHaveTextContent('≈ -$324.00-€300.00');
+  // the rate is the balance over its estimate
+  expect(mainCardLink).toHaveTextContent('Main cardEUR0.9259≈ -$324.00-€300.00');
   expect(mainCardLink).not.toHaveTextContent('valued');
   expect(screen.getByRole('link', { name: /^Travel card/ })).toHaveTextContent('≈ $0.00€0.00');
   expect(screen.getByRole('link', { name: /^Wallet/ })).toHaveTextContent('$412.50');

@@ -8,20 +8,6 @@ import { readAccountRateText } from './account-rate';
 
 type Account = components['schemas']['Account'];
 
-function readBaseBalanceText({
-  account,
-  baseCurrency,
-}: Readonly<{ account: Readonly<Account>; baseCurrency: string }>): string {
-  const baseBalance = formatMoney({
-    amount: Number(account.base_currency_balance),
-    currency: baseCurrency,
-  });
-  const rateText = readAccountRateText({ account, baseCurrency });
-  const baseBalanceText =
-    rateText === undefined ? baseBalance : `${baseBalance} · rate ${rateText}`;
-  return baseBalanceText;
-}
-
 type AccountBalanceProps = Readonly<{
   account: Readonly<Account>;
   baseCurrency: string;
@@ -30,6 +16,7 @@ type AccountBalanceProps = Readonly<{
 
 export function AccountBalance({ account, baseCurrency, isInline }: AccountBalanceProps) {
   const estimatedBaseBalance = readEstimatedBaseBalance(account);
+  const rateText = readAccountRateText({ account, baseCurrency });
   return (
     <div className={isInline ? styles['inlineAmounts'] : styles['amounts']}>
       <span
@@ -42,10 +29,11 @@ export function AccountBalance({ account, baseCurrency, isInline }: AccountBalan
       </span>
       <span className={styles['baseBalance']}>
         {estimatedBaseBalance === null ? (
-          readBaseBalanceText({ account, baseCurrency })
+          formatMoney({ amount: Number(account.base_currency_balance), currency: baseCurrency })
         ) : (
           <EstimatedAmount amount={estimatedBaseBalance} currency={baseCurrency} />
         )}
+        {rateText !== undefined && ` · rate ${rateText}`}
       </span>
     </div>
   );

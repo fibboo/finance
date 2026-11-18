@@ -133,10 +133,11 @@ test('shows the estimate of a balance with unvalued amounts and counts it in its
 
   // assert
   const liabilities = screen.getByRole('region', { name: 'Liabilities' });
-  // the estimate already holds the valued balance, so the total adds the estimate in its place
+  // the estimate already holds the valued balance, so the total adds the estimate in its place,
+  // and the rate is the balance over its estimate
   expect(within(liabilities).getByText('≈ -$1,818.40')).toBeInTheDocument();
   const liabilityRows = within(liabilities).getAllByRole('listitem');
-  expect(liabilityRows[0]).toHaveTextContent('Intesa creditEUR≈ -$1,500.00-€1,240.00');
+  expect(liabilityRows[0]).toHaveTextContent('Intesa creditEUR · 0.8267≈ -$1,500.00-€1,240.00');
   expect(liabilityRows[0]).not.toHaveTextContent('valued');
   const assets = screen.getByRole('region', { name: 'Assets' });
   expect(assets).toHaveTextContent('$3,883.70');
