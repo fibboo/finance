@@ -1,6 +1,8 @@
 import { type RefObject, useRef } from 'react';
 import { matchPath, NavLink, useLocation } from 'react-router';
 
+import { TRANSACTIONS_ICON_PATH } from '@/components/action-button/action-icons';
+
 import { CATEGORY_ICON_PATH } from './category-icon';
 import { INCOME_SOURCE_ICON_PATH } from './income-source-icon';
 import { LOCATION_ICON_PATH } from './location-icon';
@@ -10,7 +12,6 @@ import { type MenuState, readIsMenuCollapsed } from './use-menu-collapse';
 import { useOpenNewTransaction } from './use-open-new-transaction';
 
 const HOME_ICON_PATH = 'M4 11 12 4l8 7v9h-5v-6H9v6H4z';
-const TRANSACTIONS_ICON_PATH = 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01';
 const ACCOUNTS_ICON_PATH =
   'M6 6h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3M3 10h18M16 14.5h2';
 const ADD_ICON_PATH = 'M12 5v14M5 12h14';
