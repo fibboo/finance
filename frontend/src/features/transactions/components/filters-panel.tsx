@@ -120,17 +120,6 @@ export function FiltersPanel({
       <div className={styles['content']}>
         {selectedFilter === undefined ? (
           <>
-            <section className={styles['section']} aria-label="Sort">
-              <h3 className={styles['sectionTitle']}>Sort</h3>
-              <SortFilter
-                order={filters.order ?? DEFAULT_ORDER}
-                transactionOrders={transactionOrders}
-                baseCurrency={baseCurrency}
-                onApply={({ order }) => {
-                  onApply({ order: order === DEFAULT_ORDER ? undefined : order });
-                }}
-              />
-            </section>
             <section className={styles['section']} aria-label="Period">
               <h3 className={styles['sectionTitle']}>Period</h3>
               <PeriodFilter
@@ -145,6 +134,15 @@ export function FiltersPanel({
                   }
                   onClose();
                 }}
+                onApply={onApply}
+              />
+            </section>
+            <section className={styles['section']} aria-label="Amount">
+              <h3 className={styles['sectionTitle']}>Amount, {baseCurrency}</h3>
+              <AmountFilter
+                ref={amountRef}
+                filters={filters}
+                baseCurrency={baseCurrency}
                 onApply={onApply}
               />
             </section>
@@ -170,13 +168,15 @@ export function FiltersPanel({
                 </button>
               ))}
             </div>
-            <section className={styles['section']} aria-label="Amount">
-              <h3 className={styles['sectionTitle']}>Amount, {baseCurrency}</h3>
-              <AmountFilter
-                ref={amountRef}
-                filters={filters}
+            <section className={styles['section']} aria-label="Sort">
+              <h3 className={styles['sectionTitle']}>Sort</h3>
+              <SortFilter
+                order={filters.order ?? DEFAULT_ORDER}
+                transactionOrders={transactionOrders}
                 baseCurrency={baseCurrency}
-                onApply={onApply}
+                onApply={({ order }) => {
+                  onApply({ order: order === DEFAULT_ORDER ? undefined : order });
+                }}
               />
             </section>
           </>
