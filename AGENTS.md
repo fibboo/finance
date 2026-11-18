@@ -18,7 +18,7 @@ Preserve the applicable workflow's requirements for the proposal's contents and 
 
 ## Review workflow
 
-Follow the shared sequence in `CLAUDE.md`, **Review stages** and **Review every finished issue**. For Codex authoring tasks, request built-in GitHub Code Review by posting `@codex review` on the issue's PR. Do not invoke Claude CLI, a local review command or a reviewer subagent as a substitute.
+Follow the shared sequence in `CLAUDE.md`, **Review stages**, **Review every finished issue** and **Check a frontend change in a browser**. For Codex authoring tasks, request built-in GitHub Code Review by posting `@codex review` on the issue's PR. Do not invoke Claude CLI, a local review command or a reviewer subagent as a substitute.
 
 The shared workflow authorizes its review-trigger comments. It does not authorize unapproved fixes, changes to review settings or a different review mechanism when the required service is unavailable. Report such a limitation and ask the user how to proceed.
 
