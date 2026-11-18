@@ -28,6 +28,7 @@ type FiltersPanelProps = Readonly<{
   transactionOrders: readonly components['schemas']['DictionaryItem'][];
   items: FilterItems;
   total: number | undefined;
+  isTotalPending: boolean;
   onApply: (change: Partial<TransactionFilters>, jumpDate?: string) => void;
   onJump: (monthEnd: string) => void;
   onReset: () => void;
@@ -48,6 +49,7 @@ export function FiltersPanel({
   transactionOrders,
   items,
   total,
+  isTotalPending,
   onApply,
   onJump,
   onReset,
@@ -201,7 +203,7 @@ export function FiltersPanel({
           />
         )}
       </div>
-      <button type="button" className={styles['show']} onClick={onClose}>
+      <button type="button" className={styles['show']} aria-busy={isTotalPending} onClick={onClose}>
         {total === undefined
           ? 'Show transactions'
           : `Show ${String(total)} ${total === 1 ? 'transaction' : 'transactions'}`}

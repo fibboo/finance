@@ -2782,39 +2782,68 @@ test('searches within a list without clearing hidden selections and Back returns
   expect(screen.getByRole('region', { name: 'Sort' })).toBeInTheDocument();
 });
 
-test('shows a pending total and then closes with the loaded total', async () => {
-  const user = userEvent.setup();
-  let releaseResponse: (() => void) | undefined;
-  const responseReady = new Promise<void>((resolve) => {
-    releaseResponse = resolve;
-  });
-  server.use(
-    http.get('http://localhost/api/accounting/transactions', async ({ request }) => {
-      const isFiltered = new URL(request.url).searchParams.has('transaction_types');
-      if (isFiltered) {
-        await responseReady;
-      }
-      return HttpResponse.json({
-        items: [],
-        total: isFiltered ? 7 : 0,
-        page: 1,
-        size: 15,
-        pages: 1,
-      } satisfies components['schemas']['Page_Transaction_']);
-    }),
-  );
-  render(<Component />);
-  await waitFor(() => {
-    expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
-  });
-  await user.click(screen.getByRole('button', { name: 'Filters' }));
-  await user.click(screen.getByRole('checkbox', { name: 'Expense' }));
-  expect(await screen.findByRole('button', { name: 'Show transactions' })).toBeInTheDocument();
-  releaseResponse?.();
-  await user.click(await screen.findByRole('button', { name: 'Show 7 transactions' }));
-  expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Filters' })).toHaveFocus();
-});
+test.each(['open', 'closed'])(
+  'keeps the count while filters load and updates it with the panel %s',
+  async (panelState) => {
+    const user = userEvent.setup();
+    let releaseResponse: (() => void) | undefined;
+    const responseReady = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+    server.use(
+      http.get('http://localhost/api/accounting/transactions', async ({ request }) => {
+        const isFiltered = new URL(request.url).searchParams.has('transaction_types');
+        if (isFiltered) {
+          await responseReady;
+        }
+        return HttpResponse.json({
+          items: [],
+          total: isFiltered ? 7 : 0,
+          page: 1,
+          size: 15,
+          pages: 1,
+        } satisfies components['schemas']['Page_Transaction_']);
+      }),
+    );
+    render(<Component />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    expect(await screen.findByRole('button', { name: 'Show 0 transactions' })).toHaveAttribute(
+      'aria-busy',
+      'false',
+    );
+    await user.click(screen.getByRole('checkbox', { name: 'Expense' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Show 0 transactions' })).toHaveAttribute(
+        'aria-busy',
+        'true',
+      );
+    });
+    expect(screen.queryByRole('button', { name: 'Show transactions' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close filters' }));
+    if (panelState === 'closed') {
+      releaseResponse?.();
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'Transactions, 7 transactions' }),
+      ).toBeInTheDocument();
+    }
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    if (panelState === 'open') {
+      expect(screen.getByRole('button', { name: 'Show 0 transactions' })).toHaveAttribute(
+        'aria-busy',
+        'true',
+      );
+      releaseResponse?.();
+    }
+    const showButton = await screen.findByRole('button', { name: 'Show 7 transactions' });
+    expect(showButton).toHaveAttribute('aria-busy', 'false');
+    await user.click(showButton);
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filters' })).toHaveFocus();
+  },
+);
 
 test('clears a typed From date after a pause and keeps the panel open', async () => {
   const user = userEvent.setup();
@@ -3051,3 +3080,43 @@ test.each(['Show 0 transactions', 'Accounts'])(
     }
   },
 );
+
+test('shows the generic button text only until the first transaction total arrives', async () => {
+  const user = userEvent.setup();
+  let releaseResponse: (() => void) | undefined;
+  const responseReady = new Promise<void>((resolve) => {
+    releaseResponse = resolve;
+  });
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', async () => {
+      await responseReady;
+      return HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 15,
+        pages: 0,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeEnabled();
+  });
+  await user.click(screen.getByRole('button', { name: 'Filters' }));
+  expect(screen.getByRole('button', { name: 'Show transactions' })).toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
+  releaseResponse?.();
+  expect(await screen.findByRole('button', { name: 'Show 0 transactions' })).toHaveAttribute(
+    'aria-busy',
+    'false',
+  );
+  await user.click(screen.getByRole('button', { name: 'Close filters' }));
+  await user.click(screen.getByRole('button', { name: 'Filters' }));
+  expect(screen.getByRole('button', { name: 'Show 0 transactions' })).toHaveAttribute(
+    'aria-busy',
+    'false',
+  );
+});
