@@ -78,7 +78,6 @@ export function CatalogTransactions({
   const feed = useTransactionFeed({
     isOpeningDayKept: false,
     isFirstPageErrorThrown: false,
-    isPreviousListKept: false,
     filterQuery,
   });
   const topTransactionId = isDetailsShown ? readTopTransactionId(feed) : undefined;

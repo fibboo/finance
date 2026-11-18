@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -528,8 +528,11 @@ test.each([
     expect(await screen.findByRole(role, { name: sheetName })).toBeInTheDocument();
     await act(() => router.navigate('/income-sources?search=Free'));
     await waitFor(() => {
-      expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Income sources' })).toHaveTextContent(
+        freelance.name,
+      );
     });
+    expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
 
     // act
     await act(() => router.navigate(-1));
@@ -635,4 +638,29 @@ test('drops the chosen transaction when Deleted changes the list', async () => {
     expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
   });
   expect(new URLSearchParams(router.state.location.search).get('account')).toBe(salary.id);
+});
+
+test('shows the list skeleton instead of the previous income sources while a search loads', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', async ({ request }) => {
+      if (new URL(request.url).searchParams.has('search_term')) {
+        await delay('infinite');
+      }
+      return HttpResponse.json(readAccountPage([salary, freelance]));
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/income-sources'] });
+  await waitFor(() => {
+    expect(screen.getByRole('region', { name: 'Income sources' })).toHaveTextContent(salary.name);
+  });
+
+  // act
+  await act(() => router.navigate('/income-sources?search=Free'));
+
+  // assert
+  const list = screen.getByRole('region', { name: 'Income sources' });
+  expect(list).toHaveAttribute('aria-busy', 'true');
+  expect(list).not.toHaveTextContent(salary.name);
+  expect(screen.queryByText('No income sources match this search')).not.toBeInTheDocument();
 });

@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -241,7 +241,7 @@ test('opens with Deleted off when it was turned off on an earlier visit and stor
   await user.click(screen.getByRole('switch', { name: 'Deleted' }));
 
   // assert
-  expect(await within(variable).findByText('Cigarettes')).toBeInTheDocument();
+  expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent('Cigarettes');
   expect(localStorage.getItem('deleted:categories')).toBe('on');
   expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('on');
 });
@@ -1731,8 +1731,9 @@ test.each([
     expect(await screen.findByRole(role, { name: sheetName })).toBeInTheDocument();
     await act(() => router.navigate('/categories?search=Rent'));
     await waitFor(() => {
-      expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Fixed' })).toHaveTextContent(rent.name);
     });
+    expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
 
     // act
     await act(() => router.navigate(-1));
@@ -1742,3 +1743,33 @@ test.each([
     expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
   },
 );
+
+test('shows the list skeleton instead of the previous categories while a search loads', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', async ({ request }) => {
+      if (new URL(request.url).searchParams.has('search_term')) {
+        await delay('infinite');
+      }
+      const items = [groceries, rent];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/categories'] });
+  expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent(groceries.name);
+
+  // act
+  await act(() => router.navigate('/categories?search=Rent'));
+
+  // assert
+  const list = screen.getByRole('region', { name: 'Categories' });
+  expect(list).toHaveAttribute('aria-busy', 'true');
+  expect(list).not.toHaveTextContent(groceries.name);
+  expect(screen.queryByText('No categories match this search')).not.toBeInTheDocument();
+});

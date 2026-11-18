@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
@@ -65,7 +65,6 @@ export function Component() {
     ...accountQueries.list(
       searchTerm === undefined ? accountQuery : { ...accountQuery, search_term: searchTerm },
     ),
-    placeholderData: keepPreviousData,
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && accountPage?.items.length === 0;

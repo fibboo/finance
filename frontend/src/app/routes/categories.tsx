@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
@@ -108,7 +108,6 @@ export function Component() {
       ...(categoryType !== undefined && { category_types: [categoryType] }),
     }),
     enabled: categoryTypes !== undefined,
-    placeholderData: keepPreviousData,
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && categoryPage?.items.length === 0;

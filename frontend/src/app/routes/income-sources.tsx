@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
@@ -95,7 +95,6 @@ export function Component() {
       statuses: isDeletedShown ? ['ACTIVE', 'DELETED'] : ['ACTIVE'],
       ...(searchTerm !== undefined && { search_term: searchTerm }),
     }),
-    placeholderData: keepPreviousData,
     throwOnError: isThrownWithoutData,
   });
   const isNothingMatched = searchTerm !== undefined && incomeSourcePage?.items.length === 0;

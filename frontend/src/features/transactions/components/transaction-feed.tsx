@@ -77,36 +77,32 @@ export function TransactionFeed({
     hasNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-    isPlaceholderData,
     fetchNextPage,
   } = query;
   const { newerTransactions, olderTransactions, transactions } = readFeedTransactions(feed);
   useAnchorScroll({
     rowsRef,
-    isAnchorReady: anchorDate !== undefined && data !== undefined && !isPlaceholderData,
+    isAnchorReady: anchorDate !== undefined && data !== undefined,
     anchorDayDate: olderTransactions[0]?.transaction_date,
     newerTransactionCount: newerTransactions.length,
     transactionCount: transactions.length,
   });
-  const isNewerFailed = newerQuery !== undefined && !isPlaceholderData && newerQuery.isError;
+  const isNewerFailed = newerQuery?.isError === true;
   const canLoadNewer =
     newerQuery !== undefined &&
-    !isPlaceholderData &&
     newerQuery.hasNextPage &&
     !newerQuery.isFetching &&
     !newerQuery.isError;
   return (
     <section
       aria-label={label}
-      aria-busy={
-        isPending || isFetchingNextPage || isPlaceholderData || transactionTypes === undefined
-      }
+      aria-busy={isPending || isFetchingNextPage || transactionTypes === undefined}
       className={styles['transactions']}
     >
       {header}
       <div
         ref={rowsRef}
-        className={isPlaceholderData ? styles['staleRows'] : styles['rows']}
+        className={styles['rows']}
         onScroll={(event) => {
           setIsScrolledDown(event.currentTarget.scrollTop > 0);
         }}
@@ -156,7 +152,7 @@ export function TransactionFeed({
                 }}
               />
             )}
-            {hasNextPage && !isFetchNextPageError && !isPlaceholderData && (
+            {hasNextPage && !isFetchNextPageError && (
               <div
                 ref={(edge) =>
                   observeEdge({

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, expect, onTestFinished, test, vi } from 'vitest';
@@ -2783,7 +2783,7 @@ test('searches within a list without clearing hidden selections and Back returns
 });
 
 test.each(['open', 'closed'])(
-  'keeps the count while filters load and updates it with the panel %s',
+  'drops the count while filters load and shows the new one with the panel %s',
   async (panelState) => {
     const user = userEvent.setup();
     let releaseResponse: (() => void) | undefined;
@@ -2816,14 +2816,15 @@ test.each(['open', 'closed'])(
     );
     await user.click(screen.getByRole('checkbox', { name: 'Expense' }));
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Show 0 transactions' })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: 'Show transactions' })).toHaveAttribute(
         'aria-busy',
         'true',
       );
     });
-    expect(screen.queryByRole('button', { name: 'Show transactions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show 0 transactions' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Close filters' }));
     if (panelState === 'closed') {
+      expect(screen.getByRole('heading', { level: 1, name: 'Transactions' })).toBeInTheDocument();
       releaseResponse?.();
       expect(
         await screen.findByRole('heading', { level: 1, name: 'Transactions, 7 transactions' }),
@@ -2831,7 +2832,7 @@ test.each(['open', 'closed'])(
     }
     await user.click(screen.getByRole('button', { name: 'Filters' }));
     if (panelState === 'open') {
-      expect(screen.getByRole('button', { name: 'Show 0 transactions' })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: 'Show transactions' })).toHaveAttribute(
         'aria-busy',
         'true',
       );
@@ -3119,4 +3120,35 @@ test('shows the generic button text only until the first transaction total arriv
     'aria-busy',
     'false',
   );
+});
+
+test('shows skeleton rows instead of the previous transactions while a filter change loads', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', async ({ request }) => {
+      if (new URL(request.url).searchParams.has('transaction_types')) {
+        await delay('infinite');
+      }
+      return HttpResponse.json({
+        items: [expense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/transactions'] });
+  await waitFor(() => {
+    expect(screen.getByRole('region', { name: 'Transactions' })).toHaveTextContent(category.name);
+  });
+
+  // act
+  await act(() => router.navigate('/transactions?transaction_types=INCOME'));
+
+  // assert
+  const feed = screen.getByRole('region', { name: 'Transactions' });
+  expect(feed).toHaveAttribute('aria-busy', 'true');
+  expect(feed).not.toHaveTextContent(category.name);
+  expect(screen.queryByText('Nothing matches these filters')).not.toBeInTheDocument();
 });
