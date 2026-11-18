@@ -4,6 +4,12 @@
   min-width: 0;
 }
 
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+}
+
 .more {
   width: 100%;
 }
@@ -33,6 +39,10 @@
 }
 
 @media (--desktop) {
+  .backdrop {
+    display: none;
+  }
+
   .moreMenu,
   .sections,
   .openSections {

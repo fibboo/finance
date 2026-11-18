@@ -22,9 +22,14 @@
   cursor: pointer;
 }
 
-.avatar:hover,
 .avatar[aria-expanded='true'] {
   border-color: var(--color-ink);
+}
+
+@media (hover: hover) {
+  .avatar:hover {
+    border-color: var(--color-ink);
+  }
 }
 
 .backdrop {

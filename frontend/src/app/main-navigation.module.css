@@ -41,6 +41,10 @@
   opacity: var(--opacity-hover);
 }
 
+.mainNavigation:has([data-more-menu-open]) .addTransaction {
+  pointer-events: none;
+}
+
 .addTransaction:focus-visible {
   outline: var(--size-focus) solid var(--color-ink);
   outline-offset: var(--size-focus);
@@ -64,7 +68,6 @@
   cursor: pointer;
 }
 
-.section:not(:disabled):hover,
 .section[aria-current='page'] {
   color: var(--color-ink);
 }
@@ -118,6 +121,10 @@
 }
 
 @media (--desktop) {
+  .mainNavigation:has([data-more-menu-open]) .addTransaction {
+    pointer-events: auto;
+  }
+
   .mainNavigation {
     height: 100%;
     padding: calc(var(--space-4) * 2 + var(--size-touch)) var(--space-3) var(--space-4);
@@ -159,7 +166,6 @@
     font-size: var(--font-size-base);
   }
 
-  .section:not(:disabled):hover,
   .section[aria-current='page'] {
     background: var(--color-ground);
   }
@@ -195,5 +201,17 @@
   .collapsedNavigation .addTransaction .icon {
     width: var(--size-icon);
     height: var(--size-icon);
+  }
+}
+
+@media (hover: hover) {
+  .section:not(:disabled):hover {
+    color: var(--color-ink);
+  }
+
+  @media (--desktop) {
+    .section:not(:disabled):hover {
+      background: var(--color-ground);
+    }
   }
 }

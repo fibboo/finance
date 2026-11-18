@@ -3,12 +3,14 @@ import { useEffect, useEffectEvent } from 'react';
 type UseOutsideClickParams = Readonly<{
   isActive: boolean;
   readIsInside: (target: Node) => boolean;
+  readIsOutsideClickAllowed?: (target: Node) => boolean;
   onOutsideClick: () => void;
 }>;
 
 export function useOutsideClick({
   isActive,
   readIsInside,
+  readIsOutsideClickAllowed,
   onOutsideClick,
 }: UseOutsideClickParams): void {
   const readIsOutside = useEffectEvent((target: EventTarget | null): boolean => {
@@ -17,6 +19,10 @@ export function useOutsideClick({
   });
   const reportOutsideClick = useEffectEvent(() => {
     onOutsideClick();
+  });
+  const readIsClickAllowed = useEffectEvent((target: EventTarget | null): boolean => {
+    const isAllowed = target instanceof Node && readIsOutsideClickAllowed?.(target) === true;
+    return isAllowed;
   });
 
   useEffect(() => {
@@ -30,6 +36,10 @@ export function useOutsideClick({
       const isOutside = readIsOutside(event.target);
       const isPrimaryButton = event.button === 0;
       isPressedOutside = isOutside && isPrimaryButton;
+      if (isPressedOutside && !readIsClickAllowed(event.target)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       if (isOutside && !isPrimaryButton) {
         reportOutsideClick();
       }
@@ -43,8 +53,10 @@ export function useOutsideClick({
       const isOutsideClick = isPressedOutside && readIsOutside(event.target);
       isPressedOutside = false;
       if (isOutsideClick) {
-        event.preventDefault();
-        event.stopPropagation();
+        if (!readIsClickAllowed(event.target)) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
         reportOutsideClick();
       }
     }

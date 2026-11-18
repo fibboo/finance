@@ -132,6 +132,79 @@ test.each(['/locations', '/income-sources'])('marks More as current on %s', (pat
   expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-current', 'page');
 });
 
+test.each([
+  { name: 'Home', path: '/', interaction: 'click' },
+  { name: 'Transactions', path: '/transactions', interaction: 'click' },
+  { name: 'Accounts', path: '/accounts', interaction: 'click' },
+  { name: 'Categories', path: '/categories', interaction: 'click' },
+  { name: 'Home', path: '/', interaction: 'tap' },
+  { name: 'Transactions', path: '/transactions', interaction: 'tap' },
+  { name: 'Accounts', path: '/accounts', interaction: 'tap' },
+  { name: 'Categories', path: '/categories', interaction: 'tap' },
+])(
+  'navigates to $name and closes More on the first $interaction',
+  async ({ name, path, interaction }) => {
+    // arrange
+    const user = userEvent.setup();
+    const { router } = render(
+      <MainNavigation
+        menuState="full"
+        menuToggleRef={{ current: null }}
+        onMenuToggle={() => undefined}
+        onSectionChoose={() => undefined}
+      />,
+      { initialEntries: ['/income-sources'] },
+    );
+    await user.click(screen.getByRole('button', { name: 'More' }));
+
+    // act
+    const sectionLabel = screen.getByText(name);
+    if (interaction === 'tap') {
+      await user.pointer({ keys: '[TouchA]', target: sectionLabel });
+    } else {
+      await user.click(sectionLabel);
+    }
+
+    // assert
+    expect(router.state.location.pathname).toBe(path);
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'More' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Income sources' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  },
+);
+
+test('only dismisses More when Add transaction is tapped and opens the form on the next tap', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const { router } = render(
+    <MainNavigation
+      menuState="full"
+      menuToggleRef={{ current: null }}
+      onMenuToggle={() => undefined}
+      onSectionChoose={() => undefined}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: 'More' }));
+
+  // act
+  await user.pointer({
+    keys: '[TouchA]',
+    target: screen.getByRole('button', { name: 'Add transaction' }),
+  });
+
+  // assert
+  expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+  expect(router.state.location.search).toBe('');
+  await user.pointer({
+    keys: '[TouchA]',
+    target: screen.getByRole('button', { name: 'Add transaction' }),
+  });
+  expect(router.state.location.search).toBe('?new_transaction=EXPENSE');
+});
+
 test('leaves More unmarked on a section of the bar', () => {
   // act
   render(

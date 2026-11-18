@@ -143,8 +143,10 @@
   display: none;
 }
 
-.account:has(.name:hover) {
-  opacity: var(--opacity-hover);
+@media (hover: hover) {
+  .account:has(.name:hover) {
+    opacity: var(--opacity-hover);
+  }
 }
 
 .currency {

@@ -86,13 +86,15 @@ a.account {
   flex: 1 1 auto;
 }
 
-a.account:hover {
-  opacity: var(--opacity-hover);
-}
-
 a.account:focus-visible {
   outline: var(--size-focus-row) solid var(--color-focus-row);
   outline-offset: calc(var(--size-focus-row) * -1);
+}
+
+@media (hover: hover) {
+  a.account:hover {
+    opacity: var(--opacity-hover);
+  }
 }
 
 .selected {
