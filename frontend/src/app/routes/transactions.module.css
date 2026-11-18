@@ -27,10 +27,6 @@
   }
 
   .feed {
-    gap: 0;
-  }
-
-  .feed:has(> div > button[aria-label^='Edit filters:']) {
-    --feed-top-radius: 0;
+    gap: var(--space-4);
   }
 }
