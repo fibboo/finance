@@ -36,6 +36,10 @@ export function useOutsideClick({
       const isOutside = readIsOutside(event.target);
       const isPrimaryButton = event.button === 0;
       isPressedOutside = isOutside && isPrimaryButton;
+      if (isPressedOutside && !readIsClickAllowed(event.target)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       if (isOutside && !isPrimaryButton) {
         reportOutsideClick();
       }

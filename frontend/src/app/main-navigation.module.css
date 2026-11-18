@@ -41,6 +41,10 @@
   opacity: var(--opacity-hover);
 }
 
+.mainNavigation:has([data-more-menu-open]) .addTransaction {
+  pointer-events: none;
+}
+
 .addTransaction:focus-visible {
   outline: var(--size-focus) solid var(--color-ink);
   outline-offset: var(--size-focus);
@@ -117,6 +121,10 @@
 }
 
 @media (--desktop) {
+  .mainNavigation:has([data-more-menu-open]) .addTransaction {
+    pointer-events: auto;
+  }
+
   .mainNavigation {
     height: 100%;
     padding: calc(var(--space-4) * 2 + var(--size-touch)) var(--space-3) var(--space-4);

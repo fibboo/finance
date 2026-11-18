@@ -50,6 +50,10 @@
   composes: navigation;
 }
 
+.navigation:has([data-more-menu-open]) {
+  z-index: 3;
+}
+
 .main {
   grid-area: 1 / 1 / 2 / 3;
   min-width: 0;
@@ -116,6 +120,14 @@
   .navigationOverPage > nav {
     border: var(--size-border) solid var(--color-border);
     box-shadow: var(--shadow-popover);
+  }
+
+  .navigation:has([data-more-menu-open]) {
+    z-index: 0;
+  }
+
+  .navigationOverPage:has([data-more-menu-open]) {
+    z-index: 2;
   }
 
   .appLayoutWithCollapsedMenu .logoLink {

@@ -1,4 +1,5 @@
 import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useOutsideClick } from '@/hooks/use-outside-click';
 
@@ -51,7 +52,16 @@ export function MoreMenu({ isCurrent, navigationRef, renderSections }: MoreMenuP
   });
 
   return (
-    <div ref={menuRef} className={styles['moreMenu']}>
+    <div ref={menuRef} className={styles['moreMenu']} data-more-menu-open={isOpen ? '' : undefined}>
+      {isOpen &&
+        createPortal(
+          <div
+            className={styles['backdrop']}
+            data-testid="more-menu-backdrop"
+            aria-hidden="true"
+          />,
+          document.body,
+        )}
       <button
         ref={buttonRef}
         type="button"

@@ -46,7 +46,7 @@ test('closes on Escape and returns focus to More', async () => {
   expect(screen.getByRole('button', { name: 'More' })).toHaveFocus();
 });
 
-test('closes on a click outside the menu and leaves the focus where the click put it', async () => {
+test('closes on an outside click without focusing the control underneath', async () => {
   // arrange
   const user = userEvent.setup();
   render(
@@ -62,7 +62,52 @@ test('closes on a click outside the menu and leaves the focus where the click pu
 
   // assert
   expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
-  expect(screen.getByRole('button', { name: 'Outside' })).toHaveFocus();
+  expect(screen.getByRole('button', { name: 'Outside' })).not.toHaveFocus();
+  expect(screen.getByRole('button', { name: 'More' })).toHaveFocus();
+});
+
+test.each(['[MouseLeft>]', '[TouchA>]'])(
+  'blocks an outside field while the press %s is held',
+  async (keys) => {
+    // arrange
+    const user = userEvent.setup();
+    render(
+      <>
+        <MoreMenu isCurrent={false} renderSections={() => 'Sections'} />
+        <label>
+          Search accounts
+          <input type="search" />
+        </label>
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'More' }));
+
+    // act
+    await user.pointer({
+      keys,
+      target: screen.getByRole('searchbox', { name: 'Search accounts' }),
+    });
+
+    // assert
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('searchbox', { name: 'Search accounts' })).not.toHaveFocus();
+    expect(screen.getByRole('button', { name: 'More' })).toHaveFocus();
+  },
+);
+
+test('dismisses on the backdrop without passing focus to the page', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(<MoreMenu isCurrent={false} renderSections={() => 'Sections'} />);
+  await user.click(screen.getByRole('button', { name: 'More' }));
+
+  // act
+  await user.pointer({ keys: '[TouchA]', target: screen.getByTestId('more-menu-backdrop') });
+
+  // assert
+  expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByTestId('more-menu-backdrop')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'More' })).toHaveFocus();
 });
 
 test('stays open on a click on one of its sections', async () => {
