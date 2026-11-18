@@ -1,6 +1,6 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { beforeEach, expect, onTestFinished, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
@@ -1338,4 +1338,35 @@ test('marks the account the feed shows when the search hides the chosen one on a
   // assert
   expect(await screen.findByRole('region', { name: 'Transactions of Wallet' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Wallet' })).toHaveAttribute('data-shown-by-default');
+});
+
+test('shows the list skeleton instead of the previous accounts while a search loads', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', async ({ request }) => {
+      if (new URL(request.url).searchParams.has('search_term')) {
+        await delay('infinite');
+      }
+      const items = [wallet, creditCard];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const { router } = render(<Component />);
+  expect(await screen.findByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
+
+  // act
+  await act(() => router.navigate('/?search=cre'));
+
+  // assert
+  expect(screen.queryByRole('region', { name: 'Assets' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Liabilities' })).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Accounts, 2 accounts' }),
+  ).toBeInTheDocument();
 });

@@ -12,8 +12,7 @@
   background: var(--color-panel);
 }
 
-.rows,
-.staleRows {
+.rows {
   flex: 1 1 auto;
   min-height: 0;
   padding: var(--space-2) var(--space-2) calc(var(--size-fab-room) + var(--size-back-to-top));
@@ -22,28 +21,17 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-}
-
-.staleRows {
-  opacity: var(--opacity-stale);
-}
-
-.rows,
-.staleRows {
   overflow-anchor: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .rows,
-  .staleRows {
+  .rows {
     scroll-behavior: smooth;
-    transition: opacity var(--duration-fade) ease;
   }
 }
 
 @media (--desktop) {
-  .rows,
-  .staleRows {
+  .rows {
     padding-bottom: 0;
     border-radius: calc(var(--radius-bar) - var(--space-2)) calc(var(--radius-bar) - var(--space-2))
       0 0;

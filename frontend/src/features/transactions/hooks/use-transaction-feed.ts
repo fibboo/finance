@@ -1,7 +1,6 @@
 import {
   hashKey,
   type InfiniteData,
-  keepPreviousData,
   useInfiniteQuery,
   type UseInfiniteQueryResult,
 } from '@tanstack/react-query';
@@ -31,7 +30,6 @@ export type TransactionFeedQuery = Readonly<{
 type TransactionFeedOptions = Readonly<{
   isOpeningDayKept: boolean;
   isFirstPageErrorThrown: boolean;
-  isPreviousListKept: boolean;
   filterQuery: Readonly<TransactionFilterQuery> | undefined;
   anchorDate?: string | undefined;
 }>;
@@ -46,7 +44,6 @@ function readNextDay(date: string): string {
 export function useTransactionFeed({
   isOpeningDayKept,
   isFirstPageErrorThrown,
-  isPreviousListKept,
   filterQuery,
   anchorDate,
 }: TransactionFeedOptions): TransactionFeedQuery {
@@ -72,7 +69,6 @@ export function useTransactionFeed({
     ...feedOptions,
     ...scrolledDownRefetch,
     enabled: filterQuery !== undefined,
-    ...(isPreviousListKept && { placeholderData: keepPreviousData }),
     throwOnError: (error, failedQuery) =>
       isFirstPageErrorThrown && isThrownWithoutData(error, failedQuery),
   });
@@ -87,7 +83,7 @@ export function useTransactionFeed({
     ...scrolledDownRefetch,
     enabled: filterQuery !== undefined && hasNewerDays,
   });
-  const olderTotal = query.isPlaceholderData ? undefined : query.data?.pages.at(-1)?.total;
+  const olderTotal = query.data?.pages.at(-1)?.total;
   const newerTotal = hasNewerDays ? newerQuery.data?.pages.at(-1)?.total : 0;
   const total =
     olderTotal === undefined || newerTotal === undefined ? undefined : olderTotal + newerTotal;

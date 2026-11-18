@@ -32,10 +32,8 @@ function readNewerTransactions(
 }
 
 export function readFeedTransactions(feed: TransactionFeedQuery): FeedTransactions {
-  const { data, isPlaceholderData } = feed.query;
-  const newerTransactions = isPlaceholderData
-    ? []
-    : readNewerTransactions(feed.newerQuery?.data?.pages);
+  const { data } = feed.query;
+  const newerTransactions = readNewerTransactions(feed.newerQuery?.data?.pages);
   const olderTransactions = data === undefined ? [] : data.pages.flatMap((page) => page.items);
   const feedTransactions = {
     newerTransactions,

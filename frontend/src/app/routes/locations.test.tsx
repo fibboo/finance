@@ -673,8 +673,9 @@ test.each([
     expect(await screen.findByRole(role, { name: sheetName })).toBeInTheDocument();
     await act(() => router.navigate('/locations?search=Coffee'));
     await waitFor(() => {
-      expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Locations' })).toHaveTextContent(coffeeLab.name);
     });
+    expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
 
     // act
     await act(() => router.navigate(-1));
@@ -779,4 +780,28 @@ test('drops the chosen transaction when Deleted changes the list', async () => {
     expect(new URLSearchParams(router.state.location.search).get('transaction')).toBeNull();
   });
   expect(new URLSearchParams(router.state.location.search).get('location')).toBe(spar.id);
+});
+
+test('shows the list skeleton instead of the previous locations while a search loads', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', async ({ request }) => {
+      if (new URL(request.url).searchParams.has('search_term')) {
+        await delay('infinite');
+      }
+      return HttpResponse.json(readLocationPage([spar, coffeeLab]));
+    }),
+  );
+  const { router } = render(<Component />, { initialEntries: ['/locations'] });
+  await waitFor(() => {
+    expect(screen.getByRole('region', { name: 'Locations' })).toHaveTextContent(spar.name);
+  });
+
+  // act
+  await act(() => router.navigate('/locations?search=Coffee'));
+
+  // assert
+  const list = screen.getByRole('region', { name: 'Locations' });
+  expect(list).toHaveAttribute('aria-busy', 'true');
+  expect(list).not.toHaveTextContent(spar.name);
 });

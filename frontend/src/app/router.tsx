@@ -4,6 +4,17 @@ import { RootErrorBoundary } from '@/app/root-error-boundary';
 import { BootScreen } from '@/components/boot-screen/boot-screen';
 import { restoreSession } from '@/features/auth/api/session';
 
+function preloadSectionRoutes() {
+  void Promise.allSettled([
+    import('@/app/routes/home'),
+    import('@/app/routes/transactions'),
+    import('@/app/routes/accounts'),
+    import('@/app/routes/categories'),
+    import('@/app/routes/locations'),
+    import('@/app/routes/income-sources'),
+  ]);
+}
+
 const routes: RouteObject[] = [
   {
     path: '/',
@@ -45,7 +56,10 @@ const routes: RouteObject[] = [
               {
                 ErrorBoundary: RootErrorBoundary,
                 lazy: {
-                  Component: async () => (await import('@/app/app-layout')).AppLayout,
+                  Component: async () => {
+                    preloadSectionRoutes();
+                    return (await import('@/app/app-layout')).AppLayout;
+                  },
                 },
                 children: [
                   {

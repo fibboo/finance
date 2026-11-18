@@ -770,3 +770,43 @@ test('replaces the estimates with the valued amounts once refreshed data values 
     expect(within(region).queryByText(/≈/)).not.toBeInTheDocument();
   }
 });
+
+test('shows skeleton rows instead of the previous transactions while the next day loads', async () => {
+  // arrange
+  onTestFinished(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+  });
+  server.use(
+    http.get('http://localhost/api/accounting/transactions', async ({ request }) => {
+      if (new URL(request.url).searchParams.get('date_to') !== '2026-10-20') {
+        await delay('infinite');
+      }
+      return HttpResponse.json({
+        items: [income],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
+    }),
+  );
+  render(<Component />);
+  const recent = await screen.findByRole('region', { name: 'Recent transactions' });
+  expect(await within(recent).findByText('Design project')).toBeInTheDocument();
+  vi.setSystemTime(new Date(2026, 9, 21, 0, 1));
+
+  // act: the user comes back to the tab after midnight
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+
+  // assert
+  await waitFor(() => {
+    expect(screen.getByRole('region', { name: 'Recent transactions' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+  });
+  expect(screen.getByRole('region', { name: 'Recent transactions' })).not.toHaveTextContent(
+    'Design project',
+  );
+});
