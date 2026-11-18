@@ -32,6 +32,7 @@ export function TotalBalance({ baseCurrency }: TotalBalanceProps) {
           <EstimatedAmount
             amount={Number(summary.estimated_total_balance)}
             currency={baseCurrency}
+            isMuted={false}
           />
         </span>
       )}
