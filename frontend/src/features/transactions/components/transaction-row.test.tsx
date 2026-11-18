@@ -6,8 +6,6 @@ import { render } from '@/test/render';
 
 import { TransactionRow } from './transaction-row';
 
-const EXCHANGE_RATE_SOURCE = 'ExchangeRate-API ↗';
-
 const wallet = {
   name: 'Wallet',
   id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
@@ -167,7 +165,7 @@ test.each([
         },
       ],
     },
-    cells: ['Groceries', 'Wallet · EUR', '≈ -$45.10', '-€42.80', EXCHANGE_RATE_SOURCE],
+    cells: ['Groceries', 'Wallet · EUR', '≈ -$45.10', '-€42.80'],
   },
   {
     kind: 'an expense not valued yet by an estimate of zero',
@@ -194,7 +192,7 @@ test.each([
         },
       ],
     },
-    cells: ['Groceries', 'Wallet · RSD', '≈ $0.00', '-RSD 0.01', EXCHANGE_RATE_SOURCE],
+    cells: ['Groceries', 'Wallet · RSD', '≈ $0.00', '-RSD 0.01'],
   },
   {
     kind: 'a valued expense by its base amount even next to an estimate',
@@ -293,7 +291,7 @@ test.each([
         },
       ],
     },
-    cells: ['Wallet → Savings', 'EUR', '≈ $327.00', '€300.00', EXCHANGE_RATE_SOURCE],
+    cells: ['Wallet → Savings', 'EUR', '≈ $327.00', '€300.00'],
   },
   {
     kind: 'a decreasing adjustment',
@@ -560,7 +558,7 @@ test.each([
         },
       ],
     },
-    cells: ['Transfer ← Savings', '≈ +$327.00', '+€300.00', EXCHANGE_RATE_SOURCE],
+    cells: ['Transfer ← Savings', '≈ +$327.00', '+€300.00'],
   },
   {
     kind: 'only the type of an adjustment',

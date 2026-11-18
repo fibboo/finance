@@ -3,7 +3,6 @@ import { type ReactNode, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
 import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
-import { ExchangeRateSource } from '@/components/estimated-amount/exchange-rate-source';
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
@@ -142,7 +141,7 @@ export function AccountList({
                     }}
                     preventScrollReset
                     aria-current={account.id === chosenAccountId ? 'true' : undefined}
-                    className={`${styles['account'] ?? ''} ${account.id === chosenAccountId ? (styles['selected'] ?? '') : ''} ${chosenAccountId === undefined && account.id === defaultAccountId ? (styles['shownByDefault'] ?? '') : ''} ${estimatedBaseBalance === null ? '' : (styles['estimated'] ?? '')}`}
+                    className={`${styles['account'] ?? ''} ${account.id === chosenAccountId ? (styles['selected'] ?? '') : ''} ${chosenAccountId === undefined && account.id === defaultAccountId ? (styles['shownByDefault'] ?? '') : ''}`}
                   >
                     <AccountMark account={account} />
                     <span className={styles['identity']}>
@@ -184,9 +183,6 @@ export function AccountList({
                       )}
                     </span>
                   </Link>
-                  {estimatedBaseBalance !== null && (
-                    <ExchangeRateSource className={styles['source']} />
-                  )}
                 </li>
               );
             })}

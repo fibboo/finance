@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
-import { ExchangeRateSource } from '@/components/estimated-amount/exchange-rate-source';
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { formatMoney } from '@/lib/format-money';
 
@@ -32,15 +31,12 @@ export function TotalBalance({ baseCurrency }: TotalBalanceProps) {
           <span className={styles['note']}>Valued amounts</span>
         </>
       ) : (
-        <>
-          <span className={styles['amount']}>
-            <EstimatedAmount
-              amount={Number(summary.estimated_total_balance)}
-              currency={baseCurrency}
-            />
-          </span>
-          <ExchangeRateSource className={styles['source']} />
-        </>
+        <span className={styles['amount']}>
+          <EstimatedAmount
+            amount={Number(summary.estimated_total_balance)}
+            currency={baseCurrency}
+          />
+        </span>
       )}
     </p>
   );

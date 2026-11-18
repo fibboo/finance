@@ -28,7 +28,6 @@
 
   --font-sans: 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
-  --font-size-3xs: 0.625rem;
   --font-size-2xs: 0.6875rem;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.8125rem;
@@ -116,7 +115,6 @@
   --size-skeleton-word: 2rem;
   --size-sheet-handle: 2.25rem;
   --size-day-header: 1.5rem;
-  --size-source-link: 1.5rem;
   --size-day-header-lg: 1.875rem;
   --size-panel-header: 1.875rem;
   --size-panel-header-lg: 2.5rem;

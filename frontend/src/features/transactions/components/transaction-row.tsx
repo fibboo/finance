@@ -1,7 +1,6 @@
 import { Link, useSearchParams } from 'react-router';
 
 import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
-import { ExchangeRateSource } from '@/components/estimated-amount/exchange-rate-source';
 import type { ArrowKeySelectionProps } from '@/hooks/use-arrow-key-selection';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
@@ -66,7 +65,6 @@ export function TransactionRow({
   const rateText = isForeign
     ? readRateText({ amount: view.amount, baseAmount: view.baseAmount })
     : undefined;
-  const isEstimated = view.baseAmount === null && view.estimatedBaseAmount !== null;
   const originalAmount = formatMoney({
     amount: view.amount,
     currency: view.currency,
@@ -151,7 +149,7 @@ export function TransactionRow({
           )}
         </span>
       </span>
-      <span className={isEstimated ? styles['estimatedAmounts'] : styles['amounts']}>
+      <span className={styles['amounts']}>
         <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
           {view.baseAmount !== null ? (
             formatMoney({
@@ -175,7 +173,6 @@ export function TransactionRow({
         {isForeign && (view.baseAmount !== null || view.estimatedBaseAmount !== null) && (
           <span className={styles['originalAmount']}>{originalAmount}</span>
         )}
-        {isEstimated && <ExchangeRateSource className={styles['source']} />}
       </span>
     </li>
   );

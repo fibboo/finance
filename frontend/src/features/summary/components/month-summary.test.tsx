@@ -76,10 +76,6 @@ test('shows the unvalued spending of every currency apart, with its estimate as 
   expect(await within(month).findByText('Unvalued spending')).toBeInTheDocument();
   expect(within(month).getByText('≈ -$335.25')).toBeInTheDocument();
   expect(within(month).getByText('€300.00 · RSD 1,200.00')).toBeInTheDocument();
-  expect(within(month).getByRole('link', { name: /ExchangeRate-API/ })).toHaveAttribute(
-    'href',
-    'https://www.exchangerate-api.com',
-  );
   // spent and left stay valued amounts
   expect(within(month).getByText('-$1,046.70')).toBeInTheDocument();
   expect(within(month).getByText('$1,265.30')).toBeInTheDocument();
@@ -113,7 +109,6 @@ test('keeps the unvalued spending without an estimate and says it is left out of
   expect(
     within(month).getByText('Not included in Spent or Left. Estimates are unavailable.'),
   ).toBeInTheDocument();
-  expect(within(month).queryByRole('link', { name: /ExchangeRate-API/ })).not.toBeInTheDocument();
 });
 
 test('shows a negative left over with its minus', async () => {

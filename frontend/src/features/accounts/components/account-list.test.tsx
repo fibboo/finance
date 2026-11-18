@@ -91,12 +91,11 @@ test('shows every account in the order of their recent use, in the base currency
   expect(items[2]).toHaveTextContent('$1,940.00');
   expect(items[2]).not.toHaveTextContent('€');
   expect(items[2]).not.toHaveTextContent('valued');
-  expect(screen.queryByRole('link', { name: /ExchangeRate-API/ })).not.toBeInTheDocument();
   // every account fits the wide jsdom strip, so neither arrow shows
   expect(screen.queryByRole('button', { name: 'Next accounts' })).not.toBeInTheDocument();
 });
 
-test('shows the estimate of a balance with unvalued amounts in its place, with its own link to the rate provider', async () => {
+test('shows the estimate of a balance with unvalued amounts in its place, ', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
@@ -140,13 +139,6 @@ test('shows the estimate of a balance with unvalued amounts in its place, with i
   expect(screen.getByRole('link', { name: /^Travel card/ })).toHaveTextContent('≈ $0.00€0.00');
   expect(screen.getByRole('link', { name: /^Wallet/ })).toHaveTextContent('$412.50');
   expect(screen.getByRole('link', { name: /^Wallet/ })).not.toHaveTextContent('≈');
-  const sources = screen.getAllByRole('link', { name: /ExchangeRate-API/ });
-  expect(sources).toHaveLength(2);
-  for (const source of sources) {
-    expect(source).toHaveAttribute('href', 'https://www.exchangerate-api.com');
-    expect(source).toHaveAttribute('target', '_blank');
-    expect(mainCardLink).not.toContainElement(source);
-  }
   expect(mainCardLink).toHaveAttribute('href', '/?account=7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a02');
 });
 

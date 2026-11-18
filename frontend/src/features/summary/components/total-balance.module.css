@@ -29,10 +29,6 @@
   color: var(--color-muted);
 }
 
-.source {
-  align-self: flex-start;
-}
-
 .note {
   font-size: var(--font-size-2xs);
   color: var(--color-muted);
@@ -62,10 +58,6 @@
 
   .label {
     font-size: var(--font-size-md);
-  }
-
-  .source {
-    align-self: flex-start;
   }
 
   .note {

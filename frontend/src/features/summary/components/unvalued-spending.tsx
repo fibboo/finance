@@ -1,5 +1,4 @@
 import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
-import { ExchangeRateSource } from '@/components/estimated-amount/exchange-rate-source';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -40,10 +39,8 @@ export function UnvaluedSpending({
         )}
       </span>
       <span className={styles['currencyAmounts']}>{currencyAmounts}</span>
-      {estimatedUnvaluedSpent === null ? (
+      {estimatedUnvaluedSpent === null && (
         <p className={styles['hint']}>Not included in Spent or Left. Estimates are unavailable.</p>
-      ) : (
-        <ExchangeRateSource className={styles['source']} />
       )}
     </div>
   );

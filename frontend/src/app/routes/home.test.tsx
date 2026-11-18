@@ -745,7 +745,7 @@ test('replaces the estimates with the valued amounts once refreshed data values 
   const accounts = await screen.findByRole('region', { name: 'Accounts' });
   const month = screen.getByRole('region', { name: 'This month' });
   const recent = screen.getByRole('region', { name: 'Recent transactions' });
-  // the total, the card, the unvalued spending and the row each show an estimate with its source
+  // the total, the card, the unvalued spending and the row each show an estimate
   expect(await within(recent).findByText('≈ -$324.00')).toBeInTheDocument();
   expect(await within(accounts).findAllByText('≈ -$324.00')).toHaveLength(2);
   expect(within(month).getByText('≈ -$324.00')).toBeInTheDocument();
@@ -770,8 +770,5 @@ test('replaces the estimates with the valued amounts once refreshed data values 
   expect(within(month).queryByText('Unvalued spending')).not.toBeInTheDocument();
   for (const region of [accounts, month, recent]) {
     expect(within(region).queryByText(/≈/)).not.toBeInTheDocument();
-    expect(
-      within(region).queryByRole('link', { name: /ExchangeRate-API/ }),
-    ).not.toBeInTheDocument();
   }
 });
