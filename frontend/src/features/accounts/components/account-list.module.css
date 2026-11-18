@@ -61,6 +61,7 @@
 }
 
 .accountItem {
+  position: relative;
   flex: none;
   min-width: var(--size-account-tile-sm);
   display: flex;
@@ -144,6 +145,23 @@ a.account:focus-visible {
   gap: var(--space-0-5);
   flex-direction: column;
   align-items: flex-start;
+}
+
+.valued {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: normal;
+  color: var(--color-muted);
+}
+
+.account.estimated {
+  padding-bottom: calc(var(--size-source-link) + var(--space-0-5));
+}
+
+.source {
+  position: absolute;
+  bottom: var(--space-1);
+  left: var(--space-2-5);
 }
 
 .accountBalance {
@@ -283,8 +301,13 @@ a.account:focus-visible {
   }
 
   .detail,
-  .accountBalance {
+  .accountBalance,
+  .valued {
     font-size: var(--font-size-xs);
+  }
+
+  .source {
+    left: var(--space-3-5);
   }
 
   .balance {

@@ -1,0 +1,4 @@
+.estimatedAmount {
+  color: var(--color-muted);
+  white-space: nowrap;
+}

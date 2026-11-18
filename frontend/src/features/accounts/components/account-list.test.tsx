@@ -9,34 +9,38 @@ import { server } from '@/test/setup';
 
 import { AccountList } from './account-list';
 
+const mainCard = {
+  name: 'Main card',
+  id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a02',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  kind: 'ASSET',
+  balance: '3180.00',
+  currency: 'EUR',
+  color: '#5B6CD9',
+  category_type: null,
+  base_currency_rate: '0.9161',
+  status: 'ACTIVE',
+  base_currency_balance: '3471.20',
+} satisfies components['schemas']['Account'];
+
+const wallet = {
+  name: 'Wallet',
+  id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  kind: 'ASSET',
+  balance: '412.50',
+  currency: 'USD',
+  color: null,
+  category_type: null,
+  base_currency_rate: '1',
+  status: 'ACTIVE',
+  base_currency_balance: '412.50',
+} satisfies components['schemas']['Account'];
+
 const accounts = [
   // neither by balance nor by name, the order of their recent use the list answers
-  {
-    name: 'Main card',
-    id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a02',
-    user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-    kind: 'ASSET',
-    balance: '3180.00',
-    currency: 'EUR',
-    color: '#5B6CD9',
-    category_type: null,
-    base_currency_rate: '0.9161',
-    status: 'ACTIVE',
-    base_currency_balance: '3471.20',
-  },
-  {
-    name: 'Wallet',
-    id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
-    user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-    kind: 'ASSET',
-    balance: '412.50',
-    currency: 'USD',
-    color: null,
-    category_type: null,
-    base_currency_rate: '1',
-    status: 'ACTIVE',
-    base_currency_balance: '412.50',
-  },
+  mainCard,
+  wallet,
   {
     name: 'Freelance',
     id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a01',
@@ -80,13 +84,70 @@ test('shows every account in the order of their recent use, in the base currency
   const items = screen.getAllByRole('listitem');
   expect(items).toHaveLength(3);
   expect(items[0]).toHaveTextContent('Main cardEUR0.9161');
-  expect(items[0]).toHaveTextContent('$3,471.20€3,180.00');
+  // without an estimate a foreign account shows its valued balance and says so
+  expect(items[0]).toHaveTextContent('$3,471.20 valued€3,180.00');
   expect(items[1]).toHaveTextContent('Wallet');
   expect(items[2]).toHaveTextContent('Freelance');
   expect(items[2]).toHaveTextContent('$1,940.00');
   expect(items[2]).not.toHaveTextContent('€');
+  expect(items[2]).not.toHaveTextContent('valued');
+  expect(screen.queryByRole('link', { name: /ExchangeRate-API/ })).not.toBeInTheDocument();
   // every account fits the wide jsdom strip, so neither arrow shows
   expect(screen.queryByRole('button', { name: 'Next accounts' })).not.toBeInTheDocument();
+});
+
+test('shows the estimate of a balance with unvalued amounts in its place, with its own link to the rate provider', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [
+          // the estimate already holds the valued balance, so nothing is added to it
+          {
+            ...mainCard,
+            balance: '-300.00',
+            base_currency_balance: '0.00',
+            estimated_base_balance: '-324.00',
+          },
+          // an estimate of zero is still an estimate
+          {
+            ...mainCard,
+            name: 'Travel card',
+            id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a05',
+            balance: '0.00',
+            base_currency_balance: '12.00',
+            estimated_base_balance: '0.00',
+          },
+          { ...wallet, estimated_base_balance: null },
+        ],
+        total: 3,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+  );
+
+  // act
+  render(
+    <AccountList baseCurrency="USD" chosenAccountId={undefined} defaultAccountId={undefined} />,
+  );
+
+  // assert
+  const mainCardLink = await screen.findByRole('link', { name: /^Main card/ });
+  expect(mainCardLink).toHaveTextContent('≈ -$324.00-€300.00');
+  expect(mainCardLink).not.toHaveTextContent('valued');
+  expect(screen.getByRole('link', { name: /^Travel card/ })).toHaveTextContent('≈ $0.00€0.00');
+  expect(screen.getByRole('link', { name: /^Wallet/ })).toHaveTextContent('$412.50');
+  expect(screen.getByRole('link', { name: /^Wallet/ })).not.toHaveTextContent('≈');
+  const sources = screen.getAllByRole('link', { name: /ExchangeRate-API/ });
+  expect(sources).toHaveLength(2);
+  for (const source of sources) {
+    expect(source).toHaveAttribute('href', 'https://www.exchangerate-api.com');
+    expect(source).toHaveAttribute('target', '_blank');
+    expect(mainCardLink).not.toContainElement(source);
+  }
+  expect(mainCardLink).toHaveAttribute('href', '/?account=7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a02');
 });
 
 test('shows an account without a color in the first palette color', async () => {

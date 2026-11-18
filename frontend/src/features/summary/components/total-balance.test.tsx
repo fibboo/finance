@@ -31,7 +31,45 @@ test('shows the total balance in the base currency', async () => {
   // assert
   expect(await screen.findByText('$13,713.25')).toBeInTheDocument();
   expect(screen.getByText('Total balance · USD')).toBeInTheDocument();
+  expect(screen.getByText('Valued amounts')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: /ExchangeRate-API/ })).not.toBeInTheDocument();
 });
+
+test.each([
+  { kind: 'a positive', estimate: '13400.10', text: '≈ $13,400.10' },
+  { kind: 'a negative', estimate: '-250.00', text: '≈ -$250.00' },
+  { kind: 'a zero', estimate: '0.00', text: '≈ $0.00' },
+])(
+  'shows $kind estimated total in place of the valued one, with the rate provider',
+  async ({ estimate, text }) => {
+    // arrange
+    server.use(
+      http.get('http://localhost/api/accounting/summary', () =>
+        HttpResponse.json({
+          month: '2026-10-01',
+          total_balance: '13713.25',
+          estimated_total_balance: estimate,
+          earned: '2312.00',
+          spent: '1046.70',
+          left_over: '1265.30',
+          unvalued_spent: [],
+          estimated_unvalued_spent: null,
+        } satisfies components['schemas']['Summary']),
+      ),
+    );
+
+    // act
+    render(<TotalBalance baseCurrency="USD" />);
+
+    // assert
+    expect(await screen.findByText(text)).toBeInTheDocument();
+    expect(screen.queryByText('$13,713.25')).not.toBeInTheDocument();
+    expect(screen.queryByText('Valued amounts')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'ExchangeRate-API, opens in a new tab' }),
+    ).toHaveAttribute('href', 'https://www.exchangerate-api.com');
+  },
+);
 
 test('shows no total while the summary loads', () => {
   // arrange

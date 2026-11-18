@@ -45,6 +45,75 @@ test('shows what the month earned, spent and left against the days gone', async 
   expect(
     within(month).getByText('45% of the earnings spent, 84% of the month gone'),
   ).toBeInTheDocument();
+  expect(within(month).queryByText('Unvalued spending')).not.toBeInTheDocument();
+});
+
+test('shows the unvalued spending of every currency apart, with its estimate as spending', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/summary', () =>
+      HttpResponse.json({
+        month: '2026-10-01',
+        total_balance: '13713.25',
+        estimated_total_balance: '13300.00',
+        earned: '2312.00',
+        spent: '1046.70',
+        left_over: '1265.30',
+        unvalued_spent: [
+          { currency: 'EUR', amount: '300.00' },
+          { currency: 'RSD', amount: '1200.00' },
+        ],
+        estimated_unvalued_spent: '335.25',
+      } satisfies components['schemas']['Summary']),
+    ),
+  );
+
+  // act
+  render(<MonthSummary baseCurrency="USD" />);
+
+  // assert
+  const month = screen.getByRole('region', { name: 'This month' });
+  expect(await within(month).findByText('Unvalued spending')).toBeInTheDocument();
+  expect(within(month).getByText('≈ -$335.25')).toBeInTheDocument();
+  expect(within(month).getByText('€300.00 · RSD 1,200.00')).toBeInTheDocument();
+  expect(within(month).getByRole('link', { name: /ExchangeRate-API/ })).toHaveAttribute(
+    'href',
+    'https://www.exchangerate-api.com',
+  );
+  // spent and left stay valued amounts
+  expect(within(month).getByText('-$1,046.70')).toBeInTheDocument();
+  expect(within(month).getByText('$1,265.30')).toBeInTheDocument();
+  expect(within(month).queryByText('No estimate available')).not.toBeInTheDocument();
+});
+
+test('keeps the unvalued spending without an estimate and says it is left out of Spent and Left', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/summary', () =>
+      HttpResponse.json({
+        month: '2026-10-01',
+        total_balance: '13713.25',
+        estimated_total_balance: null,
+        earned: '2312.00',
+        spent: '1046.70',
+        left_over: '1265.30',
+        unvalued_spent: [{ currency: 'EUR', amount: '300.00' }],
+        estimated_unvalued_spent: null,
+      } satisfies components['schemas']['Summary']),
+    ),
+  );
+
+  // act
+  render(<MonthSummary baseCurrency="USD" />);
+
+  // assert
+  const month = screen.getByRole('region', { name: 'This month' });
+  expect(await within(month).findByText('No estimate available')).toBeInTheDocument();
+  expect(within(month).getByText('€300.00')).toBeInTheDocument();
+  expect(
+    within(month).getByText('Not included in Spent or Left. Estimates are unavailable.'),
+  ).toBeInTheDocument();
+  expect(within(month).queryByRole('link', { name: /ExchangeRate-API/ })).not.toBeInTheDocument();
 });
 
 test('shows a negative left over with its minus', async () => {

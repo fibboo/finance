@@ -7,6 +7,7 @@ import { formatMoney } from '@/lib/format-money';
 
 import { summaryQueries } from '../api/summary-queries';
 import styles from './month-summary.module.css';
+import { UnvaluedSpending } from './unvalued-spending';
 
 type SpendingPace = 'onPace' | 'ahead' | 'over';
 
@@ -118,6 +119,13 @@ export function MonthSummary({ baseCurrency }: MonthSummaryProps) {
           </dd>
         </div>
       </dl>
+      {summary.unvalued_spent.length > 0 && (
+        <UnvaluedSpending
+          unvaluedSpent={summary.unvalued_spent}
+          estimatedUnvaluedSpent={summary.estimated_unvalued_spent}
+          baseCurrency={baseCurrency}
+        />
+      )}
     </section>
   );
 }

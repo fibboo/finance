@@ -18,6 +18,7 @@ type TransactionView = Readonly<{
   titleMarkedAccount: Account | null;
   amount: number;
   baseAmount: number | null;
+  estimatedBaseAmount: number | null;
   currency: string;
   signDisplay: Intl.NumberFormatOptions['signDisplay'];
   isIncome: boolean;
@@ -68,6 +69,11 @@ export function readDeletedMoneyAccountNames(transaction: Readonly<Transaction>)
 export function readPlainText(text: TransactionText): string {
   const plainText = text.map((part) => (typeof part === 'string' ? part : part.name)).join('');
   return plainText;
+}
+
+function readOptionalAmount(amount: string | null | undefined): number | null {
+  const optionalAmount = amount === null || amount === undefined ? null : Number(amount);
+  return optionalAmount;
 }
 
 function requireField<Field>({
@@ -158,7 +164,8 @@ export function readTransactionView({
         markedAccount: debit.account,
         titleMarkedAccount: null,
         amount: Number(debit.amount),
-        baseAmount: debit.base_amount === null ? null : Number(debit.base_amount),
+        baseAmount: readOptionalAmount(debit.base_amount),
+        estimatedBaseAmount: readOptionalAmount(debit.estimated_base_amount),
         currency: debit.currency,
         signDisplay: 'exceptZero',
         isIncome: false,
@@ -173,7 +180,8 @@ export function readTransactionView({
         markedAccount: credit.account,
         titleMarkedAccount: null,
         amount: Number(credit.amount),
-        baseAmount: credit.base_amount === null ? null : Number(credit.base_amount),
+        baseAmount: readOptionalAmount(credit.base_amount),
+        estimatedBaseAmount: readOptionalAmount(credit.estimated_base_amount),
         currency: credit.currency,
         signDisplay: 'exceptZero',
         isIncome: true,
@@ -190,6 +198,10 @@ export function readTransactionView({
         titleMarkedAccount: credit.account,
         amount: -Number(debit.amount),
         baseAmount: debit.base_amount === null ? null : -Number(debit.base_amount),
+        estimatedBaseAmount:
+          debit.estimated_base_amount === null || debit.estimated_base_amount === undefined
+            ? null
+            : -Number(debit.estimated_base_amount),
         currency: debit.currency,
         signDisplay: 'auto',
         isIncome: false,
@@ -206,7 +218,8 @@ export function readTransactionView({
         markedAccount: posting.account,
         titleMarkedAccount: null,
         amount: Number(posting.amount),
-        baseAmount: posting.base_amount === null ? null : Number(posting.base_amount),
+        baseAmount: readOptionalAmount(posting.base_amount),
+        estimatedBaseAmount: readOptionalAmount(posting.estimated_base_amount),
         currency: posting.currency,
         signDisplay: 'exceptZero',
         isIncome: false,
@@ -256,7 +269,8 @@ export function readMoneyEntryView({
     markedAccount: entryPosting.account,
     titleMarkedAccount: null,
     amount,
-    baseAmount: entryPosting.base_amount === null ? null : Number(entryPosting.base_amount),
+    baseAmount: readOptionalAmount(entryPosting.base_amount),
+    estimatedBaseAmount: readOptionalAmount(entryPosting.estimated_base_amount),
     currency: entryPosting.currency,
     signDisplay: 'exceptZero',
   } satisfies TransactionView;

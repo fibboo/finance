@@ -1,0 +1,53 @@
+@import '@/styles/media.css';
+
+.unvaluedSpending {
+  padding-top: var(--space-2);
+  border-top: var(--size-border) solid var(--color-border);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  font-size: var(--font-size-xs);
+}
+
+.label {
+  grid-column: 1;
+}
+
+.estimate {
+  grid-column: 2;
+  justify-self: end;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-muted);
+  text-align: end;
+}
+
+.currencyAmounts {
+  grid-column: 1;
+  min-width: 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+}
+
+.source {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.hint {
+  grid-column: 1 / -1;
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .unvaluedSpending {
+    font-size: var(--font-size-sm);
+  }
+
+  .currencyAmounts,
+  .hint {
+    font-size: var(--font-size-xs);
+  }
+}

@@ -665,3 +665,113 @@ test('shows a transaction added elsewhere once the tab is shown again at the top
   // assert
   expect(await screen.findByText('Consulting')).toBeInTheDocument();
 });
+
+test('replaces the estimates with the valued amounts once refreshed data values them', async () => {
+  // arrange
+  onTestFinished(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+  });
+  let isValued = false;
+  const card = {
+    ...wallet,
+    name: 'Credit EUR',
+    id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a09',
+    kind: 'LIABILITY',
+    balance: '-300.00',
+    currency: 'EUR',
+    base_currency_rate: '0',
+    base_currency_balance: '0.00',
+  } satisfies components['schemas']['Account'];
+  const unvaluedExpense = {
+    ...expense,
+    base_currency_amount: null,
+    estimated_base_currency_amount: '324.00',
+    postings: expense.postings.map((posting) => ({
+      ...posting,
+      amount: posting.amount.startsWith('-') ? '-300.00' : '300.00',
+      currency: 'EUR',
+      base_amount: null,
+      estimated_base_amount: posting.amount.startsWith('-') ? '-324.00' : '324.00',
+      account: posting.account.kind === 'ASSET' ? card : posting.account,
+    })),
+  } satisfies components['schemas']['Transaction'];
+  const valuedExpense = {
+    ...unvaluedExpense,
+    base_currency_amount: '318.00',
+    estimated_base_currency_amount: null,
+    postings: unvaluedExpense.postings.map((posting) => ({
+      ...posting,
+      base_amount: posting.amount.startsWith('-') ? '-318.00' : '318.00',
+      estimated_base_amount: null,
+    })),
+  } satisfies components['schemas']['Transaction'];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [
+          isValued
+            ? { ...card, base_currency_rate: '0.9434', base_currency_balance: '-318.00' }
+            : { ...card, estimated_base_balance: '-324.00' },
+        ],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']),
+    ),
+    http.get('http://localhost/api/accounting/summary', () =>
+      HttpResponse.json({
+        month: '2026-10-01',
+        total_balance: isValued ? '-318.00' : '0.00',
+        estimated_total_balance: isValued ? null : '-324.00',
+        earned: '0.00',
+        spent: isValued ? '318.00' : '0.00',
+        left_over: isValued ? '-318.00' : '0.00',
+        unvalued_spent: isValued ? [] : [{ currency: 'EUR', amount: '300.00' }],
+        estimated_unvalued_spent: isValued ? null : '324.00',
+      } satisfies components['schemas']['Summary']),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [isValued ? valuedExpense : unvaluedExpense],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+  render(<Component />);
+  const accounts = await screen.findByRole('region', { name: 'Accounts' });
+  const month = screen.getByRole('region', { name: 'This month' });
+  const recent = screen.getByRole('region', { name: 'Recent transactions' });
+  // the total, the card, the unvalued spending and the row each show an estimate with its source
+  expect(await within(recent).findByText('≈ -$324.00')).toBeInTheDocument();
+  expect(await within(accounts).findAllByText('≈ -$324.00')).toHaveLength(2);
+  expect(within(month).getByText('≈ -$324.00')).toBeInTheDocument();
+  expect(within(recent).getByText('$0.00 · valued')).toBeInTheDocument();
+  isValued = true;
+
+  // act: the user leaves the tab and comes back
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+
+  // assert
+  // the row and its day total
+  expect(await within(recent).findAllByText('-$318.00')).toHaveLength(2);
+  await waitFor(() => {
+    expect(within(accounts).getByText('Valued amounts')).toBeInTheDocument();
+  });
+  // the total and the card
+  expect(within(accounts).getAllByText('-$318.00')).toHaveLength(2);
+  expect(within(accounts).getByText('valued')).toBeInTheDocument();
+  expect(within(month).queryByText('Unvalued spending')).not.toBeInTheDocument();
+  for (const region of [accounts, month, recent]) {
+    expect(within(region).queryByText(/≈/)).not.toBeInTheDocument();
+    expect(
+      within(region).queryByRole('link', { name: /ExchangeRate-API/ }),
+    ).not.toBeInTheDocument();
+  }
+});

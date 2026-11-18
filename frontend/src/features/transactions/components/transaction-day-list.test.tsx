@@ -109,7 +109,7 @@ test('groups the transactions by day with each day total in the base currency', 
         { ...posting, amount: '4.50', base_amount: '4.50', account: category },
       ],
     },
-    // an expense not valued yet adds nothing to its day total
+    // an expense not valued yet adds nothing to its day total, which says it sums valued amounts
     {
       ...transaction,
       id: '5a1d9c3e-2b4f-4e6a-8c7d-9e0f1a2b3c47',
@@ -221,7 +221,7 @@ test('groups the transactions by day with each day total in the base currency', 
     screen.getAllByRole('list').map((list) => within(list).getAllByRole('listitem').length),
   ).toEqual([3, 2, 1, 1, 1]);
   expect(screen.queryByText('$0.00')).not.toBeInTheDocument();
-  expect(screen.getByText('-$47.30')).toBeInTheDocument();
+  expect(screen.getByText('-$47.30 · valued')).toBeInTheDocument();
   expect(screen.getAllByText('+$2,291.30')).toHaveLength(2);
   expect(screen.getAllByText('+$25.00')).toHaveLength(2);
   expect(screen.getAllByText('-$12.00')).toHaveLength(2);
