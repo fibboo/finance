@@ -168,6 +168,7 @@ beforeEach(() => {
         left_over: '-42.80',
         unvalued_spent: [],
         estimated_unvalued_spent: null,
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
     http.get('http://localhost/api/accounting/transactions', () =>
@@ -729,6 +730,7 @@ test('replaces the estimates with the valued amounts once refreshed data values 
         left_over: isValued ? '-318.00' : '0.00',
         unvalued_spent: isValued ? [] : [{ currency: 'EUR', amount: '300.00' }],
         estimated_unvalued_spent: isValued ? null : '324.00',
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
     http.get('http://localhost/api/accounting/transactions', () =>

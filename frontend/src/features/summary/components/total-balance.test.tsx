@@ -21,6 +21,7 @@ test('shows the total balance in the base currency', async () => {
         left_over: '1265.30',
         unvalued_spent: [],
         estimated_unvalued_spent: null,
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
   );
@@ -50,6 +51,7 @@ test.each([
         left_over: '1265.30',
         unvalued_spent: [],
         estimated_unvalued_spent: null,
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
   );

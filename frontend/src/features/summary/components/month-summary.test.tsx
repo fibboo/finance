@@ -30,6 +30,7 @@ test('shows what the month earned, spent and left against the days gone', async 
         left_over: '1265.30',
         unvalued_spent: [],
         estimated_unvalued_spent: null,
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
   );
@@ -64,6 +65,7 @@ test('shows the unvalued spending of every currency apart, with its estimate as 
           { currency: 'RSD', amount: '1200.00' },
         ],
         estimated_unvalued_spent: '335.25',
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
   );
@@ -95,6 +97,7 @@ test('keeps the unvalued spending without an estimate and says it is left out of
         left_over: '1265.30',
         unvalued_spent: [{ currency: 'EUR', amount: '300.00' }],
         estimated_unvalued_spent: null,
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
   );
@@ -124,6 +127,7 @@ test('shows a negative left over with its minus', async () => {
         left_over: '-200.00',
         unvalued_spent: [],
         estimated_unvalued_spent: null,
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
   );
@@ -150,6 +154,7 @@ test('counts no days gone for a month the backend has started before the local t
         left_over: '0.00',
         unvalued_spent: [],
         estimated_unvalued_spent: null,
+        estimate_rates: [],
       } satisfies components['schemas']['Summary']),
     ),
   );

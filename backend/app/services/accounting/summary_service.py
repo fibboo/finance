@@ -10,7 +10,7 @@ from app.crud.accounting.account import account_crud
 from app.crud.accounting.posting import posting_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.models.accounting.account import Account as AccountModel
-from app.schemas.accounting.summary import CurrencyAmount, Summary
+from app.schemas.accounting.summary import CurrencyAmount, CurrencyRate, Summary
 from app.schemas.base import CurrencyCode
 from app.services.accounting import account_service, exchange_rate_service
 from app.utils import utils
@@ -62,6 +62,27 @@ def _get_estimated_unvalued_spent(
     return estimated_unvalued_spent
 
 
+def _get_estimate_rates(
+    *,
+    accounts_db: list[AccountModel],
+    unvalued_account_sums: list[Row],
+    unvalued_spent: list[CurrencyAmount],
+    base_currency_rates: dict[CurrencyCode, Decimal],
+) -> list[CurrencyRate]:
+    currencies: dict[UUID, CurrencyCode] = {account_db.id: account_db.currency for account_db in accounts_db}
+    estimated_currencies: set[CurrencyCode] = {
+        currencies[unvalued_account_sum.account_id] for unvalued_account_sum in unvalued_account_sums
+    }
+    estimated_currencies.update(currency_amount.currency for currency_amount in unvalued_spent)
+
+    estimate_rates: list[CurrencyRate] = [
+        CurrencyRate(currency=currency, rate=base_currency_rates[currency])
+        for currency in sorted(estimated_currencies)
+        if currency in base_currency_rates
+    ]
+    return estimate_rates
+
+
 async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) -> Summary:
     month_date: date = datetime.now(UTC).date() if month is None else month
     first_day, last_day = _get_month_bounds(month=month_date)
@@ -100,6 +121,12 @@ async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) ->
     estimated_unvalued_spent: Decimal | None = _get_estimated_unvalued_spent(
         unvalued_spent=unvalued_spent, base_currency_rates=base_currency_rates
     )
+    estimate_rates: list[CurrencyRate] = _get_estimate_rates(
+        accounts_db=accounts_db,
+        unvalued_account_sums=unvalued_account_sums,
+        unvalued_spent=unvalued_spent,
+        base_currency_rates=base_currency_rates,
+    )
     summary = Summary(
         month=first_day,
         total_balance=total_balance,
@@ -109,5 +136,6 @@ async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) ->
         left_over=earned - spent,
         unvalued_spent=unvalued_spent,
         estimated_unvalued_spent=estimated_unvalued_spent,
+        estimate_rates=estimate_rates,
     )
     return summary
