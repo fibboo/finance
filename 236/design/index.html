@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>№236 · Согласованный макет</title><link rel="stylesheet" href="tokens.css">
+<style>
+:root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}*{box-sizing:border-box}body{margin:0;background:var(--color-ground);color:var(--color-ink);font:15px/1.5 system-ui,sans-serif}main{max-width:1360px;margin:auto;padding:28px 20px 60px}h1{font-size:28px;letter-spacing:-.03em;margin:0}p{color:var(--color-muted);max-width:85ch;margin:8px 0 20px}.controls{display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:14px 18px;background:var(--color-panel);border-radius:16px;margin-bottom:24px}label{display:flex;gap:8px;align-items:center}select{font:inherit;color:var(--color-ink);background:var(--color-ground);border:1px solid var(--color-border);border-radius:9px;padding:8px 10px}.frame{margin:auto;border:1px solid var(--color-border);border-radius:20px;overflow:hidden;background:var(--color-ground)}iframe{display:block;height:844px;border:0;transform-origin:0 0}a{display:inline-block;padding:12px 0;color:var(--color-muted)}
+</style></head>
+<body><main>
+<h1>№236 · Согласованный вариант А</h1><p>Полный оценочный баланс занимает основное место со знаком «≈». Исходная валюта и ссылка на источник показаны рядом. Неоценённые расходы месяца остаются отдельно от Spent и Left.</p>
+<div class="controls"><label>Тема <select id="theme"><option value="dark">Тёмная</option><option value="light">Светлая</option></select></label><label>Экран <select id="device"><option value="phone">Телефон · 390 px</option><option value="desktop">Десктоп · 1280 px</option></select></label><label>Состояние <select id="state"><option value="estimated">Оценка доступна</option><option value="no-rates">Курс недоступен</option><option value="settled">Фактическая стоимость получена</option></select></label></div>
+<div class="frame"><iframe title="Согласованный макет Home"></iframe></div><a id="open" target="_blank">Открыть экран отдельно ↗</a>
+</main><script>
+const controls=['theme','device','state'].map(id=>document.getElementById(id));
+function refresh(){const [theme,device,state]=controls.map(control=>control.value);document.documentElement.dataset.theme=theme;const url=`screen.html?theme=${theme}&state=${state}`;const iframe=document.querySelector('iframe');iframe.src=url;iframe.dataset.width=device==='phone'?'390':'1280';document.getElementById('open').href=url;resize()}
+function resize(){const frame=document.querySelector('.frame');const iframe=frame.querySelector('iframe');const width=Number(iframe.dataset.width);const scale=Math.min(1,frame.parentElement.clientWidth/width);frame.style.width=`${width*scale}px`;frame.style.height=`${844*scale}px`;iframe.style.width=`${width}px`;iframe.style.transform=`scale(${scale})`}
+for(const control of controls)control.addEventListener('change',refresh);window.addEventListener('resize',resize);refresh();
+</script></body></html>
