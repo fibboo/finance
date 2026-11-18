@@ -146,13 +146,6 @@ a.account:focus-visible {
   align-items: flex-start;
 }
 
-.valued {
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: normal;
-  color: var(--color-muted);
-}
-
 .accountBalance {
   font-size: var(--font-size-2xs);
   color: var(--color-muted);
@@ -290,8 +283,7 @@ a.account:focus-visible {
   }
 
   .detail,
-  .accountBalance,
-  .valued {
+  .accountBalance {
     font-size: var(--font-size-xs);
   }
 

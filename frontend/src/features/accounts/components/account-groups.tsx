@@ -160,15 +160,10 @@ export function AccountGroups({
                     </span>
                     <span className={styles['balance']}>
                       {estimatedBaseBalance === null ? (
-                        <>
-                          {formatMoney({
-                            amount: Number(account.base_currency_balance),
-                            currency: baseCurrency,
-                          })}
-                          {account.currency !== baseCurrency && (
-                            <span className={styles['valued']}> valued</span>
-                          )}
-                        </>
+                        formatMoney({
+                          amount: Number(account.base_currency_balance),
+                          currency: baseCurrency,
+                        })
                       ) : (
                         <EstimatedAmount amount={estimatedBaseBalance} currency={baseCurrency} />
                       )}

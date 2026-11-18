@@ -31,7 +31,6 @@ test('shows the total balance in the base currency', async () => {
   // assert
   expect(await screen.findByText('$13,713.25')).toBeInTheDocument();
   expect(screen.getByText('Total balance · USD')).toBeInTheDocument();
-  expect(screen.getByText('Valued amounts')).toBeInTheDocument();
 });
 
 test.each([
@@ -61,7 +60,6 @@ test.each([
   // assert
   expect(await screen.findByText(text)).toBeInTheDocument();
   expect(screen.queryByText('$13,713.25')).not.toBeInTheDocument();
-  expect(screen.queryByText('Valued amounts')).not.toBeInTheDocument();
 });
 
 test('shows no total while the summary loads', () => {

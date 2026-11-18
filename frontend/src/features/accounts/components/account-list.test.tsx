@@ -84,13 +84,11 @@ test('shows every account in the order of their recent use, in the base currency
   const items = screen.getAllByRole('listitem');
   expect(items).toHaveLength(3);
   expect(items[0]).toHaveTextContent('Main cardEUR0.9161');
-  // without an estimate a foreign account shows its valued balance and says so
-  expect(items[0]).toHaveTextContent('$3,471.20 valued€3,180.00');
+  expect(items[0]).toHaveTextContent('$3,471.20€3,180.00');
   expect(items[1]).toHaveTextContent('Wallet');
   expect(items[2]).toHaveTextContent('Freelance');
   expect(items[2]).toHaveTextContent('$1,940.00');
   expect(items[2]).not.toHaveTextContent('€');
-  expect(items[2]).not.toHaveTextContent('valued');
   // every account fits the wide jsdom strip, so neither arrow shows
   expect(screen.queryByRole('button', { name: 'Next accounts' })).not.toBeInTheDocument();
 });
@@ -136,7 +134,7 @@ test('shows the estimate of a balance with unvalued amounts in its place, ', asy
   const mainCardLink = await screen.findByRole('link', { name: /^Main card/ });
   // the rate is the balance over its estimate
   expect(mainCardLink).toHaveTextContent('Main cardEUR0.9259≈ -$324.00-€300.00');
-  expect(mainCardLink).not.toHaveTextContent('valued');
+  expect(mainCardLink).not.toHaveTextContent('$0.00');
   expect(screen.getByRole('link', { name: /^Travel card/ })).toHaveTextContent('≈ $0.00€0.00');
   expect(screen.getByRole('link', { name: /^Wallet/ })).toHaveTextContent('$412.50');
   expect(screen.getByRole('link', { name: /^Wallet/ })).not.toHaveTextContent('≈');

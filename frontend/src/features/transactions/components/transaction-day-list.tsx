@@ -61,21 +61,6 @@ function readDayTotal({
   return dayTotal;
 }
 
-function hasUnvaluedAmount({
-  transactions,
-  transactionTypes,
-}: Readonly<{
-  transactions: readonly Transaction[];
-  transactionTypes: readonly DictionaryItem[];
-}>): boolean {
-  const hasUnvalued = transactions.some(
-    (transaction) =>
-      transaction.transaction_type !== 'TRANSFER' &&
-      readTransactionView({ transaction, transactionTypes }).baseAmount === null,
-  );
-  return hasUnvalued;
-}
-
 export type RowSelection = 'none' | 'keysInList' | 'keysOnPage';
 
 type TransactionDayListProps = Readonly<{
@@ -126,8 +111,6 @@ export function TransactionDayList({
                     currency: baseCurrency,
                     signDisplay: 'exceptZero',
                   })}
-                  {hasUnvaluedAmount({ transactions: day.transactions, transactionTypes }) &&
-                    ' · valued'}
                 </span>
               )}
             </div>

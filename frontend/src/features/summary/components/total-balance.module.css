@@ -29,11 +29,6 @@
   color: var(--color-muted);
 }
 
-.note {
-  font-size: var(--font-size-2xs);
-  color: var(--color-muted);
-}
-
 .amount {
   font-size: var(--font-size-heading);
   font-weight: var(--font-weight-semibold);
@@ -58,10 +53,6 @@
 
   .label {
     font-size: var(--font-size-md);
-  }
-
-  .note {
-    font-size: var(--font-size-xs);
   }
 
   .amount {

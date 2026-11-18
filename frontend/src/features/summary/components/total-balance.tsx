@@ -24,12 +24,9 @@ export function TotalBalance({ baseCurrency }: TotalBalanceProps) {
     <p className={styles['totalBalance']}>
       <span className={styles['label']}>Total balance · {baseCurrency}</span>
       {summary.estimated_total_balance === null ? (
-        <>
-          <span className={styles['amount']}>
-            {formatMoney({ amount: Number(summary.total_balance), currency: baseCurrency })}
-          </span>
-          <span className={styles['note']}>Valued amounts</span>
-        </>
+        <span className={styles['amount']}>
+          {formatMoney({ amount: Number(summary.total_balance), currency: baseCurrency })}
+        </span>
       ) : (
         <span className={styles['amount']}>
           <EstimatedAmount

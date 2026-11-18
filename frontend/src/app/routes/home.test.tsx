@@ -749,7 +749,6 @@ test('replaces the estimates with the valued amounts once refreshed data values 
   expect(await within(recent).findByText('≈ -$324.00')).toBeInTheDocument();
   expect(await within(accounts).findAllByText('≈ -$324.00')).toHaveLength(2);
   expect(within(month).getByText('≈ -$324.00')).toBeInTheDocument();
-  expect(within(recent).getByText('$0.00 · valued')).toBeInTheDocument();
   isValued = true;
 
   // act: the user leaves the tab and comes back
@@ -762,11 +761,10 @@ test('replaces the estimates with the valued amounts once refreshed data values 
   // the row and its day total
   expect(await within(recent).findAllByText('-$318.00')).toHaveLength(2);
   await waitFor(() => {
-    expect(within(accounts).getByText('Valued amounts')).toBeInTheDocument();
+    expect(within(accounts).queryByText(/≈/)).not.toBeInTheDocument();
   });
   // the total and the card
   expect(within(accounts).getAllByText('-$318.00')).toHaveLength(2);
-  expect(within(accounts).getByText('valued')).toBeInTheDocument();
   expect(within(month).queryByText('Unvalued spending')).not.toBeInTheDocument();
   for (const region of [accounts, month, recent]) {
     expect(within(region).queryByText(/≈/)).not.toBeInTheDocument();
