@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
 
 import { AppLayout } from '@/app/app-layout';
+import { markRouteLoaded } from '@/hooks/loaded-routes';
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
 import { server } from '@/test/setup';
@@ -505,4 +506,40 @@ test('shows the title and a skeleton of the chosen section at the click until it
   });
   expect(await screen.findByText('Categories page')).toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Categories' })).not.toBeInTheDocument();
+});
+
+test('keeps the page without the pending section when the chosen section has loaded its code', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/user/me', () =>
+      HttpResponse.json({
+        id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+        username: 'nikita',
+        avatar: null,
+        registration_provider: 'GOOGLE',
+        base_currency: 'EUR',
+        external_users: [],
+      } satisfies components['schemas']['User']),
+    ),
+    http.get('http://localhost/api/dictionaries/user', () =>
+      HttpResponse.json({
+        provider_types: [{ key: 'GOOGLE', label: 'Google' }],
+      } satisfies components['schemas']['UserDictionaries']),
+    ),
+  );
+  const user = userEvent.setup();
+  markRouteLoaded('/accounts');
+  render(<AppLayout />, {
+    children: [
+      { index: true, element: <p>Home page</p> },
+      { path: 'accounts', lazy: () => new Promise<never>(() => undefined) },
+    ],
+  });
+
+  // act
+  await user.click(screen.getByRole('link', { name: 'Accounts' }));
+
+  // assert
+  expect(screen.getByText('Home page')).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { level: 1, name: 'Accounts' })).not.toBeInTheDocument();
 });
