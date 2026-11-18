@@ -3,6 +3,7 @@ import type { UseFormRegisterReturn } from 'react-hook-form';
 import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { FilterField } from './filter-field';
+import styles from './date-field.module.css';
 
 type DateFieldProps = Readonly<{
   label: string;
@@ -27,15 +28,29 @@ export function DateField({
     <FilterField
       label={label}
       error={error}
-      input={readDateInputProps(registration)}
+      input={{ ...readDateInputProps(registration), value }}
       action={
-        <CalendarButton
-          label={label}
-          value={value}
-          isDisabled={isDisabled}
-          max={max}
-          onPick={onPick}
-        />
+        value !== '' ? (
+          <button
+            type="button"
+            className={styles['clear']}
+            aria-label={`Clear ${label}`}
+            disabled={isDisabled}
+            onClick={() => {
+              onPick('');
+            }}
+          >
+            ×
+          </button>
+        ) : (
+          <CalendarButton
+            label={label}
+            value={value}
+            isDisabled={isDisabled}
+            max={max}
+            onPick={onPick}
+          />
+        )
       }
     />
   );

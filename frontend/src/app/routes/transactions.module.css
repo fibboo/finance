@@ -25,12 +25,4 @@
     flex-direction: row;
     gap: var(--space-4);
   }
-
-  .feed {
-    gap: 0;
-  }
-
-  .feed:has(> :nth-child(2)) {
-    --feed-top-radius: 0;
-  }
 }

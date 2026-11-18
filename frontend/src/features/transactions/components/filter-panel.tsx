@@ -1,110 +1,105 @@
-import { type ReactNode, useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useId, useRef } from 'react';
 
 import { useOutsideClick } from '@/hooks/use-outside-click';
 import { useSheetDrag } from '@/hooks/use-sheet-drag';
 
 import styles from './filter-panel.module.css';
-
-const CLOSE_ICON_PATH = 'M6 6l12 12M18 6 6 18';
-const CHEVRON_ICON_PATH = 'm6 9 6 6 6-6';
+import panelStyles from './filters-panel.module.css';
 
 type FilterPanelProps = Readonly<{
-  title: string;
-  chipLabel: string;
-  isActive: boolean;
+  count: number;
+  isOpen: boolean;
+  isDisabled?: boolean;
+  onBeforeClose?: () => void;
+  onOpenChange: (isOpen: boolean) => void;
   children: (close: () => void) => ReactNode;
 }>;
 
-export function FilterPanel({ title, chipLabel, isActive, children }: FilterPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const chipId = useId();
+function focusPanel(panel: HTMLDivElement | null) {
+  panel?.focus();
+}
+
+export function FilterPanel({
+  count,
+  isOpen,
+  isDisabled = false,
+  onBeforeClose,
+  onOpenChange,
+  children,
+}: FilterPanelProps) {
+  const buttonId = useId();
   const panelId = useId();
-  const titleId = useId();
   const handleRef = useRef<HTMLSpanElement>(null);
-
   function close() {
-    setIsOpen(false);
-    document.getElementById(chipId)?.focus();
+    onBeforeClose?.();
+    onOpenChange(false);
+    document.getElementById(buttonId)?.focus();
   }
-
   const dragHandlers = useSheetDrag({ handleRef, onClose: close });
-  const closeOnEscape = useEffectEvent(() => {
-    close();
+  const closeOnEscape = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      close();
+    }
   });
-
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        closeOnEscape();
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-
+    document.addEventListener('keydown', closeOnEscape, true);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', closeOnEscape, true);
     };
   }, [isOpen]);
-
   useOutsideClick({
     isActive: isOpen,
     readIsInside: (target) =>
-      [chipId, panelId].some((id) => document.getElementById(id)?.contains(target) === true),
+      [buttonId, panelId].some((id) => document.getElementById(id)?.contains(target) === true),
     onOutsideClick: close,
   });
-
   return (
     <div className={styles['filterPanel']}>
       <button
-        id={chipId}
+        id={buttonId}
         type="button"
-        className={isActive ? styles['activeChip'] : styles['chip']}
-        aria-label={chipLabel === title ? undefined : `${title}: ${chipLabel}`}
+        className={count > 0 ? styles['activeButton'] : styles['button']}
+        aria-label="Filters"
         aria-expanded={isOpen}
         aria-controls={panelId}
+        disabled={isDisabled}
         onClick={() => {
-          setIsOpen(!isOpen);
+          if (isOpen) {
+            close();
+          } else {
+            onOpenChange(true);
+          }
         }}
       >
-        {chipLabel}
-        <svg className={styles['chevron']} aria-hidden="true" viewBox="0 0 24 24">
-          <path d={CHEVRON_ICON_PATH} />
+        <svg className={styles['icon']} aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M4 6h16M7 12h10M10 18h4" />
         </svg>
+        <span className={styles['label']}>Filters</span>
+        {count > 0 && <span className={styles['badge']}>{count}</span>}
       </button>
       {isOpen && (
         <>
-          <div className={styles['backdrop']} aria-hidden="true" />
+          <div className={panelStyles['backdrop']} aria-hidden="true" />
           <div
             id={panelId}
-            ref={(panel) => {
-              panel?.focus();
-            }}
+            ref={focusPanel}
             role="dialog"
-            aria-labelledby={titleId}
+            aria-label="Filters"
             tabIndex={-1}
-            className={styles['panel']}
+            className={panelStyles['panel']}
             {...dragHandlers}
           >
             <span
               ref={handleRef}
-              className={styles['handle']}
+              className={panelStyles['handle']}
               aria-hidden="true"
               data-sheet-drag-area
             />
-            <div className={styles['header']} data-sheet-drag-area>
-              <h2 id={titleId} className={styles['title']}>
-                {title}
-              </h2>
-              <button type="button" className={styles['close']} aria-label="Close" onClick={close}>
-                <svg className={styles['closeIcon']} aria-hidden="true" viewBox="0 0 24 24">
-                  <path d={CLOSE_ICON_PATH} />
-                </svg>
-              </button>
-            </div>
             {children(close)}
           </div>
         </>

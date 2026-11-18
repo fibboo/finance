@@ -1,4 +1,5 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { DetailsColumn } from '@/app/details-column';
@@ -13,6 +14,7 @@ import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-querie
 import { LOCATION_PAGE_SIZE, locationQueries } from '@/features/locations/api/location-queries';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import {
+  readAppliedFilterCount,
   hasAccountIdParams,
   hasNarrowingFilters,
   isSortedByDate,
@@ -24,8 +26,13 @@ import {
   writeTransactionFilters,
   writeTransactionSearch,
 } from '@/features/transactions/api/transaction-filters';
-import { FilterChips } from '@/features/transactions/components/filter-chips';
-import { FilterChipsSkeleton } from '@/features/transactions/components/filter-chips-skeleton';
+import { FilterPanel } from '@/features/transactions/components/filter-panel';
+import {
+  FiltersPanel,
+  type FiltersPanelHandle,
+} from '@/features/transactions/components/filters-panel';
+import { FilterSummary } from '@/features/transactions/components/filter-summary';
+import { readFilterSummary } from '@/features/transactions/components/filter-labels';
 import { readTopTransactionId } from '@/features/transactions/components/feed-transactions';
 import { NoMatchingTransactions } from '@/features/transactions/components/no-matching-transactions';
 import { TransactionFeed } from '@/features/transactions/components/transaction-feed';
@@ -69,6 +76,9 @@ function readJumpDate({
 }
 
 export function Component() {
+  const filtersPanelRef = useRef<FiltersPanelHandle>(null);
+  const [filterResetVersion, setFilterResetVersion] = useState(0);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const baseCurrency = useBaseCurrency();
   const today = useToday();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -117,6 +127,47 @@ export function Component() {
     anchorDate,
   });
   const topTransactionId = readTopTransactionId(feed);
+  const filterItems =
+    accounts === undefined || locations === undefined
+      ? undefined
+      : { ...accounts, location_ids: locations.items };
+  const filterSummary =
+    baseCurrency !== undefined &&
+    dictionaries !== undefined &&
+    filters !== undefined &&
+    filterItems !== undefined
+      ? readFilterSummary({
+          filters,
+          baseCurrency,
+          transactionTypes: dictionaries.transaction_types,
+          transactionOrders: dictionaries.transaction_orders,
+          items: filterItems,
+        })
+      : '';
+
+  function resetFilters() {
+    setFilterResetVersion((version) => version + 1);
+    clearJump();
+    setSearchParams(writeTransactionSearch({ searchParams: new URLSearchParams(), search }));
+  }
+
+  function applyFilters(change: Partial<TransactionFilters>, jumpDate?: string) {
+    if (filters === undefined) {
+      return;
+    }
+    const nextFilters = { ...filters, ...change };
+    const nextSearchParams = writeTransactionFilters(nextFilters);
+    setSearchParams(nextSearchParams);
+    if (jumpDate === undefined) {
+      clearJump();
+    } else {
+      jumpToDate({
+        date: readJumpDate({ date: jumpDate, filters: nextFilters }),
+        listKey: readTransactionListKey(nextSearchParams),
+      });
+    }
+  }
+
   return (
     <Page
       title="Transactions"
@@ -136,43 +187,60 @@ export function Component() {
               );
             }}
           />
+          <FilterPanel
+            count={filters === undefined ? 0 : readAppliedFilterCount(filters)}
+            isOpen={isFiltersOpen}
+            isDisabled={
+              baseCurrency === undefined ||
+              dictionaries === undefined ||
+              filters === undefined ||
+              filterItems === undefined
+            }
+            onOpenChange={setIsFiltersOpen}
+            onBeforeClose={() => {
+              filtersPanelRef.current?.applyPendingChanges();
+            }}
+          >
+            {(close) =>
+              baseCurrency !== undefined &&
+              dictionaries !== undefined &&
+              filters !== undefined &&
+              filterItems !== undefined && (
+                <FiltersPanel
+                  ref={filtersPanelRef}
+                  key={filterResetVersion}
+                  filters={filters}
+                  today={today}
+                  anchorDate={anchorDate}
+                  baseCurrency={baseCurrency}
+                  transactionTypes={dictionaries.transaction_types}
+                  transactionOrders={dictionaries.transaction_orders}
+                  items={filterItems}
+                  total={feed.total ?? feed.query.data?.pages.at(-1)?.total}
+                  isTotalPending={feed.total === undefined}
+                  onApply={applyFilters}
+                  onJump={(monthEnd) => {
+                    jumpToDate({ date: readJumpDate({ date: monthEnd, filters }), listKey });
+                  }}
+                  onReset={resetFilters}
+                  onClose={close}
+                />
+              )
+            }
+          </FilterPanel>
           <NewButton entityName="transaction" isDisabled={false} onClick={openNewTransaction} />
         </>
       }
     >
       <div className={styles['transactions']}>
         <div className={styles['feed']}>
-          {baseCurrency === undefined ||
-          dictionaries === undefined ||
-          accounts === undefined ||
-          locations === undefined ||
-          filters === undefined ? (
-            <FilterChipsSkeleton />
-          ) : (
-            <FilterChips
-              filters={filters}
-              today={today}
-              anchorDate={anchorDate}
-              baseCurrency={baseCurrency}
-              transactionTypes={dictionaries.transaction_types}
-              transactionOrders={dictionaries.transaction_orders}
-              items={{ ...accounts, location_ids: locations.items }}
-              onApply={(change, jumpDate) => {
-                const nextFilters = { ...filters, ...change };
-                const nextSearchParams = writeTransactionFilters(nextFilters);
-                setSearchParams(nextSearchParams);
-                if (jumpDate === undefined) {
-                  clearJump();
-                } else {
-                  jumpToDate({
-                    date: readJumpDate({ date: jumpDate, filters: nextFilters }),
-                    listKey: readTransactionListKey(nextSearchParams),
-                  });
-                }
+          {filterSummary !== '' && (
+            <FilterSummary
+              summary={filterSummary}
+              onOpen={() => {
+                setIsFiltersOpen(true);
               }}
-              onJump={(monthEnd) => {
-                jumpToDate({ date: readJumpDate({ date: monthEnd, filters }), listKey });
-              }}
+              onReset={resetFilters}
             />
           )}
           {baseCurrency !== undefined && (

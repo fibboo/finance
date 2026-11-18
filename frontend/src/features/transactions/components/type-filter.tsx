@@ -6,7 +6,6 @@ import type { components } from '@/lib/api-schema';
 
 import type { TransactionFilters } from '../api/transaction-filters';
 import { typeFilterFormSchema } from '../schemas/transaction-filter-forms';
-import { FilterActions } from './filter-actions';
 import styles from './type-filter.module.css';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -20,19 +19,18 @@ type TypeFilterProps = Readonly<{
 }>;
 
 export function TypeFilter({ filters, transactionTypes, onApply }: TypeFilterProps) {
-  const { register, handleSubmit, setValue } = useForm<
-    TypeFilterFormInput,
-    unknown,
-    TypeFilterFormOutput
-  >({
+  const { register, handleSubmit } = useForm<TypeFilterFormInput, unknown, TypeFilterFormOutput>({
     resolver: zodResolver(typeFilterFormSchema),
-    defaultValues: { transaction_types: [...filters.transaction_types] },
+    values: { transaction_types: [...filters.transaction_types] },
   });
 
   return (
     <form
       className={styles['typeFilter']}
       noValidate
+      onChange={() => {
+        void handleSubmit(onApply)();
+      }}
       onSubmit={(event) => {
         void handleSubmit(onApply)(event);
       }}
@@ -52,11 +50,6 @@ export function TypeFilter({ filters, transactionTypes, onApply }: TypeFilterPro
         ))}
       </fieldset>
       <p className={styles['note']}>None checked shows every type.</p>
-      <FilterActions
-        onReset={() => {
-          setValue('transaction_types', []);
-        }}
-      />
     </form>
   );
 }

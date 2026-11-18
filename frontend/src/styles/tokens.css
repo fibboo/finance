@@ -92,6 +92,11 @@
   --radius-bar: 1.375rem;
   --radius-full: 999rem;
 
+  --size-filter-badge: 1.0625rem;
+  --size-filters-popover: 23.75rem;
+  --size-filter-top: 8.75rem;
+  --size-filter-sheet-top: 4.375rem;
+
   --size-line: 0.1875rem;
   --size-skeleton-text-sm: 0.5625rem;
   --size-skeleton-text: 0.75rem;
