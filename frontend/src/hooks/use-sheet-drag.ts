@@ -31,6 +31,7 @@ function isDragStart({
     pointerType !== 'mouse' &&
     event.isPrimary &&
     target instanceof Element &&
+    event.currentTarget.contains(target) &&
     target.closest(DRAG_AREA_SELECTOR) !== null &&
     target.closest('button') === null &&
     handle !== null &&

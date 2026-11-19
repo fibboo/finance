@@ -57,7 +57,7 @@ export function readPlainAmount(amountText: string): string {
   return plainAmount;
 }
 
-function readPlainInsertedText(insertedText: string): string {
+export function readPlainInsertedText(insertedText: string): string {
   const compactText = insertedText.replace(WHITESPACE_PATTERN, '');
   const plainText = GROUPED_PASTE_PATTERN.test(compactText)
     ? readPlainAmount(compactText)
@@ -65,7 +65,7 @@ function readPlainInsertedText(insertedText: string): string {
   return plainText;
 }
 
-function groupPlainAmount(plainAmount: string): string {
+export function groupPlainAmount(plainAmount: string): string {
   const sign = plainAmount.startsWith('-') ? '-' : '';
   const [integerDigits = '', fractionDigits] = plainAmount.slice(sign.length).split('.');
   const groups: string[] = [];
@@ -78,7 +78,7 @@ function groupPlainAmount(plainAmount: string): string {
   return groupedAmount;
 }
 
-function readCommonPrefixLength({
+export function readCommonPrefixLength({
   previousText,
   text,
   caret,
@@ -92,7 +92,7 @@ function readCommonPrefixLength({
   return length;
 }
 
-function readGroupedCaret({
+export function readGroupedCaret({
   groupedText,
   plainCaret,
 }: Readonly<{ groupedText: string; plainCaret: number }>): number {
@@ -109,7 +109,7 @@ function readGroupedCaret({
   return caret;
 }
 
-function removeDigitBesideCaret({
+export function removeDigitBesideCaret({
   plainText,
   plainCaret,
   isForwardDelete,

@@ -36,27 +36,29 @@ export function ForeignAmountRow({
   return (
     <div>
       <InputRow
-        action={action}
         label={label}
         input={readAmountInputProps({
           registration: amountRegistration,
           isNegativeAllowed: false,
         })}
         suffix={
-          <select
-            {...currencyRegistration}
-            className={styles['currencySelect']}
-            aria-label={currencyLabel}
-            aria-invalid={currencyError !== undefined}
-            aria-describedby={currencyError === undefined ? undefined : currencyErrorId}
-          >
-            <option value="">Currency</option>
-            {currencies.map((currency) => (
-              <option key={currency.key} value={currency.key}>
-                {currency.key}
-              </option>
-            ))}
-          </select>
+          <>
+            {action}
+            <select
+              {...currencyRegistration}
+              className={styles['currencySelect']}
+              aria-label={currencyLabel}
+              aria-invalid={currencyError !== undefined}
+              aria-describedby={currencyError === undefined ? undefined : currencyErrorId}
+            >
+              <option value="">Currency</option>
+              {currencies.map((currency) => (
+                <option key={currency.key} value={currency.key}>
+                  {currency.key}
+                </option>
+              ))}
+            </select>
+          </>
         }
         hint={hint}
         error={amountError}

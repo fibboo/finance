@@ -33,7 +33,7 @@ export function AmountField({
       <label htmlFor={inputId} className={styles['label']}>
         {label}
       </label>
-      <span className={action === undefined ? styles['control'] : styles['controlWithAction']}>
+      <span className={styles['control']}>
         <input
           {...readAmountInputProps({ registration, isNegativeAllowed })}
           id={inputId}
@@ -41,8 +41,8 @@ export function AmountField({
           aria-invalid={error !== undefined}
           aria-describedby={hintId}
         />
-        {currency !== undefined && <span className={styles['currency']}>{currency}</span>}
         {action}
+        {currency !== undefined && <span className={styles['currency']}>{currency}</span>}
       </span>
       <span id={hintId} className={error === undefined ? styles['hint'] : styles['error']}>
         {error ?? (

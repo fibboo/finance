@@ -4,8 +4,46 @@ import { expect, test, vi } from 'vitest';
 import type { SubmitEventHandler } from 'react';
 
 import { render } from '@/test/render';
+import { Sheet } from '@/components/sheet/sheet';
 
 import { AmountCalculator } from './amount-calculator';
+
+test.each(['Escape', 'swipe', 'backdrop'])(
+  'closes only the nested calculator with %s and preserves the transaction',
+  async (dismissal) => {
+    const user = userEvent.setup();
+    const onCloseTransaction = vi.fn();
+    const onApply = vi.fn();
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(600);
+    render(
+      <Sheet label="New transaction" onClose={onCloseTransaction}>
+        <input aria-label="Comment" defaultValue="Unsaved transaction" />
+        <AmountCalculator label="amount" value="12.00" currency="USD" onApply={onApply} />
+      </Sheet>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Calculate amount' });
+    await user.click(trigger);
+    if (dismissal === 'Escape') await user.keyboard('{Escape}');
+    else if (dismissal === 'backdrop')
+      await user.click(screen.getByRole('dialog', { name: 'Calculate amount' }));
+    else {
+      await user.pointer({
+        keys: '[TouchA>]',
+        target: screen.getByRole('heading', { name: 'Calculate amount' }),
+        coords: { clientY: 100 },
+      });
+      await user.pointer({ pointerName: 'TouchA', coords: { clientY: 500 } });
+      await user.pointer({ keys: '[/TouchA]' });
+    }
+    expect(screen.queryByRole('dialog', { name: 'Calculate amount' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'New transaction' })).toBeVisible();
+    expect(screen.getByLabelText('Comment')).toHaveValue('Unsaved transaction');
+    expect(onCloseTransaction).not.toHaveBeenCalled();
+    expect(onApply).not.toHaveBeenCalled();
+    expect(trigger).toHaveFocus();
+    height.mockRestore();
+  },
+);
 
 test('negates the whole calculation and restores its grouping', async () => {
   const user = userEvent.setup();
@@ -49,7 +87,7 @@ test('applies only the calculated amount and isolates events from its parent for
   const trigger = screen.getByRole('button', { name: 'Calculate amount' });
   await user.click(trigger);
   const expression = screen.getByLabelText('Calculation');
-  expect(expression).toHaveValue('1234.00');
+  expect(expression).toHaveValue('1,234.00');
   await user.clear(expression);
   await user.type(expression, '(42.80+18.40)-7.20');
   expect(onApply).not.toHaveBeenCalled();
@@ -132,3 +170,20 @@ test.each([false, true])(
     }
   },
 );
+
+test('rejects forbidden typing and paste while grouping every operand', async () => {
+  const user = userEvent.setup();
+  const onApply = vi.fn();
+  render(<AmountCalculator label="amount" value="" currency="USD" onApply={onApply} />);
+  await user.click(screen.getByRole('button', { name: 'Calculate amount' }));
+  const expression = screen.getByLabelText('Calculation');
+  await user.type(expression, '12abc@%9');
+  expect(expression).toHaveValue('129');
+  await user.paste('foo');
+  expect(expression).toHaveValue('129');
+  await user.keyboard('{Control>}a{/Control}');
+  await user.paste('1,234.56 + 2,000.44');
+  expect(expression).toHaveValue('1,234.56 + 2,000.44');
+  await user.keyboard('{Enter}');
+  expect(onApply).toHaveBeenCalledExactlyOnceWith('3,235.00');
+});

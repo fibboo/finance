@@ -343,20 +343,22 @@ export function MovementForm({
                   registration: register('base_currency_amount'),
                   isNegativeAllowed: false,
                 })}
-                action={
-                  <AmountCalculator
-                    label={`amount in ${baseCurrency}`}
-                    value={baseCurrencyAmount}
-                    currency={baseCurrency}
-                    onApply={(amount) => {
-                      setValue('base_currency_amount', amount, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      });
-                    }}
-                  />
+                suffix={
+                  <>
+                    <AmountCalculator
+                      label={`amount in ${baseCurrency}`}
+                      value={baseCurrencyAmount}
+                      currency={baseCurrency}
+                      onApply={(amount) => {
+                        setValue('base_currency_amount', amount, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                    {baseCurrency}
+                  </>
                 }
-                suffix={baseCurrency}
                 hint={readEnteredRate({
                   amountText: destinationAmount,
                   referenceText: baseCurrencyAmount,

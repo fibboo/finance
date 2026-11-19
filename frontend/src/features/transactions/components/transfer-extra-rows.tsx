@@ -36,22 +36,24 @@ export function TransferExtraRows({
   return (
     <div className={[styles['rows'], styles['currencyGroup']].join(' ')}>
       <InputRow
-        action={
-          <AmountCalculator
-            label="amount received"
-            value={destinationAmount}
-            currency={destinationCurrency}
-            onApply={(amount) => {
-              setValue('destination_amount', amount, { shouldDirty: true, shouldValidate: true });
-            }}
-          />
-        }
         label="Amount received"
         input={readAmountInputProps({
           registration: register('destination_amount'),
           isNegativeAllowed: false,
         })}
-        suffix={destinationCurrency}
+        suffix={
+          <>
+            <AmountCalculator
+              label="amount received"
+              value={destinationAmount}
+              currency={destinationCurrency}
+              onApply={(amount) => {
+                setValue('destination_amount', amount, { shouldDirty: true, shouldValidate: true });
+              }}
+            />
+            {destinationCurrency}
+          </>
+        }
         hint={readEnteredRate({
           amountText: destinationAmount,
           referenceText: sourceAmount,

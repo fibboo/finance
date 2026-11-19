@@ -69,7 +69,7 @@ export function AmountFilter({ ref, filters, baseCurrency, onApply }: AmountFilt
       <div className={styles['amounts']}>
         <FilterField
           label={`From, ${baseCurrency}`}
-          action={
+          suffix={
             <AmountCalculator
               label="lower bound"
               value={amountFrom}
@@ -95,7 +95,7 @@ export function AmountFilter({ ref, filters, baseCurrency, onApply }: AmountFilt
         />
         <FilterField
           label={`To, ${baseCurrency}`}
-          action={
+          suffix={
             <AmountCalculator
               label="upper bound"
               value={amountTo}

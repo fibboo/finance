@@ -37,7 +37,7 @@ export function FilterPanel({
   }
   const dragHandlers = useSheetDrag({ handleRef, onClose: close });
   const closeOnEscape = useEffectEvent((event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && document.querySelector('dialog[open]') === null) {
       event.preventDefault();
       event.stopImmediatePropagation();
       close();
@@ -55,6 +55,7 @@ export function FilterPanel({
   useOutsideClick({
     isActive: isOpen,
     readIsInside: (target) =>
+      (target instanceof Element && target.closest('dialog[open]') !== null) ||
       [buttonId, panelId].some((id) => document.getElementById(id)?.contains(target) === true),
     onOutsideClick: close,
   });

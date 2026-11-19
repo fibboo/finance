@@ -2,6 +2,12 @@ import { useId, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { calculateAmount } from '@/lib/amount-calculation';
+import {
+  editCalculationText,
+  formatCalculation,
+  pasteCalculationText,
+  readPlainCalculation,
+} from '@/lib/amount-calculation-input';
 import { formatAmountText } from '@/lib/amount-input';
 
 import styles from './amount-calculator-panel.module.css';
@@ -63,11 +69,14 @@ export function AmountCalculatorPanel({
   onApply,
   onCancel,
 }: AmountCalculatorPanelProps) {
-  const [expression, setExpression] = useState(initialExpression);
+  const [expression, setExpression] = useState(() => formatCalculation(initialExpression));
   const inputRef = useRef<HTMLInputElement>(null);
   const expressionId = useId();
   const errorId = useId();
-  const calculation = calculateAmount({ expression, isNegativeAllowed });
+  const calculation = calculateAmount({
+    expression: readPlainCalculation(expression),
+    isNegativeAllowed,
+  });
   const amount =
     calculation.status === 'success' ? formatAmountText(calculation.amount) : undefined;
 
@@ -75,7 +84,7 @@ export function AmountCalculatorPanel({
     const input = inputRef.current;
     const start = input?.selectionStart ?? expression.length;
     const end = input?.selectionEnd ?? start;
-    let nextExpression = expression;
+    let nextExpression: string;
     let caret: number;
     if (key === 'C') {
       nextExpression = '';
@@ -90,10 +99,18 @@ export function AmountCalculatorPanel({
       caret = prefixEnd + insertion.length;
     }
 
-    flushSync(() => {
-      setExpression(nextExpression);
+    const edited = editCalculationText({
+      previousText: expression,
+      text: nextExpression,
+      caret,
+      isForwardDelete: false,
     });
-    input?.setSelectionRange(caret, caret);
+    if (edited !== undefined) {
+      flushSync(() => {
+        setExpression(edited.text);
+      });
+      input?.setSelectionRange(edited.caret, edited.caret);
+    }
   }
 
   return (
@@ -114,7 +131,7 @@ export function AmountCalculatorPanel({
         }
       }}
     >
-      <div className={styles['header']}>
+      <div className={styles['header']} data-sheet-drag-area>
         <div>
           <h2>Calculate amount</h2>
           <p>
@@ -138,13 +155,48 @@ export function AmountCalculatorPanel({
           id={expressionId}
           value={expression}
           type="text"
-          inputMode="text"
+          inputMode="none"
           autoComplete="off"
           spellCheck={false}
           aria-invalid={calculation.status === 'error'}
           aria-describedby={calculation.status === 'error' ? errorId : undefined}
+          onPaste={(event) => {
+            event.preventDefault();
+            const input = event.currentTarget;
+            const start = input.selectionStart ?? expression.length;
+            const end = input.selectionEnd ?? start;
+            const edited = pasteCalculationText({
+              expression,
+              insertedText: event.clipboardData.getData('text'),
+              start,
+              end,
+            });
+            if (edited !== undefined) {
+              flushSync(() => {
+                setExpression(edited.text);
+              });
+              input.setSelectionRange(edited.caret, edited.caret);
+            }
+          }}
           onChange={(event) => {
-            setExpression(event.target.value);
+            const input = event.target;
+            const caret = input.selectionStart ?? input.value.length;
+            const edited = editCalculationText({
+              previousText: expression,
+              text: input.value,
+              caret,
+              isForwardDelete:
+                event.nativeEvent instanceof InputEvent &&
+                event.nativeEvent.inputType === 'deleteContentForward',
+            });
+            const nextText = edited?.text ?? expression;
+            const nextCaret =
+              edited?.caret ?? Math.max(0, caret - (input.value.length - expression.length));
+            flushSync(() => {
+              setExpression(nextText);
+            });
+            input.value = nextText;
+            input.setSelectionRange(nextCaret, nextCaret);
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {

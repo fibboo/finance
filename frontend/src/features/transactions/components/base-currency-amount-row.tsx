@@ -23,10 +23,14 @@ export function BaseCurrencyAmountRow({
   return (
     <div className={styles['rows']}>
       <InputRow
-        action={action}
         label={`In ${baseCurrency}`}
         input={readAmountInputProps({ registration, isNegativeAllowed: false })}
-        suffix={baseCurrency}
+        suffix={
+          <>
+            {action}
+            {baseCurrency}
+          </>
+        }
         hint={hint}
         error={error}
       />

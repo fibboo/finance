@@ -52,10 +52,14 @@ export function Sheet({ label, onClose, children, className }: SheetProps) {
       tabIndex={-1}
       className={[styles['sheet'], className].filter(Boolean).join(' ')}
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
+        event.stopPropagation();
         event.preventDefault();
         onClose();
       }}
       onClose={(event) => {
+        if (event.target !== event.currentTarget) return;
+        event.stopPropagation();
         if (!isUnmountingRef.current && !event.currentTarget.open) {
           onClose();
         }
