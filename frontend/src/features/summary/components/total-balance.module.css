@@ -68,16 +68,24 @@
   white-space: nowrap;
 }
 
-.rateSource {
+.rateNotice {
   position: relative;
-  display: block;
   contain: inline-size;
-  color: var(--color-accent);
-  text-decoration: underline;
-  text-underline-offset: var(--underline-offset-link);
 }
 
-.rateSource::after {
+.rateNoticeText {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.rateNoticeText::-webkit-details-marker {
+  display: none;
+}
+
+.rateNoticeText::after {
   content: '';
   position: absolute;
   inset-inline: 0;
@@ -86,11 +94,20 @@
   transform: translateY(-50%);
 }
 
-.rateSourceText {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.rateNoticeFull {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 1;
+  width: max-content;
+  max-width: min(var(--size-tooltip), calc(100vw - var(--space-8)));
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-segment);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-note);
+  background: var(--color-ink);
+  color: var(--color-panel);
 }
 
 @media (--desktop) {

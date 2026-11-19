@@ -63,16 +63,32 @@ export function TotalBalance({ baseCurrency }: TotalBalanceProps) {
               );
             })}
           </ul>
-          <a
-            className={styles['rateSource']}
-            href="https://www.exchangerate-api.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`${ESTIMATE_RATE_NOTICE} ExchangeRate-API (opens in a new tab)`}
-            title={ESTIMATE_RATE_NOTICE}
-          >
-            <span className={styles['rateSourceText']}>{ESTIMATE_RATE_NOTICE}</span>
-          </a>
+          <details className={styles['rateNotice']}>
+            <summary
+              className={styles['rateNoticeText']}
+              title={ESTIMATE_RATE_NOTICE}
+              onBlur={(event) => {
+                const notice = event.currentTarget.closest('details');
+                if (notice !== null && !notice.contains(event.relatedTarget)) {
+                  notice.open = false;
+                }
+              }}
+              onKeyDown={(event) => {
+                const notice = event.currentTarget.closest('details');
+                if (event.key === 'Escape' && notice !== null) {
+                  notice.open = false;
+                }
+              }}
+              onClick={(event) => {
+                if (event.currentTarget.scrollWidth <= event.currentTarget.clientWidth) {
+                  event.preventDefault();
+                }
+              }}
+            >
+              {ESTIMATE_RATE_NOTICE}
+            </summary>
+            <p className={styles['rateNoticeFull']}>{ESTIMATE_RATE_NOTICE}</p>
+          </details>
         </div>
       )}
     </div>

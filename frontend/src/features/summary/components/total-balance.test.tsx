@@ -33,7 +33,9 @@ test('shows the total balance in the base currency', async () => {
   expect(await screen.findByText('$13,713.25')).toBeInTheDocument();
   expect(screen.getByText('Total balance · USD')).toBeInTheDocument();
   expect(screen.queryByRole('list', { name: 'Applied exchange rates' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: /ExchangeRate-API/ })).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Unknown account rates use public market data.'),
+  ).not.toBeInTheDocument();
 });
 
 test.each([
@@ -102,7 +104,7 @@ test.each([
     expected: ['1 JPY = $0.0067', '1 VND = $0.000039', '1 INR = $0.01'],
   },
 ])(
-  'shows the applied rates in API order and links their source ($expected)',
+  'shows the applied rates in API order with a source disclaimer ($expected)',
   async ({ rates, expected }) => {
     // arrange
     server.use(
@@ -131,12 +133,8 @@ test.each([
         .getAllByRole('listitem')
         .map((item) => item.textContent),
     ).toEqual(expected);
-    const source = screen.getByRole('link', {
-      name: 'Unknown account rates use public market data. ExchangeRate-API (opens in a new tab)',
-    });
-    expect(source).toHaveAttribute('href', 'https://www.exchangerate-api.com');
-    expect(source).toHaveAttribute('target', '_blank');
-    expect(source).toHaveTextContent('Unknown account rates use public market data.');
-    expect(source).toHaveAttribute('title', 'Unknown account rates use public market data.');
+    const notice = screen.getByTitle('Unknown account rates use public market data.');
+    expect(notice).toHaveTextContent('Unknown account rates use public market data.');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   },
 );
