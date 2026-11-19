@@ -7,11 +7,13 @@ export function formatMoney({
   currency,
   signDisplay = 'auto',
   trailingZeroDisplay = 'auto',
+  maximumSignificantDigits,
 }: Readonly<{
   amount: number;
   currency: string;
   signDisplay?: Intl.NumberFormatOptions['signDisplay'];
   trailingZeroDisplay?: Intl.NumberFormatOptions['trailingZeroDisplay'];
+  maximumSignificantDigits?: Intl.NumberFormatOptions['maximumSignificantDigits'];
 }>): string {
   const money = new Intl.NumberFormat(LOCALE, {
     style: 'currency',
@@ -21,6 +23,7 @@ export function formatMoney({
     maximumFractionDigits: AMOUNT_DECIMAL_DIGITS,
     signDisplay,
     trailingZeroDisplay,
+    maximumSignificantDigits,
   }).format(amount);
   return money;
 }
