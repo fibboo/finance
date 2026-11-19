@@ -724,6 +724,46 @@ test.each([
   },
 );
 
+test('shows the amount received immediately after the amount sent in a cross-currency transfer', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="TRANSFER"
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+      }}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[euroCard, gelSavings]}
+      categories={undefined}
+      incomeSources={undefined}
+      locations={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /^From/ }));
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  await user.click(screen.getByRole('button', { name: /^To/ }));
+  await user.click(screen.getByRole('button', { name: /^Lari savings/ }));
+  await user.click(screen.getByRole('textbox', { name: 'Amount sent' }));
+
+  // act
+  await user.tab();
+
+  // assert
+  expect(screen.getByRole('textbox', { name: 'Amount received' })).toHaveFocus();
+  await user.tab();
+  expect(screen.getByRole('button', { name: /^From/ })).toHaveFocus();
+});
+
 test('lists the accounts to send to without the account sent from', async () => {
   // arrange
   const user = userEvent.setup();

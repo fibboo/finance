@@ -315,7 +315,12 @@ export function MovementForm({
               ?.message
           }
         />
-        {!isTransfer && (
+        {isTransfer ? (
+          <TransferExtraRows
+            destinationCurrency={destination}
+            isDestinationAmountAsked={isDestinationAmountAsked}
+          />
+        ) : (
           <div className={[styles['rows'], styles['currencyGroup']].join(' ')}>
             {isIncome && isBaseCurrencyAmountAsked && (
               <InputRow
@@ -414,12 +419,6 @@ export function MovementForm({
             error={formState.errors.transaction_date?.message}
           />
         </div>
-        {isTransfer && (
-          <TransferExtraRows
-            destinationCurrency={destination}
-            isDestinationAmountAsked={isDestinationAmountAsked}
-          />
-        )}
         <div className={styles['rows']}>
           <InputRow
             label="Comment"

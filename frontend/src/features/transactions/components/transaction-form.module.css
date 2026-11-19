@@ -100,7 +100,3 @@
   outline: var(--size-focus) solid var(--color-ink);
   outline-offset: var(--size-toggle-inset);
 }
-
-.extraRows {
-  margin-top: calc(var(--space-2) * -1);
-}
