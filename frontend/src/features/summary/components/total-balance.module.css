@@ -37,10 +37,58 @@
   white-space: nowrap;
 }
 
+.balanceWithRates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.rates {
+  flex: 1 1 min-content;
+  max-inline-size: max-content;
+  margin-block-start: calc(var(--font-size-xs) * var(--line-height-base) + var(--space-0-5));
+  border-inline: var(--size-border) solid var(--color-border);
+  padding-inline: var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+}
+
+.rateList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-0-5) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style-type: '';
+}
+
+.rateList li {
+  white-space: nowrap;
+}
+
+.rateSource {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--size-touch);
+  min-inline-size: var(--size-touch);
+  color: inherit;
+  white-space: nowrap;
+}
+
 @media (--desktop) {
   .totalBalance,
   .totalBalanceSkeleton {
     gap: var(--space-1);
+  }
+
+  .balanceWithRates {
+    gap: var(--space-3);
+  }
+
+  .rates {
+    margin-block-start: calc(var(--font-size-md) * var(--line-height-base) + var(--space-1));
   }
 
   .labelSkeleton {
