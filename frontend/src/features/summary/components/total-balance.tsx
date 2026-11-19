@@ -9,6 +9,7 @@ import styles from './total-balance.module.css';
 
 const MIN_TWO_DECIMAL_RATE = 0.01;
 const SMALL_RATE_SIGNIFICANT_DIGITS = 15;
+const ESTIMATE_RATE_NOTICE = 'Unknown account rates use public market data.';
 
 type TotalBalanceProps = Readonly<{ baseCurrency: string }>;
 
@@ -67,9 +68,10 @@ export function TotalBalance({ baseCurrency }: TotalBalanceProps) {
             href="https://www.exchangerate-api.com"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="ExchangeRate-API (opens in a new tab)"
+            aria-label={`${ESTIMATE_RATE_NOTICE} ExchangeRate-API (opens in a new tab)`}
+            title={ESTIMATE_RATE_NOTICE}
           >
-            ExchangeRate-API
+            <span className={styles['rateSourceText']}>{ESTIMATE_RATE_NOTICE}</span>
           </a>
         </div>
       )}

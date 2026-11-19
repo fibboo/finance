@@ -131,8 +131,12 @@ test.each([
         .getAllByRole('listitem')
         .map((item) => item.textContent),
     ).toEqual(expected);
-    const source = screen.getByRole('link', { name: 'ExchangeRate-API (opens in a new tab)' });
+    const source = screen.getByRole('link', {
+      name: 'Unknown account rates use public market data. ExchangeRate-API (opens in a new tab)',
+    });
     expect(source).toHaveAttribute('href', 'https://www.exchangerate-api.com');
     expect(source).toHaveAttribute('target', '_blank');
+    expect(source).toHaveTextContent('Unknown account rates use public market data.');
+    expect(source).toHaveAttribute('title', 'Unknown account rates use public market data.');
   },
 );
