@@ -170,7 +170,10 @@ test.each([
       onClose={onClose}
     />,
   );
-  await user.type(screen.getByLabelText('Amount'), '42.80');
+  await user.click(screen.getByRole('button', { name: 'Calculate amount' }));
+  await user.type(screen.getByLabelText('Calculation'), '40+2.8');
+  await user.click(screen.getByRole('button', { name: 'Apply 42.80' }));
+  expect(onClose).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button', { name: /^From/ }));
   await user.click(screen.getByRole('button', { name: /^Euro card/ }));
   await user.click(screen.getByRole('button', { name: /^Category/ }));
@@ -179,7 +182,9 @@ test.each([
   await user.click(screen.getByRole('button', { name: /^Central market/ }));
   if (sellerAmount !== null) {
     await user.click(screen.getByRole('switch', { name: 'Different currency' }));
-    await user.type(screen.getByLabelText('Original amount'), sellerAmount);
+    await user.click(screen.getByRole('button', { name: 'Calculate original amount' }));
+    await user.type(screen.getByLabelText('Calculation'), `${sellerAmount}+0`);
+    await user.click(screen.getByRole('button', { name: 'Apply 125.50' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Seller’s currency' }), 'GEL');
   }
 
@@ -487,12 +492,16 @@ test.each([
     await user.click(screen.getByRole('button', { name: /^Euro card/ }));
     if (paidAmount !== null) {
       await user.click(screen.getByRole('switch', { name: 'Different currency' }));
-      await user.type(screen.getByLabelText('Original amount'), paidAmount);
+      await user.click(screen.getByRole('button', { name: 'Calculate original amount' }));
+      await user.type(screen.getByLabelText('Calculation'), `${paidAmount}/2*2`);
+      await user.keyboard('{Enter}');
       await user.selectOptions(screen.getByRole('combobox', { name: 'Paid currency' }), 'GEL');
     }
     const baseAmount = screen.getByRole('textbox', { name: 'In USD' });
     expect(baseAmount).not.toHaveAccessibleDescription();
-    await user.type(baseAmount, '3491.20');
+    await user.click(screen.getByRole('button', { name: 'Calculate amount in USD' }));
+    await user.type(screen.getByLabelText('Calculation'), '3000+491.2');
+    await user.keyboard('{Enter}');
     expect(baseAmount).toHaveAccessibleDescription('rate 0.9166');
 
     // act
@@ -693,7 +702,9 @@ test.each([
     if (receivedAmount !== null) {
       const received = screen.getByRole('textbox', { name: 'Amount received' });
       expect(received).not.toHaveAccessibleDescription();
-      await user.type(received, receivedAmount);
+      await user.click(screen.getByRole('button', { name: 'Calculate amount received' }));
+      await user.type(screen.getByLabelText('Calculation'), `${receivedAmount}+0`);
+      await user.keyboard('{Enter}');
       expect(received).toHaveAccessibleDescription('rate GEL 2.9100');
       const sent = screen.getByRole('textbox', { name: 'Amount sent' });
       await user.clear(sent);
@@ -759,7 +770,11 @@ test('shows the amount received immediately after the amount sent in a cross-cur
   await user.tab();
 
   // assert
+  expect(screen.getByRole('button', { name: 'Calculate amount sent' })).toHaveFocus();
+  await user.tab();
   expect(screen.getByRole('textbox', { name: 'Amount received' })).toHaveFocus();
+  await user.tab();
+  expect(screen.getByRole('button', { name: 'Calculate amount received' })).toHaveFocus();
   await user.tab();
   expect(screen.getByRole('button', { name: /^From/ })).toHaveFocus();
 });
@@ -1273,6 +1288,16 @@ test.each([
     }
 
     // act
+    const amountLabel =
+      transactionType === 'INCOME'
+        ? 'amount received'
+        : transactionType === 'TRANSFER'
+          ? 'amount sent'
+          : 'amount';
+    await user.click(screen.getByRole('button', { name: `Calculate ${amountLabel}` }));
+    await user.type(screen.getByLabelText('Calculation'), '+0');
+    await user.keyboard('{Enter}');
+    expect(onClose).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     // assert

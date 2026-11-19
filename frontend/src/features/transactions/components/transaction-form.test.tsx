@@ -159,7 +159,10 @@ test('sends the typed amount and closes', async () => {
   );
   await user.click(screen.getByRole('button', { name: /^Account/ }));
   await user.click(screen.getByRole('button', { name: /^Wallet/ }));
-  await user.type(screen.getByLabelText('Amount'), '-32.5');
+  await user.click(screen.getByRole('button', { name: 'Calculate adjustment amount' }));
+  await user.type(screen.getByLabelText('Calculation'), '380-412.5');
+  await user.keyboard('{Enter}');
+  expect(onClose).not.toHaveBeenCalled();
   await user.type(screen.getByLabelText('Comment'), 'Cash count');
 
   // act
@@ -245,7 +248,9 @@ test('asks for the base currency amount of an account without a rate', async () 
   await user.type(baseAmount, '0');
   expect(baseAmount).not.toHaveAccessibleDescription();
   await user.clear(baseAmount);
-  await user.type(baseAmount, '108,40');
+  await user.click(screen.getByRole('button', { name: 'Calculate amount in USD' }));
+  await user.type(screen.getByLabelText('Calculation'), '108,4+0');
+  await user.keyboard('{Enter}');
   expect(baseAmount).toHaveAccessibleDescription('rate 0.9225');
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
 
@@ -1040,10 +1045,11 @@ test('sends the update of the edited adjustment and closes', async () => {
       onClose={onClose}
     />,
   );
-  await user.type(screen.getByLabelText('Amount'), '-40', {
-    initialSelectionStart: 0,
-    initialSelectionEnd: 6,
-  });
+  await user.click(screen.getByRole('button', { name: 'Calculate adjustment amount' }));
+  await user.clear(screen.getByLabelText('Calculation'));
+  await user.type(screen.getByLabelText('Calculation'), '-20*2');
+  await user.click(screen.getByRole('button', { name: 'Apply -40.00' }));
+  expect(onClose).not.toHaveBeenCalled();
 
   await waitFor(() => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();

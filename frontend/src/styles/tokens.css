@@ -38,6 +38,7 @@
   --font-size-intro: 1.0625rem;
   --font-size-xl: 1.125rem;
   --font-size-heading: 1.25rem;
+  --font-size-calculation: 1.1875rem;
   --font-size-heading-lg: 1.375rem;
   --font-size-tile-amount: 1.0625rem;
   --font-size-2xl: 1.5rem;
@@ -185,6 +186,8 @@
   --size-catalog-list: 17.5rem;
   --size-catalog-transactions: 26rem;
   --size-dialog: 27.5rem;
+  --size-calculator: 24.375rem;
+  --size-calculator-key: 3.125rem;
   --size-picker-results: calc(100dvh - 11.25rem);
   --size-picker-results-lg: 28.5rem;
   --size-picker: calc(

@@ -4,6 +4,53 @@ import { expect, test, vi } from 'vitest';
 import { render } from '@/test/render';
 import { AmountFilter } from './amount-filter';
 
+test('keeps calculation drafts private and applies one validated bound', async () => {
+  const onApply = vi.fn();
+  const user = userEvent.setup();
+  render(
+    <AmountFilter
+      filters={{
+        transaction_types: [],
+        base_currency_amount_from: '100',
+        account_ids: [],
+        category_ids: [],
+        income_source_ids: [],
+        location_ids: [],
+      }}
+      baseCurrency="USD"
+      onApply={onApply}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: 'Calculate upper bound' }));
+  expect(screen.getByLabelText('Calculation')).toHaveValue('');
+  await user.type(screen.getByLabelText('Calculation'), '100+50');
+  await new Promise((resolve) => {
+    setTimeout(resolve, 400);
+  });
+  expect(screen.getByLabelText('To, USD')).toHaveValue('');
+  expect(onApply).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Cancel' }));
+  await user.click(screen.getByRole('button', { name: 'Calculate upper bound' }));
+  expect(screen.getByLabelText('Calculation')).toHaveValue('');
+  await user.type(screen.getByLabelText('Calculation'), '50');
+  await user.click(screen.getByRole('button', { name: 'Apply 50.00' }));
+  expect(
+    await screen.findByText('Enter a lower bound no higher than the upper.'),
+  ).toBeInTheDocument();
+  expect(onApply).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Calculate upper bound' }));
+  await user.clear(screen.getByLabelText('Calculation'));
+  await user.type(screen.getByLabelText('Calculation'), '200+50');
+  await user.keyboard('{Enter}');
+  await waitFor(() => {
+    expect(onApply).toHaveBeenCalledExactlyOnceWith(
+      { base_currency_amount_from: '100.00', base_currency_amount_to: '250.00' },
+      undefined,
+    );
+  });
+  expect(screen.getByLabelText('To, USD')).toHaveValue('250.00');
+});
+
 test('applies grouped amounts after typing pauses without Apply', async () => {
   const onApply = vi.fn();
   const user = userEvent.setup();

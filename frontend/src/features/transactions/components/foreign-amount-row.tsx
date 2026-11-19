@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { type ReactNode, useId } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
 import type { components } from '@/lib/api-schema';
@@ -18,6 +18,7 @@ type ForeignAmountRowProps = Readonly<{
   currencies: readonly DictionaryItem[];
   amountError: string | undefined;
   currencyError: string | undefined;
+  action?: ReactNode;
 }>;
 
 export function ForeignAmountRow({
@@ -29,11 +30,13 @@ export function ForeignAmountRow({
   currencies,
   amountError,
   currencyError,
+  action,
 }: ForeignAmountRowProps) {
   const currencyErrorId = useId();
   return (
     <div>
       <InputRow
+        action={action}
         label={label}
         input={readAmountInputProps({
           registration: amountRegistration,

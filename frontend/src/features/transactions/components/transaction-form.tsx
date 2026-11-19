@@ -6,6 +6,7 @@ import { type Resolver, useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
 import { type CreateFormProps, EntityPicker } from '@/components/entity-picker/entity-picker';
+import { AmountCalculator } from '@/components/amount-calculator/amount-calculator';
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
@@ -256,6 +257,17 @@ export function TransactionForm({
           onClose={onClose}
         />
         <AmountField
+          action={
+            <AmountCalculator
+              label="adjustment amount"
+              value={amountText}
+              currency={account?.currency ?? undefined}
+              isNegativeAllowed
+              onApply={(amount) => {
+                setValue('amount', amount, { shouldDirty: true, shouldValidate: true });
+              }}
+            />
+          }
           label="Amount"
           registration={register('amount')}
           isNegativeAllowed
@@ -266,6 +278,19 @@ export function TransactionForm({
         />
         {isBaseAmountShown && (
           <BaseCurrencyAmountRow
+            action={
+              <AmountCalculator
+                label={`amount in ${baseCurrency}`}
+                value={baseAmountText}
+                currency={baseCurrency}
+                onApply={(amount) => {
+                  setValue('base_currency_amount', amount, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+              />
+            }
             baseCurrency={baseCurrency}
             registration={register('base_currency_amount')}
             hint={readEnteredRate({ amountText, referenceText: baseAmountText })}
