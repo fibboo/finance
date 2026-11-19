@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
 import { readAmountInputProps } from './amount-input';
@@ -9,6 +10,7 @@ type BaseCurrencyAmountRowProps = Readonly<{
   hint: string | undefined;
   registration: UseFormRegisterReturn;
   error: string | undefined;
+  action?: ReactNode;
 }>;
 
 export function BaseCurrencyAmountRow({
@@ -16,13 +18,19 @@ export function BaseCurrencyAmountRow({
   hint,
   registration,
   error,
+  action,
 }: BaseCurrencyAmountRowProps) {
   return (
     <div className={styles['rows']}>
       <InputRow
         label={`In ${baseCurrency}`}
         input={readAmountInputProps({ registration, isNegativeAllowed: false })}
-        suffix={baseCurrency}
+        suffix={
+          <>
+            {action}
+            {baseCurrency}
+          </>
+        }
         hint={hint}
         error={error}
       />

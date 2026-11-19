@@ -1,5 +1,6 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 
+import { AmountCalculator } from '@/components/amount-calculator/amount-calculator';
 import type { components } from '@/lib/api-schema';
 
 import type { MovementFormValues } from '../schemas/transaction-form';
@@ -19,7 +20,7 @@ export function TransferExtraRows({
   destinationCurrency,
   isDestinationAmountAsked,
 }: TransferExtraRowsProps) {
-  const { control, register, formState } = useFormContext<
+  const { control, register, setValue, formState } = useFormContext<
     MovementFormValues,
     unknown,
     MovementRequest
@@ -40,7 +41,19 @@ export function TransferExtraRows({
           registration: register('destination_amount'),
           isNegativeAllowed: false,
         })}
-        suffix={destinationCurrency}
+        suffix={
+          <>
+            <AmountCalculator
+              label="amount received"
+              value={destinationAmount}
+              currency={destinationCurrency}
+              onApply={(amount) => {
+                setValue('destination_amount', amount, { shouldDirty: true, shouldValidate: true });
+              }}
+            />
+            {destinationCurrency}
+          </>
+        }
         hint={readEnteredRate({
           amountText: destinationAmount,
           referenceText: sourceAmount,

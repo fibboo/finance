@@ -99,7 +99,7 @@ function matchMinWidth(query: string): MediaQueryList {
 const previouslyFocusedElements = new WeakMap<HTMLDialogElement, Element | null>();
 
 function cancelOpenDialog(event: KeyboardEvent) {
-  const dialog = document.querySelector('dialog[open]');
+  const dialog = Array.from(document.querySelectorAll('dialog[open]')).at(-1) ?? null;
   if (event.key === 'Escape' && !event.defaultPrevented && dialog !== null) {
     dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
   }

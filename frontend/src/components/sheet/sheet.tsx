@@ -8,9 +8,10 @@ type SheetProps = Readonly<{
   label: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string | undefined;
 }>;
 
-export function Sheet({ label, onClose, children }: SheetProps) {
+export function Sheet({ label, onClose, children, className }: SheetProps) {
   const sheetRef = useRef<HTMLDialogElement>(null);
   const handleRef = useRef<HTMLSpanElement>(null);
   const isUnmountingRef = useRef(false);
@@ -49,12 +50,16 @@ export function Sheet({ label, onClose, children }: SheetProps) {
       ref={sheetRef}
       aria-label={label}
       tabIndex={-1}
-      className={styles['sheet']}
+      className={[styles['sheet'], className].filter(Boolean).join(' ')}
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
+        event.stopPropagation();
         event.preventDefault();
         onClose();
       }}
       onClose={(event) => {
+        if (event.target !== event.currentTarget) return;
+        event.stopPropagation();
         if (!isUnmountingRef.current && !event.currentTarget.open) {
           onClose();
         }

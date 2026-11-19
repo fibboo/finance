@@ -3,6 +3,7 @@ import { type Ref, useImperativeHandle } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
+import { AmountCalculator } from '@/components/amount-calculator/amount-calculator';
 import { useDebouncedAction } from '@/hooks/use-debounced-value';
 import { formatAmountText } from '@/lib/amount-input';
 
@@ -26,7 +27,7 @@ type AmountFilterProps = Readonly<{
 }>;
 
 export function AmountFilter({ ref, filters, baseCurrency, onApply }: AmountFilterProps) {
-  const { register, handleSubmit, getValues, control, formState } = useForm<
+  const { register, handleSubmit, getValues, setValue, control, formState } = useForm<
     AmountFilterFormInput,
     unknown,
     AmountFilterFormOutput
@@ -68,6 +69,20 @@ export function AmountFilter({ ref, filters, baseCurrency, onApply }: AmountFilt
       <div className={styles['amounts']}>
         <FilterField
           label={`From, ${baseCurrency}`}
+          suffix={
+            <AmountCalculator
+              label="lower bound"
+              value={amountFrom}
+              currency={baseCurrency}
+              onApply={(amount) => {
+                setValue('base_currency_amount_from', amount, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+                schedule();
+              }}
+            />
+          }
           error={formState.errors.base_currency_amount_from?.message}
           input={{
             ...readAmountInputProps({
@@ -80,6 +95,20 @@ export function AmountFilter({ ref, filters, baseCurrency, onApply }: AmountFilt
         />
         <FilterField
           label={`To, ${baseCurrency}`}
+          suffix={
+            <AmountCalculator
+              label="upper bound"
+              value={amountTo}
+              currency={baseCurrency}
+              onApply={(amount) => {
+                setValue('base_currency_amount_to', amount, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+                schedule();
+              }}
+            />
+          }
           error={formState.errors.base_currency_amount_to?.message}
           input={{
             ...readAmountInputProps({

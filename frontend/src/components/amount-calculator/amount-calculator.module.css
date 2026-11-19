@@ -1,0 +1,33 @@
+@import '@/styles/media.css';
+.trigger {
+  flex: none;
+  width: var(--size-touch);
+  min-height: var(--size-touch);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+.trigger:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
+}
+.trigger:hover {
+  color: var(--color-ink);
+}
+@media (--desktop) {
+  .sheet {
+    width: var(--size-calculator);
+  }
+}

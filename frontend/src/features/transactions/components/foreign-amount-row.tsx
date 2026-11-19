@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { type ReactNode, useId } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
 import type { components } from '@/lib/api-schema';
@@ -18,6 +18,7 @@ type ForeignAmountRowProps = Readonly<{
   currencies: readonly DictionaryItem[];
   amountError: string | undefined;
   currencyError: string | undefined;
+  action?: ReactNode;
 }>;
 
 export function ForeignAmountRow({
@@ -29,6 +30,7 @@ export function ForeignAmountRow({
   currencies,
   amountError,
   currencyError,
+  action,
 }: ForeignAmountRowProps) {
   const currencyErrorId = useId();
   return (
@@ -40,20 +42,23 @@ export function ForeignAmountRow({
           isNegativeAllowed: false,
         })}
         suffix={
-          <select
-            {...currencyRegistration}
-            className={styles['currencySelect']}
-            aria-label={currencyLabel}
-            aria-invalid={currencyError !== undefined}
-            aria-describedby={currencyError === undefined ? undefined : currencyErrorId}
-          >
-            <option value="">Currency</option>
-            {currencies.map((currency) => (
-              <option key={currency.key} value={currency.key}>
-                {currency.key}
-              </option>
-            ))}
-          </select>
+          <>
+            {action}
+            <select
+              {...currencyRegistration}
+              className={styles['currencySelect']}
+              aria-label={currencyLabel}
+              aria-invalid={currencyError !== undefined}
+              aria-describedby={currencyError === undefined ? undefined : currencyErrorId}
+            >
+              <option value="">Currency</option>
+              {currencies.map((currency) => (
+                <option key={currency.key} value={currency.key}>
+                  {currency.key}
+                </option>
+              ))}
+            </select>
+          </>
         }
         hint={hint}
         error={amountError}

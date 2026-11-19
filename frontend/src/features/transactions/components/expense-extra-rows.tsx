@@ -1,5 +1,6 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 
+import { AmountCalculator } from '@/components/amount-calculator/amount-calculator';
 import type { components } from '@/lib/api-schema';
 
 import type { MovementFormValues } from '../schemas/transaction-form';
@@ -15,7 +16,7 @@ type ExpenseExtraRowsProps = Readonly<{
 }>;
 
 export function ExpenseExtraRows({ currencies, accountCurrency }: ExpenseExtraRowsProps) {
-  const { control, register, formState } = useFormContext<
+  const { control, register, setValue, formState } = useFormContext<
     MovementFormValues,
     unknown,
     MovementRequest
@@ -35,6 +36,16 @@ export function ExpenseExtraRows({ currencies, accountCurrency }: ExpenseExtraRo
 
   return (
     <ForeignAmountRow
+      action={
+        <AmountCalculator
+          label="original amount"
+          value={amountText}
+          currency={currency === '' ? undefined : currency}
+          onApply={(amount) => {
+            setValue('destination_amount', amount, { shouldDirty: true, shouldValidate: true });
+          }}
+        />
+      }
       label="Original amount"
       currencyLabel="Seller’s currency"
       amountRegistration={register('destination_amount')}

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { type ReactNode, useId } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
 import styles from './amount-field.module.css';
@@ -13,6 +13,7 @@ type AmountFieldProps = Readonly<{
   balanceHint?: string | undefined;
   baseCurrencyHint: BaseCurrencyHint | undefined;
   error: string | undefined;
+  action?: ReactNode;
 }>;
 
 export function AmountField({
@@ -23,6 +24,7 @@ export function AmountField({
   balanceHint,
   baseCurrencyHint,
   error,
+  action,
 }: AmountFieldProps) {
   const inputId = useId();
   const hintId = useId();
@@ -39,6 +41,7 @@ export function AmountField({
           aria-invalid={error !== undefined}
           aria-describedby={hintId}
         />
+        {action}
         {currency !== undefined && <span className={styles['currency']}>{currency}</span>}
       </span>
       <span id={hintId} className={error === undefined ? styles['hint'] : styles['error']}>

@@ -9,6 +9,7 @@ import {
   type EntityCreate,
   EntityPicker,
 } from '@/components/entity-picker/entity-picker';
+import { AmountCalculator } from '@/components/amount-calculator/amount-calculator';
 import { useToday } from '@/hooks/use-today';
 import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
@@ -297,6 +298,19 @@ export function MovementForm({
           onClose={onClose}
         />
         <AmountField
+          action={
+            <AmountCalculator
+              label={copy.amountLabel.toLowerCase()}
+              value={isIncome ? destinationAmount : sourceAmount}
+              currency={accountCurrency}
+              onApply={(amount) => {
+                setValue(isIncome ? 'destination_amount' : 'source_amount', amount, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+            />
+          }
           label={copy.amountLabel}
           registration={register(isIncome ? 'destination_amount' : 'source_amount')}
           isNegativeAllowed={false}
@@ -329,7 +343,22 @@ export function MovementForm({
                   registration: register('base_currency_amount'),
                   isNegativeAllowed: false,
                 })}
-                suffix={baseCurrency}
+                suffix={
+                  <>
+                    <AmountCalculator
+                      label={`amount in ${baseCurrency}`}
+                      value={baseCurrencyAmount}
+                      currency={baseCurrency}
+                      onApply={(amount) => {
+                        setValue('base_currency_amount', amount, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                    {baseCurrency}
+                  </>
+                }
                 hint={readEnteredRate({
                   amountText: destinationAmount,
                   referenceText: baseCurrencyAmount,
