@@ -33,7 +33,7 @@ export function TransferExtraRows({
   }
 
   return (
-    <div className={[styles['rows'], styles['extraRows']].join(' ')}>
+    <div className={[styles['rows'], styles['currencyGroup']].join(' ')}>
       <InputRow
         label="Amount received"
         input={readAmountInputProps({
