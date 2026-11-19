@@ -234,7 +234,7 @@ test('shows the amount in the base currency at the account rate', async () => {
   await user.type(screen.getByLabelText('Amount'), '42.80');
 
   // assert
-  expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription('≈ $47.08');
+  expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription('≈ $47.08 · rate 0.9091');
 });
 
 test('asks for the category, the location and the seller’s currency before sending', async () => {
@@ -490,7 +490,10 @@ test.each([
       await user.type(screen.getByLabelText('Original amount'), paidAmount);
       await user.selectOptions(screen.getByRole('combobox', { name: 'Paid currency' }), 'GEL');
     }
-    await user.type(screen.getByLabelText('In USD'), '3491.20');
+    const baseAmount = screen.getByRole('textbox', { name: 'In USD' });
+    expect(baseAmount).not.toHaveAccessibleDescription();
+    await user.type(baseAmount, '3491.20');
+    expect(baseAmount).toHaveAccessibleDescription('rate 0.9166');
 
     // act
     await user.click(screen.getByRole('button', { name: 'Add income' }));
@@ -688,7 +691,17 @@ test.each([
     await user.click(screen.getByRole('button', { name: /^To/ }));
     await user.click(screen.getByRole('button', { name: new RegExp(`^${account.name}`) }));
     if (receivedAmount !== null) {
-      await user.type(screen.getByLabelText('Amount received'), receivedAmount);
+      const received = screen.getByRole('textbox', { name: 'Amount received' });
+      expect(received).not.toHaveAccessibleDescription();
+      await user.type(received, receivedAmount);
+      expect(received).toHaveAccessibleDescription('rate GEL 2.9100');
+      const sent = screen.getByRole('textbox', { name: 'Amount sent' });
+      await user.clear(sent);
+      await user.type(sent, '0');
+      expect(received).not.toHaveAccessibleDescription();
+      await user.clear(sent);
+      await user.type(sent, '500');
+      expect(received).toHaveAccessibleDescription('rate GEL 2.9100');
     }
 
     // act
@@ -889,7 +902,9 @@ test('leaves out the base currency estimate of an income paid in another currenc
   await user.click(screen.getByRole('button', { name: /^To/ }));
   await user.click(screen.getByRole('button', { name: /^Euro card/ }));
   await user.type(screen.getByLabelText('Amount received'), '42.80');
-  expect(screen.getByLabelText('Amount received')).toHaveAccessibleDescription('≈ $47.08');
+  expect(screen.getByLabelText('Amount received')).toHaveAccessibleDescription(
+    '≈ $47.08 · rate 0.9091',
+  );
 
   // act
   await user.click(screen.getByRole('switch', { name: 'Different currency' }));
@@ -1521,6 +1536,9 @@ test.each(['EXPENSE', 'INCOME'] as const)(
     await user.selectOptions(
       screen.getByRole('combobox', { name: isIncome ? 'Paid currency' : 'Seller’s currency' }),
       'EUR',
+    );
+    expect(screen.getByRole('textbox', { name: 'Original amount' })).toHaveAccessibleDescription(
+      'rate EUR 0.8400',
     );
     expect(
       toggle.compareDocumentPosition(screen.getByLabelText('Original amount')) &

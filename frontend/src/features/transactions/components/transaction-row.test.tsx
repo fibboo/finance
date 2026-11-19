@@ -165,7 +165,7 @@ test.each([
         },
       ],
     },
-    cells: ['Groceries', 'Wallet · EUR', '≈ -$45.10', '-€42.80'],
+    cells: ['Groceries', 'Wallet · EUR · 0.9490', '≈ -$45.10', '-€42.80'],
   },
   {
     kind: 'an expense not valued yet by an estimate of zero',
@@ -254,6 +254,31 @@ test.each([
     cells: ['Wallet → Savings', 'EUR · 0.9163', '$327.40', '€300.00'],
   },
   {
+    kind: 'a two-currency expense with a base-currency account and a comment',
+    row: {
+      ...transaction,
+      comment: 'Flat white at Heathrow',
+      postings: [
+        { ...posting, amount: '-5.72', base_amount: '-5.72', account: wallet },
+        { ...posting, amount: '4.50', currency: 'GBP', base_amount: '5.72', account: category },
+      ],
+    },
+    cells: ['Groceries', 'Wallet · USD · GBP 0.7867 · Flat white at Heathrow', '-$5.72', '-£4.50'],
+  },
+  {
+    kind: 'a transfer between two currencies other than the base currency',
+    row: {
+      ...transaction,
+      transaction_type: 'TRANSFER',
+      postings: [
+        { ...posting, amount: '-100.00', currency: 'EUR', base_amount: '-109.16', account: wallet },
+        { ...posting, amount: '87.90', currency: 'GBP', base_amount: '109.16', account: savings },
+        { ...posting, amount: '0', currency: 'USD', base_amount: '1.00', account: equity },
+      ],
+    },
+    cells: ['Wallet → Savings', 'EUR · 0.9161 · GBP 0.8790', '$109.16', '€100.00 → £87.90'],
+  },
+  {
     kind: 'a transfer not valued yet',
     row: {
       ...transaction,
@@ -291,7 +316,7 @@ test.each([
         },
       ],
     },
-    cells: ['Wallet → Savings', 'EUR', '≈ $327.00', '€300.00'],
+    cells: ['Wallet → Savings', 'EUR · 0.9174', '≈ $327.00', '€300.00'],
   },
   {
     kind: 'a decreasing adjustment',
@@ -531,7 +556,7 @@ test.each([
         { ...posting, amount: '280.00', currency: 'EUR', base_amount: '300.00', account: wallet },
       ],
     },
-    cells: ['Transfer ← Savings', '0.9333', '+$300.00', '+€280.00'],
+    cells: ['Transfer ← Savings', '0.9333 · EUR 0.9333', '+$300.00', '+€280.00'],
   },
   {
     kind: 'the other account of an incoming transfer not valued yet by its signed estimate',
@@ -558,7 +583,7 @@ test.each([
         },
       ],
     },
-    cells: ['Transfer ← Savings', '≈ +$327.00', '+€300.00'],
+    cells: ['Transfer ← Savings', '0.9174', '≈ +$327.00', '+€300.00'],
   },
   {
     kind: 'only the type of an adjustment',

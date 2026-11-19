@@ -3,13 +3,15 @@ import type { UseFormRegisterReturn } from 'react-hook-form';
 
 import styles from './amount-field.module.css';
 import { readAmountInputProps } from './amount-input';
+import type { BaseCurrencyHint } from './movement-config';
 
 type AmountFieldProps = Readonly<{
   label: string;
   registration: UseFormRegisterReturn;
   isNegativeAllowed: boolean;
   currency: string | undefined;
-  hint: string | undefined;
+  balanceHint?: string | undefined;
+  baseCurrencyHint: BaseCurrencyHint | undefined;
   error: string | undefined;
 }>;
 
@@ -18,7 +20,8 @@ export function AmountField({
   registration,
   isNegativeAllowed,
   currency,
-  hint,
+  balanceHint,
+  baseCurrencyHint,
   error,
 }: AmountFieldProps) {
   const inputId = useId();
@@ -39,7 +42,17 @@ export function AmountField({
         {currency !== undefined && <span className={styles['currency']}>{currency}</span>}
       </span>
       <span id={hintId} className={error === undefined ? styles['hint'] : styles['error']}>
-        {error ?? hint}
+        {error ?? (
+          <>
+            {balanceHint}
+            {baseCurrencyHint !== undefined && (
+              <>
+                {balanceHint !== undefined && ' · '}≈ {baseCurrencyHint.amount} ·{' '}
+                <span className={styles['rate']}>rate {baseCurrencyHint.rate}</span>
+              </>
+            )}
+          </>
+        )}
       </span>
     </div>
   );

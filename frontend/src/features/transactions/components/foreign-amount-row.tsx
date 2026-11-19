@@ -11,6 +11,7 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 
 type ForeignAmountRowProps = Readonly<{
   label: string;
+  hint: string | undefined;
   currencyLabel: string;
   amountRegistration: UseFormRegisterReturn;
   currencyRegistration: UseFormRegisterReturn;
@@ -21,6 +22,7 @@ type ForeignAmountRowProps = Readonly<{
 
 export function ForeignAmountRow({
   label,
+  hint,
   currencyLabel,
   amountRegistration,
   currencyRegistration,
@@ -53,6 +55,7 @@ export function ForeignAmountRow({
             ))}
           </select>
         }
+        hint={hint}
         error={amountError}
       />
       {currencyError !== undefined && (

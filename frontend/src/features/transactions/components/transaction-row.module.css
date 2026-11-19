@@ -120,10 +120,20 @@
 }
 
 .details,
+.detailsText,
+.comment,
 .originalAmount {
   font-size: var(--font-size-2xs);
   line-height: var(--line-height-note);
   color: var(--color-muted);
+}
+
+.rates {
+  color: var(--color-ink);
+}
+
+.comment {
+  font-style: italic;
 }
 
 .amount,
@@ -170,8 +180,39 @@
     font-size: var(--font-size-base);
   }
 
-  .details,
+  .details {
+    display: contents;
+  }
+
+  .detailsText {
+    grid-area: 2 / 2;
+  }
+
+  .comment {
+    grid-area: 1 / 3 / -1 / 4;
+  }
+
+  .commentSeparator {
+    display: none;
+  }
+
+  .detailsText,
+  .comment {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .detailsText,
+  .comment,
   .originalAmount {
     font-size: var(--font-size-sm);
+  }
+
+  .amount,
+  .incomeAmount,
+  .originalAmount {
+    grid-column: 4;
   }
 }

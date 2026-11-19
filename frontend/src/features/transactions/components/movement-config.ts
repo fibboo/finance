@@ -1,11 +1,12 @@
 import type { EntityPickerItem } from '@/components/entity-picker/entity-picker';
 import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
-import { formatMoney } from '@/lib/format-money';
+import { formatMoney, formatRate } from '@/lib/format-money';
 
 import type { MovementTransactionType } from '../api/new-transaction';
 import { readAccountCurrency, readAmountText } from '../schemas/transaction-form';
 import { toMoneyAccountItem } from './money-account-item';
+import { readRateText } from './transaction-view';
 
 type Account = components['schemas']['Account'];
 type Location = components['schemas']['Location'];
@@ -160,6 +161,8 @@ export function readMovementCurrencies({
   return movementCurrencies;
 }
 
+export type BaseCurrencyHint = Readonly<{ amount: string; rate: string }>;
+
 export function readBaseCurrencyHint({
   account,
   amountText,
@@ -168,17 +171,40 @@ export function readBaseCurrencyHint({
   account: Readonly<Account> | undefined;
   amountText: string;
   baseCurrency: string;
-}>): string | undefined {
+}>): BaseCurrencyHint | undefined {
   const amount = readAmountText(amountText);
   const rate = Number(account?.base_currency_rate);
   const hint =
     account === undefined ||
     amount === undefined ||
-    Number(amount) <= 0 ||
+    Number(amount) === 0 ||
     readAccountCurrency(account) === baseCurrency ||
     rate <= 0
       ? undefined
-      : `≈ ${formatMoney({ amount: Number(amount) / rate, currency: baseCurrency })}`;
+      : {
+          amount: formatMoney({ amount: Number(amount) / rate, currency: baseCurrency }),
+          rate: formatRate(rate),
+        };
+  return hint;
+}
+
+export function readEnteredRate({
+  amountText,
+  referenceText,
+  currency,
+}: Readonly<{
+  amountText: string;
+  referenceText: string;
+  currency?: string;
+}>): string | undefined {
+  const amount = Number(readAmountText(amountText));
+  const referenceAmount = Number(readAmountText(referenceText));
+  const rate = readRateText({ amount, referenceAmount });
+  if (rate === undefined) {
+    return undefined;
+  }
+
+  const hint = currency === undefined ? `rate ${rate}` : `rate ${currency} ${rate}`;
   return hint;
 }
 

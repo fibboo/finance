@@ -4,7 +4,7 @@ import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount'
 import type { ArrowKeySelectionProps } from '@/hooks/use-arrow-key-selection';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
-import { formatMoney, formatRate } from '@/lib/format-money';
+import { formatMoney } from '@/lib/format-money';
 
 import {
   readSelectedTransactionId,
@@ -13,7 +13,12 @@ import {
 } from '../api/selected-transaction';
 import styles from './transaction-row.module.css';
 import { TransactionTextParts } from './transaction-text-parts';
-import { readMoneyEntryView, readTransactionView } from './transaction-view';
+import {
+  readForeignAmountsText,
+  readMoneyEntryView,
+  readRateText,
+  readTransactionView,
+} from './transaction-view';
 
 type Transaction = components['schemas']['Transaction'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -29,15 +34,6 @@ type TransactionRowProps = Readonly<{
   omittedAccountIds?: readonly string[] | undefined;
   dateLabel?: string | undefined;
 }>;
-
-function readRateText({
-  amount,
-  baseAmount,
-}: Readonly<{ amount: number; baseAmount: number | null }>): string | undefined {
-  const rateText =
-    baseAmount === null || baseAmount === 0 ? undefined : formatRate(Math.abs(amount / baseAmount));
-  return rateText;
-}
 
 export function TransactionRow({
   transaction,
@@ -63,19 +59,36 @@ export function TransactionRow({
   const isShownByDefault = selectedTransactionId === undefined && isTop;
   const isForeign = view.currency !== baseCurrency;
   const rateText = isForeign
-    ? readRateText({ amount: view.amount, baseAmount: view.baseAmount })
+    ? readRateText({
+        amount: view.amount,
+        referenceAmount: view.baseAmount ?? view.estimatedBaseAmount,
+      })
     : undefined;
   const originalAmount = formatMoney({
     amount: view.amount,
     currency: view.currency,
     signDisplay: view.signDisplay,
   });
+  const foreignAmounts = readForeignAmountsText({
+    view,
+    transactionView,
+    baseCurrency,
+    isTransfer: transaction.transaction_type === 'TRANSFER',
+  });
   const isEntryInTitle = view.rowTitle.some(
     (part) => typeof part !== 'string' && omittedAccountIds.includes(part.id),
   );
   const rowTitle = isEntryInTitle ? view.accountNames : view.rowTitle;
   const accountNames = isEntryInTitle ? [] : view.accountNames;
-  const locationName = isEntryInTitle ? transaction.location?.name : undefined;
+  const currency = isMoneyEntryOmitted ? undefined : view.currency;
+  const locationName =
+    isMoneyEntryOmitted || isEntryInTitle ? transaction.location?.name : undefined;
+  const rates = [rateText, view.currencyRate]
+    .filter((rate) => rate !== undefined)
+    .join(DETAILS_SEPARATOR);
+  const hasPostingDetails = currency !== undefined || locationName !== undefined || rates !== '';
+  const hasDetails = dateLabel !== undefined || accountNames.length > 0 || hasPostingDetails;
+  const hasComment = transaction.comment !== null && transaction.comment !== '';
   const title = (
     <>
       <TransactionTextParts text={rowTitle} />
@@ -124,28 +137,35 @@ export function TransactionRow({
           )}
         </span>
         <span className={styles['details']}>
-          {dateLabel !== undefined && (
-            <>
-              <span>{dateLabel}</span>
-              {DETAILS_SEPARATOR}
-            </>
-          )}
-          {accountNames.length > 0 && (
-            <>
-              <TransactionTextParts text={accountNames} />
-              {DETAILS_SEPARATOR}
-            </>
-          )}
-          {isMoneyEntryOmitted ? (
-            [transaction.location?.name, rateText]
-              .filter((part) => part !== undefined)
-              .join(DETAILS_SEPARATOR)
-          ) : (
-            <>
-              {view.currency}
-              {rateText !== undefined && `${DETAILS_SEPARATOR}${rateText}`}
-              {locationName !== undefined && `${DETAILS_SEPARATOR}${locationName}`}
-            </>
+          <span className={styles['detailsText']}>
+            {dateLabel !== undefined && <span>{dateLabel}</span>}
+            {dateLabel !== undefined &&
+              (accountNames.length > 0 || hasPostingDetails) &&
+              DETAILS_SEPARATOR}
+            {accountNames.length > 0 && (
+              <>
+                <TransactionTextParts text={accountNames} />
+                {hasPostingDetails && DETAILS_SEPARATOR}
+              </>
+            )}
+            {currency ?? locationName}
+            {rates !== '' && (
+              <span className={styles['rates']}>
+                {(currency !== undefined || locationName !== undefined) && DETAILS_SEPARATOR}
+                {rates}
+              </span>
+            )}
+            {currency !== undefined &&
+              locationName !== undefined &&
+              `${DETAILS_SEPARATOR}${locationName}`}
+          </span>
+          {hasComment && (
+            <span className={styles['comment']}>
+              {hasDetails && (
+                <span className={styles['commentSeparator']}>{DETAILS_SEPARATOR}</span>
+              )}
+              {transaction.comment}
+            </span>
           )}
         </span>
       </span>
@@ -170,8 +190,8 @@ export function TransactionRow({
             </>
           )}
         </span>
-        {isForeign && (view.baseAmount !== null || view.estimatedBaseAmount !== null) && (
-          <span className={styles['originalAmount']}>{originalAmount}</span>
+        {foreignAmounts !== '' && (
+          <span className={styles['originalAmount']}>{foreignAmounts}</span>
         )}
       </span>
     </li>
