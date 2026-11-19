@@ -25,6 +25,8 @@ const account = {
 
 test.each([
   { scenario: 'the default account on a phone', width: 384, search: '/', scrollLeft: 42 },
+  { scenario: 'the default account below desktop width', width: 1023, search: '/', scrollLeft: 42 },
+  { scenario: 'the default account at desktop width', width: 1024, search: '/', scrollLeft: 472 },
   { scenario: 'the default account on desktop', width: 1707, search: '/', scrollLeft: 472 },
   {
     scenario: 'a selected account on a phone',
