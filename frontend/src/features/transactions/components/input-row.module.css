@@ -59,3 +59,10 @@
   font-weight: var(--font-weight-semibold);
   color: var(--color-danger);
 }
+
+.hint {
+  padding-inline-start: calc(var(--size-row-label) + var(--space-2-5));
+  padding-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-ink);
+}

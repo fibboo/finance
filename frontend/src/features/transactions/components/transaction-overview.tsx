@@ -16,6 +16,7 @@ import styles from './transaction-overview.module.css';
 import { TransactionTextParts } from './transaction-text-parts';
 import {
   readExchangeDifference,
+  readRateText,
   readTransactionEntries,
   readTransactionView,
   readTypeLabel,
@@ -32,13 +33,21 @@ export type ReadLocationLink = (locationId: string) => LocationLink | undefined;
 function readBaseAmount({
   transaction,
   baseAmount,
-}: Readonly<{ transaction: Transaction; baseAmount: number | null }>): number | undefined {
+  estimatedBaseAmount,
+  amount: originalAmount,
+}: Readonly<{
+  transaction: Transaction;
+  baseAmount: number | null;
+  estimatedBaseAmount: number | null;
+  amount: number;
+}>): number | undefined {
   const estimatedAmount = transaction.estimated_base_currency_amount;
   const amount =
     baseAmount ??
+    estimatedBaseAmount ??
     (estimatedAmount === null || estimatedAmount === undefined
       ? undefined
-      : Number(estimatedAmount));
+      : Math.sign(originalAmount) * Number(estimatedAmount));
   return amount;
 }
 
@@ -93,8 +102,7 @@ export function readTransactionFrame({
   const view = readTransactionView({ transaction, transactionTypes });
   const transactionFrame = {
     hasBaseAmount:
-      view.currency !== baseCurrency &&
-      readBaseAmount({ transaction, baseAmount: view.baseAmount }) !== undefined,
+      view.currency !== baseCurrency && readBaseAmount({ transaction, ...view }) !== undefined,
     entryFrames: readTransactionEntries(transaction).map((entry) =>
       readTransactionEntryFrame({ entry, baseCurrency }),
     ),
@@ -130,8 +138,9 @@ export function TransactionOverview({
 }: TransactionOverviewProps) {
   const titleId = useId();
   const view = readTransactionView({ transaction, transactionTypes });
-  const baseAmount = readBaseAmount({ transaction, baseAmount: view.baseAmount });
+  const baseAmount = readBaseAmount({ transaction, ...view });
   const exchangeDifference = readExchangeDifference(transaction);
+  const baseRate = readRateText({ amount: view.amount, referenceAmount: baseAmount ?? null });
   return (
     <article aria-labelledby={titleId} className={styles['transactionOverview']}>
       <div className={styles['header']} data-sheet-drag-area>
@@ -156,7 +165,13 @@ export function TransactionOverview({
         </span>
         {view.currency !== baseCurrency && baseAmount !== undefined && (
           <span className={styles['baseAmount']}>
-            ≈ {formatMoney({ amount: baseAmount, currency: baseCurrency, signDisplay: 'never' })}
+            ≈{' '}
+            {formatMoney({
+              amount: baseAmount,
+              currency: baseCurrency,
+              signDisplay: view.signDisplay,
+            })}
+            {baseRate !== undefined && ` · rate ${baseRate}`}
           </span>
         )}
       </div>
@@ -182,6 +197,12 @@ export function TransactionOverview({
                 signDisplay: 'exceptZero',
               })}
             </dd>
+          </>
+        )}
+        {view.currencyRate !== undefined && (
+          <>
+            <dt className={styles['term']}>Rate</dt>
+            <dd className={styles['value']}>{view.currencyRate}</dd>
           </>
         )}
         <dt className={styles['term']}>Location</dt>

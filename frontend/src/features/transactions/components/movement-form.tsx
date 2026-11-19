@@ -41,6 +41,7 @@ import {
   MOVEMENT_FORM_FIELDS,
   type MovementPickerField,
   readBaseCurrencyHint,
+  readEnteredRate,
   readMovementCurrencies,
   readMovementPickers,
 } from './movement-config';
@@ -189,6 +190,7 @@ export function MovementForm({
     sourceCurrency,
     isPaidInAnotherCurrency,
     destinationAmount,
+    baseCurrencyAmount,
     date,
   ] = useWatch({
     control,
@@ -200,6 +202,7 @@ export function MovementForm({
       'source_currency',
       'is_paid_in_another_currency',
       'destination_amount',
+      'base_currency_amount',
       'transaction_date',
     ],
   });
@@ -219,6 +222,8 @@ export function MovementForm({
     });
   const isIncome = transactionType === 'INCOME';
   const amountAccount = isIncome ? toAccount : fromAccount;
+  const accountCurrency =
+    amountAccount === undefined ? undefined : readAccountCurrency(amountAccount);
   const isExtraAmountShown = isTransfer ? isDestinationAmountAsked : isPaidInAnotherCurrency;
   const pickers = readMovementPickers({
     transactionType,
@@ -295,8 +300,8 @@ export function MovementForm({
           label={copy.amountLabel}
           registration={register(isIncome ? 'destination_amount' : 'source_amount')}
           isNegativeAllowed={false}
-          currency={amountAccount === undefined ? undefined : readAccountCurrency(amountAccount)}
-          hint={
+          currency={accountCurrency}
+          baseCurrencyHint={
             isIncome && isPaidInAnotherCurrency
               ? undefined
               : readBaseCurrencyHint({
@@ -320,6 +325,10 @@ export function MovementForm({
                   isNegativeAllowed: false,
                 })}
                 suffix={baseCurrency}
+                hint={readEnteredRate({
+                  amountText: destinationAmount,
+                  referenceText: baseCurrencyAmount,
+                })}
                 error={formState.errors.base_currency_amount?.message}
               />
             )}
@@ -332,8 +341,12 @@ export function MovementForm({
                 className={styles['switch']}
               />
             </label>
-            {transactionType === 'EXPENSE' && <ExpenseExtraRows currencies={currencies} />}
-            {isIncome && <IncomeExtraRows currencies={currencies} />}
+            {transactionType === 'EXPENSE' && (
+              <ExpenseExtraRows currencies={currencies} accountCurrency={accountCurrency} />
+            )}
+            {isIncome && (
+              <IncomeExtraRows currencies={currencies} accountCurrency={accountCurrency} />
+            )}
           </div>
         )}
         <div className={styles['rows']}>

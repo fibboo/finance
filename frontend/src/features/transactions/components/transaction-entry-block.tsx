@@ -8,7 +8,7 @@ import { formatMoney } from '@/lib/format-money';
 
 import { DeletedAccountName } from './deleted-account-name';
 import styles from './transaction-entry-block.module.css';
-import { isDeletedAccount, type TransactionEntry } from './transaction-view';
+import { isDeletedAccount, readRateText, type TransactionEntry } from './transaction-view';
 
 type Account = components['schemas']['Account'];
 type Posting = components['schemas']['Posting'];
@@ -125,6 +125,8 @@ export function TransactionEntryBlock({
   const { account } = entry.posting;
   const isMoneyAccount = isMoneyAccountKind(account.kind);
   const baseAmount = readBaseAmount(entry.posting);
+  const amount = Number(entry.posting.amount);
+  const rate = readRateText({ amount, referenceAmount: baseAmount ?? null });
   const balanceText = readBalanceText(account);
   return (
     <section aria-labelledby={titleId} className={styles['transactionEntryBlock']}>
@@ -151,7 +153,7 @@ export function TransactionEntryBlock({
         <span className={styles['amounts']}>
           <span className={styles['amount']}>
             {formatMoney({
-              amount: Number(entry.posting.amount),
+              amount,
               currency: entry.posting.currency,
               signDisplay: 'exceptZero',
             })}
@@ -164,6 +166,7 @@ export function TransactionEntryBlock({
                 currency: baseCurrency,
                 signDisplay: 'exceptZero',
               })}
+              {rate !== undefined && ` · rate ${rate}`}
             </span>
           )}
         </span>

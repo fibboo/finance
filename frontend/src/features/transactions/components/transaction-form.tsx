@@ -30,6 +30,7 @@ import { CalendarButton } from './calendar-button';
 import { readDateInputProps } from './date-input';
 import { FormHeader, NEW_TRANSACTION_TITLE, type TypeChoice } from './form-header';
 import { InputRow } from './input-row';
+import { readBaseCurrencyHint, readEnteredRate } from './movement-config';
 import { readMoneyAccountNote, toMoneyAccountItem } from './money-account-item';
 import { addOwnChoices } from './movement-values';
 import { PickerRow } from './picker-row';
@@ -171,9 +172,9 @@ export function TransactionForm({
           },
         }),
   });
-  const [accountId, amountText, transactionDate] = useWatch({
+  const [accountId, amountText, baseAmountText, transactionDate] = useWatch({
     control,
-    name: ['account_id', 'amount', 'transaction_date'],
+    name: ['account_id', 'amount', 'base_currency_amount', 'transaction_date'],
   });
   const adjust = useMutation(transactionMutations.adjust(relatedQueryKeys));
   const update = useMutation(transactionMutations.updateAdjustment(relatedQueryKeys));
@@ -192,6 +193,15 @@ export function TransactionForm({
   const isBaseAmountShown =
     isBaseAmountAsked ||
     isBaseCurrencyAmountNeeded({ account: accountOnDate ?? account, baseCurrency });
+  const balanceHint =
+    account === undefined
+      ? undefined
+      : readBalanceHint({ account, amountText, savedAmount: Number(editedPosting?.amount ?? 0) });
+  const baseCurrencyHint = readBaseCurrencyHint({
+    account: accountOnDate,
+    amountText,
+    baseCurrency,
+  });
   const requestError = formState.errors.root?.['server']?.message;
 
   function forgetAskedBaseAmount() {
@@ -250,21 +260,15 @@ export function TransactionForm({
           registration={register('amount')}
           isNegativeAllowed
           currency={account === undefined ? undefined : readAccountCurrency(account)}
-          hint={
-            account === undefined
-              ? undefined
-              : readBalanceHint({
-                  account,
-                  amountText,
-                  savedAmount: Number(editedPosting?.amount ?? 0),
-                })
-          }
+          balanceHint={balanceHint}
+          baseCurrencyHint={baseCurrencyHint}
           error={formState.errors.amount?.message}
         />
         {isBaseAmountShown && (
           <BaseCurrencyAmountRow
             baseCurrency={baseCurrency}
             registration={register('base_currency_amount')}
+            hint={readEnteredRate({ amountText, referenceText: baseAmountText })}
             error={formState.errors.base_currency_amount?.message}
           />
         )}

@@ -1,7 +1,7 @@
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
-import { LOCALE } from '@/lib/format-money';
+import { formatMoney, formatRate, LOCALE } from '@/lib/format-money';
 
 type Transaction = components['schemas']['Transaction'];
 type Account = components['schemas']['Account'];
@@ -9,6 +9,8 @@ type Posting = components['schemas']['Posting'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
 export type TransactionText = readonly (string | Readonly<Account>)[];
+
+type CurrencyAmount = Readonly<{ amount: number; currency: string }>;
 
 type TransactionView = Readonly<{
   title: TransactionText;
@@ -22,6 +24,8 @@ type TransactionView = Readonly<{
   currency: string;
   signDisplay: Intl.NumberFormatOptions['signDisplay'];
   isIncome: boolean;
+  otherAmount?: CurrencyAmount | undefined;
+  currencyRate?: string | undefined;
 }>;
 
 const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZone: 'UTC' });
@@ -78,7 +82,7 @@ function readOptionalAmount(amount: string | null | undefined): number | null {
 
 function readNegatedAmount(amount: string | null | undefined): number | null {
   const optionalAmount = readOptionalAmount(amount);
-  const negatedAmount = optionalAmount === null ? null : -optionalAmount;
+  const negatedAmount = optionalAmount === null ? null : 0 - optionalAmount;
   return negatedAmount;
 }
 
@@ -152,6 +156,86 @@ export function readExchangeDifference(transaction: Readonly<Transaction>): numb
   return exchangeDifference;
 }
 
+export function readRateText({
+  amount,
+  referenceAmount,
+}: Readonly<{ amount: number; referenceAmount: number | null }>): string | undefined {
+  const rate = referenceAmount === null ? NaN : Math.abs(amount / referenceAmount);
+  const rateText = Number.isFinite(rate) && rate > 0 ? formatRate(rate) : undefined;
+  return rateText;
+}
+
+function readOtherAmount({
+  reference,
+  other,
+}: Readonly<{ reference: Posting; other: Posting }>): Pick<
+  TransactionView,
+  'otherAmount' | 'currencyRate'
+> {
+  if (reference.currency === other.currency) {
+    return {};
+  }
+
+  const otherAmount = { amount: Math.abs(Number(other.amount)), currency: other.currency };
+  const rate = readRateText({
+    amount: otherAmount.amount,
+    referenceAmount: Number(reference.amount),
+  });
+  const currencyRate = rate === undefined ? undefined : `${otherAmount.currency} ${rate}`;
+  return { otherAmount, currencyRate };
+}
+
+export function readForeignAmountsText({
+  view,
+  transactionView,
+  baseCurrency,
+  isTransfer,
+}: Readonly<{
+  view: TransactionView;
+  transactionView: TransactionView;
+  baseCurrency: string;
+  isTransfer: boolean;
+}>): string {
+  const other = transactionView.otherAmount;
+  const hasBaseAmount = view.baseAmount !== null || view.estimatedBaseAmount !== null;
+  if (
+    isTransfer &&
+    hasBaseAmount &&
+    transactionView.currency !== baseCurrency &&
+    other !== undefined &&
+    other.currency !== baseCurrency
+  ) {
+    const sent = formatMoney({
+      amount: transactionView.amount,
+      currency: transactionView.currency,
+    });
+    const received = formatMoney(other);
+    return `${sent} → ${received}`;
+  }
+
+  const otherCurrencyAmount = other?.currency === view.currency ? transactionView : other;
+  const amounts = [
+    hasBaseAmount && view.currency !== baseCurrency
+      ? formatMoney({ amount: view.amount, currency: view.currency, signDisplay: view.signDisplay })
+      : undefined,
+    otherCurrencyAmount !== undefined &&
+    otherCurrencyAmount.currency !== baseCurrency &&
+    otherCurrencyAmount.currency !== view.currency
+      ? formatMoney({
+          amount:
+            view.amount < 0
+              ? -Math.abs(otherCurrencyAmount.amount)
+              : Math.abs(otherCurrencyAmount.amount),
+          currency: otherCurrencyAmount.currency,
+          signDisplay: view.signDisplay,
+        })
+      : undefined,
+  ]
+    .filter((amount) => amount !== undefined)
+    .join(' → ');
+  return amounts;
+}
+
 export function readTransactionView({
   transaction,
   transactionTypes,
@@ -164,6 +248,7 @@ export function readTransactionView({
   switch (transaction.transaction_type) {
     case 'EXPENSE': {
       const view = {
+        ...readOtherAmount({ reference: debit, other: credit }),
         title: [credit.account],
         rowTitle: [credit.account],
         accountNames: [debit.account],
@@ -180,6 +265,7 @@ export function readTransactionView({
     }
     case 'INCOME': {
       const view = {
+        ...readOtherAmount({ reference: credit, other: debit }),
         title: [debit.account],
         rowTitle: [debit.account],
         accountNames: [credit.account],
@@ -197,13 +283,14 @@ export function readTransactionView({
     case 'TRANSFER': {
       const typeLabel = readTypeLabel({ transaction, transactionTypes });
       const view = {
+        ...readOtherAmount({ reference: debit, other: credit }),
         title: [`${typeLabel} `, debit.account, ' → ', credit.account],
         rowTitle: [debit.account, ' → '],
         accountNames: [],
         markedAccount: debit.account,
         titleMarkedAccount: credit.account,
         amount: -Number(debit.amount),
-        baseAmount: debit.base_amount === null ? null : -Number(debit.base_amount),
+        baseAmount: readNegatedAmount(debit.base_amount),
         estimatedBaseAmount: readNegatedAmount(debit.estimated_base_amount),
         currency: debit.currency,
         signDisplay: 'auto',

@@ -240,7 +240,13 @@ test('asks for the base currency amount of an account without a rate', async () 
   await user.type(screen.getByLabelText('Amount'), '100');
 
   // act
-  await user.type(screen.getByLabelText('In USD'), '108,40');
+  const baseAmount = screen.getByRole('textbox', { name: 'In USD' });
+  expect(baseAmount).not.toHaveAccessibleDescription();
+  await user.type(baseAmount, '0');
+  expect(baseAmount).not.toHaveAccessibleDescription();
+  await user.clear(baseAmount);
+  await user.type(baseAmount, '108,40');
+  expect(baseAmount).toHaveAccessibleDescription('rate 0.9225');
   await user.click(screen.getByRole('button', { name: 'Adjust balance' }));
 
   // assert
@@ -1235,4 +1241,41 @@ test('keeps Save changes disabled when the account on the date of the edited adj
     expect(requestCount).toBeGreaterThan(0);
   });
   expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+});
+
+test('estimates a negative adjustment using the rate on its selected date', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/accounts/:accountId', () =>
+      HttpResponse.json(ratedEuroCard),
+    ),
+  );
+  const user = userEvent.setup();
+  render(
+    <TransactionForm
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+        presetAccountId: ratedEuroCard.id,
+        renderMoneyAccountForm: () => null,
+      }}
+      transactionType="ADJUSTMENT"
+      moneyAccounts={[{ ...ratedEuroCard, base_currency_rate: '0.80' }]}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // act
+  const amount = screen.getByRole('textbox', { name: 'Amount' });
+  await user.type(amount, '-10');
+
+  // assert
+  await waitFor(() => {
+    expect(amount).toHaveAccessibleDescription('Now €50.00 → €40.00 · ≈ -$10.87 · rate 0.9200');
+  });
+  await user.clear(amount);
+  expect(amount).toHaveAccessibleDescription('Now €50.00');
+  expect(screen.queryByRole('textbox', { name: 'In USD' })).not.toBeInTheDocument();
 });
