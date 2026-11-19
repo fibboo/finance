@@ -27,7 +27,7 @@ Skills live in `.claude/skills/<name>/SKILL.md`.
 
 Setup, permission modes and Git troubleshooting: `docs/agent-setup.md`. Tool names are host-specific: use the available equivalent while preserving the workflow's outputs and approval requirements. The verbatim-output rule applies when a Skill tool actually returns a result, not to shell output or source-file reads in hosts without that tool.
 
-Codex approval routing and GitHub review triggers: `AGENTS.md`, **Approval**, **Review workflow** and **Code Review Rules**.
+Codex approval routing, GitHub review triggers and Sites previews: `AGENTS.md`, **Approval**, **Review workflow**, **Code Review Rules** and **Visual HTML artifacts**.
 
 ## Project Overview
 
