@@ -83,7 +83,7 @@ test('shows no total while the summary loads', () => {
 
 test.each([
   {
-    rates: [{ currency: 'EUR', rate: '1.08' }],
+    rates: [{ currency: 'EUR', rate: '1.08123' }],
     expected: ['1 EUR = $1.08'],
   },
   {
@@ -92,6 +92,14 @@ test.each([
       { currency: 'EUR', rate: '1.08' },
     ],
     expected: ['1 GBP = $1.27', '1 EUR = $1.08'],
+  },
+  {
+    rates: [
+      { currency: 'JPY', rate: '0.0067' },
+      { currency: 'VND', rate: '0.000039' },
+      { currency: 'INR', rate: '0.01' },
+    ],
+    expected: ['1 JPY = $0.0067', '1 VND = $0.000039', '1 INR = $0.01'],
   },
 ])(
   'shows the applied rates in API order and links their source ($expected)',

@@ -7,6 +7,9 @@ import { formatMoney } from '@/lib/format-money';
 import { summaryQueries } from '../api/summary-queries';
 import styles from './total-balance.module.css';
 
+const MIN_TWO_DECIMAL_RATE = 0.01;
+const SMALL_RATE_SIGNIFICANT_DIGITS = 15;
+
 type TotalBalanceProps = Readonly<{ baseCurrency: string }>;
 
 export function TotalBalance({ baseCurrency }: TotalBalanceProps) {
@@ -42,11 +45,22 @@ export function TotalBalance({ baseCurrency }: TotalBalanceProps) {
       {estimateRates.length > 0 && (
         <div className={styles['rates']}>
           <ul className={styles['rateList']} aria-label="Applied exchange rates">
-            {estimateRates.map(({ currency, rate }) => (
-              <li key={currency}>
-                1 {currency} = {formatMoney({ amount: Number(rate), currency: baseCurrency })}
-              </li>
-            ))}
+            {estimateRates.map(({ currency, rate }) => {
+              const amount = Number(rate);
+              const rateText = formatMoney({
+                amount,
+                currency: baseCurrency,
+                maximumSignificantDigits:
+                  amount > 0 && amount < MIN_TWO_DECIMAL_RATE
+                    ? SMALL_RATE_SIGNIFICANT_DIGITS
+                    : undefined,
+              });
+              return (
+                <li key={currency}>
+                  1 {currency} = {rateText}
+                </li>
+              );
+            })}
           </ul>
           <a
             className={styles['rateSource']}
