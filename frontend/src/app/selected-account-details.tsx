@@ -23,6 +23,7 @@ import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-querie
 import { summaryQueries } from '@/features/summary/api/summary-queries';
 import { writeNewAdjustment } from '@/features/transactions/api/new-transaction';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
+import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import { revealHorizontally } from '@/lib/reveal-horizontally';
@@ -158,6 +159,7 @@ function SelectedAccount({
   const [editedAccountId, setEditedAccountId] = useState<string | undefined>(undefined);
   const [renamedAccountId, setRenamedAccountId] = useState<string | undefined>(undefined);
   const transactionsLinkId = useId();
+  const isDesktop = useIsDesktop();
   const isEditing = accountId !== undefined && editedAccountId === accountId;
   if (editedAccountId !== undefined && !isEditing) {
     setEditedAccountId(undefined);
@@ -173,11 +175,12 @@ function SelectedAccount({
     enabled: accountId !== undefined,
   });
   const isOpened = back !== undefined;
+  const isAccountRevealEnabled = !isOpened && (isDesktop || !isShownByDefault);
   useEffect(() => {
-    if (!isOpened && accountId !== undefined) {
+    if (isAccountRevealEnabled && accountId !== undefined) {
       revealHorizontally(document.getElementById(readAccountLinkId(accountId)));
     }
-  }, [accountId, isOpened]);
+  }, [accountId, isAccountRevealEnabled]);
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   const isUnavailable =
     isNotFound ||
