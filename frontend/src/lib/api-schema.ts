@@ -623,6 +623,7 @@ export interface components {
             /** Color */
             color: string | null;
             category_type: components["schemas"]["CategoryType"] | null;
+            category_purpose?: components["schemas"]["CategoryPurpose"] | null;
             /** Estimated Base Balance */
             estimated_base_balance?: string | null;
             status: components["schemas"]["EntityStatusType"];
@@ -643,6 +644,7 @@ export interface components {
             /** Color */
             color?: string | null;
             category_type?: components["schemas"]["CategoryType"] | null;
+            category_purpose?: components["schemas"]["CategoryPurpose"] | null;
         };
         /**
          * AccountKind
@@ -663,6 +665,7 @@ export interface components {
             /** Color */
             color?: string | null;
             category_type?: components["schemas"]["CategoryType"] | null;
+            category_purpose?: components["schemas"]["CategoryPurpose"] | null;
         };
         /** AccountingDictionaries */
         AccountingDictionaries: {
@@ -672,6 +675,8 @@ export interface components {
             account_kinds: components["schemas"]["DictionaryItem"][];
             /** Category Types */
             category_types: components["schemas"]["DictionaryItem"][];
+            /** Category Purposes */
+            category_purposes?: components["schemas"]["DictionaryItem"][] | null;
             /** Transaction Types */
             transaction_types: components["schemas"]["DictionaryItem"][];
             /** Transaction Orders */
@@ -701,6 +706,11 @@ export interface components {
             /** Base Currency */
             base_currency: string;
         };
+        /**
+         * CategoryPurpose
+         * @enum {string}
+         */
+        CategoryPurpose: "PERSONAL" | "INCOME_COST";
         /**
          * CategoryType
          * @enum {string}
@@ -994,6 +1004,12 @@ export interface components {
             earned: string;
             /** Spent */
             spent: string;
+            /** Income Costs */
+            income_costs?: string | null;
+            /** Net Income */
+            net_income?: string | null;
+            /** Personal Spending */
+            personal_spending?: string | null;
             /** Left Over */
             left_over: string;
             /** Unvalued Spent */
@@ -1134,6 +1150,7 @@ export interface operations {
                 search_term?: string | null;
                 kinds?: components["schemas"]["AccountKind"][];
                 category_types?: components["schemas"]["CategoryType"][];
+                category_purposes?: components["schemas"]["CategoryPurpose"][];
                 statuses?: components["schemas"]["EntityStatusType"][];
                 order?: components["schemas"]["ListOrderType"];
             };
@@ -2566,6 +2583,7 @@ type ReadonlyArray<T> = [
     unknown[]
 ] ? Readonly<Exclude<T, undefined>> : Readonly<Exclude<T, undefined>[]>;
 export const accountKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["AccountKind"]> = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"];
+export const categoryPurposeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryPurpose"]> = ["PERSONAL", "INCOME_COST"];
 export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryType"]> = ["VARIABLE", "FIXED", "PERIODIC"];
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
 export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];

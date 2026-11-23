@@ -14,7 +14,7 @@ from app.models.accounting.account import Account
 from app.models.accounting.location import Location
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import ENTRY_ORDER_SEQUENCE, Transaction
-from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS, VISIBLE_ACCOUNT_KINDS
+from app.schemas.accounting.account import AccountKind, CategoryPurpose, MONEY_ACCOUNT_KINDS, VISIBLE_ACCOUNT_KINDS
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import (
     OrderDirectionType,
@@ -198,8 +198,23 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
         amount: ColumnElement = Transaction.base_currency_amount
         income_sum: ColumnElement = func.sum(amount).filter(Transaction.transaction_type == TransactionType.INCOME)
         expense_sum: ColumnElement = func.sum(amount).filter(Transaction.transaction_type == TransactionType.EXPENSE)
+        is_income_cost: ColumnElement = (
+            select(Posting.id)
+            .join(Account, Account.id == Posting.account_id)
+            .where(
+                Posting.transaction_id == Transaction.id,
+                Account.kind == AccountKind.EXPENSE,
+                Account.category_purpose == CategoryPurpose.INCOME_COST,
+            )
+            .exists()
+        )
+        income_cost_sum: ColumnElement = func.sum(amount).filter(
+            Transaction.transaction_type == TransactionType.EXPENSE, is_income_cost
+        )
         query: Select = select(
-            func.coalesce(income_sum, 0).label("income"), func.coalesce(expense_sum, 0).label("expense")
+            func.coalesce(income_sum, 0).label("income"),
+            func.coalesce(expense_sum, 0).label("expense"),
+            func.coalesce(income_cost_sum, 0).label("income_costs"),
         ).where(
             Transaction.user_id == user_id,
             Transaction.status == EntityStatusType.ACTIVE,

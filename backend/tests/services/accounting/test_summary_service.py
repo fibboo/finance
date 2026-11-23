@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+import pytest
 from pytest_httpx import HTTPXMock
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +14,7 @@ from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryType
+from app.schemas.accounting.account import AccountCreate, AccountKind, AccountUpdate, CategoryPurpose, CategoryType
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.summary import Summary
@@ -21,7 +22,7 @@ from app.schemas.accounting.transaction import TransactionCreate, TransactionTyp
 from app.schemas.base import EntityStatusType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
-from app.services.accounting import summary_service
+from app.services.accounting import account_service, summary_service
 
 
 async def test_get_summary_ok(db: AsyncSession):
@@ -280,6 +281,9 @@ async def test_get_summary_ok(db: AsyncSession):
         "estimated_total_balance": None,
         "earned": "2312.00",
         "spent": "1046.70",
+        "income_costs": "0.00",
+        "net_income": "2312.00",
+        "personal_spending": "1046.70",
         "left_over": "1265.30",
         "unvalued_spent": [],
         "estimated_unvalued_spent": None,
@@ -314,6 +318,9 @@ async def test_get_summary_empty_month(db: AsyncSession):
         "estimated_total_balance": None,
         "earned": "0.00",
         "spent": "0.00",
+        "income_costs": "0.00",
+        "net_income": "0.00",
+        "personal_spending": "0.00",
         "left_over": "0.00",
         "unvalued_spent": [],
         "estimated_unvalued_spent": None,
@@ -378,6 +385,9 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
         "estimated_total_balance": None,
         "earned": "0.00",
         "spent": "800.25",
+        "income_costs": "0.00",
+        "net_income": "0.00",
+        "personal_spending": "800.25",
         "left_over": "-800.25",
         "unvalued_spent": [],
         "estimated_unvalued_spent": None,
@@ -572,6 +582,9 @@ async def test_get_summary_unvalued_spent_by_currency(db: AsyncSession):
         "estimated_total_balance": None,
         "earned": "0.00",
         "spent": "20.00",
+        "income_costs": "0.00",
+        "net_income": "0.00",
+        "personal_spending": "20.00",
         "left_over": "-20.00",
         "unvalued_spent": [{"currency": "EUR", "amount": "45.50"}, {"currency": "RSD", "amount": "1200"}],
         "estimated_unvalued_spent": None,
@@ -656,6 +669,9 @@ async def test_get_summary_estimates_unvalued_at_market_rate(db: AsyncSession, h
         "estimated_total_balance": "17.50",
         "earned": "0.00",
         "spent": "0.00",
+        "income_costs": "0.00",
+        "net_income": "0.00",
+        "personal_spending": "0.00",
         "left_over": "0.00",
         "unvalued_spent": [{"currency": "EUR", "amount": "30"}],
         "estimated_unvalued_spent": "37.50",
@@ -732,3 +748,114 @@ async def test_get_summary_estimate_rates_of_estimated_currencies(db: AsyncSessi
         {"currency": "EUR", "rate": "1.25"},
         {"currency": "RSD", "rate": "0.01"},
     ]
+
+
+@pytest.mark.parametrize(
+    "gross,changed_purpose,deleted_category",
+    [
+        ("5000.00", CategoryPurpose.PERSONAL, False),
+        ("5000.00", CategoryPurpose.INCOME_COST, False),
+        ("500.00", CategoryPurpose.PERSONAL, True),
+        ("0.00", CategoryPurpose.INCOME_COST, True),
+    ],
+)
+async def test_summary_partitions_income_costs_after_historical_reclassification(
+    db: AsyncSession, gross: str, changed_purpose: CategoryPurpose, deleted_category: bool
+):
+    # arrange
+    user_id: UUID = uuid4()
+    wallet: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.ASSET, name="Wallet", currency="USD"),
+        commit=True,
+    )
+    source: AccountModel = await account_crud.create(
+        db=db, obj_in=AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Work"), commit=True
+    )
+    work: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id,
+            kind=AccountKind.EXPENSE,
+            name="Taxes",
+            category_type=CategoryType.PERIODIC,
+            category_purpose=CategoryPurpose.INCOME_COST,
+        ),
+        commit=True,
+    )
+    personal: AccountModel = await account_crud.create(
+        db=db,
+        obj_in={
+            "user_id": user_id,
+            "kind": AccountKind.EXPENSE,
+            "name": "Personal",
+            "category_type": CategoryType.VARIABLE,
+            "category_purpose": None,
+        },
+        commit=True,
+    )
+    changed: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id, kind=AccountKind.EXPENSE, name="Subscriptions", category_type=CategoryType.FIXED
+        ),
+        commit=True,
+    )
+    location: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Online"), commit=True
+    )
+    for transaction_type, amount, from_account, to_account, transaction_date, transaction_status in [
+        (TransactionType.INCOME, Decimal(gross), source, wallet, date(2026, 10, 1), EntityStatusType.ACTIVE),
+        (TransactionType.EXPENSE, Decimal("1000"), wallet, work, date(2026, 10, 31), EntityStatusType.ACTIVE),
+        (TransactionType.EXPENSE, Decimal("1450"), wallet, personal, date(2026, 10, 15), EntityStatusType.ACTIVE),
+        (TransactionType.EXPENSE, Decimal("150"), wallet, changed, date(2026, 10, 1), EntityStatusType.ACTIVE),
+        (TransactionType.EXPENSE, Decimal("999"), wallet, work, date(2026, 9, 30), EntityStatusType.ACTIVE),
+        (TransactionType.EXPENSE, Decimal("999"), wallet, work, date(2026, 11, 1), EntityStatusType.ACTIVE),
+        (TransactionType.EXPENSE, Decimal("999"), wallet, work, date(2026, 10, 2), EntityStatusType.DELETED),
+    ]:
+        if amount == 0:
+            continue
+
+        transaction: TransactionModel = await transaction_crud.create_with_postings(
+            db=db,
+            obj_in=TransactionCreate(
+                user_id=user_id,
+                transaction_type=transaction_type,
+                transaction_date=transaction_date,
+                base_currency_amount=amount,
+                income_period=date(2026, 9, 1) if transaction_type == TransactionType.INCOME else None,
+                location_id=location.id if transaction_type == TransactionType.EXPENSE else None,
+            ),
+            postings=[
+                PostingCreate(account_id=from_account.id, amount=-amount, currency="USD", base_amount=-amount),
+                PostingCreate(account_id=to_account.id, amount=amount, currency="USD", base_amount=amount),
+            ],
+        )
+        await db.commit()
+        if transaction_status == EntityStatusType.DELETED:
+            await transaction_crud.update_orm(
+                db=db, id=transaction.id, obj_in={"status": transaction_status}, commit=True
+            )
+
+    await account_service.update_account(
+        db=db,
+        user_id=user_id,
+        account_id=changed.id,
+        update_data=AccountUpdate(name=changed.name, category_purpose=changed_purpose),
+    )
+    await db.commit()
+    if deleted_category:
+        await account_crud.update_orm(db=db, id=work.id, obj_in={"status": EntityStatusType.DELETED}, commit=True)
+
+    # act
+    summary: Summary = await summary_service.get_summary(db=db, user_id=user_id, month=date(2026, 10, 15))
+
+    # assert
+    expected_costs = Decimal("1150.00") if changed_purpose == CategoryPurpose.INCOME_COST else Decimal("1000.00")
+    assert summary.earned == Decimal(gross)
+    assert summary.spent == Decimal("2600.00")
+    assert summary.income_costs == expected_costs
+    assert summary.personal_spending == Decimal("2600.00") - expected_costs
+    assert summary.net_income == Decimal(gross) - expected_costs
+    assert summary.left_over == Decimal(gross) - Decimal("2600.00")
+    assert summary.total_balance == Decimal("0.00")

@@ -22,7 +22,7 @@ from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountKind, CategoryType
+from app.schemas.accounting.account import AccountKind, CategoryPurpose, CategoryType
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
@@ -74,6 +74,7 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
                 "kind": AccountKind.EXPENSE,
                 "name": "Groceries",
                 "category_type": CategoryType.VARIABLE,
+                "category_purpose": CategoryPurpose.INCOME_COST,
             },
             {"user_id": user_db.id, "kind": AccountKind.EQUITY, "name": "Adjustments"},
             {"user_id": other_user_db.id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
@@ -83,6 +84,7 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
                 "kind": AccountKind.EXPENSE,
                 "name": "Groceries",
                 "category_type": CategoryType.FIXED,
+                "category_purpose": CategoryPurpose.PERSONAL,
             },
             {
                 "user_id": other_user_db.id,
@@ -233,6 +235,7 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
         (deleted_wallet_db.id, "Wallet", EntityStatusType.DELETED),
     ]
     assert accounts_after_db[1].category_type == CategoryType.VARIABLE
+    assert accounts_after_db[1].category_purpose == CategoryPurpose.INCOME_COST
     other_wallet_after_db: AccountModel = accounts_after_db[3]
     assert other_wallet_after_db.balance == Decimal("10")
     assert other_wallet_after_db.base_balance == Decimal("10")
