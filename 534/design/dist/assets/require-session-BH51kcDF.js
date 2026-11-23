@@ -1,0 +1,1 @@
+import{b as e,v as t}from"./api-client-GxfUinIk.js";import{n,t as r}from"./components-C1deVSbA.js";import{t as i}from"./jsx-runtime-BUPNk4aw.js";import{l as a,o}from"./app-uleNtKir.js";var s=e(t(),1),c=i();function l(){return(0,s.useSyncExternalStore)(a,o)?(0,c.jsx)(n,{}):(0,c.jsx)(r,{to:`/sign-in`,replace:!0})}export{l as RequireSession};

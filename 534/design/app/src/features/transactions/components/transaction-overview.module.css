@@ -1,0 +1,130 @@
+.transactionOverview {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.heading {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.amounts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.amount {
+  font-size: var(--font-size-detail-amount);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+.baseAmount {
+  font-size: var(--font-size-md);
+  color: var(--color-muted);
+}
+
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-6);
+  font-size: var(--font-size-md);
+}
+
+.term {
+  color: var(--color-muted);
+}
+
+.value {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.skeletonValue {
+  min-height: 1lh;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.metaSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text);
+}
+
+.titleSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-text-lg);
+}
+
+.amountSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-balance);
+}
+
+.baseAmountSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+.factSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+.commentSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text);
+}
+
+.locationLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--color-border);
+  text-underline-offset: var(--underline-offset-link);
+}
+
+.locationLink::after {
+  content: ' ›' / '';
+  color: var(--color-muted);
+}
+
+@media (hover: hover) {
+  .locationLink:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+.emptyText {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-muted);
+}

@@ -1,0 +1,19 @@
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3-5);
+}
+
+.titleSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text-lg);
+}
+
+.amountSkeleton {
+  width: var(--size-skeleton-label-lg);
+  height: var(--size-skeleton-balance);
+}
+
+.rowsSkeleton {
+  height: var(--size-skeleton-balance-lg);
+}

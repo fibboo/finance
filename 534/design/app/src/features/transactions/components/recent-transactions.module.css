@@ -1,0 +1,61 @@
+@import '@/styles/media.css';
+
+.recentTransactions {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--size-recent-min);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  flex: none;
+  min-height: var(--size-panel-header);
+  padding: var(--space-2-5) var(--space-2) 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.allLink {
+  position: relative;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.allLink::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: calc(var(--space-2) * -1);
+  left: calc(var(--space-2) * -1);
+  height: var(--size-touch);
+  transform: translateY(-50%);
+}
+
+.allLink:hover {
+  color: var(--color-ink);
+}
+
+@media (--desktop) {
+  .recentTransactions {
+    min-height: var(--size-recent-min-lg);
+  }
+
+  .header {
+    min-height: var(--size-panel-header-lg);
+    padding: var(--space-4) var(--space-2) 0;
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
+}

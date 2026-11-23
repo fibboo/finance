@@ -1,0 +1,39 @@
+.sortFilter {
+  display: flex;
+  gap: var(--space-0-5);
+  padding: var(--space-0-5);
+  border-radius: var(--radius-segment);
+  background: var(--color-band);
+}
+.order {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--size-touch);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-segment);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.order[aria-pressed='true'] {
+  background: var(--color-panel);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--shadow-segment);
+}
+.order:hover {
+  color: var(--color-accent);
+}
+.order:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+.hint {
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+}

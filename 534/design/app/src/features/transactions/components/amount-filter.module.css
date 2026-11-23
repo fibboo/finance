@@ -1,0 +1,18 @@
+.amountFilter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.amounts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-note);
+  color: var(--color-muted);
+}

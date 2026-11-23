@@ -1,0 +1,297 @@
+@import '@/styles/media.css';
+
+.accountList {
+  flex: none;
+  padding: var(--space-2-5) 0;
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-panel);
+}
+
+.header {
+  padding: 0 var(--space-3-5) var(--space-2-5);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.allLink {
+  position: relative;
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.allLink::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100% + var(--space-2) * 2, var(--size-touch));
+  height: var(--size-touch);
+  transform: translate(-50%, -50%);
+}
+
+.allLink:hover {
+  color: var(--color-ink);
+}
+
+.strip {
+  position: relative;
+}
+
+.accounts {
+  margin: 0;
+  padding: 0 var(--space-3-5);
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  list-style: none;
+  scroll-padding-inline: var(--space-3-5);
+  scroll-snap-type: x proximity;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .accounts {
+    scroll-behavior: smooth;
+  }
+}
+
+.accountItem {
+  flex: none;
+  min-width: var(--size-account-tile-sm);
+  display: flex;
+  scroll-snap-align: start;
+}
+
+.account {
+  flex: none;
+  padding: var(--space-2) var(--space-2-5);
+  border-radius: var(--radius-segment);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  align-items: center;
+  gap: 0 var(--space-2);
+  line-height: var(--line-height-tight);
+  color: inherit;
+  text-decoration: none;
+  background: var(--color-ground);
+}
+
+a.account {
+  flex: 1 1 auto;
+}
+
+a.account:focus-visible {
+  outline: var(--size-focus-row) solid var(--color-focus-row);
+  outline-offset: calc(var(--size-focus-row) * -1);
+}
+
+@media (hover: hover) {
+  a.account:hover {
+    opacity: var(--opacity-hover);
+  }
+}
+
+.selected {
+  background: var(--color-selected);
+}
+
+.markSkeleton,
+.account > :first-child {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: start;
+  width: var(--size-account-mark-xs);
+  height: var(--size-account-mark-xs);
+  border-radius: var(--radius-badge);
+  font-size: var(--font-size-2xs);
+}
+
+.identity {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  contain: inline-size;
+}
+
+.name {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail {
+  grid-column: 1;
+  margin-top: var(--space-0-5);
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.amounts,
+.debtAmounts {
+  grid-column: 1 / -1;
+  margin-top: var(--space-2);
+  display: flex;
+  gap: var(--space-0-5);
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.accountBalance {
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+}
+
+.accounts .debtAmounts > * {
+  color: var(--color-danger);
+}
+
+.previous,
+.next {
+  display: none;
+}
+
+.rate:not(:empty)::before {
+  content: ' · ';
+}
+
+@media (--desktop), (pointer: fine) {
+  .accountItem,
+  .account {
+    scroll-margin-inline: calc(var(--size-touch) + var(--space-2));
+  }
+
+  .previous,
+  .next {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    width: var(--size-touch);
+    height: var(--size-touch);
+    padding: 0;
+    border: var(--size-border) solid var(--color-border);
+    border-radius: var(--radius-full);
+    display: grid;
+    place-items: center;
+    font-size: var(--font-size-xl);
+    color: var(--color-ink);
+    background: var(--color-panel);
+    box-shadow: var(--shadow-segment);
+    transform: translateY(-50%);
+    cursor: pointer;
+  }
+
+  .previous {
+    left: 0;
+  }
+
+  .next {
+    right: 0;
+  }
+}
+
+@media (hover: hover) {
+  .previous:hover,
+  .next:hover {
+    background: var(--color-ground);
+  }
+}
+
+.balance {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-amount);
+}
+
+.nameSkeleton {
+  width: 55%;
+  height: var(--size-skeleton-text);
+}
+
+.account:nth-child(even) .nameSkeleton {
+  width: 70%;
+}
+
+.detailSkeleton {
+  grid-column: 1;
+  width: var(--size-skeleton-word);
+  height: var(--size-skeleton-text-sm);
+}
+
+.balanceSkeleton {
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+.amounts:has(.balanceSkeleton) {
+  gap: var(--space-1-5);
+}
+
+@media (--desktop) {
+  .shownByDefault {
+    background: var(--color-selected);
+  }
+
+  .accountList {
+    padding: var(--space-4);
+  }
+
+  .header {
+    padding: 0 0 var(--space-3);
+  }
+
+  .accounts {
+    padding: 0;
+    gap: var(--space-2-5);
+    scroll-padding-inline: 0;
+  }
+
+  .accountItem {
+    min-width: var(--size-account-tile);
+  }
+
+  .account {
+    padding: var(--space-2-5) var(--space-3-5);
+    border-radius: var(--radius-track);
+    gap: 0 var(--space-2-5);
+  }
+
+  .amounts,
+  .debtAmounts {
+    margin-top: var(--space-2-5);
+  }
+
+  .markSkeleton,
+  .account > :first-child {
+    width: var(--size-account-mark-sm);
+    height: var(--size-account-mark-sm);
+    border-radius: var(--radius-segment);
+    font-size: var(--font-size-sm);
+  }
+
+  .name {
+    font-size: var(--font-size-base);
+  }
+
+  .detail,
+  .accountBalance {
+    font-size: var(--font-size-xs);
+  }
+
+  .balance {
+    font-size: var(--font-size-tile-amount);
+  }
+
+  .balanceSkeleton {
+    height: var(--size-skeleton-text-lg);
+  }
+}

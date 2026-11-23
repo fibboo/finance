@@ -1,0 +1,21 @@
+.clear {
+  min-height: var(--size-button);
+  margin-top: var(--space-3);
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-action);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-ink);
+  color: var(--color-ground);
+  cursor: pointer;
+}
+
+.clear:hover {
+  opacity: var(--opacity-hover);
+}
+
+.clear:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}

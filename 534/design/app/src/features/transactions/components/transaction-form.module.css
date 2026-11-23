@@ -1,0 +1,102 @@
+.transactionForm {
+  --rows-inset: var(--space-3-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3-5);
+}
+
+.transactionForm[hidden] {
+  display: none;
+}
+
+.rows {
+  padding: 0 var(--rows-inset);
+  border-radius: var(--radius-action);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-ground);
+}
+
+.rows > * + * {
+  border-top: var(--size-border) solid var(--color-border);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
+}
+
+.submit {
+  min-height: var(--size-field-lg);
+  border: 0;
+  border-radius: var(--radius-action);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-ink);
+  color: var(--color-panel);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.submit:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.currencyGroup {
+  --size-field-lg: var(--size-touch);
+  --size-row-label: var(--size-currency-row-label);
+}
+
+.anotherCurrency {
+  min-height: var(--size-touch);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: var(--size-toggle-width);
+  height: var(--size-toggle-height);
+  margin: 0;
+  border-radius: var(--radius-full);
+  appearance: none;
+  background: var(--color-border);
+  cursor: pointer;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: var(--size-toggle-inset);
+  left: var(--size-toggle-inset);
+  width: var(--size-toggle-knob);
+  height: var(--size-toggle-knob);
+  border-radius: var(--radius-full);
+  background: var(--color-panel);
+}
+
+.switch:checked {
+  background: var(--color-accent);
+}
+
+.switch:checked::after {
+  left: auto;
+  right: var(--size-toggle-inset);
+}
+
+.switch:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-toggle-inset);
+}

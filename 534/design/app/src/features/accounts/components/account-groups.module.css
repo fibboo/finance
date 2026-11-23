@@ -1,0 +1,304 @@
+@import '@/styles/media.css';
+
+.accountGroups {
+  --group-header-top: var(--space-1);
+
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.columns {
+  display: none;
+}
+
+.group {
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-panel);
+  list-style: none;
+  background: var(--color-panel);
+}
+
+.groupHeader {
+  position: sticky;
+  top: var(--group-header-top);
+  z-index: 1;
+  min-height: var(--size-panel-header-lg);
+  border-bottom: var(--size-border) solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  background: var(--color-panel);
+  box-shadow:
+    calc(var(--space-2) * -1) 0 0 var(--color-panel),
+    var(--space-2) 0 0 var(--color-panel);
+}
+
+.groupHeader::before,
+.groupHeader::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--space-1) * -1) calc(var(--space-4) * -1) auto;
+  height: var(--radius-panel);
+}
+
+.groupHeader::before {
+  z-index: -1;
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  background: var(--color-panel);
+}
+
+.groupHeader::after {
+  z-index: -2;
+  background: var(--color-ground);
+}
+
+.groupHeading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.accounts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account {
+  position: relative;
+  isolation: isolate;
+  min-height: var(--size-option-lg);
+  padding: var(--space-2-5) 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'mark identity balance'
+    'mark identity accountBalance';
+  align-items: center;
+  gap: 0 var(--space-3);
+}
+
+.account + .account {
+  border-top: var(--size-border) solid var(--color-border);
+}
+
+.account > :first-child {
+  grid-area: mark;
+}
+
+.identity {
+  grid-area: identity;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  overflow: hidden;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+  scroll-margin-top: calc(var(--group-header-top) + var(--size-panel-header-lg) + var(--space-2-5));
+}
+
+.name::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.name:focus-visible {
+  outline: none;
+}
+
+.account:has(.name:focus-visible)::after {
+  content: '';
+  position: absolute;
+  inset: 0 calc(var(--space-2) * -1);
+  border-radius: var(--radius-segment);
+  box-shadow: inset 0 0 0 var(--size-focus-row) var(--color-focus-row);
+  pointer-events: none;
+}
+
+.selected::before,
+.shownByDefault::before {
+  content: '';
+  position: absolute;
+  inset: 0 calc(var(--space-2) * -1);
+  z-index: -1;
+  border-radius: var(--radius-segment);
+  background: var(--color-selected);
+}
+
+.shownByDefault::before {
+  display: none;
+}
+
+@media (hover: hover) {
+  .account:has(.name:hover) {
+    opacity: var(--opacity-hover);
+  }
+}
+
+.currency {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.balance {
+  grid-area: balance;
+  justify-self: end;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.accountBalance {
+  grid-area: accountBalance;
+  justify-self: end;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.account:not(:has(.accountBalance)) .balance {
+  grid-row: 1 / -1;
+}
+
+.debt,
+.debtAccount .balance,
+.debtAccount .accountBalance {
+  color: var(--color-danger);
+}
+
+.markSkeleton {
+  grid-area: mark;
+  width: var(--size-account-mark-xs);
+  height: var(--size-account-mark-xs);
+  border-radius: var(--radius-full);
+}
+
+.nameSkeleton {
+  width: var(--size-skeleton-label);
+  height: var(--size-skeleton-text);
+}
+
+.balanceSkeleton {
+  grid-area: balance;
+  grid-row: 1 / -1;
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+@media (--desktop) {
+  .accountGroups {
+    --columns-top: var(--space-2);
+    --group-header-top: calc(var(--columns-top) + var(--size-columns-header-lg) + var(--space-1-5));
+
+    flex: 1 1 auto;
+    min-width: 0;
+    align-self: flex-start;
+    padding: var(--space-2) var(--space-5) var(--space-3);
+    border-radius: var(--radius-panel);
+    gap: 0;
+    background: var(--color-panel);
+  }
+
+  .columns {
+    position: sticky;
+    top: var(--columns-top);
+    z-index: 2;
+    min-height: var(--size-columns-header-lg);
+    padding-left: calc(var(--size-account-mark-sm) + var(--space-3));
+    border-bottom: var(--size-border) solid var(--color-border);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0 var(--space-3);
+    font-size: var(--font-size-sm);
+    color: var(--color-muted);
+    background: var(--color-panel);
+    box-shadow:
+      calc(var(--space-2) * -1) 0 0 var(--color-panel),
+      var(--space-2) 0 0 var(--color-panel);
+  }
+
+  .columns::before,
+  .columns::after {
+    content: '';
+    position: absolute;
+    inset: calc(var(--space-2) * -1) calc(var(--space-5) * -1) auto;
+    height: var(--radius-panel);
+  }
+
+  .columns::before {
+    z-index: -1;
+    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+    background: var(--color-panel);
+  }
+
+  .columns::after {
+    z-index: -2;
+    background: var(--color-ground);
+  }
+
+  .amountColumn {
+    text-align: right;
+  }
+
+  .group {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .groupHeader {
+    min-height: var(--size-panel-header-lg);
+    margin: var(--space-1-5) calc(-1 * var(--space-2));
+    padding: 0 var(--space-2);
+    border-bottom: 0;
+    border-radius: var(--radius-segment);
+    font-size: var(--font-size-md);
+    background: var(--color-band);
+  }
+
+  .groupHeader::before {
+    inset: calc(var(--space-1-5) * -1) 0 100%;
+    height: auto;
+    border-radius: 0;
+  }
+
+  .groupHeader::after {
+    content: none;
+  }
+
+  .name {
+    scroll-margin-top: calc(
+      var(--group-header-top) + var(--size-panel-header-lg) + (var(--size-option-lg) - 1lh) / 2
+    );
+  }
+
+  .account + .account {
+    border-top: 0;
+  }
+
+  .shownByDefault::before {
+    display: block;
+  }
+
+  .markSkeleton {
+    width: var(--size-account-mark-sm);
+    height: var(--size-account-mark-sm);
+    border-radius: var(--radius-segment);
+  }
+}

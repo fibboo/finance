@@ -1,0 +1,58 @@
+@import '@/styles/media.css';
+
+.transactionSkeletonRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skeletonRow {
+  height: var(--size-transaction-row);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+}
+
+.dotSkeleton {
+  flex: none;
+  width: var(--size-dot);
+  height: var(--size-dot);
+}
+
+.textSkeleton {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.titleSkeleton {
+  width: 40%;
+  height: var(--size-skeleton-text);
+}
+
+.skeletonRow:nth-child(even) .titleSkeleton {
+  width: 30%;
+}
+
+.detailsSkeleton {
+  width: 50%;
+  height: var(--size-skeleton-text-sm);
+}
+
+.amountSkeleton {
+  flex: none;
+  width: var(--size-skeleton-amount);
+  height: var(--size-skeleton-text);
+}
+
+@media (--desktop) {
+  .skeletonRow {
+    height: var(--size-transaction-row-lg);
+    gap: var(--space-4);
+  }
+
+  .detailsSkeleton {
+    height: var(--size-skeleton-text);
+  }
+}

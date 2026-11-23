@@ -1,0 +1,59 @@
+.bootScreen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-amount);
+}
+
+.mark {
+  width: var(--size-mark-lg);
+  height: var(--size-mark-lg);
+  border-radius: var(--radius-mark-lg);
+  background: var(--color-accent);
+}
+
+.track {
+  width: var(--size-progress);
+  height: var(--size-line);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-track);
+}
+
+.progress {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  animation: progress var(--duration-progress) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes progress {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress {
+    width: 100%;
+    opacity: var(--opacity-still);
+    animation: none;
+  }
+}

@@ -1,0 +1,494 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { type QueryKey, useMutation } from '@tanstack/react-query';
+import { type ReactNode, useId, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { FormProvider, type Resolver, useForm, useWatch } from 'react-hook-form';
+
+import {
+  type CreateFormProps,
+  type EntityCreate,
+  EntityPicker,
+} from '@/components/entity-picker/entity-picker';
+import { AmountCalculator } from '@/components/amount-calculator/amount-calculator';
+import { useToday } from '@/hooks/use-today';
+import { readMoneyAccountColor } from '@/lib/account-colors';
+import type { components } from '@/lib/api-schema';
+import { toDateText } from '@/lib/format-date';
+
+import type { MovementTransactionType } from '../api/new-transaction';
+import { transactionMutations } from '../api/transaction-mutations';
+import {
+  COMMENT_MAX_LENGTH,
+  createExpenseFormSchema,
+  createIncomeFormSchema,
+  createTransferFormSchema,
+  type MovementFormValues,
+  readAccountCurrency,
+} from '../schemas/transaction-form';
+import { AmountField } from './amount-field';
+import { readAmountInputProps } from './amount-input';
+import { CalendarButton } from './calendar-button';
+import { readDateInputProps } from './date-input';
+import { ExpenseExtraRows } from './expense-extra-rows';
+import { FormHeader, NEW_TRANSACTION_TITLE, type TypeChoice } from './form-header';
+import { IncomeExtraRows } from './income-extra-rows';
+import { IncomeMonthRow } from './income-month-row';
+import { InputRow } from './input-row';
+import { readMoneyAccountNote } from './money-account-item';
+import {
+  HIDDEN_FIELD_TARGETS,
+  LOCATION_COPY,
+  MOVEMENT_COPY,
+  MOVEMENT_FORM_FIELDS,
+  type MovementPickerField,
+  readBaseCurrencyHint,
+  readEnteredRate,
+  readMovementCurrencies,
+  readMovementPickers,
+} from './movement-config';
+import { addOwnChoices, readMovementValues, readOwnChoices } from './movement-values';
+import { PickerRow } from './picker-row';
+import { readSaveErrors } from './save-errors';
+import styles from './transaction-form.module.css';
+import { TransferExtraRows } from './transfer-extra-rows';
+
+type Account = components['schemas']['Account'];
+type Location = components['schemas']['Location'];
+type DictionaryItem = components['schemas']['DictionaryItem'];
+type MovementRequest = components['schemas']['MovementRequest'];
+type CreateFormRenderer = (props: CreateFormProps) => ReactNode;
+
+type Transaction = components['schemas']['Transaction'];
+
+type MovementFormMode =
+  | Readonly<{ kind: 'create'; typeChoice: TypeChoice }>
+  | Readonly<{ kind: 'edit'; transaction: Readonly<Transaction> }>;
+
+type MovementFormProps = Readonly<{
+  mode: MovementFormMode;
+  transactionType: MovementTransactionType;
+  categoryTypes: readonly DictionaryItem[];
+  currencies: readonly DictionaryItem[];
+  moneyAccounts: readonly Account[] | undefined;
+  categories: readonly Account[] | undefined;
+  incomeSources: readonly Account[] | undefined;
+  locations: readonly Location[] | undefined;
+  baseCurrency: string;
+  relatedQueryKeys: readonly QueryKey[];
+  renderCategoryForm: CreateFormRenderer;
+  renderIncomeSourceForm: CreateFormRenderer;
+  renderMoneyAccountForm: CreateFormRenderer;
+  renderLocationForm: CreateFormRenderer;
+  onClose: () => void;
+}>;
+
+export function MovementForm({
+  mode,
+  transactionType,
+  categoryTypes,
+  currencies,
+  moneyAccounts,
+  categories,
+  incomeSources,
+  locations,
+  baseCurrency,
+  relatedQueryKeys,
+  renderCategoryForm,
+  renderIncomeSourceForm,
+  renderMoneyAccountForm,
+  renderLocationForm,
+  onClose,
+}: MovementFormProps) {
+  const today = useToday();
+  const [pickerField, setPickerField] = useState<MovementPickerField | undefined>(undefined);
+  const rowIdPrefix = useId();
+  const copy = MOVEMENT_COPY[transactionType];
+  const ownChoices = mode.kind === 'edit' ? readOwnChoices(mode.transaction) : undefined;
+  const isTransfer = transactionType === 'TRANSFER';
+  const fromAccounts = addOwnChoices({
+    choices: transactionType === 'INCOME' ? incomeSources : moneyAccounts,
+    ownChoices: [ownChoices?.fromAccount, isTransfer ? ownChoices?.toAccount : undefined],
+  });
+  const toAccounts = addOwnChoices({
+    choices: transactionType === 'EXPENSE' ? categories : moneyAccounts,
+    ownChoices: [ownChoices?.toAccount, isTransfer ? ownChoices?.fromAccount : undefined],
+  });
+  const places = addOwnChoices({ choices: locations, ownChoices: [ownChoices?.location] });
+  const resolver: Resolver<MovementFormValues, unknown, MovementRequest> = (
+    values,
+    context,
+    options,
+  ) => {
+    const { source, destination, isDestinationAmountAsked, isBaseCurrencyAmountAsked } =
+      readMovementCurrencies({
+        transactionType,
+        fromAccount: fromAccounts?.find((account) => account.id === values.from_account_id),
+        toAccount: toAccounts?.find((account) => account.id === values.to_account_id),
+        isPaidInAnotherCurrency: values.is_paid_in_another_currency,
+        paidCurrency: values.source_currency,
+        baseCurrency,
+      });
+    const schemas = {
+      EXPENSE: () =>
+        createExpenseFormSchema({
+          sourceCurrency: source,
+          isPaidInAnotherCurrency: values.is_paid_in_another_currency,
+          today,
+        }),
+      INCOME: () =>
+        createIncomeFormSchema({
+          destinationCurrency: destination,
+          isPaidInAnotherCurrency: values.is_paid_in_another_currency,
+          isBaseCurrencyAmountAsked,
+          baseCurrency,
+          today,
+        }),
+      TRANSFER: () =>
+        createTransferFormSchema({
+          sourceCurrency: source,
+          destinationCurrency: destination,
+          isDestinationAmountAsked,
+          today,
+        }),
+    };
+    const resolution = zodResolver(schemas[transactionType]())(values, context, options);
+    return resolution;
+  };
+  const form = useForm<MovementFormValues, unknown, MovementRequest>({
+    resolver,
+    ...(mode.kind === 'edit'
+      ? {
+          values: readMovementValues({
+            transaction: mode.transaction,
+            transactionType,
+            baseCurrency,
+          }),
+          resetOptions: { keepDirtyValues: true },
+        }
+      : {
+          defaultValues: {
+            from_account_id: '',
+            to_account_id: '',
+            location_id: '',
+            source_amount: '',
+            source_currency: '',
+            is_paid_in_another_currency: false,
+            destination_amount: '',
+            destination_currency: '',
+            base_currency_amount: '',
+            income_period: '',
+            transaction_date: toDateText(today),
+            comment: '',
+          },
+        }),
+  });
+  const { control, register, handleSubmit, setError, setValue, formState } = form;
+  const [
+    fromAccountId,
+    toAccountId,
+    locationId,
+    sourceAmount,
+    sourceCurrency,
+    isPaidInAnotherCurrency,
+    destinationAmount,
+    baseCurrencyAmount,
+    date,
+  ] = useWatch({
+    control,
+    name: [
+      'from_account_id',
+      'to_account_id',
+      'location_id',
+      'source_amount',
+      'source_currency',
+      'is_paid_in_another_currency',
+      'destination_amount',
+      'base_currency_amount',
+      'transaction_date',
+    ],
+  });
+  const create = useMutation(transactionMutations.create(relatedQueryKeys));
+  const update = useMutation(transactionMutations.update(relatedQueryKeys));
+  const fromAccount = fromAccounts?.find((account) => account.id === fromAccountId);
+  const toAccount = toAccounts?.find((account) => account.id === toAccountId);
+  const location = places?.find((place) => place.id === locationId);
+  const { destination, isDestinationAmountAsked, isBaseCurrencyAmountAsked } =
+    readMovementCurrencies({
+      transactionType,
+      fromAccount,
+      toAccount,
+      isPaidInAnotherCurrency,
+      paidCurrency: sourceCurrency,
+      baseCurrency,
+    });
+  const isIncome = transactionType === 'INCOME';
+  const amountAccount = isIncome ? toAccount : fromAccount;
+  const accountCurrency =
+    amountAccount === undefined ? undefined : readAccountCurrency(amountAccount);
+  const isExtraAmountShown = isTransfer ? isDestinationAmountAsked : isPaidInAnotherCurrency;
+  const pickers = readMovementPickers({
+    transactionType,
+    fromAccounts,
+    toAccounts,
+    locations: places,
+    categoryTypes,
+    fromAccountId,
+    toAccountId,
+    locationId,
+  });
+  const moneyAccountCreate = { label: 'Create account', renderForm: renderMoneyAccountForm };
+  const creates: Readonly<Record<MovementPickerField, EntityCreate | undefined>> = {
+    from_account_id:
+      transactionType === 'INCOME'
+        ? { label: 'Create income source', renderForm: renderIncomeSourceForm }
+        : moneyAccountCreate,
+    to_account_id:
+      transactionType === 'EXPENSE'
+        ? { label: 'Create category', renderForm: renderCategoryForm }
+        : moneyAccountCreate,
+    location_id: { label: 'Create location', renderForm: renderLocationForm },
+  };
+  const requestError = formState.errors.root?.['server']?.message;
+
+  function closePicker(field: MovementPickerField) {
+    flushSync(() => {
+      setPickerField(undefined);
+    });
+    document.getElementById(`${rowIdPrefix}-${field}`)?.focus();
+  }
+
+  return (
+    <FormProvider {...form}>
+      <form
+        className={styles['transactionForm']}
+        hidden={pickerField !== undefined}
+        noValidate
+        onSubmit={(event) => {
+          void handleSubmit((movement) => {
+            const saveOptions = {
+              onSuccess: onClose,
+              onError: (error: Error) => {
+                const targets = HIDDEN_FIELD_TARGETS[transactionType];
+                readSaveErrors({
+                  error,
+                  fields: MOVEMENT_FORM_FIELDS,
+                  fallbackMessage: copy.saveError,
+                }).forEach(({ field, message }) => {
+                  const target =
+                    field === 'root.server'
+                      ? undefined
+                      : ((isExtraAmountShown ? undefined : targets.extra[field]) ??
+                        targets.always[field]);
+                  setError(target ?? field, { message });
+                });
+              },
+            };
+            if (mode.kind === 'edit') {
+              update.mutate({ ...movement, transaction_id: mode.transaction.id }, saveOptions);
+            } else {
+              create.mutate(movement, saveOptions);
+            }
+          })(event);
+        }}
+      >
+        <FormHeader
+          title={mode.kind === 'edit' ? copy.editTitle : NEW_TRANSACTION_TITLE}
+          transactionType={transactionType}
+          typeChoice={mode.kind === 'create' ? mode.typeChoice : undefined}
+          onClose={onClose}
+        />
+        <AmountField
+          action={
+            <AmountCalculator
+              label={copy.amountLabel.toLowerCase()}
+              value={isIncome ? destinationAmount : sourceAmount}
+              currency={accountCurrency}
+              onApply={(amount) => {
+                setValue(isIncome ? 'destination_amount' : 'source_amount', amount, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+            />
+          }
+          label={copy.amountLabel}
+          registration={register(isIncome ? 'destination_amount' : 'source_amount')}
+          isNegativeAllowed={false}
+          currency={accountCurrency}
+          baseCurrencyHint={
+            isIncome && isPaidInAnotherCurrency
+              ? undefined
+              : readBaseCurrencyHint({
+                  account: amountAccount,
+                  amountText: isIncome ? destinationAmount : sourceAmount,
+                  baseCurrency,
+                })
+          }
+          error={
+            (isIncome ? formState.errors.destination_amount : formState.errors.source_amount)
+              ?.message
+          }
+        />
+        {isTransfer ? (
+          <TransferExtraRows
+            destinationCurrency={destination}
+            isDestinationAmountAsked={isDestinationAmountAsked}
+          />
+        ) : (
+          <div className={[styles['rows'], styles['currencyGroup']].join(' ')}>
+            {isIncome && isBaseCurrencyAmountAsked && (
+              <InputRow
+                label={`In ${baseCurrency}`}
+                input={readAmountInputProps({
+                  registration: register('base_currency_amount'),
+                  isNegativeAllowed: false,
+                })}
+                suffix={
+                  <>
+                    <AmountCalculator
+                      label={`amount in ${baseCurrency}`}
+                      value={baseCurrencyAmount}
+                      currency={baseCurrency}
+                      onApply={(amount) => {
+                        setValue('base_currency_amount', amount, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                    {baseCurrency}
+                  </>
+                }
+                hint={readEnteredRate({
+                  amountText: destinationAmount,
+                  referenceText: baseCurrencyAmount,
+                })}
+                error={formState.errors.base_currency_amount?.message}
+              />
+            )}
+            <label className={styles['anotherCurrency']}>
+              Different currency
+              <input
+                {...register('is_paid_in_another_currency')}
+                type="checkbox"
+                role="switch"
+                className={styles['switch']}
+              />
+            </label>
+            {transactionType === 'EXPENSE' && (
+              <ExpenseExtraRows currencies={currencies} accountCurrency={accountCurrency} />
+            )}
+            {isIncome && (
+              <IncomeExtraRows currencies={currencies} accountCurrency={accountCurrency} />
+            )}
+          </div>
+        )}
+        <div className={styles['rows']}>
+          <PickerRow
+            id={`${rowIdPrefix}-from_account_id`}
+            label={copy.from.title}
+            value={fromAccount?.name}
+            placeholder={copy.from.placeholder}
+            color={fromAccount === undefined ? undefined : readMoneyAccountColor(fromAccount)}
+            note={
+              fromAccount === undefined || isIncome ? undefined : readMoneyAccountNote(fromAccount)
+            }
+            error={formState.errors.from_account_id?.message}
+            onOpen={() => {
+              setPickerField('from_account_id');
+            }}
+          />
+          <PickerRow
+            id={`${rowIdPrefix}-to_account_id`}
+            label={copy.to.title}
+            value={toAccount?.name}
+            placeholder={copy.to.placeholder}
+            color={toAccount === undefined ? undefined : readMoneyAccountColor(toAccount)}
+            note={
+              toAccount === undefined || transactionType === 'EXPENSE'
+                ? undefined
+                : readMoneyAccountNote(toAccount)
+            }
+            error={formState.errors.to_account_id?.message}
+            onOpen={() => {
+              setPickerField('to_account_id');
+            }}
+          />
+          {transactionType === 'EXPENSE' && (
+            <PickerRow
+              id={`${rowIdPrefix}-location_id`}
+              label={LOCATION_COPY.title}
+              value={location?.name}
+              placeholder={LOCATION_COPY.placeholder}
+              color={undefined}
+              note={undefined}
+              error={formState.errors.location_id?.message}
+              onOpen={() => {
+                setPickerField('location_id');
+              }}
+            />
+          )}
+          {isIncome && <IncomeMonthRow />}
+          <InputRow
+            label="Date"
+            input={readDateInputProps(register('transaction_date'))}
+            action={
+              <CalendarButton
+                label="transaction"
+                value={date}
+                max={today}
+                onPick={(dateText) => {
+                  setValue('transaction_date', dateText, {
+                    shouldDirty: true,
+                    shouldValidate: formState.isSubmitted,
+                  });
+                }}
+              />
+            }
+            error={formState.errors.transaction_date?.message}
+          />
+        </div>
+        <div className={styles['rows']}>
+          <InputRow
+            label="Comment"
+            input={{
+              ...register('comment'),
+              autoComplete: 'off',
+              placeholder: 'Optional',
+              maxLength: COMMENT_MAX_LENGTH,
+            }}
+            error={formState.errors.comment?.message}
+          />
+        </div>
+        {requestError !== undefined && (
+          <p className={styles['error']} role="alert">
+            {requestError}
+          </p>
+        )}
+        <button
+          type="submit"
+          className={styles['submit']}
+          disabled={create.isPending || update.isPending}
+        >
+          {mode.kind === 'edit' ? 'Save changes' : copy.submitLabel}
+        </button>
+      </form>
+      {pickerField !== undefined && (
+        <EntityPicker
+          {...pickers[pickerField]}
+          create={creates[pickerField]}
+          onSelect={(selectedId) => {
+            setValue(pickerField, selectedId, {
+              shouldDirty: true,
+              shouldValidate: formState.isSubmitted,
+            });
+            closePicker(pickerField);
+          }}
+          onBack={() => {
+            closePicker(pickerField);
+          }}
+        />
+      )}
+    </FormProvider>
+  );
+}

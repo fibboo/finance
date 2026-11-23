@@ -1,0 +1,38 @@
+@import '@/styles/media.css';
+
+.accounts,
+.accountsWithTransactions {
+  flex: none;
+  padding-bottom: var(--size-fab-room);
+  display: flex;
+  flex-direction: column;
+}
+
+.plainList {
+  display: contents;
+}
+
+@media (--desktop) {
+  .accounts,
+  .accountsWithTransactions {
+    padding-bottom: 0;
+    flex-direction: row;
+    gap: var(--space-4);
+  }
+
+  .accountsWithTransactions {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .list {
+    flex: 1 0 var(--size-catalog-list);
+    min-width: 0;
+    display: flex;
+    border-radius: var(--radius-panel);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    background: var(--color-panel);
+  }
+}

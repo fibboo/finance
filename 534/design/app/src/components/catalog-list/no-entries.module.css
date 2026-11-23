@@ -1,0 +1,52 @@
+@import '@/styles/media.css';
+
+.noEntries {
+  padding: var(--space-6) var(--space-4);
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  background: var(--color-panel);
+}
+
+.iconBox {
+  width: var(--size-empty-icon);
+  height: var(--size-empty-icon);
+  margin-bottom: var(--space-1);
+  border-radius: var(--radius-action);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-ground);
+}
+
+.icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.text {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .noEntries {
+    flex: 1 1 auto;
+    align-self: flex-start;
+  }
+}

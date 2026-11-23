@@ -1,0 +1,8 @@
+.amount,
+.mutedAmount {
+  white-space: nowrap;
+}
+
+.mutedAmount {
+  color: var(--color-muted);
+}

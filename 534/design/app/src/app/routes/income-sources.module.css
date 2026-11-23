@@ -1,0 +1,30 @@
+@import '@/styles/media.css';
+
+.incomeSources {
+  flex: none;
+  padding-bottom: var(--size-fab-room);
+  display: flex;
+  flex-direction: column;
+}
+
+.list {
+  min-width: 0;
+}
+
+@media (--desktop) {
+  .incomeSources {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-bottom: 0;
+    flex-direction: row;
+    gap: var(--space-4);
+  }
+
+  .list {
+    flex: 1 0 var(--size-catalog-list);
+    border-radius: var(--radius-panel);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--color-panel);
+  }
+}

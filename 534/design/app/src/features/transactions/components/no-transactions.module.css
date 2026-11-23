@@ -1,0 +1,36 @@
+@import '@/styles/media.css';
+
+.noTransactions {
+  min-height: max(100%, var(--size-empty-state));
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.text {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .noTransactions {
+    min-height: max(100%, var(--size-empty-state-lg));
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
+
+  .text {
+    font-size: var(--font-size-md);
+  }
+}

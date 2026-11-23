@@ -1,0 +1,6 @@
+.actionBar {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5) var(--space-2);
+}

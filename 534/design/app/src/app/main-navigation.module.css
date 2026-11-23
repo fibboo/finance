@@ -1,0 +1,217 @@
+@import '@/styles/media.css';
+
+.mainNavigation {
+  position: relative;
+  height: var(--size-bar);
+  padding: 0 var(--space-1-5);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-bar);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  background: var(--color-panel);
+  box-shadow: var(--shadow-bar);
+}
+
+.collapsedNavigation {
+  composes: mainNavigation;
+}
+
+.addTransaction {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-3));
+  width: var(--size-fab);
+  height: var(--size-fab);
+  border: 0;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-ink);
+  color: var(--color-ground);
+  box-shadow: var(--shadow-bar);
+  cursor: pointer;
+}
+
+.addTransaction:hover {
+  opacity: var(--opacity-hover);
+}
+
+.mainNavigation:has([data-more-menu-open]) .addTransaction {
+  pointer-events: none;
+}
+
+.addTransaction:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
+}
+
+.section {
+  height: var(--size-bar-item);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-0-5);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.section[aria-current='page'] {
+  color: var(--color-ink);
+}
+
+.section[aria-current='page'] {
+  font-weight: var(--font-weight-semibold);
+}
+
+.section:disabled {
+  cursor: not-allowed;
+}
+
+.section:disabled .icon,
+.section:disabled .label {
+  opacity: var(--opacity-disabled);
+}
+
+.moreSection {
+  composes: section;
+  flex: none;
+  height: var(--size-menu-row);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-segment);
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  font-size: var(--font-size-md);
+}
+
+.menuToggle {
+  composes: section;
+  display: none;
+}
+
+.label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: var(--size-icon);
+  height: var(--size-icon);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (--desktop) {
+  .mainNavigation:has([data-more-menu-open]) .addTransaction {
+    pointer-events: auto;
+  }
+
+  .mainNavigation {
+    height: 100%;
+    padding: calc(var(--space-4) * 2 + var(--size-touch)) var(--space-3) var(--space-4);
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-1);
+    box-shadow: none;
+  }
+
+  .addTransaction {
+    position: static;
+    width: auto;
+    height: var(--size-touch);
+    margin-bottom: var(--space-2-5);
+    border-radius: var(--radius-control);
+    box-shadow: none;
+  }
+
+  .addTransaction .icon {
+    width: var(--size-icon-sm);
+    height: var(--size-icon-sm);
+  }
+
+  .addLabel {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+
+  .section {
+    height: var(--size-touch);
+    padding: 0 var(--space-3);
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    font-size: var(--font-size-base);
+  }
+
+  .section[aria-current='page'] {
+    background: var(--color-ground);
+  }
+
+  .section .icon {
+    width: var(--size-icon);
+    height: var(--size-icon);
+  }
+
+  .moreSection {
+    border-radius: var(--radius-control);
+  }
+
+  .menuToggle {
+    flex: none;
+    margin-top: auto;
+    border-top: var(--size-border) solid var(--color-border);
+    border-radius: 0;
+    display: flex;
+    font-size: var(--font-size-md);
+  }
+
+  .collapsedNavigation {
+    padding-inline: var(--space-2-5);
+  }
+
+  .collapsedNavigation .addTransaction,
+  .collapsedNavigation .section {
+    padding: 0;
+    justify-content: center;
+  }
+
+  .collapsedNavigation .addTransaction .icon {
+    width: var(--size-icon);
+    height: var(--size-icon);
+  }
+}
+
+@media (hover: hover) {
+  .section:not(:disabled):hover {
+    color: var(--color-ink);
+  }
+
+  @media (--desktop) {
+    .section:not(:disabled):hover {
+      background: var(--color-ground);
+    }
+  }
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finance · Gross & Net design</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="studio">
+<div class="studio-heading"><strong>finance / gross & net</strong><span>Макеты на тестовых данных</span></div>
+<div class="tools">
+<label>Экран<select id="screen"><option value="home">Главная</option><option value="categories">Категории</option><option value="form">Форма категории</option></select></label>
+<label>Сравнение<select id="compare"><option value="after">С изменениями · A</option><option value="before">Текущий интерфейс</option></select></label>
+<label>Тема<select id="theme"><option value="dark">Тёмная</option><option value="light">Светлая</option></select></label>
+<label>Ширина<select id="width"><option value="desktop">Компьютер · 1280</option><option value="phone">Телефон · 390</option></select></label>
+<label>Состояние<select id="state"><option value="normal">Обычное</option><option value="empty">Пустое</option><option value="unvalued">Без точной оценки</option><option value="negative">Отрицательный net</option><option value="loading">Загрузка</option><option value="error">Ошибка</option></select></label>
+</div>
+<p id="design-note"></p>
+</header>
+<div class="canvas"><iframe id="preview" title="Finance design preview"></iframe></div>
+<script src="studio.js"></script>
+</body></html>
+

@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BUPNk4aw.js";var t={logo:`K9aDtW_logo`,mark:`K9aDtW_mark`},n=e();function r({nameClassName:e}){return(0,n.jsxs)(`span`,{className:t.logo,children:[(0,n.jsx)(`span`,{className:t.mark,"aria-hidden":`true`}),(0,n.jsx)(`span`,{className:e,children:`finance`})]})}export{r as t};
