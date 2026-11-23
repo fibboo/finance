@@ -7,6 +7,8 @@ import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
 import { server } from '@/test/setup';
 
+import { MonthSummary } from '@/features/summary/components/month-summary';
+
 import { Component } from './categories';
 
 const groceries = {
@@ -126,6 +128,10 @@ beforeEach(() => {
           { key: 'FIXED', label: 'Fixed' },
           { key: 'PERIODIC', label: 'Periodic' },
         ],
+        category_purposes: [
+          { key: 'PERSONAL', label: 'Personal' },
+          { key: 'INCOME_COST', label: 'Income costs' },
+        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -167,7 +173,11 @@ test('shows the number of active categories and lists them by type with the dele
   expect(screen.getByRole('region', { name: 'Fixed' })).toHaveTextContent('Rent');
   expect(screen.queryByRole('region', { name: 'Periodic' })).not.toBeInTheDocument();
   expect(screen.getByRole('switch', { name: 'Deleted' })).toBeChecked();
-  expect(screen.getByRole('radio', { name: 'All' })).toBeChecked();
+  expect(
+    within(screen.getByRole('group', { name: 'Category type' })).getByRole('radio', {
+      name: 'All',
+    }),
+  ).toBeChecked();
 });
 
 test('requests the chosen type and only the active categories with Deleted off and keeps both in the URL', async () => {
@@ -268,7 +278,11 @@ test('reads the type and the toggle from the URL and drops a type the dictionary
 
   // assert
   expect(await screen.findByRole('region', { name: 'Variable' })).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'All' })).toBeChecked();
+  expect(
+    within(screen.getByRole('group', { name: 'Category type' })).getByRole('radio', {
+      name: 'All',
+    }),
+  ).toBeChecked();
   expect(screen.getByRole('switch', { name: 'Deleted' })).not.toBeChecked();
   expect(requestedQueries.some((query) => query.has('category_types'))).toBe(false);
 });
@@ -468,7 +482,12 @@ test('edits a category from its row and lists the saved name', async () => {
   // assert
   expect(await screen.findByRole('region', { name: 'Fixed' })).toHaveTextContent('Flat');
   expect(screen.queryByRole('form', { name: 'Edit category' })).not.toBeInTheDocument();
-  expect(updatedBody).toEqual({ name: 'Flat', description: null, category_type: 'FIXED' });
+  expect(updatedBody).toEqual({
+    name: 'Flat',
+    description: null,
+    category_type: 'FIXED',
+    category_purpose: 'PERSONAL',
+  });
 });
 
 test('deletes a category after the confirmation and moves the focus to the next row', async () => {
@@ -863,7 +882,11 @@ test('keeps the edit form closed after a saved category left the filtered list',
   });
 
   // act
-  await user.click(screen.getByRole('radio', { name: 'All' }));
+  await user.click(
+    within(screen.getByRole('group', { name: 'Category type' })).getByRole('radio', {
+      name: 'All',
+    }),
+  );
 
   // assert
   expect(await screen.findByRole('region', { name: 'Periodic' })).toHaveTextContent('Rent');
@@ -1772,4 +1795,146 @@ test('shows the list skeleton instead of the previous categories while a search 
   expect(list).toHaveAttribute('aria-busy', 'true');
   expect(list).not.toHaveTextContent(groceries.name);
   expect(screen.queryByText('No categories match this search')).not.toBeInTheDocument();
+});
+
+test('keeps purpose together with search, type and Deleted in the request and URL', async () => {
+  // arrange
+  const user = userEvent.setup();
+  const requestedQueries: URLSearchParams[] = [];
+  const tools = {
+    ...rent,
+    name: 'Work tools',
+    category_purpose: 'INCOME_COST',
+  } satisfies components['schemas']['Account'];
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const query = new URL(request.url).searchParams;
+      requestedQueries.push(query);
+      const purposeCategories: components['schemas']['Account'][] = [groceries, rent, tools];
+      const items = purposeCategories.filter(
+        (category) =>
+          (!query.has('search_term') ||
+            category.name.toLowerCase().includes(query.get('search_term') ?? '')) &&
+          (!query.has('category_types') ||
+            category.category_type === query.get('category_types')) &&
+          (!query.has('category_purposes') ||
+            category.category_purpose === query.get('category_purposes')),
+      );
+      return HttpResponse.json({ items, total: items.length, page: 1, size: 100, pages: 1 });
+    }),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: ['/categories?search=tools&category_type=FIXED&deleted=off'],
+  });
+  const purpose = await screen.findByRole('group', { name: 'Category purpose' });
+
+  // act
+  await user.click(within(purpose).getByRole('radio', { name: 'Income costs' }));
+
+  // assert
+  await waitFor(() => {
+    expect(
+      requestedQueries.some(
+        (query) =>
+          query.getAll('category_purposes').join() === 'INCOME_COST' &&
+          query.getAll('category_types').join() === 'FIXED' &&
+          query.get('search_term') === 'tools' &&
+          query.getAll('statuses').join() === 'ACTIVE',
+      ),
+    ).toBe(true);
+  });
+  const params = new URLSearchParams(router.state.location.search);
+  expect(params.get('category_purpose')).toBe('INCOME_COST');
+  expect(params.get('category_type')).toBe('FIXED');
+  expect(params.get('search')).toBe('tools');
+  expect(params.get('deleted')).toBe('off');
+  expect(await screen.findByRole('region', { name: 'Fixed' })).toHaveTextContent('Work tools');
+});
+
+test('clears purpose and type when combined filters match no categories', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const items = new URL(request.url).searchParams.has('category_purposes') ? [] : [groceries];
+      return HttpResponse.json({ items, total: items.length, page: 1, size: 100, pages: 1 });
+    }),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: ['/categories?category_purpose=INCOME_COST&category_type=FIXED&deleted=off'],
+  });
+  await screen.findByText('No categories match these filters');
+
+  // act
+  await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+
+  // assert
+  expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent('Groceries');
+  const params = new URLSearchParams(router.state.location.search);
+  expect(params.has('category_purpose')).toBe(false);
+  expect(params.has('category_type')).toBe(false);
+  expect(params.get('deleted')).toBe('off');
+});
+
+test('refreshes monthly net income when saving a changed category purpose', async () => {
+  // arrange
+  const user = userEvent.setup();
+  let incomeCosts = '0.00';
+  let savedCategory: unknown;
+  server.use(
+    http.get('http://localhost/api/accounting/accounts', () =>
+      HttpResponse.json({
+        items: [
+          { ...groceries, category_purpose: incomeCosts === '0.00' ? 'PERSONAL' : 'INCOME_COST' },
+        ],
+        total: 1,
+        page: 1,
+        size: 100,
+        pages: 1,
+      }),
+    ),
+    http.get('http://localhost/api/accounting/summary', () =>
+      HttpResponse.json({
+        month: '2026-11-01',
+        total_balance: '0.00',
+        estimated_total_balance: null,
+        earned: '5000.00',
+        spent: '150.00',
+        left_over: '4850.00',
+        income_costs: incomeCosts,
+        net_income: incomeCosts === '0.00' ? '5000.00' : '4850.00',
+        personal_spending: incomeCosts === '0.00' ? '150.00' : '0.00',
+        unvalued_spent: [],
+        estimated_unvalued_spent: null,
+        estimate_rates: [],
+      } satisfies components['schemas']['Summary']),
+    ),
+    http.put(`http://localhost/api/accounting/accounts/${groceries.id}`, async ({ request }) => {
+      savedCategory = await request.json();
+      incomeCosts = '150.00';
+      return HttpResponse.json({ ...groceries, category_purpose: 'INCOME_COST' });
+    }),
+  );
+  render(
+    <>
+      <Component />
+      <MonthSummary baseCurrency="USD" />
+    </>,
+    { initialEntries: ['/categories'] },
+  );
+  expect(await screen.findByText('$5,000.00')).toBeInTheDocument();
+  await user.click(await screen.findByRole('button', { name: 'Edit' }));
+  const form = await screen.findByRole('form', { name: 'Edit category' });
+  await user.click(within(form).getByRole('radio', { name: 'Income costs' }));
+
+  // act
+  await user.click(within(form).getByRole('button', { name: 'Save changes' }));
+
+  // assert
+  await waitFor(() => {
+    expect(savedCategory).toMatchObject({ category_purpose: 'INCOME_COST' });
+  });
+  const month = screen.getByRole('region', { name: 'This month' });
+  await waitFor(() => expect(within(month).queryByText('$5,000.00')).not.toBeInTheDocument());
+  expect(within(month).getAllByText('$4,850.00')).toHaveLength(2);
 });

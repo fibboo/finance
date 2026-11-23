@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
-import { categoryTypeValues } from '@/lib/api-schema';
+import { categoryTypeValues, categoryPurposeValues } from '@/lib/api-schema';
 
 const NAME_MIN_LENGTH = 3;
 export const NAME_MAX_LENGTH = 32;
@@ -28,6 +28,7 @@ export const restoreFormSchema = accountFormSchema.pick({ name: true });
 
 export const categoryFormSchema = accountFormSchema.extend({
   category_type: z.enum(categoryTypeValues),
+  category_purpose: z.enum(categoryPurposeValues),
 });
 
 export const moneyAccountFormSchema = accountFormSchema.extend({

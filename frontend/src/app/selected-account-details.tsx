@@ -78,6 +78,7 @@ type AccountFormProps = Readonly<{
   baseCurrency: string;
   accountKinds: readonly DictionaryItem[];
   categoryTypes: readonly DictionaryItem[];
+  categoryPurposes: readonly DictionaryItem[];
   currencies: readonly DictionaryItem[];
   onSaved: () => void;
   onBack: () => void;
@@ -88,6 +89,7 @@ function AccountForm({
   baseCurrency,
   accountKinds,
   categoryTypes,
+  categoryPurposes,
   currencies,
   onSaved,
   onBack,
@@ -99,8 +101,14 @@ function AccountForm({
   if (account.kind === 'EXPENSE') {
     return (
       <CategoryForm
-        mode={{ kind: 'edit', category: account, relatedQueryKeys, onSaved }}
+        mode={{
+          kind: 'edit',
+          category: account,
+          relatedQueryKeys: [...relatedQueryKeys, summaryQueries.current().queryKey],
+          onSaved,
+        }}
         categoryTypes={categoryTypes}
+        categoryPurposes={categoryPurposes}
         onBack={onBack}
       />
     );
@@ -283,6 +291,7 @@ function SelectedAccount({
               baseCurrency={baseCurrency}
               accountKinds={dictionaries.account_kinds}
               categoryTypes={dictionaries.category_types}
+              categoryPurposes={dictionaries.category_purposes ?? []}
               currencies={dictionaries.currencies}
               onSaved={() => {
                 setEditedAccountId((openAccountId) =>

@@ -41,7 +41,7 @@ test('shows what the month earned, spent and left against the days gone', async 
   // assert
   const month = screen.getByRole('region', { name: 'This month' });
   expect(await within(month).findByText('+$2,312.00')).toBeInTheDocument();
-  expect(within(month).getByText('-$1,046.70')).toBeInTheDocument();
+  expect(within(month).getAllByText('-$1,046.70')).toHaveLength(2);
   expect(within(month).getByText('$1,265.30')).toBeInTheDocument();
   expect(
     within(month).getByText('45% of the earnings spent, 84% of the month gone'),
@@ -79,7 +79,7 @@ test('shows the unvalued spending of every currency apart, with its estimate as 
   expect(within(month).getByText('≈ -$335.25')).toBeInTheDocument();
   expect(within(month).getByText('€300.00 · RSD 1,200.00')).toBeInTheDocument();
   // spent and left stay valued amounts
-  expect(within(month).getByText('-$1,046.70')).toBeInTheDocument();
+  expect(within(month).getAllByText('-$1,046.70')).toHaveLength(2);
   expect(within(month).getByText('$1,265.30')).toBeInTheDocument();
   expect(within(month).queryByText('No estimate available')).not.toBeInTheDocument();
 });
@@ -136,8 +136,8 @@ test('shows a negative left over with its minus', async () => {
   render(<MonthSummary baseCurrency="USD" />);
 
   // assert
-  expect(await screen.findAllByText('-$200.00')).toHaveLength(2);
-  expect(screen.getByText('$0.00')).toBeInTheDocument();
+  expect(await screen.findAllByText('-$200.00')).toHaveLength(3);
+  expect(screen.getAllByText('$0.00')).toHaveLength(3);
   expect(screen.getByText('100% of the earnings spent, 84% of the month gone')).toBeInTheDocument();
 });
 
@@ -181,6 +181,51 @@ test('shows a busy month while the summary loads', () => {
 
   // assert
   expect(screen.getByRole('region', { name: 'This month' })).toHaveAttribute('aria-busy', 'true');
-  expect(screen.queryByText('Earned')).not.toBeInTheDocument();
+  expect(screen.queryByText('Gross')).not.toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'This month' })).toBeInTheDocument();
 });
+
+test.each([
+  { gross: '5000.00', costs: '1000.00', net: '4000.00', personal: '1600.00', left: '2400.00' },
+  { gross: '500.00', costs: '1000.00', net: '-500.00', personal: '1600.00', left: '-2100.00' },
+])(
+  'shows the API income breakdown for gross $gross without changing the progress calculation',
+  async ({ gross, costs, net, personal, left }) => {
+    // arrange
+    server.use(
+      http.get('http://localhost/api/accounting/summary', () =>
+        HttpResponse.json({
+          month: '2026-10-01',
+          total_balance: '0.00',
+          estimated_total_balance: null,
+          earned: gross,
+          spent: '2600.00',
+          left_over: left,
+          income_costs: costs,
+          net_income: net,
+          personal_spending: personal,
+          unvalued_spent: [],
+          estimated_unvalued_spent: null,
+          estimate_rates: [],
+        } satisfies components['schemas']['Summary']),
+      ),
+    );
+
+    // act
+    render(<MonthSummary baseCurrency="EUR" />);
+
+    // assert
+    expect(await screen.findByText('Net income')).toBeInTheDocument();
+    expect(screen.getByText(net === '4000.00' ? '€4,000.00' : '-€500.00')).toBeInTheDocument();
+    expect(screen.getByText('-€1,000.00')).toBeInTheDocument();
+    expect(screen.getByText('-€1,600.00')).toBeInTheDocument();
+    expect(screen.getByText('Gross')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        gross === '5000.00'
+          ? '52% of the earnings spent, 84% of the month gone'
+          : '100% of the earnings spent, 84% of the month gone',
+      ),
+    ).toBeInTheDocument();
+  },
+);

@@ -31,6 +31,11 @@ import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
 import { SearchField } from '@/components/search-field/search-field';
 import { Sheet } from '@/components/sheet/sheet';
+import {
+  readCategoryPurposeOptions,
+  readCategoryPurposeFilter,
+  writeCategoryPurposeFilter,
+} from '@/features/accounts/api/category-purpose-filter';
 import { accountMutations } from '@/features/accounts/api/account-mutations';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import {
@@ -48,6 +53,7 @@ import { readCategoryGroups } from '@/features/accounts/components/catalog-group
 import { CategoryForm } from '@/features/accounts/components/category-form';
 import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
+import { summaryQueries } from '@/features/summary/api/summary-queries';
 import { writeSelectedTransaction } from '@/features/transactions/api/selected-transaction';
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
@@ -92,6 +98,14 @@ export function Component() {
     categoryTypes === undefined
       ? undefined
       : readCategoryTypeFilter({ searchParams, categoryTypes });
+  const categoryPurposes =
+    dictionaries === undefined
+      ? undefined
+      : readCategoryPurposeOptions(dictionaries.category_purposes ?? []);
+  const categoryPurpose =
+    categoryPurposes === undefined
+      ? undefined
+      : readCategoryPurposeFilter({ searchParams, categoryPurposes });
   const isStoredDeletedShown = useStoredIsDeletedShown('categories');
   const isDeletedShown = readIsDeletedShown({ searchParams, isStoredDeletedShown });
   const { data: activeCategoryPage } = useQuery({
@@ -106,12 +120,15 @@ export function Component() {
       statuses: isDeletedShown ? ['ACTIVE', 'DELETED'] : ['ACTIVE'],
       ...(searchTerm !== undefined && { search_term: searchTerm }),
       ...(categoryType !== undefined && { category_types: [categoryType] }),
+      ...(categoryPurpose !== undefined && { category_purposes: [categoryPurpose] }),
     }),
     enabled: categoryTypes !== undefined,
     throwOnError: isThrownWithoutData,
   });
-  const isNothingMatched = searchTerm !== undefined && categoryPage?.items.length === 0;
-  const hasNoEntries = searchTerm === undefined && categoryPage?.items.length === 0;
+  const isFiltered = categoryType !== undefined || categoryPurpose !== undefined;
+  const isNothingMatched =
+    (searchTerm !== undefined || isFiltered) && categoryPage?.items.length === 0;
+  const hasNoEntries = searchTerm === undefined && !isFiltered && categoryPage?.items.length === 0;
   const groups =
     categoryPage === undefined || categoryTypes === undefined || isNothingMatched
       ? undefined
@@ -133,6 +150,7 @@ export function Component() {
   const relatedQueryKeys = [
     transactionQueries.feeds().queryKey,
     transactionQueries.details().queryKey,
+    summaryQueries.current().queryKey,
   ];
   const categoryDelete = useMutation(accountMutations.delete(relatedQueryKeys));
   const categoryRestore = useMutation(accountMutations.restore(relatedQueryKeys));
@@ -220,14 +238,52 @@ export function Component() {
               );
               storeIsDeletedShown({ page: 'categories', isDeletedShown: nextIsDeletedShown });
             }}
-          />
+          >
+            {categoryPurposes !== undefined && (
+              <fieldset className={styles['purposeFilter']}>
+                <legend className="visually-hidden">Category purpose</legend>
+                <span aria-hidden="true">Purpose</span>
+                <div className={styles['purposeOptions']}>
+                  {[{ key: undefined, label: 'All' }, ...categoryPurposes].map((option) => (
+                    <label key={option.key ?? 'ALL'} className={styles['purposeOption']}>
+                      <input
+                        type="radio"
+                        name="category_purpose"
+                        checked={categoryPurpose === option.key}
+                        onChange={() => {
+                          setSearchParams(
+                            writeCategoryPurposeFilter({
+                              searchParams: listSearchParams,
+                              categoryPurpose: option.key,
+                            }),
+                            { replace: true },
+                          );
+                        }}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+          </CatalogFilters>
           {isNothingMatched ? (
             <NoMatchingEntries
               entityNames="categories"
+              isFiltered={isFiltered}
               onClear={() => {
                 searchField.focusAfterClear();
                 setSearchParams(
-                  writeCatalogSearch({ searchParams: listSearchParams, search: '' }),
+                  writeCategoryPurposeFilter({
+                    searchParams: writeCategoryTypeFilter({
+                      searchParams: writeCatalogSearch({
+                        searchParams: listSearchParams,
+                        search: '',
+                      }),
+                      categoryType: undefined,
+                    }),
+                    categoryPurpose: undefined,
+                  }),
                   {
                     replace: true,
                   },
@@ -260,6 +316,16 @@ export function Component() {
                   : undefined
               }
               renderMark={readCatalogInitial}
+              renderMetadata={(category) =>
+                category.category_purpose === 'INCOME_COST' ? (
+                  <span className={styles['purposeBadge']}>
+                    {
+                      categoryPurposes?.find((purpose) => purpose.key === category.category_purpose)
+                        ?.label
+                    }
+                  </span>
+                ) : null
+              }
               renderActions={(category) => (
                 <CatalogRowActions
                   entry={category}
@@ -322,6 +388,7 @@ export function Component() {
           <CategoryForm
             mode={{ kind: 'create', name: '', onCreated: closeForm }}
             categoryTypes={dictionaries.category_types}
+            categoryPurposes={dictionaries.category_purposes ?? []}
             onBack={closeForm}
           />
         </Sheet>
@@ -340,6 +407,7 @@ export function Component() {
               },
             }}
             categoryTypes={dictionaries.category_types}
+            categoryPurposes={dictionaries.category_purposes ?? []}
             onBack={closeEditForm}
           />
         </Sheet>

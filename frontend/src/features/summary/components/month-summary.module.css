@@ -130,3 +130,47 @@
     font-size: var(--font-size-md);
   }
 }
+
+.incomeBreakdown {
+  margin: 0;
+  padding-top: var(--space-2);
+  border-top: var(--size-border) solid var(--color-border);
+  display: grid;
+  gap: var(--space-1-5);
+}
+
+.incomeLine {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.incomeLine dt {
+  color: var(--color-muted);
+}
+
+.incomeLine dd {
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.incomeLine:nth-child(2) dt {
+  color: var(--color-ink);
+  font-weight: var(--font-weight-semibold);
+}
+
+.valuationNote {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .incomeLine {
+    font-size: var(--font-size-md);
+  }
+}
