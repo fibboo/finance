@@ -289,13 +289,17 @@ export function readTransactionRates({
     const hasOtherValuation = groups.some(
       (other) => other !== group && other.some((rate) => rate.role !== undefined),
     );
-    const labels = group.map((rate) =>
+    const labels = group.flatMap((rate) =>
       rate.role === undefined
-        ? 'Transaction rate'
-        : `${rate.isEstimated ? 'Estimated valuation' : 'Valuation'} in ${baseCurrency}${hasOtherValuation ? ` (${rate.role})` : ''}`,
+        ? []
+        : [
+            `${rate.isEstimated ? 'Estimated valuation' : 'Valuation'} in ${baseCurrency}${hasOtherValuation ? ` (${rate.role})` : ''}`,
+          ],
     );
     const rate = {
-      label: [...new Set(labels)].join(' · '),
+      label: group.some((candidate) => candidate.role === undefined)
+        ? 'Exchange rate'
+        : [...new Set(labels)].join(' · '),
       equation: `1 ${candidate.leftCurrency} = ${formatRate(candidate.rate)} ${candidate.rightCurrency}`,
     };
     return [rate];

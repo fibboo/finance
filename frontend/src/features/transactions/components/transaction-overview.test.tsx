@@ -57,7 +57,7 @@ test.each([
     toBase: '109.16',
     isEstimated: false,
     equations: ['1 GBP = 1.1377 EUR', '1 USD = 0.9161 EUR'],
-    labels: ['Transaction rate', 'Valuation in USD'],
+    labels: ['Exchange rate', 'Valuation in USD'],
   },
   {
     name: 'an estimate rounded to zero',
@@ -94,7 +94,7 @@ test.each([
     toBase: '13.00',
     isEstimated: false,
     equations: ['1 USD = 106.5931 RSD'],
-    labels: ['Transaction rate · Valuation in USD'],
+    labels: ['Exchange rate'],
   },
   {
     name: 'an expense with three currencies without a redundant counterparty valuation',
@@ -107,7 +107,7 @@ test.each([
     toBase: '3.79',
     isEstimated: false,
     equations: ['1 EUR = 126.9264 RSD', '1 USD = 100.1346 RSD'],
-    labels: ['Transaction rate', 'Valuation in USD'],
+    labels: ['Exchange rate', 'Valuation in USD'],
   },
   {
     name: 'a same-currency expense with one valuation',
@@ -159,7 +159,7 @@ test.each([
     toBase: '4.00',
     isEstimated: false,
     equations: ['1 EUR = 120.0000 RSD', '1 USD = 0.8750 EUR'],
-    labels: ['Transaction rate', 'Valuation in USD'],
+    labels: ['Exchange rate', 'Valuation in USD'],
   },
   {
     name: 'a header estimate when the posting has no valuation',
@@ -197,7 +197,7 @@ test.each([
     toBase: '120.00',
     isEstimated: false,
     equations: ['1 EUR = 120.0000 RSD', '1 USD = 0.9091 EUR', '1 USD = 100.0000 RSD'],
-    labels: ['Transaction rate', 'Valuation in USD (From)', 'Valuation in USD (To)'],
+    labels: ['Exchange rate', 'Valuation in USD (From)', 'Valuation in USD (To)'],
     distinctEquivalent: '≈ +$120.00',
   },
   {
@@ -234,7 +234,7 @@ test.each([
     toBase: null,
     isEstimated: false,
     equations: ['1 GBP = 1.1377 EUR'],
-    labels: ['Transaction rate'],
+    labels: ['Exchange rate'],
   },
   {
     name: 'zero amounts and denominators',
