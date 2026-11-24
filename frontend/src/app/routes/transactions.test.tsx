@@ -1478,13 +1478,14 @@ test('shows the selected transaction with its From and To, location and comment'
   expect(within(details).getByText('Expense · Tue, 20.10.2026')).toBeInTheDocument();
   // the amount of the transaction and of its Wallet posting
   expect(within(details).getAllByText('-€42.80')).toHaveLength(2);
-  expect(within(details).getAllByText('≈ -$46.70 · rate 0.9165')).toHaveLength(2);
+  expect(within(details).getAllByText('≈ -$46.70')).toHaveLength(1);
+  expect(within(details).getByText('1 USD = 0.9165 EUR')).toBeInTheDocument();
   // From the money account To the category: its mark, name, kind, amount and base-currency value
   expect(within(details).getByRole('region', { name: 'From' })).toHaveTextContent(
-    'WWalletAsset · USDBalance $412.50-€42.80≈ -$46.70 · rate 0.9165',
+    'WWalletAsset · USDBalance $412.50-€42.80',
   );
   expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
-    'GGroceriesExpense · Variable+€42.80≈ +$46.70 · rate 0.9165',
+    'GGroceriesExpense · Variable+€42.80',
   );
   // the money account and the category open in place of the card
   expect(within(details).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
@@ -2061,12 +2062,12 @@ test('collapses the valuation postings of a transfer into one exchange differenc
     'WWalletAsset · USDBalance $412.50-$62.39',
   );
   expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
-    'SSavingsAsset · EURBalance €300.00+€56.18≈ +$62.39 · rate 0.9005',
+    'SSavingsAsset · EURBalance €300.00+€56.18',
   );
   expect(within(details).queryByText('Adjustments')).not.toBeInTheDocument();
   // the exchange difference and rate, then the empty location and comment
   expect(within(details).getByText('Exchange difference').parentElement).toHaveTextContent(
-    'Exchange difference≈ +$0.11RateEUR 0.9005Location—Comment—',
+    'Exchange difference≈ +$0.11Location—Comment—',
   );
 });
 

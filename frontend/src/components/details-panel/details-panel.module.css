@@ -197,9 +197,9 @@
     grid-row: var(--details-panel-row, auto);
     contain: var(--details-panel-contain, none);
     align-self: var(--details-panel-align, flex-start);
-    width: var(--size-details);
+    width: var(--details-panel-width, var(--size-details));
     max-height: 100%;
-    padding: var(--space-5);
+    padding: var(--details-panel-padding, var(--space-5));
     border-radius: var(--radius-bar);
     box-shadow: none;
   }

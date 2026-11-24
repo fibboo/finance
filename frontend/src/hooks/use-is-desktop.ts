@@ -24,7 +24,7 @@ function createMediaStore(query: string): MediaStore {
 }
 
 const DESKTOP_MEDIA = createMediaStore('(min-width: 64rem)');
-const WIDE_DESKTOP_MEDIA = createMediaStore('(min-width: 76.75rem)');
+const WIDE_DESKTOP_MEDIA = createMediaStore('(min-width: 81.75rem)');
 
 export function useIsDesktop(): boolean {
   const isDesktop = useSyncExternalStore(DESKTOP_MEDIA.subscribe, DESKTOP_MEDIA.readIsMatched);

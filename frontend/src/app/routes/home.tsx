@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { DetailsColumn } from '@/app/details-column';
+import { DetailsColumn, TRANSACTION_FULL_MENU_MIN_WIDTH } from '@/app/details-column';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { useShownAccount } from '@/app/use-shown-account';
 import { Page } from '@/components/page/page';
@@ -16,7 +16,10 @@ import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 
 import styles from './home.module.css';
 
-export const handle = { isLogoShownOnPhone: true };
+export const handle = {
+  isLogoShownOnPhone: true,
+  fullMenuMinWidth: TRANSACTION_FULL_MENU_MIN_WIDTH,
+};
 
 export function Component() {
   const baseCurrency = useBaseCurrency();

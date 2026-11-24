@@ -16,7 +16,6 @@ import { TransactionTextParts } from './transaction-text-parts';
 import {
   readForeignAmountsText,
   readMoneyEntryView,
-  readRateText,
   readTransactionView,
 } from './transaction-view';
 
@@ -50,7 +49,6 @@ export function TransactionRow({
   const moneyEntryView = readMoneyEntryView({
     view: transactionView,
     transaction,
-    transactionTypes,
     omittedAccountIds,
   });
   const view = moneyEntryView ?? transactionView;
@@ -58,13 +56,6 @@ export function TransactionRow({
   const selectedTransactionId = readSelectedTransactionId(searchParams);
   const isSelected = arrowKeySelection !== undefined && selectedTransactionId === transaction.id;
   const isShownByDefault = selectedTransactionId === undefined && isTop;
-  const isForeign = view.currency !== baseCurrency;
-  const rateText = isForeign
-    ? readRateText({
-        amount: view.amount,
-        referenceAmount: view.baseAmount ?? view.estimatedBaseAmount,
-      })
-    : undefined;
   const originalAmount = formatMoney({
     amount: view.amount,
     currency: view.currency,
@@ -76,18 +67,15 @@ export function TransactionRow({
     baseCurrency,
     isTransfer: transaction.transaction_type === 'TRANSFER',
   });
-  const isEntryInTitle = view.rowTitle.some(
-    (part) => typeof part !== 'string' && omittedAccountIds.includes(part.id),
-  );
+  const isEntryInTitle =
+    transaction.transaction_type !== 'TRANSFER' &&
+    view.rowTitle.some((part) => typeof part !== 'string' && omittedAccountIds.includes(part.id));
   const rowTitle = isEntryInTitle ? view.accountNames : view.rowTitle;
   const accountNames = isEntryInTitle ? [] : view.accountNames;
   const currency = isMoneyEntryOmitted ? undefined : view.currency;
   const locationName =
     isMoneyEntryOmitted || isEntryInTitle ? transaction.location?.name : undefined;
-  const rates = [rateText, view.currencyRate]
-    .filter((rate) => rate !== undefined)
-    .join(DETAILS_SEPARATOR);
-  const hasPostingDetails = currency !== undefined || locationName !== undefined || rates !== '';
+  const hasPostingDetails = currency !== undefined || locationName !== undefined;
   const hasDetails = dateLabel !== undefined || accountNames.length > 0 || hasPostingDetails;
   const hasComment = transaction.comment !== null && transaction.comment !== '';
   const title = (
@@ -153,12 +141,6 @@ export function TransactionRow({
               </>
             )}
             {currency ?? locationName}
-            {rates !== '' && (
-              <span className={styles['rates']}>
-                {(currency !== undefined || locationName !== undefined) && DETAILS_SEPARATOR}
-                {rates}
-              </span>
-            )}
             {currency !== undefined &&
               locationName !== undefined &&
               `${DETAILS_SEPARATOR}${locationName}`}

@@ -1087,7 +1087,7 @@ test('shows the transactions of the category whose name is chosen and moves the 
 test('keeps the transactions column and the card in place while another category loads on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   let answerGroceries = (): void => undefined;
   const groceriesAnswered = new Promise<void>((resolve) => {
     answerGroceries = resolve;
@@ -1164,7 +1164,7 @@ test('keeps the transactions column and the card in place while another category
 test('shows the details of the top transaction beside the transactions of a category whose rows name the account on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
@@ -1269,7 +1269,7 @@ test('shows the details of the top transaction beside the transactions of a cate
 test('keeps the frame of the transaction card while another transaction loads on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   let answerEarlierPayment = (): void => undefined;
   const earlierPaymentAnswered = new Promise<void>((resolve) => {
     answerEarlierPayment = resolve;
@@ -1349,7 +1349,7 @@ test('keeps the frame of the transaction card while another transaction loads on
 test('moves the focus between the category and its top transaction with Left and Right on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
@@ -1423,7 +1423,7 @@ test('moves the focus between the category and its top transaction with Left and
 test('keeps the focus in the delete confirmation with Right on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
@@ -1552,7 +1552,7 @@ test('drops the chosen transaction when the type filter or Deleted changes the l
 test('keeps the chosen category when the keys are pressed in the details of a transaction the feed has not loaded', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
@@ -1610,7 +1610,7 @@ test('keeps the chosen category when the keys are pressed in the details of a tr
 
 test('drops a chosen transaction that is not of the shown category on a wide desktop', async () => {
   // arrange
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
@@ -1855,7 +1855,7 @@ test('hides the transaction pane until clearing filters that match no categories
   // arrange
   const user = userEvent.setup();
   const requestedAccountIds: string[][] = [];
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const items = new URL(request.url).searchParams.has('category_purposes') ? [] : [groceries];

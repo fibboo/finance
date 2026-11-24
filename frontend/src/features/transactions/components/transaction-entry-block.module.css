@@ -1,7 +1,7 @@
 .transactionEntryBlock {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .role {
@@ -14,10 +14,11 @@
 }
 
 .entry {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-3-5);
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2-5) var(--space-3);
   border-radius: var(--radius-action);
   background: var(--color-ground);
 }
@@ -55,6 +56,12 @@
   flex-direction: column;
 }
 
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+
 .name {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
@@ -68,15 +75,16 @@
 }
 
 .amounts {
-  flex: none;
+  grid-column: 2;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  white-space: nowrap;
+  align-items: flex-start;
+  overflow-wrap: anywhere;
 }
 
 .amount {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
 }
 
