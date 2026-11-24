@@ -5,7 +5,7 @@ import type { components } from '@/lib/api-schema';
 
 import type { MovementFormValues } from '../schemas/transaction-form';
 import { ForeignAmountRow } from './foreign-amount-row';
-import { readEnteredRate } from './movement-config';
+import { readExchangeRateEquation } from './movement-config';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 type MovementRequest = components['schemas']['MovementRequest'];
@@ -46,11 +46,12 @@ export function IncomeExtraRows({ currencies, accountCurrency }: IncomeExtraRows
       amountRegistration={register('source_amount')}
       currencyRegistration={register('source_currency')}
       currencies={currencies}
-      hint={
-        accountCurrency === undefined || currency === '' || currency === accountCurrency
-          ? undefined
-          : readEnteredRate({ amountText, referenceText, currency })
-      }
+      hint={readExchangeRateEquation({
+        amountText,
+        currency,
+        referenceText,
+        referenceCurrency: accountCurrency,
+      })}
       amountError={formState.errors.source_amount?.message}
       currencyError={formState.errors.source_currency?.message}
     />

@@ -191,21 +191,47 @@ export function readBaseCurrencyHint({
 export function readEnteredRate({
   amountText,
   referenceText,
-  currency,
 }: Readonly<{
   amountText: string;
   referenceText: string;
-  currency?: string;
 }>): string | undefined {
   const amount = Number(readAmountText(amountText));
   const referenceAmount = Number(readAmountText(referenceText));
   const rate = readRateText({ amount, referenceAmount });
-  if (rate === undefined) {
+  const hint = rate === undefined ? undefined : `rate ${rate}`;
+  return hint;
+}
+
+export function readExchangeRateEquation({
+  amountText,
+  currency,
+  referenceText,
+  referenceCurrency,
+}: Readonly<{
+  amountText: string;
+  currency: string | undefined;
+  referenceText: string;
+  referenceCurrency: string | undefined;
+}>): string | undefined {
+  const ratio = Math.abs(
+    Number(readAmountText(amountText)) / Number(readAmountText(referenceText)),
+  );
+  if (
+    currency === undefined ||
+    referenceCurrency === undefined ||
+    currency === '' ||
+    currency === referenceCurrency ||
+    !Number.isFinite(ratio) ||
+    ratio === 0
+  ) {
     return undefined;
   }
 
-  const hint = currency === undefined ? `rate ${rate}` : `rate ${currency} ${rate}`;
-  return hint;
+  const equation =
+    ratio >= 1
+      ? `1 ${referenceCurrency} = ${formatRate(ratio)} ${currency}`
+      : `1 ${currency} = ${formatRate(1 / ratio)} ${referenceCurrency}`;
+  return equation;
 }
 
 function toAccountItem({
