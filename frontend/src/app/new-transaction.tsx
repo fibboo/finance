@@ -80,6 +80,7 @@ export function NewTransaction() {
           }}
           transactionType={transactionType}
           categoryTypes={dictionaries.category_types}
+          categoryPurposes={dictionaries.category_purposes ?? []}
           currencies={currencies}
           moneyAccounts={moneyAccounts}
           categories={categories}

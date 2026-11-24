@@ -68,6 +68,7 @@ type MovementFormProps = Readonly<{
   mode: MovementFormMode;
   transactionType: MovementTransactionType;
   categoryTypes: readonly DictionaryItem[];
+  categoryPurposes?: readonly DictionaryItem[];
   currencies: readonly DictionaryItem[];
   moneyAccounts: readonly Account[] | undefined;
   categories: readonly Account[] | undefined;
@@ -86,6 +87,7 @@ export function MovementForm({
   mode,
   transactionType,
   categoryTypes,
+  categoryPurposes = [],
   currencies,
   moneyAccounts,
   categories,
@@ -232,6 +234,7 @@ export function MovementForm({
     toAccounts,
     locations: places,
     categoryTypes,
+    categoryPurposes,
     fromAccountId,
     toAccountId,
     locationId,

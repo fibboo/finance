@@ -222,6 +222,7 @@ export function readMovementPickers({
   toAccounts,
   locations,
   categoryTypes,
+  categoryPurposes,
   fromAccountId,
   toAccountId,
   locationId,
@@ -231,11 +232,13 @@ export function readMovementPickers({
   toAccounts: readonly Account[] | undefined;
   locations: readonly Location[] | undefined;
   categoryTypes: readonly DictionaryItem[];
+  categoryPurposes: readonly DictionaryItem[];
   fromAccountId: string;
   toAccountId: string;
   locationId: string;
 }>): Readonly<Record<MovementPickerField, MovementPicker>> {
   const isTransfer = transactionType === 'TRANSFER';
+  const incomeCostLabel = categoryPurposes.find((purpose) => purpose.key === 'INCOME_COST')?.label;
   const copy = MOVEMENT_COPY[transactionType];
   const pickers = {
     from_account_id: {
@@ -262,7 +265,12 @@ export function readMovementPickers({
           transactionType === 'EXPENSE'
             ? toAccountItem({
                 account,
-                note: categoryTypes.find((type) => type.key === account.category_type)?.label ?? '',
+                note: [
+                  categoryTypes.find((type) => type.key === account.category_type)?.label,
+                  account.category_purpose === 'INCOME_COST' ? incomeCostLabel : undefined,
+                ]
+                  .filter((label) => label !== undefined)
+                  .join(' · '),
               })
             : toMoneyAccountItem(account),
         ),
