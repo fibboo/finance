@@ -22,7 +22,7 @@ This route preserves each workflow's requirements for what the user must see bef
 
 ## Code review
 
-`CLAUDE.md`, **Review stages**, requires built-in Codex GitHub Code Review regardless of which coding agent authored the work. A Claude Code author first runs `/code-review` with `low` effort, then posts `@codex review`; a Codex author posts `@codex review`. Both checks inspect the same committed and pushed head. Collect both results before agreeing fixes. Repeated review follows the existing conditions in **Review every finished issue** rather than running after every push.
+`CLAUDE.md`, **Review stages**, requires built-in Codex GitHub Code Review regardless of which coding agent authored the work. A Claude Code author first runs `/code-review` with `medium` effort, then posts `@codex review`; a Codex author posts `@codex review`. Both checks inspect the same committed and pushed head. Collect both results before agreeing fixes. Repeated review follows the existing conditions in **Review every finished issue** rather than running after every push.
 
 GitHub review requires the repository's Codex integration and access to Code Review. Manual trigger comments and the automatic All PRs setting are separate mechanisms; a plan restriction on All PRs does not itself establish whether a manual request works. Verify the service through its response and completed result. Repository instructions cannot enable a plan-restricted option or control hosted settings that the trigger does not expose.
 
