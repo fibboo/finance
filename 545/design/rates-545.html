@@ -1,0 +1,134 @@
+<title>Exchange Rate Equations</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one section per screen, variants stacked, each fragment drawn in the app's dark and light theme side by side */
+:root {
+  --page: #f3f3f1; --page-ink: #17181a; --page-muted: #5a5d64; --page-line: #dcdcd7; --pick: #1f7a55;
+  --font: 'Geist', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #08090a; --page-ink: #ecedee; --page-muted: #9a9ea6; --page-line: #2a2d32; --pick: #4cc38a; color-scheme: dark } }
+:root[data-theme="dark"] { --page: #08090a; --page-ink: #ecedee; --page-muted: #9a9ea6; --page-line: #2a2d32; --pick: #4cc38a; color-scheme: dark }
+body { background: var(--page); color: var(--page-ink); font-family: var(--font); }
+main { max-width: 1240px; margin: 0 auto; padding-block: 28px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -0.02em; }
+h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.lead { color: var(--page-muted); margin: 6px 0 0; max-width: 70ch; line-height: 1.5; }
+section { display: grid; gap: 18px; border-top: 1px solid var(--page-line); padding-top: 22px; }
+.variant { display: grid; gap: 10px; }
+.vhead { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.vtag { font-weight: 700; font-size: 13px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--page-line); }
+.vtag.rec { border-color: var(--pick); color: var(--pick); }
+.vtext { color: var(--page-muted); font-size: 13.5px; line-height: 1.45; max-width: 80ch; }
+.pairs { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.cap { font-size: 11px; color: var(--page-muted); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+.scroll { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+
+/* app fragments: scoped app tokens, theme set per frame */
+.app { --ground: light-dark(#eeeeeb, #0b0c0e); --panel: light-dark(#ffffff, #17191c); --border: light-dark(#e2e2de, #2a2d32);
+  --ink: light-dark(#17181a, #ecedee); --muted: light-dark(#5a5d64, #9a9ea6); --accent: light-dark(#1f7a55, #4cc38a);
+  --selected: light-dark(#eaf3ee, #16241d); --band: light-dark(#f4f4f1, #1e2125); --tile: light-dark(#f4f4f1, #0b0c0e);
+  --danger: light-dark(#b42318, #ff7a6b); --mark: light-dark(#e9e4f7, #2a2440); --mark-ink: light-dark(#5b47a6, #a996e8);
+  background: var(--ground); color: var(--ink); font-family: var(--font); padding: 14px; border-radius: 14px; box-sizing: border-box; font-variant-numeric: tabular-nums; }
+.app.dark { color-scheme: dark } .app.light { color-scheme: light }
+.w-phone { width: 384px } .w-desk-col { width: 540px } .w-desk-panel { width: 420px } .w-desk-wide { width: 960px }
+.panel { background: var(--panel); border-radius: 20px; padding: 16px; }
+.muted { color: var(--muted) } .neg { color: var(--danger) }
+.eq { white-space: nowrap }
+.lbl { color: var(--muted) }
+mark.new { background: none; color: inherit; outline: 1.5px dashed var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* home cards */
+.cards { display: flex; gap: 8px; overflow: hidden; }
+.card { flex: 0 0 144px; background: var(--tile); border-radius: 14px; padding: 10px 12px; display: grid; gap: 1px; min-width: 0; }
+.card .top { display: flex; justify-content: space-between; gap: 6px; }
+.card .name { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .sub { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .amt { font-weight: 700; font-size: 16px; margin-top: 8px; }
+.card .nat { font-size: 11.5px; color: var(--muted); }
+.badge { width: 22px; height: 22px; flex: none; border-radius: 7px; background: var(--mark); color: var(--mark-ink); font-size: 11px; display: grid; place-items: center; font-weight: 600; }
+
+/* account rows */
+.rows { display: grid; }
+.row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--border); }
+.row:last-child { border-bottom: 0 }
+.dot { width: 26px; height: 26px; border-radius: 50%; background: var(--mark); color: var(--mark-ink); font-size: 11px; display: grid; place-items: center; }
+.row .name { font-size: 14px; font-weight: 500; } .row .sub { font-size: 12px; color: var(--muted); }
+.row .r { text-align: right; } .row .amt { font-weight: 700; font-size: 14px; } .row .nat { font-size: 12px; color: var(--muted); }
+
+/* details header */
+.det .meta { font-size: 12px; color: var(--muted); }
+.det .title { font-weight: 600; font-size: 19px; margin: 2px 0 6px; }
+.det .big { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; row-gap: 2px; }
+.det .big b { font-size: 28px; letter-spacing: -0.02em; }
+.det .small { font-size: 13px; color: var(--muted); }
+
+/* form */
+.form { display: grid; gap: 10px; }
+.seg { display: flex; gap: 6px; } .seg span { font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--band); }
+.seg span.on { background: var(--ink); color: var(--panel); }
+.amount { padding: 4px 2px; } .amount .l { font-size: 12px; color: var(--muted); }
+.amount .v { display: flex; justify-content: space-between; align-items: baseline; } .amount .v b { font-size: 30px; letter-spacing: -0.02em; } .amount .v span { font-weight: 600; color: var(--muted); }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.hint .rate { color: var(--ink); }
+.box { background: var(--band); border-radius: 14px; padding: 10px 12px; display: grid; gap: 6px; }
+.box .line { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; }
+.tog { width: 32px; height: 18px; border-radius: 999px; background: var(--accent); position: relative; } .tog::after { content: ""; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--panel); }
+.field { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; border: 1.5px solid var(--ink); border-radius: 12px; padding: 8px 10px; font-size: 13px; }
+.field .l { color: var(--muted); font-size: 12px; } .field .cur { font-weight: 600; font-size: 12px; }
+.pick { display: grid; grid-template-columns: 76px 1fr auto; font-size: 13px; padding: 8px 2px; border-bottom: 1px solid var(--border); } .pick:last-child { border: 0 }
+.pick .l { color: var(--muted); font-size: 12px; } .pick .n { color: var(--muted); font-size: 12px; }
+
+/* total balance */
+.tb { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start; }
+.tb .l { font-size: 12px; color: var(--muted); } .tb .t { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
+.tb .rates { border-left: 1px solid var(--border); padding-left: 12px; font-size: 12px; display: grid; gap: 2px; min-width: 0; }
+.tb .rates .note { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb .all { font-size: 12px; color: var(--muted); }
+.tb.stack { grid-template-columns: 1fr auto; }
+.tb.stack .rates { grid-column: 1 / -1; border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-wrap: wrap; column-gap: 14px; }
+.tb.stack .rates .note { flex-basis: 100%; }
+</style>
+
+<main>
+  <header>
+    <h1>#545 · Exchange rate in transaction forms</h1>
+    <p class="lead">Only the hint under the second amount changes: the amount received in a transfer and the original amount of an expense or income paid in another currency. The equation always names both currencies, and the direction is chosen so the right-hand number is at least 1. The valuation hint under the amount (<i>≈ $1,119.07 · rate 106.4461</i>) and everything outside the forms stay as they are. Dashed outlines mark what changes.</p>
+  </header>
+  <div id="root"></div>
+</main>
+
+<script>
+const PAIR = (cls, html, cap) => ['dark', 'light'].map(t => `<div><div class="cap">${cap} · ${t}</div><div class="app ${t} ${cls}">${html}</div></div>`).join('');
+const variant = (tag, rec, text, frames) => `<div class="variant"><div class="vhead"><span class="vtag ${rec ? 'rec' : ''}">${tag}</span><span class="vtext">${text}</span></div><div class="scroll"><div class="pairs">${frames}</div></div></div>`;
+const section = (title, lead, body) => `<section><div><h2>${title}</h2><p class="lead">${lead}</p></div>${body}</section>`;
+const N = s => `<mark class="new">${s}</mark>`;
+const seg = type => `<div class="seg">${['Expense', 'Income', 'Transfer', 'Adjustment'].map(x => `<span class="${x === type ? 'on' : ''}">${x}</span>`).join('')}</div>`;
+const pick = (l, n, b) => `<div class="pick"><span class="l">${l}</span><span>${n}</span><span class="n">${b}</span></div>`;
+
+const transfer = hint => `<div class="panel form">${seg('Transfer')}
+  <div class="amount"><div class="l">Amount sent</div><div class="v"><b>119,120.90</b><span>RSD</span></div><div class="hint">≈ $1,119.07 · <span class="rate">rate 106.4461</span></div></div>
+  <div class="box"><div class="field"><span class="l">Amount received</span><span>1,000.00</span><span class="cur">EUR</span></div><div class="hint" style="padding-left:2px">${hint}</div></div>
+  <div class="box" style="gap:0">${pick('From', 'Raif RSD', 'RSD 358,589.20')}${pick('To', 'Cash EUR', '€70.00')}</div></div>`;
+const expense = hint => `<div class="panel form">${seg('Expense')}
+  <div class="amount"><div class="l">Amount</div><div class="v"><b>119,120.90</b><span>RSD</span></div><div class="hint">≈ $1,119.07 · <span class="rate">rate 106.4461</span></div></div>
+  <div class="box"><div class="line">Different currency<span class="tog"></span></div><div class="field"><span class="l">Original amount</span><span>1,000</span><span class="cur">EUR ▾</span></div><div class="hint" style="text-align:center">${hint}</div></div>
+  <div class="box" style="gap:0">${pick('From', 'Raif RSD', 'RSD 358,589.20')}${pick('Category', '<span class="muted">Choose a category</span>', '')}</div></div>`;
+const income = hint => `<div class="panel form">${seg('Income')}
+  <div class="amount"><div class="l">Amount</div><div class="v"><b>930.00</b><span>EUR</span></div><div class="hint">≈ $1,014.73 · <span class="rate">rate 0.9165</span></div></div>
+  <div class="box"><div class="line">Different currency<span class="tog"></span></div><div class="field"><span class="l">Original amount</span><span>1,000</span><span class="cur">USD ▾</span></div><div class="hint" style="text-align:center">${hint}</div></div>
+  <div class="box" style="gap:0">${pick('To', 'Cash EUR', '€70.00')}${pick('Source', '<span class="muted">Choose a source</span>', '')}</div></div>`;
+
+const now = '<span class="rate">rate EUR 0.0084</span>';
+const s1 = section('Transfer: RSD → EUR',
+  'Today 1,000 EUR received for 119,120.90 RSD shows <i>rate EUR 0.0084</i>: EUR per 1 RSD rounded to 4 decimals, so neither the pair nor the direction can be read.',
+  variant('Now', false, '', PAIR('w-phone', transfer(now), 'Transfer')) +
+  variant('New', true, 'The pair and its direction are explicit, with the euro on the left because 1 EUR is worth more than 1 RSD. On desktop the dialog is the same column at 440 px.', PAIR('w-phone', transfer(N('1 EUR = 119.1209 RSD')), 'Transfer'))
+);
+const s2 = section('Expense and income in another currency',
+  'The same hint under the original amount. The direction follows the same rule, so for EUR and USD the dollar is on the left when it is worth less than 1 EUR.',
+  variant('Now', false, '', PAIR('w-phone', expense('<span class="rate">rate EUR 0.0084</span>'), 'Expense') + PAIR('w-phone', income('<span class="rate">rate USD 1.0753</span>'), 'Income')) +
+  variant('New', true, 'Only that hint changes. With an empty amount, equal currencies or a zero amount it is hidden as it is now.', PAIR('w-phone', expense(N('1 EUR = 119.1209 RSD')), 'Expense') + PAIR('w-phone', income(N('1 EUR = 1.0753 USD')), 'Income'))
+);
+document.getElementById('root').outerHTML = [s1, s2].join('');
+</script>
