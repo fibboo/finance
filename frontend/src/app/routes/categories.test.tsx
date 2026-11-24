@@ -1851,25 +1851,44 @@ test('keeps purpose together with search, type and Deleted in the request and UR
   expect(await screen.findByRole('region', { name: 'Fixed' })).toHaveTextContent('Work tools');
 });
 
-test('clears purpose and type when combined filters match no categories', async () => {
+test('hides the transaction pane until clearing filters that match no categories', async () => {
   // arrange
   const user = userEvent.setup();
+  const requestedAccountIds: string[][] = [];
+  vi.stubGlobal('innerWidth', 1280);
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const items = new URL(request.url).searchParams.has('category_purposes') ? [] : [groceries];
       return HttpResponse.json({ items, total: items.length, page: 1, size: 100, pages: 1 });
+    }),
+    http.get('http://localhost/api/accounting/transactions', ({ request }) => {
+      requestedAccountIds.push(new URL(request.url).searchParams.getAll('account_ids'));
+      return HttpResponse.json({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']);
     }),
   );
   const { router } = render(<Component />, {
     initialEntries: ['/categories?category_purpose=INCOME_COST&category_type=FIXED&deleted=off'],
   });
   await screen.findByText('No categories match these filters');
+  expect(screen.queryByRole('region', { name: /^Transactions/ })).not.toBeInTheDocument();
+  expect(requestedAccountIds).toEqual([]);
 
   // act
   await user.click(screen.getByRole('button', { name: 'Clear filters' }));
 
   // assert
   expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent('Groceries');
+  const transactions = await screen.findByRole('region', { name: 'Transactions of Groceries' });
+  expect(
+    await within(transactions).findByText('No transactions in this category yet'),
+  ).toBeInTheDocument();
+  expect(requestedAccountIds).toEqual([[groceries.id]]);
   const params = new URLSearchParams(router.state.location.search);
   expect(params.has('category_purpose')).toBe(false);
   expect(params.has('category_type')).toBe(false);

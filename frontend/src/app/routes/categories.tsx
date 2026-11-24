@@ -130,7 +130,7 @@ export function Component() {
     (searchTerm !== undefined || isFiltered) && categoryPage?.items.length === 0;
   const hasNoEntries = searchTerm === undefined && !isFiltered && categoryPage?.items.length === 0;
   const groups =
-    categoryPage === undefined || categoryTypes === undefined || isNothingMatched
+    categoryPage === undefined || categoryTypes === undefined
       ? undefined
       : readCategoryGroups({ categories: categoryPage.items, categoryTypes });
   const selectedCategoryId = readSelectedAccountId(searchParams);
