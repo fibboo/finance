@@ -334,6 +334,7 @@ export function MovementForm({
         />
         {isTransfer ? (
           <TransferExtraRows
+            sourceCurrency={accountCurrency}
             destinationCurrency={destination}
             isDestinationAmountAsked={isDestinationAmountAsked}
           />

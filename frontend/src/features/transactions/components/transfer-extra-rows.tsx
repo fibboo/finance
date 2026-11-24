@@ -6,17 +6,19 @@ import type { components } from '@/lib/api-schema';
 import type { MovementFormValues } from '../schemas/transaction-form';
 import { readAmountInputProps } from './amount-input';
 import { InputRow } from './input-row';
-import { readEnteredRate } from './movement-config';
+import { readExchangeRateEquation } from './movement-config';
 import styles from './transaction-form.module.css';
 
 type MovementRequest = components['schemas']['MovementRequest'];
 
 type TransferExtraRowsProps = Readonly<{
+  sourceCurrency: string | undefined;
   destinationCurrency: string | undefined;
   isDestinationAmountAsked: boolean;
 }>;
 
 export function TransferExtraRows({
+  sourceCurrency,
   destinationCurrency,
   isDestinationAmountAsked,
 }: TransferExtraRowsProps) {
@@ -54,10 +56,11 @@ export function TransferExtraRows({
             {destinationCurrency}
           </>
         }
-        hint={readEnteredRate({
+        hint={readExchangeRateEquation({
           amountText: destinationAmount,
-          referenceText: sourceAmount,
           currency: destinationCurrency,
+          referenceText: sourceAmount,
+          referenceCurrency: sourceCurrency,
         })}
         error={formState.errors.destination_amount?.message}
       />

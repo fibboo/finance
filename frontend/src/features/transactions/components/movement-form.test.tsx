@@ -655,6 +655,45 @@ test('keeps the month of an income on the month before the date until a month is
   expect(screen.getByLabelText('For month')).toHaveDisplayValue('June 2026');
 });
 
+test('shows the exchange rate of a transfer with the dearer currency on the left and follows a currency change', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="TRANSFER"
+      mode={{ kind: 'create', typeChoice: { transactionTypes, onTypeChange: vi.fn() } }}
+      categoryTypes={categoryTypes}
+      currencies={currencies}
+      moneyAccounts={[gelSavings, dollarCash, euroCard]}
+      categories={undefined}
+      incomeSources={undefined}
+      locations={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onClose={vi.fn()}
+    />,
+  );
+  await user.type(screen.getByLabelText('Amount sent'), '119120.9');
+  await user.click(screen.getByRole('button', { name: /^From/ }));
+  await user.click(screen.getByRole('button', { name: /^Lari savings/ }));
+  await user.click(screen.getByRole('button', { name: /^To/ }));
+  await user.click(screen.getByRole('button', { name: /^Euro card/ }));
+  const received = screen.getByRole('textbox', { name: 'Amount received' });
+  await user.type(received, '1000');
+  expect(received).toHaveAccessibleDescription('1 EUR = 119.1209 GEL');
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^From/ }));
+  await user.click(screen.getByRole('button', { name: /^Cash/ }));
+
+  // assert
+  expect(received).toHaveAccessibleDescription('1 EUR = 119.1209 USD');
+});
+
 test.each([
   { account: euroSavings, receivedAmount: null, destinationAmount: null },
   { account: dollarCash, receivedAmount: null, destinationAmount: null },
@@ -705,14 +744,14 @@ test.each([
       await user.click(screen.getByRole('button', { name: 'Calculate amount received' }));
       await user.type(screen.getByLabelText('Calculation'), `${receivedAmount}+0`);
       await user.keyboard('{Enter}');
-      expect(received).toHaveAccessibleDescription('rate GEL 2.9100');
+      expect(received).toHaveAccessibleDescription('1 EUR = 2.9100 GEL');
       const sent = screen.getByRole('textbox', { name: 'Amount sent' });
       await user.clear(sent);
       await user.type(sent, '0');
       expect(received).not.toHaveAccessibleDescription();
       await user.clear(sent);
       await user.type(sent, '500');
-      expect(received).toHaveAccessibleDescription('rate GEL 2.9100');
+      expect(received).toHaveAccessibleDescription('1 EUR = 2.9100 GEL');
     }
 
     // act
@@ -1123,6 +1162,8 @@ test.each([
   {
     title: 'Edit expense',
     transactionType: 'EXPENSE',
+    extraAmountLabel: 'Original amount',
+    equation: '1 EUR = 2.9322 GEL',
     transaction: {
       ...expense,
       transaction_date: '2026-10-18',
@@ -1159,6 +1200,8 @@ test.each([
   {
     title: 'Edit income',
     transactionType: 'INCOME',
+    extraAmountLabel: 'Original amount',
+    equation: '1 EUR = 2.7500 GEL',
     transaction: {
       ...expense,
       transaction_type: 'INCOME',
@@ -1198,6 +1241,8 @@ test.each([
   {
     title: 'Edit transfer',
     transactionType: 'TRANSFER',
+    extraAmountLabel: 'Amount received',
+    equation: '1 EUR = 2.9100 GEL',
     transaction: {
       ...expense,
       transaction_type: 'TRANSFER',
@@ -1241,11 +1286,13 @@ test.each([
 ] satisfies {
   title: string;
   transactionType: MovementTransactionType;
+  extraAmountLabel: string;
+  equation: string;
   transaction: components['schemas']['Transaction'];
   movement: components['schemas']['MovementRequest'];
 }[])(
   'starts $title with the values of the transaction and saves them unchanged',
-  async ({ title, transactionType, transaction, movement }) => {
+  async ({ title, transactionType, extraAmountLabel, equation, transaction, movement }) => {
     // arrange
     let requestBody: unknown = null;
     server.use(
@@ -1280,6 +1327,9 @@ test.each([
     );
     expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: extraAmountLabel })).toHaveAccessibleDescription(
+      equation,
+    );
     if (transactionType !== 'TRANSFER') {
       expect(screen.getByRole('switch', { name: 'Different currency' })).toBeChecked();
       expect(screen.getByLabelText('Original amount')).toHaveValue(
@@ -1603,7 +1653,7 @@ test.each(['EXPENSE', 'INCOME'] as const)(
       'EUR',
     );
     expect(screen.getByRole('textbox', { name: 'Original amount' })).toHaveAccessibleDescription(
-      'rate EUR 0.8400',
+      '1 EUR = 1.1905 USD',
     );
     expect(
       toggle.compareDocumentPosition(screen.getByLabelText('Original amount')) &
