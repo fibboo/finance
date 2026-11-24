@@ -8,8 +8,9 @@
   min-height: var(--size-transaction-row);
   padding-block: var(--space-1);
   display: grid;
-  grid-template-columns: subgrid;
+  grid-template-columns: var(--size-dot) minmax(0, 1fr) max-content;
   grid-template-rows: auto auto;
+  column-gap: var(--space-2-5);
   align-content: center;
   align-items: center;
   font-size: var(--font-size-sm);
@@ -125,11 +126,6 @@
   white-space: nowrap;
 }
 
-.title {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
 .details,
 .detailsText,
 .comment,
@@ -198,6 +194,7 @@
 
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
+    column-gap: var(--space-4);
     font-size: var(--font-size-base);
   }
 
@@ -210,6 +207,10 @@
 }
 
 @container transaction-feed (min-width: 48rem) {
+  .transactionRow {
+    grid-template-columns: subgrid;
+  }
+
   .details {
     display: contents;
   }

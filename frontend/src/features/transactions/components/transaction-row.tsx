@@ -14,8 +14,10 @@ import {
 import styles from './transaction-row.module.css';
 import { TransactionTextParts } from './transaction-text-parts';
 import {
+  readBaseAmount,
   readForeignAmountsText,
   readMoneyEntryView,
+  readTransactionRates,
   readTransactionView,
 } from './transaction-view';
 
@@ -72,10 +74,20 @@ export function TransactionRow({
     view.rowTitle.some((part) => typeof part !== 'string' && omittedAccountIds.includes(part.id));
   const rowTitle = isEntryInTitle ? view.accountNames : view.rowTitle;
   const accountNames = isEntryInTitle ? [] : view.accountNames;
-  const currency = isMoneyEntryOmitted ? undefined : view.currency;
+  const [rate] = readTransactionRates({
+    transaction,
+    baseCurrency,
+    view: transactionView,
+    baseAmount: readBaseAmount({ transaction, ...transactionView }),
+  });
+  const rateText =
+    rate === undefined ? undefined : `${rate.isEstimated ? '≈ ' : ''}${rate.rateText}`;
   const locationName =
     isMoneyEntryOmitted || isEntryInTitle ? transaction.location?.name : undefined;
-  const hasPostingDetails = currency !== undefined || locationName !== undefined;
+  const postingDetails = [rateText, locationName]
+    .filter((detail) => detail !== undefined)
+    .join(DETAILS_SEPARATOR);
+  const hasPostingDetails = postingDetails !== '';
   const hasDetails = dateLabel !== undefined || accountNames.length > 0 || hasPostingDetails;
   const hasComment = transaction.comment !== null && transaction.comment !== '';
   const title = (
@@ -140,10 +152,7 @@ export function TransactionRow({
                 {hasPostingDetails && DETAILS_SEPARATOR}
               </>
             )}
-            {currency ?? locationName}
-            {currency !== undefined &&
-              locationName !== undefined &&
-              `${DETAILS_SEPARATOR}${locationName}`}
+            {postingDetails}
           </span>
           {hasComment && (
             <span className={styles['comment']}>
