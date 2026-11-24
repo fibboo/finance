@@ -136,16 +136,26 @@
   padding-top: var(--space-2);
   border-top: var(--size-border) solid var(--color-border);
   display: grid;
-  gap: var(--space-1-5);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  row-gap: var(--space-0-5);
+  column-gap: var(--space-2);
 }
 
 .incomeLine {
-  margin: 0;
-  display: flex;
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
   align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-sub);
+}
+
+.incomeLine:nth-child(2) {
+  text-align: center;
+}
+
+.incomeLine:last-child {
+  text-align: end;
 }
 
 .incomeLine dt {
@@ -154,8 +164,11 @@
 
 .incomeLine dd {
   margin: 0;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .incomeLine:nth-child(2) dt {
@@ -171,6 +184,10 @@
 
 @media (--desktop) {
   .incomeLine {
+    font-size: var(--font-size-sm);
+  }
+
+  .incomeLine dd {
     font-size: var(--font-size-md);
   }
 }

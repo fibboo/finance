@@ -24,6 +24,7 @@ type TransactionView = Readonly<{
   currency: string;
   signDisplay: Intl.NumberFormatOptions['signDisplay'];
   isIncome: boolean;
+  isIncomeCost?: boolean;
   otherAmount?: CurrencyAmount | undefined;
   currencyRate?: string | undefined;
 }>;
@@ -260,6 +261,7 @@ export function readTransactionView({
         currency: debit.currency,
         signDisplay: 'exceptZero',
         isIncome: false,
+        isIncomeCost: credit.account.category_purpose === 'INCOME_COST',
       } satisfies TransactionView;
       return view;
     }
