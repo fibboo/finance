@@ -76,6 +76,9 @@ export function MonthSummary({ baseCurrency }: MonthSummaryProps) {
 
   const earned = Number(summary.earned);
   const spent = Number(summary.spent);
+  const incomeCosts = Number(summary.income_costs ?? 0);
+  const netIncome = Number(summary.net_income ?? summary.earned);
+  const personalSpending = Number(summary.personal_spending ?? summary.spent);
   const left = Number(summary.left_over);
   const { spentShare, elapsedShare, pace } = readMonthProgress({
     month: summary.month,
@@ -113,12 +116,45 @@ export function MonthSummary({ baseCurrency }: MonthSummaryProps) {
           </dd>
         </div>
         <div className={styles['figure']}>
-          <dt>Earned</dt>
+          <dt>Gross</dt>
           <dd className={earned > 0 ? styles['accent'] : styles['amount']}>
             {formatMoney({ amount: earned, currency: baseCurrency, signDisplay: 'exceptZero' })}
           </dd>
         </div>
       </dl>
+      <dl className={styles['incomeBreakdown']}>
+        <div className={styles['incomeLine']}>
+          <dt>Income costs</dt>
+          <dd>
+            {formatMoney({
+              amount: -incomeCosts,
+              currency: baseCurrency,
+              signDisplay: 'exceptZero',
+            })}
+          </dd>
+        </div>
+        <div className={styles['incomeLine']}>
+          <dt>Net income</dt>
+          <dd className={netIncome < 0 ? styles['danger'] : styles['accent']}>
+            {formatMoney({ amount: netIncome, currency: baseCurrency })}
+          </dd>
+        </div>
+        <div className={styles['incomeLine']}>
+          <dt>Personal spending</dt>
+          <dd>
+            {formatMoney({
+              amount: -personalSpending,
+              currency: baseCurrency,
+              signDisplay: 'exceptZero',
+            })}
+          </dd>
+        </div>
+      </dl>
+      {summary.unvalued_spent.length > 0 && (
+        <p className={styles['valuationNote']}>
+          Gross, net and spending include valued transactions only.
+        </p>
+      )}
       {summary.unvalued_spent.length > 0 && (
         <UnvaluedSpending
           unvaluedSpent={summary.unvalued_spent}

@@ -133,3 +133,8 @@
     padding-inline: var(--space-3);
   }
 }
+
+.additionalFilters {
+  flex-basis: 100%;
+  min-width: 0;
+}

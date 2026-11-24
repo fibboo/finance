@@ -19,7 +19,10 @@ import {
   NAME_MAX_LENGTH,
 } from '../schemas/account-form';
 
+import styles from './category-form.module.css';
+
 type Account = components['schemas']['Account'];
+type CategoryPurpose = components['schemas']['CategoryPurpose'];
 type CategoryType = components['schemas']['CategoryType'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
@@ -35,6 +38,7 @@ type CategoryFormMode =
 type CategoryFormProps = Readonly<{
   mode: CategoryFormMode;
   categoryTypes: readonly DictionaryItem[];
+  categoryPurposes: readonly DictionaryItem[];
   onBack: () => void;
 }>;
 
@@ -44,12 +48,18 @@ const CATEGORY_TYPE_HINTS = {
   PERIODIC: 'Comes a few times a year, like insurance or gifts.',
 } satisfies Readonly<Record<CategoryType, string>>;
 
+const CATEGORY_PURPOSE_HINTS = {
+  PERSONAL: 'Everyday spending. Deducted after net income.',
+  INCOME_COST: 'Fees, work subscriptions and taxes. Reduce net income.',
+} satisfies Readonly<Record<CategoryPurpose, string>>;
+
 function readStartingValues(mode: CategoryFormMode): CategoryFormValues {
   if (mode.kind === 'create') {
     const createValues = {
       name: mode.name,
       description: '',
       category_type: 'VARIABLE',
+      category_purpose: 'PERSONAL',
     } satisfies CategoryFormValues;
     return createValues;
   }
@@ -63,11 +73,12 @@ function readStartingValues(mode: CategoryFormMode): CategoryFormValues {
     name: category.name,
     description: category.description ?? '',
     category_type: category.category_type,
+    category_purpose: category.category_purpose ?? 'PERSONAL',
   } satisfies CategoryFormValues;
   return editValues;
 }
 
-export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps) {
+export function CategoryForm({ mode, categoryTypes, categoryPurposes, onBack }: CategoryFormProps) {
   const startingValues = readStartingValues(mode);
   const { control, register, handleSubmit, setError, formState } = useForm<
     CategoryFormValues,
@@ -81,7 +92,10 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
       resetOptions: { keepDirtyValues: true },
     }),
   });
-  const [categoryType, name] = useWatch({ control, name: ['category_type', 'name'] });
+  const [categoryType, name, categoryPurpose] = useWatch({
+    control,
+    name: ['category_type', 'name', 'category_purpose'],
+  });
   const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind: 'EXPENSE',
@@ -128,6 +142,7 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
               description: category.description,
               kind: 'EXPENSE',
               category_type: category.category_type,
+              category_purpose: category.category_purpose,
             });
           } else {
             accountUpdate.update({
@@ -135,6 +150,7 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
               name: category.name,
               description: category.description,
               category_type: category.category_type,
+              category_purpose: category.category_purpose,
             });
           }
         })(event);
@@ -148,6 +164,12 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
         isOptional={false}
         isMultiline={false}
         error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
+      />
+      <SegmentedField
+        legend="Purpose"
+        registration={register('category_purpose')}
+        options={categoryPurposes}
+        hint={CATEGORY_PURPOSE_HINTS[categoryPurpose]}
       />
       <SegmentedField
         legend="Type"
@@ -164,6 +186,12 @@ export function CategoryForm({ mode, categoryTypes, onBack }: CategoryFormProps)
         isMultiline
         error={formState.errors.description?.message}
       />
+      {mode.kind === 'edit' && categoryPurpose !== startingValues.category_purpose && (
+        <p className={styles['historyNote']}>
+          Applies to all past transactions in this category. Net income will be recalculated;
+          account balances stay the same.
+        </p>
+      )}
     </EntityForm>
   );
 }

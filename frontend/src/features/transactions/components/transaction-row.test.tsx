@@ -102,6 +102,23 @@ test.each([
     cells: ['Groceries', 'Wallet · USD', '-$42.80'],
   },
   {
+    kind: 'an expense in a category used to earn income',
+    row: {
+      ...transaction,
+      postings: [
+        { ...posting, amount: '-42.80', base_amount: '-42.80', account: wallet },
+        {
+          ...posting,
+          amount: '42.80',
+          base_amount: '42.80',
+          account: { ...category, name: 'Platform fees', category_purpose: 'INCOME_COST' },
+        },
+      ],
+    },
+    cells: ['Platform fees', 'Wallet · USD', '-$42.80'],
+    hasIncomeCostIcon: true,
+  },
+  {
     kind: 'an expense not valued yet',
     row: {
       ...transaction,
@@ -419,7 +436,8 @@ test.each([
   kind: string;
   row: components['schemas']['Transaction'];
   cells: string[];
-}[])('describes $kind', async ({ row, cells }) => {
+  hasIncomeCostIcon?: boolean;
+}[])('describes $kind', async ({ row, cells, hasIncomeCostIcon = false }) => {
   // act
   render(
     <TransactionRow
@@ -437,6 +455,12 @@ test.each([
   // assert
   // the title, its account line, the base-currency amount and the account's own amount
   expect(await screen.findByRole('listitem')).toHaveTextContent(cells.join(''));
+  const incomeCostIcon = screen.queryByRole('img', { name: 'Income cost' });
+  if (hasIncomeCostIcon) {
+    expect(incomeCostIcon).toBeVisible();
+  } else {
+    expect(incomeCostIcon).not.toBeInTheDocument();
+  }
 });
 
 test.each([

@@ -80,6 +80,7 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
       <CategoryForm
         mode={{ kind: 'create', name: props.name, onCreated: props.onCreated }}
         categoryTypes={dictionaries.category_types}
+        categoryPurposes={dictionaries.category_purposes ?? []}
         onBack={props.onBack}
       />
     );

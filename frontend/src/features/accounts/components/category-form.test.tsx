@@ -29,6 +29,11 @@ const coffee = {
   id: '8c1a3c2b-1a04-4b9e-9d1f-0e6a7f0c2f4f',
 } satisfies components['schemas']['Account'];
 
+const categoryPurposes = [
+  { key: 'PERSONAL', label: 'Personal' },
+  { key: 'INCOME_COST', label: 'Income costs' },
+];
+
 const categoryTypes = [
   { key: 'VARIABLE', label: 'Variable' },
   { key: 'FIXED', label: 'Fixed' },
@@ -77,6 +82,7 @@ test.each([
     <CategoryForm
       mode={{ kind: 'create', name: 'Coffee shops', onCreated }}
       categoryTypes={categoryTypes}
+      categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
   );
@@ -98,6 +104,7 @@ test.each([
     description: null,
     kind: 'EXPENSE',
     category_type,
+    category_purpose: 'PERSONAL',
   });
 });
 
@@ -130,6 +137,7 @@ test('saves the changed name, type and description of an edited category', async
         onSaved,
       }}
       categoryTypes={categoryTypes}
+      categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
   );
@@ -158,6 +166,7 @@ test('saves the changed name, type and description of an edited category', async
     name: 'Food',
     description: null,
     category_type: 'PERIODIC',
+    category_purpose: 'PERSONAL',
   });
 });
 
@@ -188,6 +197,7 @@ test('shows a name another category has under the name field of the edit form', 
     <CategoryForm
       mode={{ kind: 'edit', category: groceries, relatedQueryKeys: [], onSaved: vi.fn() }}
       categoryTypes={categoryTypes}
+      categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
   );
@@ -223,6 +233,7 @@ test('says a name an active category holds while it is typed and keeps Create ca
     <CategoryForm
       mode={{ kind: 'create', name: '', onCreated: vi.fn() }}
       categoryTypes={categoryTypes}
+      categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
   );
@@ -265,6 +276,7 @@ test('leaves the edited category out of the names it finds taken', async () => {
     <CategoryForm
       mode={{ kind: 'edit', category: groceries, relatedQueryKeys: [], onSaved: vi.fn() }}
       categoryTypes={categoryTypes}
+      categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
   );
@@ -274,4 +286,32 @@ test('leaves the edited category out of the names it finds taken', async () => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
   });
   expect(screen.getByRole('textbox', { name: 'Name' })).not.toHaveAccessibleDescription();
+});
+
+test('warns only while the edited category purpose differs from the saved purpose', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <CategoryForm
+      mode={{
+        kind: 'edit',
+        category: { ...groceries, category_purpose: 'INCOME_COST' },
+        relatedQueryKeys: [],
+        onSaved: vi.fn(),
+      }}
+      categoryTypes={categoryTypes}
+      categoryPurposes={categoryPurposes}
+      onBack={vi.fn()}
+    />,
+  );
+  expect(screen.getByRole('radio', { name: 'Income costs' })).toBeChecked();
+  expect(screen.queryByText(/Applies to all past transactions/)).not.toBeInTheDocument();
+
+  // act
+  await user.click(screen.getByRole('radio', { name: 'Personal' }));
+
+  // assert
+  expect(screen.getByText(/Applies to all past transactions/)).toBeInTheDocument();
+  await user.click(screen.getByRole('radio', { name: 'Income costs' }));
+  expect(screen.queryByText(/Applies to all past transactions/)).not.toBeInTheDocument();
 });

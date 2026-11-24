@@ -46,6 +46,7 @@ export function TransactionRow({
 }: TransactionRowProps) {
   const [searchParams] = useSearchParams();
   const transactionView = readTransactionView({ transaction, transactionTypes });
+  const isIncomeCost = transactionView.isIncomeCost === true;
   const moneyEntryView = readMoneyEntryView({
     view: transactionView,
     transaction,
@@ -104,9 +105,12 @@ export function TransactionRow({
       )}
     </>
   );
+  const rowTint = isIncomeCost
+    ? styles['incomeCost']
+    : styles[transaction.transaction_type.toLowerCase()];
   return (
     <li
-      className={`${styles['transactionRow'] ?? ''} ${styles[transaction.transaction_type.toLowerCase()] ?? ''} ${isSelected ? (styles['selected'] ?? '') : ''} ${isShownByDefault ? (styles['shownByDefault'] ?? '') : ''}`}
+      className={`${styles['transactionRow'] ?? ''} ${rowTint ?? ''} ${isSelected ? (styles['selected'] ?? '') : ''} ${isShownByDefault ? (styles['shownByDefault'] ?? '') : ''}`}
     >
       <span
         className={styles['dot']}
@@ -171,6 +175,22 @@ export function TransactionRow({
       </span>
       <span className={styles['amounts']}>
         <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
+          {isIncomeCost && (
+            <svg
+              aria-label="Income cost"
+              className={styles['incomeCostIcon']}
+              role="img"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="7" width="18" height="13" rx="2" />
+              <path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M3 13h18" />
+            </svg>
+          )}
           {view.baseAmount !== null ? (
             formatMoney({
               amount: view.baseAmount,

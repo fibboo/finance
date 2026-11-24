@@ -16,6 +16,7 @@
 }
 
 .income,
+.incomeCost,
 .transfer,
 .adjustment,
 .selected,
@@ -24,6 +25,7 @@
 }
 
 .income::before,
+.incomeCost::before,
 .transfer::before,
 .adjustment::before,
 .selected::before,
@@ -38,6 +40,10 @@
 
 .income {
   --row-tint: var(--color-income-row);
+}
+
+.incomeCost {
+  --row-tint: var(--color-income-cost-row);
 }
 
 .transfer {
@@ -162,8 +168,22 @@
   color: var(--color-accent);
 }
 
+.incomeCost .amount {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.incomeCostIcon {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  flex: none;
+  color: var(--color-income-cost-icon);
+}
+
 @media (--desktop) {
   .income::before,
+  .incomeCost::before,
   .transfer::before,
   .adjustment::before,
   .selected::before,

@@ -22,6 +22,7 @@ type CatalogListProps<Entry extends CatalogEntry> = Readonly<{
   groups: readonly CatalogGroup<Entry>[] | undefined;
   selection: CatalogSelection | undefined;
   renderMark: (entry: Entry) => ReactNode;
+  renderMetadata?: (entry: Entry) => ReactNode;
   renderActions: (entry: Entry) => ReactNode;
 }>;
 
@@ -30,6 +31,7 @@ export function CatalogList<Entry extends CatalogEntry>({
   groups,
   selection,
   renderMark,
+  renderMetadata,
   renderActions,
 }: CatalogListProps<Entry>) {
   const headingId = useId();
@@ -115,6 +117,7 @@ export function CatalogList<Entry extends CatalogEntry>({
                       entry.description !== '' && (
                         <span className={styles['description']}>{entry.description}</span>
                       )}
+                    {renderMetadata?.(entry)}
                   </span>
                   {renderActions(entry)}
                 </li>

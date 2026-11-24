@@ -12,6 +12,8 @@
   --color-bone: light-dark(#e4e4e0, #24272b);
   --color-band: light-dark(#f4f4f1, #1e2125);
   --color-income-row: light-dark(#e8f4ed, #14241c);
+  --color-income-cost-row: light-dark(#f0eafa, #272036);
+  --color-income-cost-icon: light-dark(#694b8e, #c7b4e8);
   --color-transfer-row: light-dark(#e8eef9, #172131);
   --color-adjustment-row: light-dark(#f8efdf, #2a2216);
   --color-bone-ground: light-dark(#e0e0db, #1c1f22);

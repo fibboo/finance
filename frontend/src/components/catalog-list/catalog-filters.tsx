@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 
 import { Skeleton } from '@/components/skeleton/skeleton';
 
@@ -16,18 +16,21 @@ type CatalogSegment<Key extends string> =
 
 type CatalogFiltersProps<Key extends string> = Readonly<{
   segment: CatalogSegment<Key> | undefined;
+  children?: ReactNode;
   isDeletedShown: boolean;
   onDeletedShownChange: (isDeletedShown: boolean) => void;
 }>;
 
 export function CatalogFilters<Key extends string>({
   segment,
+  children,
   isDeletedShown,
   onDeletedShownChange,
 }: CatalogFiltersProps<Key>) {
   const name = useId();
   return (
     <div className={styles['catalogFilters']}>
+      {children !== undefined && <div className={styles['additionalFilters']}>{children}</div>}
       {segment?.kind === 'pending' && <Skeleton className={styles['segmentSkeleton']} />}
       {segment?.kind === 'shown' && (
         <fieldset className={styles['segment']}>

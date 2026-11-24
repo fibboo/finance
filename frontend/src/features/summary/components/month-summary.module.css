@@ -130,3 +130,64 @@
     font-size: var(--font-size-md);
   }
 }
+
+.incomeBreakdown {
+  margin: 0;
+  padding-top: var(--space-2);
+  border-top: var(--size-border) solid var(--color-border);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  row-gap: var(--space-0-5);
+  column-gap: var(--space-2);
+}
+
+.incomeLine {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  align-items: baseline;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-sub);
+}
+
+.incomeLine:nth-child(2) {
+  text-align: center;
+}
+
+.incomeLine:last-child {
+  text-align: end;
+}
+
+.incomeLine dt {
+  color: var(--color-muted);
+}
+
+.incomeLine dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.incomeLine:nth-child(2) dt {
+  color: var(--color-ink);
+  font-weight: var(--font-weight-semibold);
+}
+
+.valuationNote {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+@media (--desktop) {
+  .incomeLine {
+    font-size: var(--font-size-sm);
+  }
+
+  .incomeLine dd {
+    font-size: var(--font-size-md);
+  }
+}
