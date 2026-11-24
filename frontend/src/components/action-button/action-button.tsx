@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, type To } from 'react-router';
 
 import styles from './action-button.module.css';
@@ -21,6 +21,8 @@ type ActionButtonProps = Readonly<{
 export function ActionButton({ id, label, iconPath, isDanger, action }: ActionButtonProps) {
   const hintId = useId();
   const tooltipId = useId();
+  const anchorName = `--action-tooltip-${tooltipId.replaceAll(':', '')}`;
+  const tooltipRef = useRef<HTMLSpanElement>(null);
   const isBlocked = action.kind === 'button' && action.blockingHint !== undefined;
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -43,6 +45,12 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
   }, [isTapped]);
 
   const isTipShown = isBlocked && (isHovered || isFocused || isTapped);
+  useEffect(() => {
+    if (isTipShown) {
+      tooltipRef.current?.showPopover();
+    }
+  }, [isTipShown]);
+
   useEffect(() => {
     if (!isTipShown) {
       return;
@@ -96,11 +104,8 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
   return (
     <>
       {isBlocked && (
-        <span id={hintId} className={styles['hint']}>
-          <svg className={styles['hintIcon']} aria-hidden="true" viewBox="0 0 24 24">
-            <path d={iconPath} />
-          </svg>
-          <span className={styles['hintText']}>{blockingHint}</span>
+        <span id={hintId} hidden>
+          {blockingHint}
         </span>
       )}
       <button
@@ -111,6 +116,7 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
         aria-disabled={isBlocked}
         aria-describedby={isBlocked ? (isTipShown ? tooltipId : hintId) : undefined}
         className={className}
+        style={{ anchorName }}
         data-tip-shown={isTipShown}
         onClick={() => {
           if (isBlocked) {
@@ -138,7 +144,14 @@ export function ActionButton({ id, label, iconPath, isDanger, action }: ActionBu
       >
         {icon}
         {isTipShown && (
-          <span id={tooltipId} role="tooltip" className={styles['tip']}>
+          <span
+            ref={tooltipRef}
+            id={tooltipId}
+            role="tooltip"
+            popover="manual"
+            className={styles['tip']}
+            style={{ positionAnchor: anchorName }}
+          >
             {blockingHint}
           </span>
         )}
