@@ -31,6 +31,7 @@ from app.schemas.accounting.account import (
     AccountRequest,
     AccountRestoreRequest,
     AccountUpdate,
+    CategoryPurpose,
     CategoryType,
 )
 from app.schemas.accounting.location import LocationCreate
@@ -514,6 +515,7 @@ async def test_get_account_deleted_category_or_income_source(
     assert account.name == "Cigarettes"
     assert account.description == "Quit in March"
     assert account.category_type == category_type
+    assert account.category_purpose == (CategoryPurpose.PERSONAL if kind == AccountKind.EXPENSE else None)
     assert account.status == EntityStatusType.DELETED
     assert account.balance == Decimal("0")
     assert account.base_currency_balance == Decimal("0.00")
@@ -923,6 +925,7 @@ async def test_create_account_without_currency_ok(
     assert account.kind == kind
     assert account.currency is None
     assert account.category_type == category_type
+    assert account.category_purpose == (CategoryPurpose.PERSONAL if kind == AccountKind.EXPENSE else None)
     assert account.balance == Decimal("0")
     assert account.base_currency_rate == Decimal("0")
     assert account.status == EntityStatusType.ACTIVE
@@ -1543,3 +1546,143 @@ async def test_get_accounts_recent_use_order(db: AsyncSession):
     # Assert
     assert [account.name for account in by_recent_use.items] == ["Delta", "Bravo", "Alpha", "Charlie"]
     assert [account.name for account in by_name.items] == ["Alpha", "Bravo", "Charlie", "Delta"]
+
+
+@pytest.mark.parametrize("purpose", [CategoryPurpose.PERSONAL, CategoryPurpose.INCOME_COST])
+async def test_create_category_persists_purpose(
+    db: AsyncSession, db_transaction: AsyncSession, purpose: CategoryPurpose
+):
+    # arrange
+    user_id: UUID = uuid4()
+
+    # act
+    category: AccountModel = await account_service.create_account(
+        db=db_transaction,
+        user_id=user_id,
+        create_data=AccountCreateRequest(
+            kind=AccountKind.EXPENSE, name="Work tools", category_type=CategoryType.FIXED, category_purpose=purpose
+        ),
+    )
+    await db_transaction.commit()
+
+    # assert
+    stored: AccountModel | None = await account_crud.get_or_none(db=db, id=category.id)
+    assert category.category_purpose == purpose
+    assert stored.category_purpose == purpose
+
+
+@pytest.mark.parametrize("change_purpose", [False, True])
+async def test_update_category_purpose_preserves_type_and_balances(
+    db: AsyncSession, db_transaction: AsyncSession, change_purpose: bool
+):
+    # arrange
+    user_id: UUID = uuid4()
+    category: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user_id,
+            kind=AccountKind.EXPENSE,
+            name="Work tools",
+            category_type=CategoryType.FIXED,
+            category_purpose=CategoryPurpose.INCOME_COST,
+        ),
+        commit=True,
+    )
+    update_fields: dict[str, CategoryPurpose] = {"category_purpose": CategoryPurpose.PERSONAL} if change_purpose else {}
+
+    # act
+    updated: Account = await account_service.update_account(
+        db=db_transaction,
+        user_id=user_id,
+        account_id=category.id,
+        update_data=AccountUpdate(name="Work tools renamed", **update_fields),
+    )
+    await db_transaction.commit()
+
+    # assert
+    expected_purpose: CategoryPurpose = CategoryPurpose.PERSONAL if change_purpose else CategoryPurpose.INCOME_COST
+    assert updated.category_purpose == expected_purpose
+    assert updated.category_type == CategoryType.FIXED
+    assert updated.balance == category.balance
+    assert updated.base_currency_balance == Decimal("0.00")
+    stored_purpose: CategoryPurpose = await db.scalar(
+        select(AccountModel.category_purpose).where(AccountModel.id == category.id)
+    )
+    assert stored_purpose == expected_purpose
+
+
+async def test_update_money_account_refuses_category_purpose(db: AsyncSession, db_transaction: AsyncSession):
+    # arrange
+    user_id: UUID = uuid4()
+    account: AccountModel = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.ASSET, name="Wallet", currency="USD"),
+        commit=True,
+    )
+
+    # act / assert
+    with pytest.raises(AccountKindMismatch):
+        await account_service.update_account(
+            db=db_transaction,
+            user_id=user_id,
+            account_id=account.id,
+            update_data=AccountUpdate(name="Wallet", category_purpose=CategoryPurpose.PERSONAL),
+        )
+    await db_transaction.rollback()
+
+
+@pytest.mark.parametrize(
+    "purpose,search,category_type,statuses,expected_names",
+    [
+        (CategoryPurpose.PERSONAL, None, None, [EntityStatusType.ACTIVE], ["Legacy", "Personal"]),
+        (CategoryPurpose.INCOME_COST, "tools", CategoryType.FIXED, [EntityStatusType.ACTIVE], ["Work tools"]),
+        (CategoryPurpose.INCOME_COST, None, None, [EntityStatusType.DELETED], ["Old tools"]),
+        (CategoryPurpose.PERSONAL, "tools", None, [EntityStatusType.ACTIVE], []),
+    ],
+)
+async def test_get_accounts_combines_purpose_with_other_filters(
+    db: AsyncSession,
+    purpose: CategoryPurpose,
+    search: str | None,
+    category_type: CategoryType | None,
+    statuses: list[EntityStatusType],
+    expected_names: list[str],
+):
+    # arrange
+    user_id: UUID = uuid4()
+    for name, stored_purpose, stored_type, status_value in [
+        ("Legacy", None, CategoryType.VARIABLE, EntityStatusType.ACTIVE),
+        ("Personal", CategoryPurpose.PERSONAL, CategoryType.FIXED, EntityStatusType.ACTIVE),
+        ("Work tools", CategoryPurpose.INCOME_COST, CategoryType.FIXED, EntityStatusType.ACTIVE),
+        ("Old tools", CategoryPurpose.INCOME_COST, CategoryType.FIXED, EntityStatusType.DELETED),
+    ]:
+        await account_crud.create(
+            db=db,
+            obj_in={
+                "user_id": user_id,
+                "kind": AccountKind.EXPENSE,
+                "name": name,
+                "category_type": stored_type,
+                "category_purpose": stored_purpose,
+                "status": status_value,
+            },
+            commit=True,
+        )
+    await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.ASSET, name="Wallet", currency="USD"),
+        commit=True,
+    )
+    request = AccountRequest(
+        category_purposes=[purpose],
+        search_term=search,
+        statuses=statuses,
+        category_types=[] if category_type is None else [category_type],
+    )
+
+    # act
+    result: Page[Account] = await account_service.get_accounts(db=db, user_id=user_id, request=request)
+
+    # assert
+    assert [category.name for category in result.items] == expected_names
+    assert all(category.category_purpose == purpose for category in result.items)

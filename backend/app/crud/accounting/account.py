@@ -11,7 +11,14 @@ from app.crud.base import CRUDBase
 from app.models.accounting.account import Account
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
-from app.schemas.accounting.account import AccountCreate, AccountRequest, AccountUpdate, MONEY_ACCOUNT_KINDS
+from app.schemas.accounting.account import (
+    AccountCreate,
+    AccountKind,
+    AccountRequest,
+    AccountUpdate,
+    CategoryPurpose,
+    MONEY_ACCOUNT_KINDS,
+)
 from app.schemas.base import EntityStatusType, ListOrderType
 
 
@@ -27,6 +34,12 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
 
         if len(request.category_types) > 0:
             query = query.where(self.model.category_type.in_(request.category_types))
+
+        if len(request.category_purposes) > 0:
+            query = query.where(
+                self.model.kind == AccountKind.EXPENSE,
+                func.coalesce(self.model.category_purpose, CategoryPurpose.PERSONAL).in_(request.category_purposes),
+            )
 
         if request.search_term is not None:
             query = query.where(

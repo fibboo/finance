@@ -224,6 +224,9 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
     if update_data.category_type is not None and account_db.kind != AccountKind.EXPENSE:
         raise AccountKindMismatch(account_id=account_id, kinds=[AccountKind.EXPENSE], logger=logger)
 
+    if update_data.category_purpose is not None and account_db.kind != AccountKind.EXPENSE:
+        raise AccountKindMismatch(account_id=account_id, kinds=[AccountKind.EXPENSE], logger=logger)
+
     if update_data.color is not None and account_db.kind not in MONEY_ACCOUNT_KINDS:
         raise AccountKindMismatch(account_id=account_id, kinds=MONEY_ACCOUNT_KINDS, logger=logger)
 

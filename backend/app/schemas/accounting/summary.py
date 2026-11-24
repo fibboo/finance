@@ -22,6 +22,9 @@ class Summary(BaseModel):
     estimated_total_balance: Decimal | None
     earned: Decimal
     spent: Decimal
+    income_costs: Decimal | None = None
+    net_income: Decimal | None = None
+    personal_spending: Decimal | None = None
     left_over: Decimal
     unvalued_spent: list[CurrencyAmount]
     estimated_unvalued_spent: Decimal | None

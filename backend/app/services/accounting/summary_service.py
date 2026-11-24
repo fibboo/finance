@@ -99,6 +99,7 @@ async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) ->
     total_balance: Decimal = _get_total_balance(accounts_db=accounts_db)
     earned: Decimal = utils.round_to_cents(amount=sums.income)
     spent: Decimal = utils.round_to_cents(amount=sums.expense)
+    income_costs: Decimal = utils.round_to_cents(amount=sums.income_costs)
     unvalued_spent: list[CurrencyAmount] = [
         CurrencyAmount(currency=unvalued_sum.currency, amount=unvalued_sum.amount) for unvalued_sum in unvalued_sums
     ]
@@ -133,6 +134,9 @@ async def get_summary(*, db: AsyncSession, user_id: UUID, month: date | None) ->
         estimated_total_balance=estimated_total_balance,
         earned=earned,
         spent=spent,
+        income_costs=income_costs,
+        net_income=earned - income_costs,
+        personal_spending=spent - income_costs,
         left_over=earned - spent,
         unvalued_spent=unvalued_spent,
         estimated_unvalued_spent=estimated_unvalued_spent,

@@ -60,6 +60,16 @@ CATEGORY_TYPE_LABELS: frozendict[CategoryType, str] = frozendict(
 )
 
 
+class CategoryPurpose(str, Enum):
+    PERSONAL = "PERSONAL"
+    INCOME_COST = "INCOME_COST"
+
+
+CATEGORY_PURPOSE_LABELS: frozendict[CategoryPurpose, str] = frozendict(
+    {CategoryPurpose.PERSONAL: "Personal", CategoryPurpose.INCOME_COST: "Income costs"}
+)
+
+
 class AccountBase(BaseModel):
     name: AccountName
     description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=256)] | None = None
@@ -70,6 +80,14 @@ class AccountCreateBase(AccountBase):
     currency: CurrencyCode | None = None
     color: AccountColor | None = None
     category_type: CategoryType | None = None
+    category_purpose: CategoryPurpose | None = None
+
+    @model_validator(mode="after")
+    def default_category_purpose(self) -> AccountCreateBase:
+        if self.kind == AccountKind.EXPENSE and "category_purpose" not in self.model_fields_set:
+            self.category_purpose = CategoryPurpose.PERSONAL
+
+        return self
 
 
 class AccountCreateRequest(AccountCreateBase):
@@ -89,6 +107,9 @@ class AccountCreateRequest(AccountCreateBase):
         if is_expense_account != (self.category_type is not None):
             raise ValueError("category_type should be filled for EXPENSE accounts only")
 
+        if is_expense_account != (self.category_purpose is not None):
+            raise ValueError("category_purpose should be filled for EXPENSE accounts only")
+
         return self
 
 
@@ -99,11 +120,15 @@ class AccountCreate(AccountCreateBase):
 class AccountUpdate(AccountBase):
     color: AccountColor | None = None
     category_type: CategoryType | None = None
+    category_purpose: CategoryPurpose | None = None
 
     @model_validator(mode="after")
     def validate_category_type(self) -> AccountUpdate:
         if "category_type" in self.model_fields_set and self.category_type is None:
             raise ValueError("category_type can not be null")
+
+        if "category_purpose" in self.model_fields_set and self.category_purpose is None:
+            raise ValueError("category_purpose can not be null")
 
         return self
 
@@ -121,9 +146,17 @@ class Account(AccountBase):
     currency: CurrencyCode | None
     color: str | None
     category_type: CategoryType | None
+    category_purpose: CategoryPurpose | None = None
     base_balance: Decimal = Field(exclude=True)
     estimated_base_balance: Decimal | None = None
     status: EntityStatusType
+
+    @model_validator(mode="after")
+    def default_legacy_category_purpose(self) -> Account:
+        if self.kind == AccountKind.EXPENSE and self.category_purpose is None:
+            self.category_purpose = CategoryPurpose.PERSONAL
+
+        return self
 
     @computed_field
     @property
@@ -147,6 +180,7 @@ class AccountRequest(Params):
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
     kinds: list[AccountKind] = VISIBLE_ACCOUNT_KINDS
     category_types: list[CategoryType] = []
+    category_purposes: list[CategoryPurpose] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
     order: ListOrderType = ListOrderType.NAME
 

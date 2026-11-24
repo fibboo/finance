@@ -109,3 +109,34 @@ def test_name_case_insensitive_revision_renames_active_case_duplicates(postgresq
     ]
     location_names = postgresql.execute("SELECT name FROM locations ORDER BY created_at").fetchall()
     assert location_names == [("Old market",), ("OLD MARKET 2",)]
+
+
+def test_category_purpose_revision_backfills_and_accepts_legacy_writes(postgresql, monkeypatch):
+    # arrange
+    database_url = f"postgresql+asyncpg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
+    monkeypatch.setattr(database_settings, "database_url", database_url)
+    alembic_config = Config("alembic.ini")
+    command.upgrade(alembic_config, "3e7b1c9d5a42")
+    user_id = "0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11"
+    for name, category_status in [("Active", "ACTIVE"), ("Deleted", "DELETED")]:
+        postgresql.execute(
+            "INSERT INTO accounts (user_id, kind, name, category_type, status) VALUES (%s, 'EXPENSE', %s, 'FIXED', %s)",
+            (user_id, name, category_status),
+        )
+    postgresql.execute(
+        "INSERT INTO accounts (user_id, kind, name, currency) VALUES (%s, 'ASSET', 'Wallet', 'USD')", (user_id,)
+    )
+    postgresql.commit()
+
+    # act
+    command.upgrade(alembic_config, "9d678ac4c332")
+
+    # assert
+    rows = postgresql.execute("SELECT name, category_purpose FROM accounts ORDER BY name").fetchall()
+    assert rows == [("Active", "PERSONAL"), ("Deleted", "PERSONAL"), ("Wallet", None)]
+    postgresql.execute(
+        "INSERT INTO accounts (user_id, kind, name, category_type) VALUES (%s, 'EXPENSE', 'Legacy', 'FIXED')",
+        (user_id,),
+    )
+    postgresql.commit()
+    assert postgresql.execute("SELECT category_purpose FROM accounts WHERE name = 'Legacy'").fetchone() == (None,)
