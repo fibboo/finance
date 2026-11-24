@@ -148,6 +148,7 @@ function SelectedTransaction({
               mode={{ kind: 'edit', transaction }}
               transactionType={transaction.transaction_type}
               categoryTypes={choices.dictionaries.category_types}
+              categoryPurposes={choices.dictionaries.category_purposes ?? []}
               currencies={choices.currencies}
               moneyAccounts={choices.moneyAccounts}
               categories={choices.categories}

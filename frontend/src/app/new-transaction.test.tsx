@@ -227,14 +227,37 @@ test('lists the money accounts used most recently first', async () => {
   expect(requestedOrder).toBe('recent_use');
 });
 
-test('lists the categories and the locations used most recently first', async () => {
+test('lists recent categories with income-cost labels and recent locations', async () => {
   // arrange
   let requestedCategoryOrder: string | null = null;
   let requestedLocationOrder: string | null = null;
+  const platformFees = {
+    ...groceries,
+    id: '3c2b1a18-8c1a-4b9e-9d1f-0e6a7f0c2f4e',
+    name: 'Platform fees',
+    category_purpose: 'INCOME_COST',
+  } satisfies components['schemas']['Account'];
   server.use(
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [],
+        account_kinds: [],
+        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
+        category_purposes: [
+          { key: 'PERSONAL', label: 'Personal' },
+          { key: 'INCOME_COST', label: 'Income costs' },
+        ],
+        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const searchParams = new URL(request.url).searchParams;
-      const items = searchParams.getAll('kinds').includes('EXPENSE') ? [groceries] : [wallet];
+      const items: components['schemas']['Account'][] = searchParams
+        .getAll('kinds')
+        .includes('EXPENSE')
+        ? [{ ...groceries, category_purpose: 'PERSONAL' }, platformFees]
+        : [wallet];
       if (searchParams.getAll('kinds').includes('EXPENSE')) {
         requestedCategoryOrder = searchParams.get('order');
       }
@@ -269,14 +292,22 @@ test('lists the categories and the locations used most recently first', async ()
   );
   const user = userEvent.setup();
   render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
-  await user.click(await screen.findByRole('button', { name: /^Category/ }));
-  await screen.findByRole('button', { name: /^Groceries/ });
-  await user.click(screen.getByRole('button', { name: 'Back' }));
 
   // act
-  await user.click(screen.getByRole('button', { name: /^Location/ }));
+  await user.click(await screen.findByRole('button', { name: /^Category/ }));
+  const categories = await screen.findByRole('list', { name: 'Category' });
+  const personalCategory = within(categories).getByRole('button', { name: /^Groceries/ });
+  const incomeCostCategory = within(categories).getByRole('button', { name: /^Platform fees/ });
+  expect(within(personalCategory).getByText('Variable', { exact: true })).toBeVisible();
+  expect(within(incomeCostCategory).getByText('Variable · Income costs')).toBeVisible();
+  await user.type(screen.getByRole('searchbox', { name: 'Search categories' }), 'platform');
+  expect(within(categories).queryByRole('button', { name: /Groceries/ })).not.toBeInTheDocument();
+  await user.click(incomeCostCategory);
 
   // assert
+  expect(screen.getByRole('button', { name: /^Category/ })).toHaveTextContent('Platform fees');
+  await user.click(screen.getByRole('button', { name: /^Location/ }));
+
   expect(await screen.findByRole('button', { name: /^Central market/ })).toBeInTheDocument();
   expect([requestedCategoryOrder, requestedLocationOrder]).toEqual(['recent_use', 'recent_use']);
 });
