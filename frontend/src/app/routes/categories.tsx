@@ -242,7 +242,6 @@ export function Component() {
             {categoryPurposes !== undefined && (
               <fieldset className={styles['purposeFilter']}>
                 <legend className="visually-hidden">Category purpose</legend>
-                <span aria-hidden="true">Purpose</span>
                 <div className={styles['purposeOptions']}>
                   {[{ key: undefined, label: 'All' }, ...categoryPurposes].map((option) => (
                     <label key={option.key ?? 'ALL'} className={styles['purposeOption']}>
