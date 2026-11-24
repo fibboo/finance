@@ -40,6 +40,23 @@ export function TransactionOverviewSkeleton({
       {transactionFrame.entryFrames.map((entryFrame) => (
         <TransactionEntryBlockSkeleton key={entryFrame.role} entryFrame={entryFrame} />
       ))}
+      {transactionFrame.rateLabels.length > 0 && (
+        <div className={styles['rates']} aria-hidden="true">
+          <dl className={styles['rateList']}>
+            {transactionFrame.rateLabels.map((label) => (
+              <div key={label} className={styles['rate']}>
+                <dt className={styles['term']}>{label}</dt>
+                <dd className={styles['equation']}>
+                  <SkeletonLine
+                    textClassName={styles['equation']}
+                    className={styles['rateSkeleton']}
+                  />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
       <dl className={styles['facts']} aria-hidden="true">
         {transactionFrame.hasExchangeDifference && (
           <>

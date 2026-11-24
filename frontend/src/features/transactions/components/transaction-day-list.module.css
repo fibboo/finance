@@ -49,7 +49,6 @@
 
 @media (--desktop) {
   .transactionDayList {
-    grid-template-columns: var(--size-dot) repeat(2, minmax(0, 1fr)) max-content;
     column-gap: var(--space-4);
   }
 
@@ -57,5 +56,11 @@
     min-height: var(--size-day-header-lg);
     border-radius: var(--radius-segment);
     font-size: var(--font-size-sm);
+  }
+}
+
+@container transaction-feed (min-width: 48rem) {
+  .transactionDayList {
+    grid-template-columns: var(--size-dot) minmax(0, 2fr) minmax(0, 1fr) max-content;
   }
 }

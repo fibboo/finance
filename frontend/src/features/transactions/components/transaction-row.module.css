@@ -125,6 +125,11 @@
   white-space: nowrap;
 }
 
+.title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .details,
 .detailsText,
 .comment,
@@ -132,10 +137,6 @@
   font-size: var(--font-size-2xs);
   line-height: var(--line-height-note);
   color: var(--color-muted);
-}
-
-.rates {
-  color: var(--color-ink);
 }
 
 .comment {
@@ -200,6 +201,15 @@
     font-size: var(--font-size-base);
   }
 
+  .details,
+  .detailsText,
+  .comment,
+  .originalAmount {
+    font-size: var(--font-size-sm);
+  }
+}
+
+@container transaction-feed (min-width: 48rem) {
   .details {
     display: contents;
   }
@@ -222,12 +232,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .detailsText,
-  .comment,
-  .originalAmount {
-    font-size: var(--font-size-sm);
   }
 
   .amount,

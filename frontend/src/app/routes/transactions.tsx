@@ -2,7 +2,7 @@ import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { DetailsColumn } from '@/app/details-column';
+import { DetailsColumn, TRANSACTION_FULL_MENU_MIN_WIDTH } from '@/app/details-column';
 import { writeSelectedEntry } from '@/app/selected-entry';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { useOpenNewTransaction } from '@/app/use-open-new-transaction';
@@ -47,6 +47,8 @@ import { isThrownWithoutData } from '@/lib/query-meta';
 import styles from './transactions.module.css';
 
 type AccountKind = components['schemas']['AccountKind'];
+
+export const handle = { fullMenuMinWidth: TRANSACTION_FULL_MENU_MIN_WIDTH };
 
 function readTransactionCount(
   total: number | undefined,

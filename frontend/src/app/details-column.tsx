@@ -23,6 +23,7 @@ import { SelectedTransactionDetails } from './selected-transaction-details';
 import type { ShownAccount } from './use-shown-account';
 
 const BACK_LABEL = 'Transaction';
+export const TRANSACTION_FULL_MENU_MIN_WIDTH = '71rem';
 
 type EntryOwner = Readonly<{
   transactionId: string | undefined;

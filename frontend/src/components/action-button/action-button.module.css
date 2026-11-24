@@ -40,8 +40,7 @@
   outline-offset: calc(var(--size-focus) * -1);
 }
 
-.icon,
-.hintIcon {
+.icon {
   width: var(--size-icon);
   height: var(--size-icon);
   fill: none;
@@ -51,38 +50,18 @@
   stroke-linejoin: round;
 }
 
-.hint {
-  order: -1;
-  flex: 0 0 100%;
-  display: var(--action-hint-display, flex);
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1-5);
-  min-width: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
-}
-
-.hintText {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hintIcon {
-  flex: none;
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-}
-
 .tip {
-  position: absolute;
-  bottom: calc(100% + var(--space-2));
-  left: 0;
-  z-index: 1;
+  position: fixed;
+  position-area: top;
+  position-try-fallbacks:
+    flip-block,
+    flip-inline,
+    flip-block flip-inline;
+  inset: auto;
+  margin: var(--space-2);
+  border: 0;
   width: max-content;
-  max-width: var(--size-tooltip);
+  max-width: min(var(--size-tooltip), calc(100dvw - var(--space-4)));
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-segment);
   font-size: var(--font-size-sm);
@@ -91,19 +70,5 @@
   text-align: left;
   background: var(--color-ink);
   color: var(--color-panel);
-}
-
-.actionButton[data-tip-shown='true']::after {
-  content: '';
-  position: absolute;
-  bottom: calc(100% + var(--space-2) - var(--space-1-5) * 2);
-  left: 50%;
-  translate: -50% 0;
-  border: var(--space-1-5) solid transparent;
-  border-top-color: var(--color-ink);
-}
-
-.actionButton:last-child > .tip {
-  right: 0;
-  left: auto;
+  box-shadow: var(--shadow-popover);
 }

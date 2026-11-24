@@ -1,6 +1,8 @@
 @import '@/styles/media.css';
 
 .transactions {
+  container: transaction-feed / inline-size;
+
   position: relative;
   flex: 1 1 auto;
   min-width: 0;

@@ -18,10 +18,12 @@ export function TransactionEntryBlockSkeleton({ entryFrame }: TransactionEntryBl
         />
         <span className={styles['identity']}>
           <SkeletonLine textClassName={styles['name']} className={styles['nameSkeleton']} />
-          <SkeletonLine textClassName={styles['note']} className={styles['noteSkeleton']} />
-          {entryFrame.hasBalance && (
-            <SkeletonLine textClassName={styles['note']} className={styles['balanceSkeleton']} />
-          )}
+          <span className={styles['metadata']}>
+            <SkeletonLine textClassName={styles['note']} className={styles['noteSkeleton']} />
+            {entryFrame.hasBalance && (
+              <SkeletonLine textClassName={styles['note']} className={styles['balanceSkeleton']} />
+            )}
+          </span>
         </span>
         <span className={styles['amounts']}>
           <SkeletonLine textClassName={styles['amount']} className={styles['amountSkeleton']} />

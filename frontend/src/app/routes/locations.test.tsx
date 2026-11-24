@@ -167,7 +167,7 @@ test('shows the number of active locations and lists them by recent use with the
 
 test('shows the transactions column and the card before the locations answer on desktop', async () => {
   // arrange
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/accounting/locations', async () => {
       await delay('infinite');
@@ -689,7 +689,7 @@ test.each([
 test('shows the chosen transaction of a location with the location as plain text and drops it when another location is chosen on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({

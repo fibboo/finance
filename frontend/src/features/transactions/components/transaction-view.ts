@@ -26,7 +26,6 @@ type TransactionView = Readonly<{
   isIncome: boolean;
   isIncomeCost?: boolean;
   otherAmount?: CurrencyAmount | undefined;
-  currencyRate?: string | undefined;
 }>;
 
 const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZone: 'UTC' });
@@ -166,24 +165,158 @@ export function readRateText({
   return rateText;
 }
 
+type RateCandidate = Readonly<{
+  leftCurrency: string;
+  rightCurrency: string;
+  rate: number;
+  role?: TransactionEntry['role'];
+  isEstimated: boolean;
+}>;
+
+function readRateCandidate({
+  left,
+  right,
+  baseCurrency,
+  role,
+  isEstimated = false,
+}: Readonly<{
+  left: CurrencyAmount;
+  right: CurrencyAmount;
+  baseCurrency: string;
+  role?: TransactionEntry['role'];
+  isEstimated?: boolean;
+}>): RateCandidate | undefined {
+  const ratio = Math.abs(right.amount / left.amount);
+  if (left.currency === right.currency || !Number.isFinite(ratio) || ratio <= 0) {
+    return undefined;
+  }
+
+  const isReversed =
+    right.currency === baseCurrency || (left.currency !== baseCurrency && ratio < 1);
+  const candidate = {
+    leftCurrency: isReversed ? right.currency : left.currency,
+    rightCurrency: isReversed ? left.currency : right.currency,
+    rate: isReversed ? 1 / ratio : ratio,
+    ...(role === undefined ? {} : { role }),
+    isEstimated,
+  };
+  if (!Number.isFinite(candidate.rate)) {
+    return undefined;
+  }
+
+  return candidate;
+}
+
+function isSameRate({
+  left,
+  right,
+}: Readonly<{ left: RateCandidate; right: RateCandidate }>): boolean {
+  const isSame =
+    left.leftCurrency === right.leftCurrency &&
+    left.rightCurrency === right.rightCurrency &&
+    Math.abs(left.rate - right.rate) <= Number.EPSILON * Math.max(left.rate, right.rate) * 4;
+  return isSame;
+}
+
+export function readTransactionRates({
+  transaction,
+  baseCurrency,
+  view,
+  baseAmount,
+}: Readonly<{
+  transaction: Readonly<Transaction>;
+  baseCurrency: string;
+  view: TransactionView;
+  baseAmount: number | undefined;
+}>): readonly Readonly<{ label: string; equation: string }>[] {
+  const entries = readTransactionEntries(transaction);
+  const [from, to] = entries;
+  const operation =
+    from === undefined || to === undefined
+      ? undefined
+      : readRateCandidate({
+          left: { amount: Number(from.posting.amount), currency: from.posting.currency },
+          right: { amount: Number(to.posting.amount), currency: to.posting.currency },
+          baseCurrency,
+        });
+  const primaryRole = transaction.transaction_type === 'INCOME' ? 'To' : from?.role;
+  const valuations = entries.flatMap(({ posting, role }) => {
+    const valuation =
+      posting.base_amount ??
+      posting.estimated_base_amount ??
+      (role === primaryRole && posting.currency === view.currency ? baseAmount : undefined);
+    if (
+      operation !== undefined &&
+      operation.leftCurrency !== baseCurrency &&
+      operation.rightCurrency !== baseCurrency &&
+      role !== primaryRole &&
+      valuation !== undefined &&
+      baseAmount !== undefined &&
+      Math.abs(Number(valuation)) === Math.abs(baseAmount)
+    ) {
+      return [];
+    }
+
+    const candidate =
+      valuation === undefined
+        ? undefined
+        : readRateCandidate({
+            left: { amount: Number(valuation), currency: baseCurrency },
+            right: { amount: Number(posting.amount), currency: posting.currency },
+            baseCurrency,
+            role,
+            isEstimated: posting.base_amount === null,
+          });
+    return candidate === undefined ? [] : [candidate];
+  });
+  const candidates = operation === undefined ? valuations : [operation, ...valuations];
+  const groups = candidates.reduce<readonly (readonly RateCandidate[])[]>((rates, candidate) => {
+    const matchingIndex = rates.findIndex((group) =>
+      group.some((rate) => isSameRate({ left: rate, right: candidate })),
+    );
+    const nextRates =
+      matchingIndex < 0
+        ? [...rates, [candidate]]
+        : rates.map((group, index) => (index === matchingIndex ? [...group, candidate] : group));
+    return nextRates;
+  }, []);
+  const rates = groups.flatMap((group) => {
+    const candidate = group[0];
+    if (candidate === undefined) {
+      return [];
+    }
+
+    const hasOtherValuation = groups.some(
+      (other) => other !== group && other.some((rate) => rate.role !== undefined),
+    );
+    const labels = group.flatMap((rate) =>
+      rate.role === undefined
+        ? []
+        : [
+            `${rate.isEstimated ? 'Estimated valuation' : 'Valuation'} in ${baseCurrency}${hasOtherValuation ? ` (${rate.role})` : ''}`,
+          ],
+    );
+    const rate = {
+      label: group.some((candidate) => candidate.role === undefined)
+        ? 'Exchange rate'
+        : [...new Set(labels)].join(' · '),
+      equation: `1 ${candidate.leftCurrency} = ${formatRate(candidate.rate)} ${candidate.rightCurrency}`,
+    };
+    return [rate];
+  });
+  return rates;
+}
+
 function readOtherAmount({
   reference,
   other,
-}: Readonly<{ reference: Posting; other: Posting }>): Pick<
-  TransactionView,
-  'otherAmount' | 'currencyRate'
-> {
+}: Readonly<{ reference: Posting; other: Posting }>): Pick<TransactionView, 'otherAmount'> {
   if (reference.currency === other.currency) {
     return {};
   }
 
   const otherAmount = { amount: Math.abs(Number(other.amount)), currency: other.currency };
-  const rate = readRateText({
-    amount: otherAmount.amount,
-    referenceAmount: Number(reference.amount),
-  });
-  const currencyRate = rate === undefined ? undefined : `${otherAmount.currency} ${rate}`;
-  return { otherAmount, currencyRate };
+  return { otherAmount };
 }
 
 export function readForeignAmountsText({
@@ -324,12 +457,10 @@ export function readTransactionView({
 export function readMoneyEntryView({
   view,
   transaction,
-  transactionTypes,
   omittedAccountIds,
 }: Readonly<{
   view: TransactionView;
   transaction: Readonly<Transaction>;
-  transactionTypes: readonly DictionaryItem[];
   omittedAccountIds: readonly string[];
 }>): TransactionView | undefined {
   const entryPosting = transaction.postings.find(
@@ -345,21 +476,10 @@ export function readMoneyEntryView({
     return entryView;
   }
 
-  const otherPosting = requireField({
-    value: transaction.postings.find((posting) => posting.account.id !== entryPosting.account.id),
-    name: 'other account',
-  });
   const amount = Number(entryPosting.amount);
-  const arrow = amount < 0 ? '→' : '←';
   const entryView = {
     ...view,
-    rowTitle: [
-      `${readTypeLabel({ transaction, transactionTypes })} ${arrow} `,
-      otherPosting.account,
-    ],
     accountNames: [],
-    markedAccount: entryPosting.account,
-    titleMarkedAccount: null,
     amount,
     baseAmount: readOptionalAmount(entryPosting.base_amount),
     estimatedBaseAmount: readOptionalAmount(entryPosting.estimated_base_amount),

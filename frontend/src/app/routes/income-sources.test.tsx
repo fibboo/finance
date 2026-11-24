@@ -548,7 +548,7 @@ test.each([
 test('shows the chosen transaction of an income source with the source as plain text and drops it when another income source is chosen on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({

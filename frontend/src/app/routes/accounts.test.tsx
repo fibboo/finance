@@ -1115,7 +1115,7 @@ function serveAccountTransactions() {
 test('shows the transactions of the top account with its balance and actions and the details of its first transaction on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   serveAccountTransactions();
 
   // act
@@ -1151,7 +1151,7 @@ test('shows the transactions of the top account with its balance and actions and
     `/transactions?account_ids=${wallet.id}`,
   );
   expect(
-    await within(walletTransactions).findByRole('link', { name: 'Transfer → Credit card' }),
+    await within(walletTransactions).findByRole('link', { name: 'Wallet → Credit card' }),
   ).toBeInTheDocument();
   expect(screen.queryByRole('dialog', { name: 'Account details' })).not.toBeInTheDocument();
   const transactionDetails = await screen.findByRole('dialog', { name: 'Transaction details' });
@@ -1168,7 +1168,7 @@ test('shows the transactions of the top account with its balance and actions and
 test('opens a transaction of the feed and drops it when another account is chosen on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   serveAccountTransactions();
   const { router } = render(<Component />, { initialEntries: [`/?account=${wallet.id}`] });
   const walletTransactions = await screen.findByRole('region', {
@@ -1177,7 +1177,7 @@ test('opens a transaction of the feed and drops it when another account is chose
 
   // act
   await user.click(
-    await within(walletTransactions).findByRole('link', { name: 'Transfer → Credit card' }),
+    await within(walletTransactions).findByRole('link', { name: 'Wallet → Credit card' }),
   );
 
   // assert
@@ -1205,7 +1205,7 @@ test('opens a transaction of the feed and drops it when another account is chose
 test('moves the focus between the chosen account and the chosen transaction with Left and Right on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   serveAccountTransactions();
   const search = `?account=${wallet.id}&transaction=${transferToCard.id}`;
   const { router } = render(<Component />, { initialEntries: [`/${search}`] });
@@ -1213,7 +1213,7 @@ test('moves the focus between the chosen account and the chosen transaction with
     name: 'Transactions of Wallet',
   });
   const transferRow = await within(walletTransactions).findByRole('link', {
-    name: 'Transfer → Credit card',
+    name: 'Wallet → Credit card',
   });
 
   // the details of the chosen transaction hold the focus as they open
@@ -1282,7 +1282,7 @@ test('ignores the transaction param on a phone', async () => {
 test('retries the account of the feed header and shows its description on a wide desktop', async () => {
   // arrange
   const user = userEvent.setup();
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   let walletRequestCount = 0;
   serveAccountTransactions();
   server.use(
@@ -1314,7 +1314,7 @@ test('retries the account of the feed header and shows its description on a wide
 
 test('marks the account the feed shows when the search hides the chosen one on a wide desktop', async () => {
   // arrange
-  vi.stubGlobal('innerWidth', 1280);
+  vi.stubGlobal('innerWidth', 1440);
   serveAccountTransactions();
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {

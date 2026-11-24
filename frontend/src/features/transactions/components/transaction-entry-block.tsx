@@ -8,7 +8,7 @@ import { formatMoney } from '@/lib/format-money';
 
 import { DeletedAccountName } from './deleted-account-name';
 import styles from './transaction-entry-block.module.css';
-import { isDeletedAccount, readRateText, type TransactionEntry } from './transaction-view';
+import { isDeletedAccount, type TransactionEntry } from './transaction-view';
 
 type Account = components['schemas']['Account'];
 type Posting = components['schemas']['Posting'];
@@ -94,14 +94,22 @@ export type TransactionEntryFrame = Readonly<{
 export function readTransactionEntryFrame({
   entry,
   baseCurrency,
-}: Readonly<{ entry: TransactionEntry; baseCurrency: string }>): TransactionEntryFrame {
+  referenceBaseAmount,
+}: Readonly<{
+  entry: TransactionEntry;
+  baseCurrency: string;
+  referenceBaseAmount?: number | undefined;
+}>): TransactionEntryFrame {
   const { account } = entry.posting;
+  const baseAmount = readBaseAmount(entry.posting);
   const entryFrame = {
     role: entry.role,
     isMoneyAccount: isMoneyAccountKind(account.kind),
     hasBalance: readBalanceText(account) !== undefined,
     hasBaseAmount:
-      entry.posting.currency !== baseCurrency && readBaseAmount(entry.posting) !== undefined,
+      entry.posting.currency !== baseCurrency &&
+      baseAmount !== undefined &&
+      (referenceBaseAmount === undefined || Math.abs(baseAmount) !== Math.abs(referenceBaseAmount)),
   };
   return entryFrame;
 }
@@ -109,6 +117,7 @@ export function readTransactionEntryFrame({
 type TransactionEntryBlockProps = Readonly<{
   entry: TransactionEntry;
   baseCurrency: string;
+  referenceBaseAmount?: number | undefined;
   accountKinds: readonly DictionaryItem[];
   categoryTypes: readonly DictionaryItem[];
   readAccountLink: ReadAccountLink;
@@ -117,6 +126,7 @@ type TransactionEntryBlockProps = Readonly<{
 export function TransactionEntryBlock({
   entry,
   baseCurrency,
+  referenceBaseAmount,
   accountKinds,
   categoryTypes,
   readAccountLink,
@@ -126,7 +136,7 @@ export function TransactionEntryBlock({
   const isMoneyAccount = isMoneyAccountKind(account.kind);
   const baseAmount = readBaseAmount(entry.posting);
   const amount = Number(entry.posting.amount);
-  const rate = readRateText({ amount, referenceAmount: baseAmount ?? null });
+  const frame = readTransactionEntryFrame({ entry, baseCurrency, referenceBaseAmount });
   const balanceText = readBalanceText(account);
   return (
     <section aria-labelledby={titleId} className={styles['transactionEntryBlock']}>
@@ -145,10 +155,12 @@ export function TransactionEntryBlock({
           <span className={styles['name']}>
             <EntryName account={account} readAccountLink={readAccountLink} />
           </span>
-          <span className={styles['note']}>
-            {readKindText({ account, accountKinds, categoryTypes })}
+          <span className={styles['metadata']}>
+            <span className={styles['note']}>
+              {readKindText({ account, accountKinds, categoryTypes })}
+            </span>
+            {balanceText !== undefined && <span className={styles['note']}>{balanceText}</span>}
           </span>
-          {balanceText !== undefined && <span className={styles['note']}>{balanceText}</span>}
         </span>
         <span className={styles['amounts']}>
           <span className={styles['amount']}>
@@ -158,7 +170,7 @@ export function TransactionEntryBlock({
               signDisplay: 'exceptZero',
             })}
           </span>
-          {entry.posting.currency !== baseCurrency && baseAmount !== undefined && (
+          {frame.hasBaseAmount && baseAmount !== undefined && (
             <span className={styles['note']}>
               ≈{' '}
               {formatMoney({
@@ -166,7 +178,6 @@ export function TransactionEntryBlock({
                 currency: baseCurrency,
                 signDisplay: 'exceptZero',
               })}
-              {rate !== undefined && ` · rate ${rate}`}
             </span>
           )}
         </span>

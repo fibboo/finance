@@ -143,6 +143,7 @@ test('shows the reason while the pointer rests on it', async () => {
     />,
   );
   const button = screen.getByRole('button', { name: 'Delete account' });
+  expect(screen.getByText(HINT)).not.toBeVisible();
 
   // act
   await user.hover(button);

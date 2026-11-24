@@ -11,6 +11,9 @@
 
 @media (--desktop) {
   .detailsColumn {
+    --details-panel-width: var(--size-transaction-details);
+    --details-panel-padding: var(--space-4);
+
     flex: none;
     min-height: 0;
     display: var(--details-column-display, flex);

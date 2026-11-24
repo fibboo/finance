@@ -16,7 +16,7 @@ import styles from './transaction-overview.module.css';
 import { TransactionTextParts } from './transaction-text-parts';
 import {
   readExchangeDifference,
-  readRateText,
+  readTransactionRates,
   readTransactionEntries,
   readTransactionView,
   readTypeLabel,
@@ -79,6 +79,7 @@ export type TransactionFrame = Readonly<{
   hasBaseAmount: boolean;
   entryFrames: readonly TransactionEntryFrame[];
   hasExchangeDifference: boolean;
+  rateLabels: readonly string[];
 }>;
 
 export const EXPENSE_FRAME: TransactionFrame = {
@@ -88,6 +89,7 @@ export const EXPENSE_FRAME: TransactionFrame = {
     { role: 'To', isMoneyAccount: false, hasBalance: false, hasBaseAmount: false },
   ],
   hasExchangeDifference: false,
+  rateLabels: [],
 };
 
 export function readTransactionFrame({
@@ -100,13 +102,17 @@ export function readTransactionFrame({
   transactionTypes: readonly DictionaryItem[];
 }>): TransactionFrame {
   const view = readTransactionView({ transaction, transactionTypes });
+  const baseAmount = readBaseAmount({ transaction, ...view });
+  const referenceBaseAmount = view.currency === baseCurrency ? view.amount : baseAmount;
   const transactionFrame = {
-    hasBaseAmount:
-      view.currency !== baseCurrency && readBaseAmount({ transaction, ...view }) !== undefined,
+    hasBaseAmount: view.currency !== baseCurrency && baseAmount !== undefined,
     entryFrames: readTransactionEntries(transaction).map((entry) =>
-      readTransactionEntryFrame({ entry, baseCurrency }),
+      readTransactionEntryFrame({ entry, baseCurrency, referenceBaseAmount }),
     ),
     hasExchangeDifference: readExchangeDifference(transaction) !== undefined,
+    rateLabels: readTransactionRates({ transaction, baseCurrency, view, baseAmount }).map(
+      (rate) => rate.label,
+    ),
   };
   return transactionFrame;
 }
@@ -140,7 +146,7 @@ export function TransactionOverview({
   const view = readTransactionView({ transaction, transactionTypes });
   const baseAmount = readBaseAmount({ transaction, ...view });
   const exchangeDifference = readExchangeDifference(transaction);
-  const baseRate = readRateText({ amount: view.amount, referenceAmount: baseAmount ?? null });
+  const rates = readTransactionRates({ transaction, baseCurrency, view, baseAmount });
   return (
     <article aria-labelledby={titleId} className={styles['transactionOverview']}>
       <div className={styles['header']} data-sheet-drag-area>
@@ -171,7 +177,6 @@ export function TransactionOverview({
               currency: baseCurrency,
               signDisplay: view.signDisplay,
             })}
-            {baseRate !== undefined && ` · rate ${baseRate}`}
           </span>
         )}
       </div>
@@ -180,11 +185,24 @@ export function TransactionOverview({
           key={entry.posting.id}
           entry={entry}
           baseCurrency={baseCurrency}
+          referenceBaseAmount={view.currency === baseCurrency ? view.amount : baseAmount}
           accountKinds={accountKinds}
           categoryTypes={categoryTypes}
           readAccountLink={readAccountLink}
         />
       ))}
+      {rates.length > 0 && (
+        <section aria-label="Exchange rates" className={styles['rates']}>
+          <dl className={styles['rateList']}>
+            {rates.map((rate) => (
+              <div key={`${rate.label}-${rate.equation}`} className={styles['rate']}>
+                <dt className={styles['term']}>{rate.label}</dt>
+                <dd className={styles['equation']}>{rate.equation}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
       <dl className={styles['facts']}>
         {exchangeDifference !== undefined && (
           <>
@@ -197,12 +215,6 @@ export function TransactionOverview({
                 signDisplay: 'exceptZero',
               })}
             </dd>
-          </>
-        )}
-        {view.currencyRate !== undefined && (
-          <>
-            <dt className={styles['term']}>Rate</dt>
-            <dd className={styles['value']}>{view.currencyRate}</dd>
           </>
         )}
         <dt className={styles['term']}>Location</dt>

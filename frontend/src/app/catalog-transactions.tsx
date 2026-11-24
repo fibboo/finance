@@ -23,7 +23,7 @@ import styles from './catalog-transactions.module.css';
 
 type DictionaryItem = components['schemas']['DictionaryItem'];
 type Transaction = components['schemas']['Transaction'];
-export const CATALOG_FULL_MENU_MIN_WIDTH = '87rem';
+export const CATALOG_FULL_MENU_MIN_WIDTH = '89.5rem';
 
 export const CATALOG_DESCRIPTION_SEPARATOR = ' · ';
 

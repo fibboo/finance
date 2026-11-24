@@ -98,6 +98,15 @@ function matchMinWidth(query: string): MediaQueryList {
 
 const previouslyFocusedElements = new WeakMap<HTMLDialogElement, Element | null>();
 
+beforeAll(() => {
+  Object.defineProperty(HTMLElement.prototype, 'showPopover', {
+    configurable: true,
+    value(this: HTMLElement) {
+      this.style.display = 'block';
+    },
+  });
+});
+
 function cancelOpenDialog(event: KeyboardEvent) {
   const dialog = Array.from(document.querySelectorAll('dialog[open]')).at(-1) ?? null;
   if (event.key === 'Escape' && !event.defaultPrevented && dialog !== null) {
