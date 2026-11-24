@@ -8,8 +8,9 @@
   min-height: var(--size-transaction-row);
   padding-block: var(--space-1);
   display: grid;
-  grid-template-columns: subgrid;
+  grid-template-columns: var(--size-dot) minmax(0, 1fr) max-content;
   grid-template-rows: auto auto;
+  column-gap: var(--feed-column-gap);
   align-content: center;
   align-items: center;
   font-size: var(--font-size-sm);
@@ -104,17 +105,24 @@
   grid-area: 1 / 1;
 }
 
-.text,
-.amounts {
-  display: contents;
-}
-
 .title {
   grid-area: 1 / 2;
 }
 
+.secondLine {
+  grid-area: 2 / 2 / 3 / -1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--feed-column-gap);
+}
+
+.transactionRow:not(:has(.originalAmount)) .secondLine {
+  grid-column: 2;
+}
+
 .details {
-  grid-area: 2 / 2;
+  flex: 1 1 auto;
 }
 
 .title,
@@ -123,11 +131,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.title {
-  white-space: normal;
-  overflow-wrap: anywhere;
 }
 
 .details,
@@ -144,18 +147,22 @@
 }
 
 .amount,
-.incomeAmount,
-.originalAmount {
+.incomeAmount {
   grid-column: 3;
   justify-self: end;
+}
+
+.amount,
+.incomeAmount,
+.originalAmount {
   white-space: nowrap;
 }
 
 .originalAmount {
-  grid-row: 2;
+  flex: none;
 }
 
-.amounts > :only-child {
+.transactionRow:not(:has(.originalAmount)) :is(.amount, .incomeAmount) {
   grid-row: 1 / -1;
 }
 
@@ -210,8 +217,18 @@
 }
 
 @container transaction-feed (min-width: 48rem) {
+  .transactionRow {
+    grid-template-columns: subgrid;
+  }
+
+  .secondLine,
   .details {
     display: contents;
+  }
+
+  .originalAmount {
+    grid-area: 2 / 4;
+    justify-self: end;
   }
 
   .detailsText {
@@ -235,8 +252,7 @@
   }
 
   .amount,
-  .incomeAmount,
-  .originalAmount {
+  .incomeAmount {
     grid-column: 4;
   }
 }

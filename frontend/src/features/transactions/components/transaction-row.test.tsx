@@ -99,7 +99,7 @@ test.each([
         { ...posting, amount: '42.80', base_amount: '42.80', account: category },
       ],
     },
-    cells: ['Groceries', 'Wallet · USD', '-$42.80'],
+    cells: ['Groceries', '-$42.80', 'Wallet'],
   },
   {
     kind: 'an expense in a category used to earn income',
@@ -115,7 +115,7 @@ test.each([
         },
       ],
     },
-    cells: ['Platform fees', 'Wallet · USD', '-$42.80'],
+    cells: ['Platform fees', '-$42.80', 'Wallet'],
     hasIncomeCostIcon: true,
   },
   {
@@ -128,7 +128,7 @@ test.each([
         { ...posting, amount: '42.80', currency: 'EUR', base_amount: null, account: category },
       ],
     },
-    cells: ['Groceries', 'Wallet · EUR', '-€42.80, not valued yet'],
+    cells: ['Groceries', '-€42.80, not valued yet', 'Wallet'],
   },
   {
     kind: 'an expense not valued yet without a rate for its estimate',
@@ -155,7 +155,7 @@ test.each([
         },
       ],
     },
-    cells: ['Groceries', 'Wallet · EUR', '-€42.80, not valued yet'],
+    cells: ['Groceries', '-€42.80, not valued yet', 'Wallet'],
   },
   {
     kind: 'an expense not valued yet by its estimate over its own amount',
@@ -182,7 +182,7 @@ test.each([
         },
       ],
     },
-    cells: ['Groceries', 'Wallet · EUR', '≈ -$45.10', '-€42.80'],
+    cells: ['Groceries', '≈ -$45.10', 'Wallet · ≈ 0.9490', '-€42.80'],
   },
   {
     kind: 'an expense not valued yet by an estimate of zero',
@@ -209,7 +209,7 @@ test.each([
         },
       ],
     },
-    cells: ['Groceries', 'Wallet · RSD', '≈ $0.00', '-RSD 0.01'],
+    cells: ['Groceries', '≈ $0.00', 'Wallet', '-RSD 0.01'],
   },
   {
     kind: 'a valued expense by its base amount even next to an estimate',
@@ -235,7 +235,7 @@ test.each([
         },
       ],
     },
-    cells: ['Groceries', 'Wallet · EUR', '-$46.00', '-€42.80'],
+    cells: ['Groceries', '-$46.00', 'Wallet · 0.9304', '-€42.80'],
   },
   {
     kind: 'an income',
@@ -255,7 +255,7 @@ test.each([
         { ...posting, amount: '2100.00', currency: 'EUR', base_amount: '2291.30', account: wallet },
       ],
     },
-    cells: ['Salary', 'Wallet · EUR', '+$2,291.30', '+€2,100.00'],
+    cells: ['Salary', '+$2,291.30', 'Wallet · 0.9165', '+€2,100.00'],
   },
   {
     kind: 'a transfer',
@@ -268,7 +268,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
-    cells: ['Wallet → Savings', 'EUR', '$327.40', '€300.00'],
+    cells: ['Wallet → Savings', '$327.40', '0.9163', '€300.00'],
   },
   {
     kind: 'a two-currency expense with a base-currency account and a comment',
@@ -280,7 +280,7 @@ test.each([
         { ...posting, amount: '4.50', currency: 'GBP', base_amount: '5.72', account: category },
       ],
     },
-    cells: ['Groceries', 'Wallet · USD · Flat white at Heathrow', '-$5.72', '-£4.50'],
+    cells: ['Groceries', '-$5.72', 'Wallet · 0.7867 · Flat white at Heathrow', '-£4.50'],
   },
   {
     kind: 'a transfer between two currencies other than the base currency',
@@ -293,7 +293,7 @@ test.each([
         { ...posting, amount: '0', currency: 'USD', base_amount: '1.00', account: equity },
       ],
     },
-    cells: ['Wallet → Savings', 'EUR', '$109.16', '€100.00 → £87.90'],
+    cells: ['Wallet → Savings', '$109.16', '1.1377', '€100.00 → £87.90'],
   },
   {
     kind: 'a transfer not valued yet',
@@ -306,7 +306,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: null, account: savings },
       ],
     },
-    cells: ['Wallet → Savings', 'EUR', '€300.00, not valued yet'],
+    cells: ['Wallet → Savings', '€300.00, not valued yet'],
   },
   {
     kind: 'a transfer not valued yet by its estimate without a sign',
@@ -333,7 +333,7 @@ test.each([
         },
       ],
     },
-    cells: ['Wallet → Savings', 'EUR', '≈ $327.00', '€300.00'],
+    cells: ['Wallet → Savings', '≈ $327.00', '≈ 0.9174', '€300.00'],
   },
   {
     kind: 'a decreasing adjustment',
@@ -346,7 +346,7 @@ test.each([
         { ...posting, amount: '12.00', base_amount: '12.00', account: equity },
       ],
     },
-    cells: ['Adjustment', 'Savings · USD', '-$12.00'],
+    cells: ['Adjustment', '-$12.00', 'Savings'],
   },
   {
     kind: 'an increasing adjustment',
@@ -358,7 +358,7 @@ test.each([
         { ...posting, amount: '25.00', base_amount: '25.00', account: savings },
       ],
     },
-    cells: ['Adjustment', 'Savings · USD', '+$25.00'],
+    cells: ['Adjustment', '+$25.00', 'Savings'],
   },
   {
     kind: 'an expense of a deleted category from a deleted account',
@@ -379,7 +379,7 @@ test.each([
         },
       ],
     },
-    cells: ['Groceries, deleted', 'Wallet, deleted · USD', '-$42.80'],
+    cells: ['Groceries, deleted', '-$42.80', 'Wallet, deleted'],
   },
   {
     kind: 'an income of a deleted source',
@@ -396,7 +396,7 @@ test.each([
         { ...posting, amount: '100.00', base_amount: '100.00', account: wallet },
       ],
     },
-    cells: ['Salary, deleted', 'Wallet · USD', '+$100.00'],
+    cells: ['Salary, deleted', '+$100.00', 'Wallet'],
   },
   {
     kind: 'a transfer from a deleted account',
@@ -413,7 +413,7 @@ test.each([
         { ...posting, amount: '300.00', base_amount: '300.00', account: savings },
       ],
     },
-    cells: ['Wallet, deleted → Savings', 'USD', '$300.00'],
+    cells: ['Wallet, deleted → Savings', '$300.00'],
   },
   {
     kind: 'an adjustment of a deleted account',
@@ -430,7 +430,7 @@ test.each([
         },
       ],
     },
-    cells: ['Adjustment', 'Savings, deleted · USD', '+$25.00'],
+    cells: ['Adjustment', '+$25.00', 'Savings, deleted'],
   },
 ] satisfies {
   kind: string;
@@ -453,7 +453,7 @@ test.each([
   );
 
   // assert
-  // the title, its account line, the base-currency amount and the account's own amount
+  // the title, the base-currency amount, its account line and the account's own amount
   expect(await screen.findByRole('listitem')).toHaveTextContent(cells.join(''));
   const incomeCostIcon = screen.queryByRole('img', { name: 'Income cost' });
   if (hasIncomeCostIcon) {
@@ -534,7 +534,7 @@ test('names the money account and the location instead of the entry every row of
   );
 
   // assert
-  expect(await screen.findByRole('listitem')).toHaveTextContent('WalletUSD · Spar-$42.80');
+  expect(await screen.findByRole('listitem')).toHaveTextContent('Wallet-$42.80Spar');
 });
 
 test.each([
@@ -556,7 +556,7 @@ test.each([
         { ...posting, amount: '42.10', currency: 'EUR', base_amount: '49.26', account: category },
       ],
     },
-    cells: ['Groceries', 'Spar', '-$49.26', '-€42.10'],
+    cells: ['Groceries', '-$49.26', '0.8546 · Spar', '-€42.10'],
   },
   {
     kind: 'the other account of an outgoing transfer with the amount that left',
@@ -568,7 +568,7 @@ test.each([
         { ...posting, amount: '300.00', currency: 'EUR', base_amount: '327.40', account: savings },
       ],
     },
-    cells: ['Wallet → Savings', '-$327.40', '-€300.00'],
+    cells: ['Wallet → Savings', '-$327.40', '0.9163', '-€300.00'],
   },
   {
     kind: 'the other account of an incoming transfer with the amount that came in',
@@ -580,7 +580,20 @@ test.each([
         { ...posting, amount: '280.00', currency: 'EUR', base_amount: '300.00', account: wallet },
       ],
     },
-    cells: ['Savings → Wallet', '+$300.00', '+€280.00'],
+    cells: ['Savings → Wallet', '+$300.00', '0.9333', '+€280.00'],
+  },
+  {
+    kind: 'the other account of an incoming transfer valued apart from its source by its own rate',
+    row: {
+      ...transaction,
+      transaction_type: 'TRANSFER',
+      postings: [
+        { ...posting, amount: '-400.00', currency: 'RSD', base_amount: '-4.00', account: savings },
+        { ...posting, amount: '400.00', currency: 'RSD', base_amount: '5.00', account: wallet },
+        { ...posting, amount: '0', currency: 'USD', base_amount: '-1.00', account: equity },
+      ],
+    },
+    cells: ['Savings → Wallet', '+$5.00', '80.0000', '+RSD 400.00'],
   },
   {
     kind: 'the other account of an incoming transfer not valued yet by its signed estimate',
@@ -607,7 +620,7 @@ test.each([
         },
       ],
     },
-    cells: ['Savings → Wallet', '≈ +$327.00', '+€300.00'],
+    cells: ['Savings → Wallet', '≈ +$327.00', '≈ 0.9174', '+€300.00'],
   },
   {
     kind: 'only the type of an adjustment',

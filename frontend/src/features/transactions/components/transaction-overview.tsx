@@ -15,6 +15,7 @@ import {
 import styles from './transaction-overview.module.css';
 import { TransactionTextParts } from './transaction-text-parts';
 import {
+  readBaseAmount,
   readExchangeDifference,
   readTransactionRates,
   readTransactionEntries,
@@ -29,27 +30,6 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 export type LocationLink = Readonly<{ to: To; id: string }>;
 
 export type ReadLocationLink = (locationId: string) => LocationLink | undefined;
-
-function readBaseAmount({
-  transaction,
-  baseAmount,
-  estimatedBaseAmount,
-  amount: originalAmount,
-}: Readonly<{
-  transaction: Transaction;
-  baseAmount: number | null;
-  estimatedBaseAmount: number | null;
-  amount: number;
-}>): number | undefined {
-  const estimatedAmount = transaction.estimated_base_currency_amount;
-  const amount =
-    baseAmount ??
-    estimatedBaseAmount ??
-    (estimatedAmount === null || estimatedAmount === undefined
-      ? undefined
-      : Math.sign(originalAmount) * Number(estimatedAmount));
-  return amount;
-}
 
 const EMPTY_FACT = '—';
 

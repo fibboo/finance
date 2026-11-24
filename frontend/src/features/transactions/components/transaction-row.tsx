@@ -16,6 +16,7 @@ import { TransactionTextParts } from './transaction-text-parts';
 import {
   readForeignAmountsText,
   readMoneyEntryView,
+  readRowRateText,
   readTransactionView,
 } from './transaction-view';
 
@@ -72,10 +73,13 @@ export function TransactionRow({
     view.rowTitle.some((part) => typeof part !== 'string' && omittedAccountIds.includes(part.id));
   const rowTitle = isEntryInTitle ? view.accountNames : view.rowTitle;
   const accountNames = isEntryInTitle ? [] : view.accountNames;
-  const currency = isMoneyEntryOmitted ? undefined : view.currency;
+  const rateText = readRowRateText({ transaction, baseCurrency, transactionView, view });
   const locationName =
     isMoneyEntryOmitted || isEntryInTitle ? transaction.location?.name : undefined;
-  const hasPostingDetails = currency !== undefined || locationName !== undefined;
+  const postingDetails = [rateText, locationName]
+    .filter((detail) => detail !== undefined)
+    .join(DETAILS_SEPARATOR);
+  const hasPostingDetails = postingDetails !== '';
   const hasDetails = dateLabel !== undefined || accountNames.length > 0 || hasPostingDetails;
   const hasComment = transaction.comment !== null && transaction.comment !== '';
   const title = (
@@ -105,29 +109,65 @@ export function TransactionRow({
         style={{ color: readAccountColor(view.markedAccount) }}
         aria-hidden="true"
       />
-      <span className={styles['text']}>
-        <span className={styles['title']}>
-          {arrowKeySelection === undefined ? (
-            title
-          ) : (
-            <Link
-              {...arrowKeySelection}
-              data-shown-by-default={isShownByDefault ? '' : undefined}
-              id={readTransactionLinkId(transaction.id)}
-              to={{
-                search: writeSelectedTransaction({
-                  searchParams,
-                  transactionId: transaction.id,
-                }).toString(),
-              }}
-              preventScrollReset
-              aria-current={isSelected ? 'true' : undefined}
-              className={styles['link']}
-            >
-              {title}
-            </Link>
-          )}
-        </span>
+      <span className={styles['title']}>
+        {arrowKeySelection === undefined ? (
+          title
+        ) : (
+          <Link
+            {...arrowKeySelection}
+            data-shown-by-default={isShownByDefault ? '' : undefined}
+            id={readTransactionLinkId(transaction.id)}
+            to={{
+              search: writeSelectedTransaction({
+                searchParams,
+                transactionId: transaction.id,
+              }).toString(),
+            }}
+            preventScrollReset
+            aria-current={isSelected ? 'true' : undefined}
+            className={styles['link']}
+          >
+            {title}
+          </Link>
+        )}
+      </span>
+      <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
+        {isIncomeCost && (
+          <svg
+            aria-label="Income cost"
+            className={styles['incomeCostIcon']}
+            role="img"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="7" width="18" height="13" rx="2" />
+            <path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M3 13h18" />
+          </svg>
+        )}
+        {view.baseAmount !== null ? (
+          formatMoney({
+            amount: view.baseAmount,
+            currency: baseCurrency,
+            signDisplay: view.signDisplay,
+          })
+        ) : view.estimatedBaseAmount !== null ? (
+          <EstimatedAmount
+            amount={view.estimatedBaseAmount}
+            currency={baseCurrency}
+            signDisplay={view.signDisplay}
+          />
+        ) : (
+          <>
+            {originalAmount}
+            <span className="visually-hidden">, not valued yet</span>
+          </>
+        )}
+      </span>
+      <span className={styles['secondLine']}>
         <span className={styles['details']}>
           <span className={styles['detailsText']}>
             {dateLabel !== undefined && <span>{dateLabel}</span>}
@@ -140,10 +180,7 @@ export function TransactionRow({
                 {hasPostingDetails && DETAILS_SEPARATOR}
               </>
             )}
-            {currency ?? locationName}
-            {currency !== undefined &&
-              locationName !== undefined &&
-              `${DETAILS_SEPARATOR}${locationName}`}
+            {postingDetails}
           </span>
           {hasComment && (
             <span className={styles['comment']}>
@@ -152,44 +189,6 @@ export function TransactionRow({
               )}
               {transaction.comment}
             </span>
-          )}
-        </span>
-      </span>
-      <span className={styles['amounts']}>
-        <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
-          {isIncomeCost && (
-            <svg
-              aria-label="Income cost"
-              className={styles['incomeCostIcon']}
-              role="img"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="7" width="18" height="13" rx="2" />
-              <path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M3 13h18" />
-            </svg>
-          )}
-          {view.baseAmount !== null ? (
-            formatMoney({
-              amount: view.baseAmount,
-              currency: baseCurrency,
-              signDisplay: view.signDisplay,
-            })
-          ) : view.estimatedBaseAmount !== null ? (
-            <EstimatedAmount
-              amount={view.estimatedBaseAmount}
-              currency={baseCurrency}
-              signDisplay={view.signDisplay}
-            />
-          ) : (
-            <>
-              {originalAmount}
-              <span className="visually-hidden">, not valued yet</span>
-            </>
           )}
         </span>
         {foreignAmounts !== '' && (
