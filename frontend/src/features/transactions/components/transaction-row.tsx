@@ -14,10 +14,9 @@ import {
 import styles from './transaction-row.module.css';
 import { TransactionTextParts } from './transaction-text-parts';
 import {
-  readBaseAmount,
   readForeignAmountsText,
   readMoneyEntryView,
-  readTransactionRates,
+  readRowRateText,
   readTransactionView,
 } from './transaction-view';
 
@@ -74,14 +73,7 @@ export function TransactionRow({
     view.rowTitle.some((part) => typeof part !== 'string' && omittedAccountIds.includes(part.id));
   const rowTitle = isEntryInTitle ? view.accountNames : view.rowTitle;
   const accountNames = isEntryInTitle ? [] : view.accountNames;
-  const [rate] = readTransactionRates({
-    transaction,
-    baseCurrency,
-    view: transactionView,
-    baseAmount: readBaseAmount({ transaction, ...transactionView }),
-  });
-  const rateText =
-    rate === undefined ? undefined : `${rate.isEstimated ? '≈ ' : ''}${rate.rateText}`;
+  const rateText = readRowRateText({ transaction, baseCurrency, transactionView, view });
   const locationName =
     isMoneyEntryOmitted || isEntryInTitle ? transaction.location?.name : undefined;
   const postingDetails = [rateText, locationName]

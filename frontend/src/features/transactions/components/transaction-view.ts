@@ -253,6 +253,7 @@ export function readTransactionRates({
   label: string;
   equation: string;
   rateText: string;
+  isExchangeRate: boolean;
   isEstimated: boolean;
 }>[] {
   const entries = readTransactionEntries(transaction);
@@ -323,17 +324,51 @@ export function readTransactionRates({
           ],
     );
     const rateText = formatRate(candidate.rate);
+    const isExchangeRate = group.some((candidate) => candidate.role === undefined);
     const rate = {
-      label: group.some((candidate) => candidate.role === undefined)
-        ? 'Exchange rate'
-        : [...new Set(labels)].join(' · '),
+      label: isExchangeRate ? 'Exchange rate' : [...new Set(labels)].join(' · '),
       equation: `1 ${candidate.leftCurrency} = ${rateText} ${candidate.rightCurrency}`,
       rateText,
+      isExchangeRate,
       isEstimated: group.every((rate) => rate.isEstimated),
     };
     return [rate];
   });
   return rates;
+}
+
+export function readRowRateText({
+  transaction,
+  baseCurrency,
+  transactionView,
+  view,
+}: Readonly<{
+  transaction: Readonly<Transaction>;
+  baseCurrency: string;
+  transactionView: TransactionView;
+  view: TransactionView;
+}>): string | undefined {
+  const exchangeRate = readTransactionRates({
+    transaction,
+    baseCurrency,
+    view: transactionView,
+    baseAmount: readBaseAmount({ transaction, ...transactionView }),
+  }).find((rate) => rate.isExchangeRate);
+  if (exchangeRate !== undefined) {
+    return exchangeRate.rateText;
+  }
+
+  if (view.currency === baseCurrency) {
+    return undefined;
+  }
+
+  const valuationRate = readRateText({
+    amount: view.amount,
+    referenceAmount: view.baseAmount ?? view.estimatedBaseAmount,
+  });
+  const rateText =
+    valuationRate === undefined || view.baseAmount !== null ? valuationRate : `≈ ${valuationRate}`;
+  return rateText;
 }
 
 function readOtherAmount({

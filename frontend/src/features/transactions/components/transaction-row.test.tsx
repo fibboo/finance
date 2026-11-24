@@ -583,6 +583,19 @@ test.each([
     cells: ['Savings → Wallet', '0.9333', '+$300.00', '+€280.00'],
   },
   {
+    kind: 'the other account of an incoming transfer valued apart from its source by its own rate',
+    row: {
+      ...transaction,
+      transaction_type: 'TRANSFER',
+      postings: [
+        { ...posting, amount: '-400.00', currency: 'RSD', base_amount: '-4.00', account: savings },
+        { ...posting, amount: '400.00', currency: 'RSD', base_amount: '5.00', account: wallet },
+        { ...posting, amount: '0', currency: 'USD', base_amount: '-1.00', account: equity },
+      ],
+    },
+    cells: ['Savings → Wallet', '80.0000', '+$5.00', '+RSD 400.00'],
+  },
+  {
     kind: 'the other account of an incoming transfer not valued yet by its signed estimate',
     row: {
       ...transaction,

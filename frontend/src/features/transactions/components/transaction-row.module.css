@@ -10,7 +10,7 @@
   display: grid;
   grid-template-columns: var(--size-dot) minmax(0, 1fr) max-content;
   grid-template-rows: auto auto;
-  column-gap: var(--space-2-5);
+  column-gap: var(--feed-column-gap);
   align-content: center;
   align-items: center;
   font-size: var(--font-size-sm);
@@ -194,7 +194,6 @@
 
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
-    column-gap: var(--space-4);
     font-size: var(--font-size-base);
   }
 
