@@ -22,7 +22,7 @@ This route preserves each workflow's requirements for what the user must see bef
 
 ## Code review
 
-[Code Review](agent-workflow.md#code-review) defines the shared sequence. Check that Claude Code exposes `/code-review` and that the Codex host exposes in-session subagents. Keep the repository's automatic Codex Code Review on GitHub disabled in the hosted Codex settings. If those settings are inaccessible, record them as unverified. The repository instructions control the agent workflow.
+[Code Review](agent-workflow.md#code-review) defines the shared sequence. Check that Claude Code exposes `/code-review` and that the Codex host exposes in-session subagents.
 
 ## Tools and startup
 
@@ -154,7 +154,6 @@ A worktree nested under the main checkout can also inherit ancestor `CLAUDE.md` 
 
 ## Sources
 
-- [Codex GitHub Code Review and repository review rules](https://learn.chatgpt.com/docs/third-party/github)
 - [Codex instruction loading](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 - [Codex skill discovery](https://learn.chatgpt.com/docs/build-skills)
 - [Codex permission modes](https://learn.chatgpt.com/docs/permission-modes)
