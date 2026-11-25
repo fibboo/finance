@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finance · макет изменений</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui,sans-serif;background:#0b0c0e;color:#ecedee}body{margin:0}.controls{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;padding:.65rem 1rem;background:#17191c;border-bottom:1px solid #2a2d32}.controls strong{margin-right:.5rem}.group{display:flex;flex-wrap:wrap;gap:.25rem}.controls button,.controls select{font:inherit;color:inherit;background:#24272b;border:1px solid #42464c;border-radius:8px;padding:.4rem .65rem;min-height:38px}.controls button[aria-pressed=true]{border-color:#4cc38a;color:#70d8a6}.controls button{cursor:pointer}.controls select{max-width:100%}iframe{display:block;border:0;width:100%;height:100%;margin:0 auto}.phone{max-width:390px;max-height:844px;border-inline:1px solid #2a2d32}.layout{height:100dvh;display:flex;flex-direction:column}.canvas{flex:1;min-height:0;padding-top:0}.caption{margin:0;padding:.4rem 1rem;background:#111316;color:#b3b7bd;font-size:.85rem}
+</style>
+<div class="layout">
+<nav class="controls" aria-label="Настройки макета">
+<strong>Finance</strong>
+<div class="group" id="screens">
+<button type="button" data-screen="filter-accounts">Фильтр счетов</button>
+<button type="button" data-screen="filter-categories">Фильтр категорий</button>
+<button type="button" data-screen="accounts">Accounts</button>
+<button type="button" data-screen="categories">Categories</button>
+</div>
+<select id="variant" aria-label="Вариант"><option value="below">1 · Подпись под названием</option><option value="beside">2 · Подпись справа</option><option value="before">0 · Как сейчас</option></select>
+<button type="button" id="phone" aria-pressed="false">Телефон</button>
+<button type="button" id="light" aria-pressed="false">Светлая тема</button>
+<button type="button" id="single" aria-pressed="false">Один тип</button>
+</nav>
+<p class="caption" id="caption"></p>
+<div class="canvas"><iframe id="preview" title="Finance — экран макета"></iframe></div>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+let screen = params.get('view') || 'filter-accounts';
+const frame = document.querySelector('#preview');
+const variant = document.querySelector('#variant');
+const phone = document.querySelector('#phone');
+const light = document.querySelector('#light');
+const single = document.querySelector('#single');
+variant.value = params.get('layout') || (screen.startsWith('filter-') ? 'beside' : 'below');
+const pressed = button => button.getAttribute('aria-pressed') === 'true';
+function update() {
+  const filter = screen.startsWith('filter-') ? screen.slice(7) : '';
+  variant.querySelector('[value=beside]').hidden = !filter;
+  if (!filter && variant.value === 'beside') variant.value = 'below';
+  const options = new URLSearchParams({screen: filter ? 'transactions' : screen, layout: variant.value, theme: pressed(light) ? 'light':'dark', types: pressed(single) ? 'single':'multiple'});
+  if (filter) options.set('filter', filter);
+  frame.classList.toggle('phone', pressed(phone));
+  frame.src = 'app.html?' + options;
+  document.querySelectorAll('[data-screen]').forEach(button => button.setAttribute('aria-pressed', button.dataset.screen === screen));
+  document.querySelector('#caption').textContent = filter
+    ? 'Transactions › Filters › ' + (filter === 'accounts' ? 'Accounts' : 'Categories') + ' · Тестовые данные'
+    : (screen === 'accounts' ? 'Accounts' : 'Categories') + ' · Тестовые данные';
+}
+document.querySelectorAll('[data-screen]').forEach(button => button.onclick = () => {screen = button.dataset.screen; if (variant.value !== 'before') variant.value = screen.startsWith('filter-') ? 'beside' : 'below'; update();});
+for (const button of [phone, light, single]) button.onclick = () => {button.setAttribute('aria-pressed', !pressed(button)); update();};
+variant.onchange = update;
+update();
+</script>
