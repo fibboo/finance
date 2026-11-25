@@ -1,8 +1,6 @@
 # PR Review Guidelines
 
-These guidelines apply to every pull request review in this repository. This file says what a finding is and how severe it is. How a particular reviewer publishes its findings is up to that reviewer.
-
-If the diff touches a `.py` file, a `requirements/` file, a Dockerfile, `pytest.ini`, `pyproject.toml`, `setup.cfg` or an `.env` template, read `.claude/rules/python.md` in full before reviewing it. That file loads only when a matching file is opened, and a review that reads the diff through `gh` opens none, yet every rule in it applies to the diff, not only the sections cited here. For the same reason, if the diff touches anything under `frontend/`, read `.claude/rules/typescript.md` and `.claude/rules/react.md` in full.
+Load these guidelines for every review and when deciding whether a review finding blocks completion. Follow [Load instructions](../../docs/agent-workflow.md#load-instructions) for the target checkout and match the changed paths against rule frontmatter even when reviewing a GitHub diff.
 
 ## Severity
 
@@ -33,9 +31,7 @@ A pull request carries one kind of work (`.claude/rules/common.md`: one issue is
 
 ## Backend and Frontend
 
-A pull request changes `backend/` or `frontend/`, not both (`.claude/rules/common.md` **General Coding**).
-
-- A diff that changes files in both is a finding, unless it is a bug fix that needs both modules and the change on each side is small and reads as one fix.
+- Flag a diff that mixes backend and frontend changes outside the exceptions in [Common Rules](common.md#general-coding).
 - Name which files belong to which module, and ask for the work to be split into a backend issue and a frontend issue, each with its own PR.
 - Grade it **P2** and treat it as blocking, since the author can act on it before the merge. The reviewer never creates or edits issues; the split is the author's to make.
 
