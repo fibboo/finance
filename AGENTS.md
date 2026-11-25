@@ -1,12 +1,6 @@
 # Codex repository instructions
 
-Read `CLAUDE.md` and `.claude/rules/common.md` in full before planning or changing this repository. They are shared project instructions, not Claude-only conventions. Follow their Git, scope, formatting and test rules.
-
-## Load applicable rules
-
-- Before reading, planning, editing or reviewing files, read each applicable `.claude/rules/**/*.md` file in full. A rule with `paths:` frontmatter applies when any listed pattern matches a repository-relative path; a rule without `paths:` applies to all work. Check this directory when a task starts so newly added module rules are included.
-- For a review, match rules against the changed paths even if the diff came from `gh` rather than from opening the files. Read `.claude/rules/pr-review.md` before reporting findings.
-- Use paths from the root of the checkout being worked on, including in a Git worktree. Do not read rules or edit files in another worktree by accident.
+Read [CLAUDE.md](CLAUDE.md) and [.claude/rules/common.md](.claude/rules/common.md) in full. Follow [Agent workflow](docs/agent-workflow.md), including its rule-loading steps before reading, planning, editing or reviewing repository files.
 
 ## Approval
 
@@ -16,23 +10,13 @@ If native Plan mode or its plan-approval UI is unavailable or prohibited, state 
 
 Preserve the applicable workflow's requirements for the proposal's contents and approval timing. Continue only independent work while approval is pending; silence, elapsed time and a preselected option are not approval. Do not request approval again for an unchanged proposal the user already approved. Task approval and the host's command permissions are separate: neither replaces the other.
 
-## Review workflow
-
-Follow the shared sequence in `CLAUDE.md`, **Review stages**, **Review every finished issue** and **Check a frontend change in a browser**. For Codex authoring tasks, request built-in GitHub Code Review by posting `@codex review` on the issue's PR. Do not invoke Claude CLI, a local review command or a reviewer subagent as a substitute.
-
-The shared workflow authorizes its review-trigger comments. It does not authorize unapproved fixes, changes to review settings or a different review mechanism when the required service is unavailable. Report such a limitation and ask the user how to proceed.
-
-For each GitHub review, record the current PR head and wait for the integration's result for that commit. Report the actual reviewed commit, findings and any incomplete stage; an acknowledgement reaction, successful CI or an older review does not establish completion for the current head. Preserve the shared requirements for approval of fixes, commit checks and frontend verification.
-
 ## Code Review Rules
 
-Read `.claude/rules/pr-review.md` in full and apply its finding criteria and severity rules. Read every rule applicable to the changed paths as described in **Load applicable rules**, even when examining a diff without opening those files.
-
-Use the shared rules as the source of truth rather than maintaining a second set of review criteria here. A reviewer inspects and reports; the author applies approved fixes. Review instructions do not authorize editing files, committing, pushing, posting GitHub comments or launching another reviewer.
+Use the [code-review skill](.agents/skills/code-review/SKILL.md) for explicit review requests and the review stage of finished issue work. It delegates to an independent subagent in the current session. Follow [the shared review sequence](docs/agent-workflow.md#code-review) and load [.claude/rules/pr-review.md](.claude/rules/pr-review.md) and the rules applicable to the changed paths. The reviewer inspects and reports. The author obtains approval before applying fixes.
 
 ## Skills
 
-Codex discovers entrypoints in `.agents/skills/`. Each entrypoint points to the complete shared workflow in `.claude/skills/`; read and follow that workflow before acting. Do not maintain a second copy of its instructions.
+Codex discovers entrypoints in `.agents/skills/`. Shared skill entrypoints point to `.claude/skills/`. Read the shared workflow before acting. Codex-only tool routing lives in the Codex skills.
 
 - `#issue <description>` creates an issue; `#issue <number>` updates or refines it as requested, using `issue-writer`.
 - Use `add-module` when adding a module/service or planning an issue that adds one.

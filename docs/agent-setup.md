@@ -4,7 +4,7 @@
 
 Run either agent from the root of the checkout or worktree you intend to change. Claude Code reads `CLAUDE.md`, `.claude/rules/` and `.claude/skills/` through its native discovery. Codex reads `AGENTS.md`, which tells it to load the same project rules, and discovers the entrypoints under `.agents/skills/`.
 
-The Codex skill files refer to the full workflows in `.claude/skills/`; they are ordinary files, so cloning on Windows requires no symlink privileges or generation step. Change workflow instructions in the shared files. When adding a skill, add an entrypoint for both agents and keep their descriptions aligned. When adding a module rule, give it accurate `paths:` frontmatter: Claude uses native matching and Codex follows the loading instructions in `AGENTS.md`.
+Codex entrypoints for shared skills refer to the workflows in `.claude/skills/`. They are ordinary files and work in Windows checkouts. Keep shared workflows in one place and keep their entrypoint descriptions aligned. Give module rules accurate `paths:` frontmatter and follow [Load instructions](agent-workflow.md#load-instructions) in either host.
 
 Keep Claude-specific skill metadata in `.claude/skills/`, including `allowed-tools` grants and trigger examples. Codex entrypoints have their own metadata; reading the shared workflow does not grant Codex the permissions listed for Claude. Validate Claude skills with `claude plugin validate .claude/skills` and Codex entrypoints with the Codex skill validator.
 
@@ -12,7 +12,7 @@ The Codex issue-writer entrypoint maps Claude's command, search, file, question 
 
 In either agent, `#issue <description>` creates an issue and `#issue <number>` updates or refines it as requested. Native explicit invocations are `/issue-writer` and `/add-module` in Claude Code, and `$issue-writer` and `$add-module` in Codex. Creating or changing an issue requires approval of the complete draft in both agents, regardless of the host's command approval mode.
 
-Open a fresh session from the intended checkout after changing the setup. In Codex CLI, check `/skills` for both skills; in Claude Code, check the `/` skill suggestions. Ask either agent to list the project instruction files it loaded and the rules it would use for a Python PR review. Expect `CLAUDE.md`, common rules, Python rules, applicable module rules and PR review rules; Codex should also name `AGENTS.md`. This read-only check should not create an issue or edit files.
+After changing instructions, start fresh sessions from the intended checkout. In Codex, verify that the host discovers `issue-writer`, `add-module` and `code-review`. In Claude Code, check the skill suggestions and the instruction files actually loaded, using `/context` or `/memory` when available. Run the [workflow verification scenarios](agent-workflow.md#verify-agent-workflows) to check what each agent does with those instructions.
 
 ## Codex task approval
 
@@ -22,11 +22,7 @@ This route preserves each workflow's requirements for what the user must see bef
 
 ## Code review
 
-`CLAUDE.md`, **Review stages**, requires built-in Codex GitHub Code Review regardless of which coding agent authored the work. A Claude Code author first runs `/code-review` with `medium` effort, then posts `@codex review`; a Codex author posts `@codex review`. Both checks inspect the same committed and pushed head. Collect both results before agreeing fixes. Repeated review follows the existing conditions in **Review every finished issue** rather than running after every push.
-
-GitHub review requires the repository's Codex integration and access to Code Review. Manual trigger comments and the automatic All PRs setting are separate mechanisms; a plan restriction on All PRs does not itself establish whether a manual request works. Verify the service through its response and completed result. Repository instructions cannot enable a plan-restricted option or control hosted settings that the trigger does not expose.
-
-An acknowledgement reaction establishes that a request was seen, not that review completed. Match the completed result to the current PR head before reporting success, and report rejected or unavailable reviews as incomplete. If settings cannot be saved, inspect the failed request's response before inferring a cause or changing credentials.
+[Code Review](agent-workflow.md#code-review) defines the shared sequence. Check that Claude Code exposes `/code-review` and that the Codex host exposes in-session subagents. Keep the repository's automatic Codex Code Review on GitHub disabled in the hosted Codex settings. If those settings are inaccessible, record them as unverified. The repository instructions control the agent workflow.
 
 ## Tools and startup
 
@@ -136,7 +132,7 @@ The installed Codex CLI can also start with automatic approval review:
 codex --approve-for-me
 ```
 
-Do not use a never-ask policy as a fix for missing filesystem or credential access: suppressing prompts does not expand the sandbox. Keep machine-specific approval and authentication settings out of shared project files. No global trust, credentials, ownership or permission mode changes are required when approved user-context execution already works.
+Do not use a never-ask policy as a fix for missing filesystem or credential access: suppressing prompts does not expand the sandbox. Keep machine-specific approval and authentication settings out of shared project files. Leave `.claude/settings.local.json` untracked. No global trust, credentials, ownership or permission mode changes are required when approved user-context execution already works.
 
 ## Worktrees
 

@@ -71,7 +71,7 @@ The exception is a sub-issue that is not part of the parent's type, for example 
 
 - **One issue = one PR**, except Container issues, which have no PR.
 - **Split by meaning**: each PR is one piece a reviewer can read, check and merge on its own, and none grows too large to review in one sitting. Work of several such pieces is split into sub-issues. About 500 counted lines is a signal to look for a split, not a limit; the count is the one `.claude/rules/common.md` defines under *What counts toward the size signal*. Read the list there instead of restating it.
-- **Backend and frontend apart**: work that changes both `backend/` and `frontend/` is planned as a Container with backend and frontend sub-issues, each delivered by its own PR. The one exception is a bug fix that needs both modules, when the change on each side is small and the two read as one fix; it stays one issue.
+- **Backend and frontend apart**: work that changes both `backend/` and `frontend/` is planned as a Container with backend and frontend sub-issues, each delivered by its own PR. Apply the exceptions in [Common Rules](../../rules/common.md#general-coding) before splitting the work.
 - **One issue is one kind of work**: a fix to existing behaviour and a new capability are split into two sub-issues whatever the line count. One is a Bug for the fix, the other an Enhancement for the new capability, each delivered by its own PR. When an existing issue turns out to contain both, it becomes their parent: it keeps its own type and gains the Container label.
 - **Process and prompt changes are isolated**: work that touches `docs/` or `.claude/` gets its own issue and PR rather than being bundled with product code. `.claude/rules/common.md` **General Coding** has the rule with its exceptions.
 - When sub-issues are needed:
@@ -104,7 +104,7 @@ Examples: `Locations (backend): Delete and restore locations`, `Budgets: Add mon
 
 ## Issue Description Guidelines
 
-Every issue body follows this structure. Write in **English**. No code examples; name entities and components only.
+Every issue body follows this structure. Write in **English**. Describe implementation steps in prose. Include model definitions and JSON request or response examples where the issue format requires them to describe a contract.
 
 ````markdown
 ## Description
