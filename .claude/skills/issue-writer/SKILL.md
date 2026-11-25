@@ -14,7 +14,9 @@ Determine issue metadata, parents and blockers from the evidence, including when
 
 ## Approval and Body Files
 
-Use `AskUserQuestion` for clarification and `EnterPlanMode` / `ExitPlanMode` to present the complete draft for approval. Approval remains valid only when the user gave it after seeing that complete draft, including title, body, labels, parent and blockers. An initial instruction to create an issue before the draft is shown is not approval of the draft. Do not ask again for an unchanged draft that was already approved; present a changed draft again for approval. Codex maps these native Claude tools in its own `.agents/skills/issue-writer/SKILL.md` entrypoint.
+Use `AskUserQuestion` for clarification. When native Plan mode and its approval interface are available and permitted, call `EnterPlanMode` only if Plan mode is not already active. Present the complete draft and then call `ExitPlanMode` to request approval. If the native approval route is unavailable or prohibited, explain the limitation, present the same complete draft in chat and wait for explicit approval there. Codex follows the tool mapping in `.agents/skills/issue-writer/SKILL.md`.
+
+Approval is valid only after the user sees the complete draft, including title, body, labels, parent and blockers. Wait for explicit approval before creating or updating the issue. The original request to create or change the issue does not approve the draft. Present a changed draft in full and request approval again. Reuse approval for an unchanged draft.
 
 Resolve repository paths from the current checkout root. Write body files to a host-provided temporary directory outside the tracked tree, using UTF-8 and the shell's safe literal quoting, then pass them with `--body-file` so Markdown and backticks survive the shell. In Claude Code, use the native `Bash` tool for `gh` commands; this skill does not require PowerShell or changes to shell profile loading.
 
@@ -178,7 +180,7 @@ Prepare body files as described in **Approval and Body Files**.
 4. If it is more than one piece, plan a Container with sub-issues titled in the `PR N of M` format and determine their blockers from what each builds on (**Dependencies**). Ask only about unresolved dependency decisions under **Clarifications**. Otherwise plan a single issue.
 5. **Investigate the repository** for the files the plan names: every file in Affected Scope must be confirmed to exist (or tagged `[new]`).
 6. **Compose the full draft**: title, the complete body with every section filled in, labels, parent, blockers and status. For a Container, compose the parent draft and every sub-issue draft. For an issue that adds or changes a screen, agree and export its mockup first (**Mockups**) and end the body with the Mockups section, or, when the user asks for the issue before the mockup, describe the screen in text and list the mockup in Open Questions. An issue with anything left open gets `In Refinement` and the Open Questions section; any other issue gets `Ready for Development`. A Container gets the status the Container rule gives it (**Repository and Project**).
-7. **Present the draft for approval** with `EnterPlanMode`, in this format:
+7. **Present the draft for approval** as described in **Approval and Body Files**, using this format:
 
    ```
    ---
@@ -193,7 +195,7 @@ Prepare body files as described in **Approval and Body Files**.
    ```
 
    For a Container, show the parent draft first, then each sub-issue draft in order.
-8. **Call `ExitPlanMode`** and wait for explicit approval given after the complete draft was shown. If the user asks for changes, revise the draft and call `ExitPlanMode` again. Do NOT run any GitHub write command until that draft is approved.
+8. **Wait for approval** under **Approval and Body Files** before running any GitHub write command.
 9. Create the issue (see Commands), assigned to `@me`. Always run the project item-add command, take `.id` from its response and set the status the approved draft names. If creation succeeded but a later step failed, resume from the existing issue rather than creating a duplicate.
 10. For a Container: create each sub-issue in order using step 9, including assignment, project item-add and the status its draft names for every child. Link each child to the Container, then verify the links.
 11. Set every blocker the approved draft lists, for each created issue, after all issues of the request exist, then verify them (see Commands).
@@ -206,7 +208,7 @@ Prepare body files as described in **Approval and Body Files**.
 2. Fetch the current issue.
 3. Work out what the user wants changed and which body sections are affected. Keep all content the user did not ask to change. If the change adds or alters a screen, agree its mockup first and update its sources and PNGs in the `assets` branch as **Mockups** describes, including the parent Container's folder and Mockups section; that Container edit is shown in the same draft. If the change leaves something open that is not settled yet, list it in the Open Questions section. If the change makes the issue build on another one, or stop building on it, change its blockers in the draft (**Dependencies**).
 4. Compose the full updated body. Never send a partial body; the edit replaces the whole description.
-5. **Enter plan mode** with `EnterPlanMode`, show the full updated draft clearly marked as the version that will replace the current one, with its `Blocked by:` line, and call `ExitPlanMode`. If the user asks for changes, revise and call `ExitPlanMode` again. Wait for explicit approval given after that complete draft was shown.
+5. Show the full updated draft clearly marked as the version that will replace the current one, with its `Blocked by:` line, and obtain approval under **Approval and Body Files**.
 6. Edit the issue, changing only what the user explicitly asked for (title, body, labels). Then set and remove blockers until the issue's list matches the approved draft, and verify it (see Commands).
 7. Read the status. If the issue is `In Refinement` and the edit removed its Open Questions section, move it to `Ready for Development`; if it is `Ready for Development` and the edit added that section, move it to `In Refinement`. Then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
 8. Report back with `[#<number>](<url>)` and a short summary of what changed.
@@ -221,7 +223,7 @@ Refining turns a raw idea into an implementation plan. It is the update path plu
 4. Judge the scope by meaning and by module (**Split by meaning**, **Backend and frontend apart**). If the plan holds more than one piece, propose the Container split and its sub-issues instead of writing an oversized plan.
 5. Apply **Clarifications** to any meaningful uncertainty the investigation could not resolve, combining the remaining questions into one `AskUserQuestion` call when needed. Include established blockers (**Dependencies**) in the draft without a separate confirmation question.
 6. Compose the complete description in the standard structure, choosing the Implementation Steps format that fits the work. If the plan adds or changes a screen, agree and export its mockup first, push the PNGs and sources to the issue's folder in the `assets` branch and end the description with the Mockups section (**Mockups**).
-7. Present the full replacement draft with `EnterPlanMode` / `ExitPlanMode`, with its `Blocked by:` line, and wait for explicit approval given after that complete draft was shown.
+7. Present the full replacement draft with its `Blocked by:` line and obtain approval under **Approval and Body Files**.
 8. Edit the issue with the full body. Correct the type label in the same call if the investigation contradicts it. Then set and remove blockers until the issue's list matches the approved draft, and verify it (see Commands). Read the status; if it is `In Refinement` or `Ready for Development`, set `Ready for Development` when the refined description has no Open Questions section and `In Refinement` when it has one, then apply the Container rule to its parent (**Repository and Project**). Never change any other status.
 9. Post a comment summarizing what was planned and what was verified: which components the plan touches, and which claims a run confirmed.
 10. Report back with `[#<number>](<url>)`.
