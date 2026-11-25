@@ -150,7 +150,7 @@ The folder is named by the issue number, which exists only after the issue is cr
 
 ## Git Conventions
 
-Branches and PRs that implement an issue follow the Git Conventions section of `CLAUDE.md`: branch `<issue_number>-<issue_name>` from `origin/main`, first commit and PR title `#<issue_number>: <issue_name>`, PR body starting with `Closes #<issue_number>`.
+Follow the shared [Git Conventions](../../../docs/agent-workflow.md#git-conventions) for the issue branch base, project status, commits and PR.
 
 ## Commands
 

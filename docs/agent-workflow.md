@@ -34,7 +34,7 @@ Use the [formatting commands](../CLAUDE.md#format) and [test commands](../CLAUDE
 
 ## Browser check
 
-When the issue diff touches `frontend/`, check whether it changes the UI. If it does, start a browser check after the final review round has reported, findings have been shown, and approved fixes have been pushed or the developer has declined fixes. If the UI is unaffected, say so and skip the check.
+When the issue diff touches `frontend/`, check whether it changes the UI. If the UI is unaffected, say so and skip the check. Otherwise, start the browser check once the final review result has been shown. When there are proposed fixes, wait for the developer’s decision and push any approved fixes before starting.
 
 - Run headless Chromium through Playwright (`playwright@1.65.0`, installed outside the repository). Run Compose from the issue's checkout and stop a stack from another checkout first. Use `mock-oidc` to sign in as an existing local user, or seed a new username when none exists. Get developer consent before recreating a user.
 - Announce the number of smoke scenarios before running them. Group by screen and cover the changed flow and affected loading, empty and error states. Intercepting `/api` is acceptable. When several screens share changed code, use a representative screen and rely on unit coverage for combinations already tested.

@@ -3,7 +3,7 @@
 ## Rules
 
 - **Keep CLAUDE.md a map.** It says what lives where: the modules, the folders and their roles, the commands and the conventions. Update it in a PR that adds, moves or removes a folder, a module, a command or a convention, and fix any mismatch with the codebase you notice, even when it is unrelated to the current task. A PR that only changes behaviour inside existing files does not touch it: what a screen shows, what an endpoint answers and how a function decides are stated by the code and its tests. A module's design decisions and the reasons behind them, which the code cannot state, go in `.claude/rules/modules/`, in files whose `paths:` frontmatter loads each one only while the files it describes are read. They pass the same test: a decision and its reason, not a retelling of behaviour. The test holds for the text a PR adds or changes; the backend module files predate it and are trimmed by an issue of their own, not by a PR that touches them for another reason. This file is always loaded, so it stays short.
-- **No code examples in plans.** Plans describe steps and approaches only.
+- **Write implementation plans in prose.** The full issue draft shown for approval includes the contract examples required by [issue-writer](.claude/skills/issue-writer/SKILL.md#issue-description-guidelines), including when the draft is presented in Plan mode.
 - **Show skill output verbatim.** When a Skill tool returns a result, show it as returned. Report code review findings in the format in [Code Review](docs/agent-workflow.md#code-review).
 - Use [Agent workflow](docs/agent-workflow.md) for rule loading, issue development, commit checks, code review and browser checks. Read the applicable sections before acting.
 
