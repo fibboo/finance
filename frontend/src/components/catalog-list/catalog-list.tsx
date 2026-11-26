@@ -22,6 +22,7 @@ type CatalogListProps<Entry extends CatalogEntry> = Readonly<{
   groups: readonly CatalogGroup<Entry>[] | undefined;
   selection: CatalogSelection | undefined;
   renderMark: (entry: Entry) => ReactNode;
+  isDescriptionInline?: boolean;
   renderMetadata?: (entry: Entry) => ReactNode;
   renderActions: (entry: Entry) => ReactNode;
 }>;
@@ -31,6 +32,7 @@ export function CatalogList<Entry extends CatalogEntry>({
   groups,
   selection,
   renderMark,
+  isDescriptionInline = false,
   renderMetadata,
   renderActions,
 }: CatalogListProps<Entry>) {
@@ -69,6 +71,7 @@ export function CatalogList<Entry extends CatalogEntry>({
           <ul className={styles['entries']}>
             {group.entries.map((entry) => {
               const isDeleted = entry.status === 'DELETED';
+              const hasDescription = entry.description != null && entry.description !== '';
               const isChosen = entry.id === selection?.chosenEntryId;
               const isShownByDefault =
                 selection?.chosenEntryId === undefined && entry.id === selection?.defaultEntryId;
@@ -82,6 +85,9 @@ export function CatalogList<Entry extends CatalogEntry>({
                 selection === undefined ? (
                   <>
                     {entry.name}
+                    {isDescriptionInline && hasDescription && (
+                      <span className={styles['description']}> {entry.description}</span>
+                    )}
                     {deletedNote}
                   </>
                 ) : (
@@ -92,9 +98,19 @@ export function CatalogList<Entry extends CatalogEntry>({
                     to={selection.readEntryLink(entry.id)}
                     preventScrollReset
                     aria-current={isChosen ? 'true' : undefined}
+                    aria-label={
+                      isDescriptionInline && hasDescription
+                        ? isDeleted
+                          ? `${entry.name} (deleted)`
+                          : entry.name
+                        : undefined
+                    }
                     className={styles['nameLink']}
                   >
                     {entry.name}
+                    {isDescriptionInline && hasDescription && (
+                      <span className={styles['description']}> {entry.description}</span>
+                    )}
                     {deletedNote}
                   </Link>
                 );
@@ -112,11 +128,9 @@ export function CatalogList<Entry extends CatalogEntry>({
                     ) : (
                       <span className={styles['name']}>{name}</span>
                     )}
-                    {entry.description !== undefined &&
-                      entry.description !== null &&
-                      entry.description !== '' && (
-                        <span className={styles['description']}>{entry.description}</span>
-                      )}
+                    {!isDescriptionInline && hasDescription && (
+                      <span className={styles['description']}>{entry.description}</span>
+                    )}
                     {renderMetadata?.(entry)}
                   </span>
                   {renderActions(entry)}

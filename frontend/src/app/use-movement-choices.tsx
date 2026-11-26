@@ -54,17 +54,14 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
   });
 
   function renderMoneyAccountForm(props: CreateFormProps) {
-    if (dictionaries === undefined || currencies === undefined || baseCurrency === undefined) {
-      throw new Error(
-        'A money account form needs the dictionaries, the currencies and the base currency.',
-      );
+    if (currencies === undefined || baseCurrency === undefined) {
+      throw new Error('A money account form needs the currencies and the base currency.');
     }
 
     return (
       <MoneyAccountForm
         mode={{ kind: 'create', name: props.name, onCreated: props.onCreated }}
         onBack={props.onBack}
-        accountKinds={dictionaries.account_kinds}
         currencies={currencies}
         baseCurrency={baseCurrency}
       />
@@ -79,7 +76,6 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
     return (
       <CategoryForm
         mode={{ kind: 'create', name: props.name, onCreated: props.onCreated }}
-        categoryTypes={dictionaries.category_types}
         categoryPurposes={dictionaries.category_purposes ?? []}
         onBack={props.onBack}
       />

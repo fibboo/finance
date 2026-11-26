@@ -39,18 +39,22 @@ import {
 import { accountMutations } from '@/features/accounts/api/account-mutations';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import {
-  readCategoryTypeFilter,
-  readCategoryTypeOptions,
-  writeCategoryTypeFilter,
+  readClassificationFilter,
+  readLegacyCategoryType,
+  writeClassificationFilter,
 } from '@/features/accounts/api/category-type-filter';
+import {
+  classificationQueries,
+  readClassificationLabel,
+} from '@/features/accounts/api/classification-queries';
 import {
   readAccountLinkId,
   readSelectedAccountId,
   writeSelectedAccount,
 } from '@/features/accounts/api/selected-account';
 import { readCatalogDeleteCopy } from '@/features/accounts/components/catalog-delete-copy';
-import { readCategoryGroups } from '@/features/accounts/components/catalog-grouping';
 import { CategoryForm } from '@/features/accounts/components/category-form';
+import { ClassificationSettings } from '@/features/accounts/components/classification-settings';
 import { RestoreForm } from '@/features/accounts/components/restore-form';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
 import { summaryQueries } from '@/features/summary/api/summary-queries';
@@ -92,12 +96,16 @@ export function Component() {
     ...dictionaryQueries.accounting(),
     throwOnError: true,
   });
-  const categoryTypes =
-    dictionaries === undefined ? undefined : readCategoryTypeOptions(dictionaries.category_types);
-  const categoryType =
-    categoryTypes === undefined
-      ? undefined
-      : readCategoryTypeFilter({ searchParams, categoryTypes });
+  const { data: classifications } = useQuery(classificationQueries.list('EXPENSE_CATEGORY'));
+  const classificationId = readClassificationFilter({
+    searchParams,
+    param: 'category_type',
+    classifications,
+  });
+  const legacyCategoryType = readLegacyCategoryType(searchParams);
+  const legacyCategoryTypeLabel =
+    dictionaries?.category_types.find(({ key }) => key === legacyCategoryType)?.label ??
+    legacyCategoryType;
   const categoryPurposes =
     dictionaries === undefined
       ? undefined
@@ -119,29 +127,25 @@ export function Component() {
       order: 'recent_use',
       statuses: isDeletedShown ? ['ACTIVE', 'DELETED'] : ['ACTIVE'],
       ...(searchTerm !== undefined && { search_term: searchTerm }),
-      ...(categoryType !== undefined && { category_types: [categoryType] }),
+      ...(legacyCategoryType !== undefined && { category_types: [legacyCategoryType] }),
+      ...(classificationId !== undefined && { classification_ids: [classificationId] }),
       ...(categoryPurpose !== undefined && { category_purposes: [categoryPurpose] }),
     }),
-    enabled: categoryTypes !== undefined,
     throwOnError: isThrownWithoutData,
   });
-  const isFiltered = categoryType !== undefined || categoryPurpose !== undefined;
+  const isFiltered =
+    classificationId !== undefined ||
+    legacyCategoryType !== undefined ||
+    categoryPurpose !== undefined;
   const isNothingMatched =
     (searchTerm !== undefined || isFiltered) && categoryPage?.items.length === 0;
   const hasNoEntries = searchTerm === undefined && !isFiltered && categoryPage?.items.length === 0;
+  const entries = categoryPage?.items;
   const groups =
-    categoryPage === undefined || categoryTypes === undefined
-      ? undefined
-      : readCategoryGroups({ categories: categoryPage.items, categoryTypes });
+    entries === undefined ? undefined : [{ key: 'categories', heading: undefined, entries }];
   const selectedCategoryId = readSelectedAccountId(searchParams);
-  const chosenGroup = groups?.find((group) =>
-    group.entries.some((category) => category.id === selectedCategoryId),
-  );
-  const chosenCategory = chosenGroup?.entries.find(
-    (category) => category.id === selectedCategoryId,
-  );
-  const shownGroup = chosenGroup ?? groups?.[0];
-  const shownCategory = chosenCategory ?? shownGroup?.entries[0];
+  const chosenCategory = entries?.find((category) => category.id === selectedCategoryId);
+  const shownCategory = chosenCategory ?? entries?.[0];
   const [editedCategory, setEditedCategoryId] = useListedEntry(categoryPage?.items);
   const [confirmedCategory, setConfirmedCategoryId] = useListedEntry(categoryPage?.items);
   const [renamedCategory, setRenamedCategoryId] = useListedEntry(
@@ -154,6 +158,17 @@ export function Component() {
   ];
   const categoryDelete = useMutation(accountMutations.delete(relatedQueryKeys));
   const categoryRestore = useMutation(accountMutations.restore(relatedQueryKeys));
+
+  function chooseClassification(nextClassificationId: string | undefined) {
+    setSearchParams(
+      writeClassificationFilter({
+        searchParams: listSearchParams,
+        param: 'category_type',
+        classificationId: nextClassificationId,
+      }),
+      { replace: true },
+    );
+  }
 
   function closeForm() {
     setIsCreating(false);
@@ -196,11 +211,12 @@ export function Component() {
           />
           <NewButton
             entityName="category"
-            isDisabled={categoryTypes === undefined}
+            isDisabled={dictionaries === undefined}
             onClick={() => {
               setIsCreating(true);
             }}
           />
+          <ClassificationSettings kind="EXPENSE_CATEGORY" />
         </>
       }
     >
@@ -208,23 +224,15 @@ export function Component() {
         <div className={styles['list']}>
           <CatalogFilters
             segment={
-              categoryTypes === undefined
-                ? { kind: 'pending' }
-                : {
+              classifications !== undefined && classifications.length > 1
+                ? {
                     kind: 'shown',
                     legend: 'Category type',
-                    options: categoryTypes,
-                    chosenKey: categoryType,
-                    onChoose: (nextCategoryType) => {
-                      setSearchParams(
-                        writeCategoryTypeFilter({
-                          searchParams: listSearchParams,
-                          categoryType: nextCategoryType,
-                        }),
-                        { replace: true },
-                      );
-                    },
+                    options: classifications.map(({ id, name }) => ({ key: id, label: name })),
+                    chosenKey: classificationId ?? legacyCategoryType,
+                    onChoose: chooseClassification,
                   }
+                : undefined
             }
             isDeletedShown={isDeletedShown}
             onDeletedShownChange={(nextIsDeletedShown) => {
@@ -265,6 +273,19 @@ export function Component() {
                 </div>
               </fieldset>
             )}
+            {legacyCategoryTypeLabel !== undefined && (
+              <button
+                type="button"
+                className={styles['legacyType']}
+                aria-label={`Clear legacy type filter: ${legacyCategoryTypeLabel}`}
+                onClick={() => {
+                  document.getElementById(CATEGORY_SEARCH_FIELD_ID)?.focus();
+                  chooseClassification(undefined);
+                }}
+              >
+                Type: {legacyCategoryTypeLabel} <span aria-hidden="true">×</span>
+              </button>
+            )}
           </CatalogFilters>
           {isNothingMatched ? (
             <NoMatchingEntries
@@ -274,12 +295,13 @@ export function Component() {
                 searchField.focusAfterClear();
                 setSearchParams(
                   writeCategoryPurposeFilter({
-                    searchParams: writeCategoryTypeFilter({
+                    searchParams: writeClassificationFilter({
                       searchParams: writeCatalogSearch({
                         searchParams: listSearchParams,
                         search: '',
                       }),
-                      categoryType: undefined,
+                      param: 'category_type',
+                      classificationId: undefined,
                     }),
                     categoryPurpose: undefined,
                   }),
@@ -315,16 +337,28 @@ export function Component() {
                   : undefined
               }
               renderMark={readCatalogInitial}
-              renderMetadata={(category) =>
-                category.category_purpose === 'INCOME_COST' ? (
-                  <span className={styles['purposeBadge']}>
-                    {
-                      categoryPurposes?.find((purpose) => purpose.key === category.category_purpose)
-                        ?.label
-                    }
+              isDescriptionInline
+              renderMetadata={(category) => {
+                const label = readClassificationLabel({
+                  classifications,
+                  classificationId: category.classification_id,
+                });
+                const purpose = category.category_purpose ?? 'PERSONAL';
+                const purposeLabel = categoryPurposes?.find(({ key }) => key === purpose)?.label;
+                return (
+                  <span className={styles['metadata']}>
+                    {label}
+                    {label !== undefined &&
+                      purposeLabel !== undefined &&
+                      CATALOG_DESCRIPTION_SEPARATOR}
+                    <span
+                      className={purpose === 'INCOME_COST' ? styles['purposeBadge'] : undefined}
+                    >
+                      {purposeLabel}
+                    </span>
                   </span>
-                ) : null
-              }
+                );
+              }}
               renderActions={(category) => (
                 <CatalogRowActions
                   entry={category}
@@ -366,13 +400,20 @@ export function Component() {
         {isDesktop && (shownCategory !== undefined || groups === undefined) && (
           <CatalogTransactions
             entryFeed={
-              shownGroup === undefined || shownCategory === undefined
+              shownCategory === undefined
                 ? undefined
                 : {
                     name: shownCategory.name,
-                    description: ['Category', shownGroup.heading, 'recent transactions'].join(
-                      CATALOG_DESCRIPTION_SEPARATOR,
-                    ),
+                    description: [
+                      'Category',
+                      readClassificationLabel({
+                        classifications,
+                        classificationId: shownCategory.classification_id,
+                      }),
+                      'recent transactions',
+                    ]
+                      .filter((part) => part !== undefined)
+                      .join(CATALOG_DESCRIPTION_SEPARATOR),
                     filterQuery: { account_ids: [shownCategory.id] },
                     transactionsLink: readTransactionsLink(shownCategory),
                   }
@@ -386,7 +427,6 @@ export function Component() {
         <Sheet label="New category" onClose={closeForm}>
           <CategoryForm
             mode={{ kind: 'create', name: '', onCreated: closeForm }}
-            categoryTypes={dictionaries.category_types}
             categoryPurposes={dictionaries.category_purposes ?? []}
             onBack={closeForm}
           />
@@ -405,7 +445,6 @@ export function Component() {
                 );
               },
             }}
-            categoryTypes={dictionaries.category_types}
             categoryPurposes={dictionaries.category_purposes ?? []}
             onBack={closeEditForm}
           />

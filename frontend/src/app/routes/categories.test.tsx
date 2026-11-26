@@ -11,6 +11,25 @@ import { MonthSummary } from '@/features/summary/components/month-summary';
 
 import { Component } from './categories';
 
+const variableType = {
+  id: '10000000-0000-4000-8000-000000000011',
+  name: 'Variable',
+  kind: 'EXPENSE_CATEGORY',
+  is_default: true,
+};
+const fixedType = {
+  id: '10000000-0000-4000-8000-000000000012',
+  name: 'Fixed',
+  kind: 'EXPENSE_CATEGORY',
+  is_default: false,
+};
+const periodicType = {
+  id: '10000000-0000-4000-8000-000000000013',
+  name: 'Periodic',
+  kind: 'EXPENSE_CATEGORY',
+  is_default: false,
+};
+
 const groceries = {
   name: 'Groceries',
   description: 'Supermarkets and markets',
@@ -21,6 +40,7 @@ const groceries = {
   currency: null,
   color: null,
   category_type: 'VARIABLE',
+  classification_id: variableType.id,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '0',
@@ -40,6 +60,7 @@ const rent = {
   description: null,
   id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e61',
   category_type: 'FIXED',
+  classification_id: fixedType.id,
 } satisfies components['schemas']['Account'];
 
 const rentPayment = {
@@ -100,6 +121,9 @@ beforeEach(() => {
   document.documentElement.style.fontSize = '16px';
   document.documentElement.style.setProperty('--size-transaction-row', '3.25rem');
   server.use(
+    http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+      HttpResponse.json([variableType, fixedType, periodicType]),
+    ),
     http.get('http://localhost/api/user/me', () =>
       HttpResponse.json({
         id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
@@ -139,7 +163,7 @@ beforeEach(() => {
   );
 });
 
-test('shows the number of active categories and lists them by type with the deleted struck through', async () => {
+test('shows the active count and lists categories in one list with the deleted struck through', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
@@ -164,14 +188,16 @@ test('shows the number of active categories and lists them by type with the dele
   expect(
     await screen.findByRole('heading', { level: 1, name: 'Categories, 2 categories' }),
   ).toBeInTheDocument();
-  const variable = await screen.findByRole('region', { name: 'Variable' });
-  expect(within(variable).getByText('2')).toBeInTheDocument();
-  expect(within(variable).getByText('Supermarkets and markets')).toBeInTheDocument();
-  expect(within(variable).getByText('(deleted)', { exact: false }).closest('s')).toHaveTextContent(
+  const list = await screen.findByRole('region', { name: 'Categories', busy: false });
+  const rows = within(list).getAllByRole('listitem');
+  expect(rows).toHaveLength(3);
+  expect(rows[0]).toHaveTextContent('Groceries Supermarkets and marketsVariable · Personal');
+  expect(rows[1]).toHaveTextContent('Cigarettes');
+  expect(within(list).getByText('(deleted)', { exact: false }).closest('s')).toHaveTextContent(
     'Cigarettes',
   );
-  expect(screen.getByRole('region', { name: 'Fixed' })).toHaveTextContent('Rent');
-  expect(screen.queryByRole('region', { name: 'Periodic' })).not.toBeInTheDocument();
+  expect(rows[2]).toHaveTextContent('RentFixed · Personal');
+  expect(within(list).queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
   expect(screen.getByRole('switch', { name: 'Deleted' })).toBeChecked();
   expect(
     within(screen.getByRole('group', { name: 'Category type' })).getByRole('radio', {
@@ -188,7 +214,9 @@ test('requests the chosen type and only the active categories with Deleted off a
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const query = new URL(request.url).searchParams;
       requestedQueries.push(query);
-      const items = query.getAll('category_types').includes('FIXED') ? [rent] : [groceries, rent];
+      const items = query.getAll('classification_ids').includes(fixedType.id)
+        ? [rent]
+        : [groceries, rent];
       return HttpResponse.json({
         items,
         total: items.length,
@@ -199,7 +227,7 @@ test('requests the chosen type and only the active categories with Deleted off a
     }),
   );
   const { router } = render(<Component />, { initialEntries: ['/categories'] });
-  await screen.findByRole('region', { name: 'Variable' });
+  await screen.findByRole('radio', { name: 'Fixed' });
 
   // act
   await user.click(screen.getByRole('radio', { name: 'Fixed' }));
@@ -210,17 +238,62 @@ test('requests the chosen type and only the active categories with Deleted off a
     expect(
       requestedQueries.some(
         (query) =>
-          query.getAll('category_types').join() === 'FIXED' &&
+          query.getAll('classification_ids').join() === fixedType.id &&
           query.getAll('statuses').join() === 'ACTIVE' &&
           query.getAll('kinds').join() === 'EXPENSE',
       ),
     ).toBe(true);
   });
-  expect(await screen.findByRole('region', { name: 'Fixed' })).toHaveTextContent('Rent');
-  expect(screen.queryByRole('region', { name: 'Variable' })).not.toBeInTheDocument();
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    'Rent',
+  );
+  expect(screen.queryByText('Groceries', { exact: true })).not.toBeInTheDocument();
   const searchParams = new URLSearchParams(router.state.location.search);
-  expect(searchParams.get('category_type')).toBe('FIXED');
+  expect(searchParams.get('category_type')).toBe(fixedType.id);
   expect(searchParams.get('deleted')).toBe('off');
+});
+
+test('shows and clears a legacy filter even when there is only one current type', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+      HttpResponse.json([variableType]),
+    ),
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const query = new URL(request.url).searchParams;
+      const items = query.get('category_types') === 'FIXED' ? [rent] : [groceries, rent];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: ['/categories?category_type=FIXED&category_purpose=PERSONAL&deleted=off'],
+  });
+  const clearLegacy = await screen.findByRole('button', {
+    name: 'Clear legacy type filter: Fixed',
+  });
+  const catalog = await screen.findByRole('region', { name: 'Categories', busy: false });
+  expect(catalog).toHaveTextContent('Rent');
+  expect(catalog).not.toHaveTextContent('Groceries');
+  expect(screen.queryByRole('group', { name: 'Category type' })).not.toBeInTheDocument();
+
+  // act
+  await user.click(clearLegacy);
+
+  // assert
+  const unfiltered = await screen.findByRole('region', { name: 'Categories', busy: false });
+  expect(unfiltered).toHaveTextContent('Groceries');
+  expect(clearLegacy).not.toBeInTheDocument();
+  const params = new URLSearchParams(router.state.location.search);
+  expect(params.has('category_type')).toBe(false);
+  expect(params.get('category_purpose')).toBe('PERSONAL');
+  expect(params.get('deleted')).toBe('off');
 });
 
 test('opens with Deleted off when it was turned off on an earlier visit and stores turning it on', async () => {
@@ -243,7 +316,7 @@ test('opens with Deleted off when it was turned off on an earlier visit and stor
     }),
   );
   const { router } = render(<Component />, { initialEntries: ['/categories'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
   expect(within(variable).queryByText('Cigarettes')).not.toBeInTheDocument();
   expect(screen.getByRole('switch', { name: 'Deleted' })).not.toBeChecked();
 
@@ -251,7 +324,9 @@ test('opens with Deleted off when it was turned off on an earlier visit and stor
   await user.click(screen.getByRole('switch', { name: 'Deleted' }));
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent('Cigarettes');
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    'Cigarettes',
+  );
   expect(localStorage.getItem('deleted:categories')).toBe('on');
   expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('on');
 });
@@ -277,7 +352,9 @@ test('reads the type and the toggle from the URL and drops a type the dictionary
   render(<Component />, { initialEntries: ['/categories?category_type=OTHER&deleted=off'] });
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Variable' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('region', { name: 'Categories', busy: false }),
+  ).toBeInTheDocument();
   expect(
     within(screen.getByRole('group', { name: 'Category type' })).getByRole('radio', {
       name: 'All',
@@ -306,7 +383,7 @@ test('searches from 3 characters and clears the search into a focused field when
     }),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  await screen.findByRole('region', { name: 'Variable' });
+  await screen.findByRole('region', { name: 'Categories', busy: false });
   const searchField = screen.getByRole('searchbox', { name: 'Search categories' });
   await user.type(searchField, 'zzz');
   expect(await screen.findByText('No categories match this search')).toBeInTheDocument();
@@ -315,7 +392,9 @@ test('searches from 3 characters and clears the search into a focused field when
   await user.click(screen.getByRole('button', { name: 'Clear search' }));
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Variable' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('region', { name: 'Categories', busy: false }),
+  ).toBeInTheDocument();
   const clearedField = screen.getByRole('searchbox', { name: 'Search categories' });
   expect(clearedField).toHaveValue('');
   expect(clearedField).toHaveFocus();
@@ -345,11 +424,14 @@ test('creates a category from New category and lists it', async () => {
     }),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  await screen.findByRole('region', { name: 'Variable' });
+  await screen.findByRole('region', { name: 'Categories', busy: false });
   await user.click(screen.getByRole('button', { name: 'New category' }));
   const form = await screen.findByRole('form', { name: 'New category' });
   await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Rent');
-  await user.click(within(form).getByRole('radio', { name: 'Fixed' }));
+  await user.selectOptions(
+    await within(form).findByRole('combobox', { name: 'Type' }),
+    fixedType.id,
+  );
   await vi.waitFor(() => {
     expect(within(form).getByRole('button', { name: 'Create category' })).toBeEnabled();
   });
@@ -358,9 +440,15 @@ test('creates a category from New category and lists it', async () => {
   await user.click(within(form).getByRole('button', { name: 'Create category' }));
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Fixed' })).toHaveTextContent('Rent');
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    'Rent',
+  );
   expect(screen.queryByRole('form', { name: 'New category' })).not.toBeInTheDocument();
-  expect(createdBody).toMatchObject({ name: 'Rent', kind: 'EXPENSE', category_type: 'FIXED' });
+  expect(createdBody).toMatchObject({
+    name: 'Rent',
+    kind: 'EXPENSE',
+    classification_id: fixedType.id,
+  });
 });
 
 test('gives an active row Transactions, Edit and Delete and a deleted one Restore on a phone', async () => {
@@ -382,7 +470,7 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   render(<Component />, { initialEntries: ['/categories'] });
 
   // assert
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
   const [groceriesRow, cigarettesRow] = within(variable).getAllByRole('listitem');
   if (groceriesRow === undefined || cigarettesRow === undefined) {
     throw new Error('Both categories have a row.');
@@ -420,7 +508,7 @@ test('gives an active row Edit and Delete without Transactions on desktop', asyn
   render(<Component />, { initialEntries: ['/categories'] });
 
   // assert
-  const list = await screen.findByRole('region', { name: 'Variable' });
+  const list = await screen.findByRole('region', { name: 'Categories', busy: false });
   const [groceriesRow, cigarettesRow] = within(list).getAllByRole('listitem');
   if (groceriesRow === undefined || cigarettesRow === undefined) {
     throw new Error('Both entries have a row.');
@@ -464,12 +552,14 @@ test('edits a category from its row and lists the saved name', async () => {
     }),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const fixed = await screen.findByRole('region', { name: 'Fixed' });
+  await screen.findByRole('region', { name: 'Categories', busy: false });
+  const fixed = screen.getAllByRole('listitem').find((row) => row.textContent.includes('Rent'));
+  if (fixed === undefined) throw new Error('Rent must be listed.');
   await user.click(within(fixed).getByRole('button', { name: 'Edit' }));
   const form = await screen.findByRole('form', { name: 'Edit category' });
   const name = within(form).getByRole('textbox', { name: 'Name' });
   expect(name).toHaveValue('Rent');
-  expect(within(form).getByRole('radio', { name: 'Fixed' })).toBeChecked();
+  expect(await within(form).findByRole('combobox', { name: 'Type' })).toHaveValue(fixedType.id);
   await user.clear(name);
   await user.type(name, 'Flat');
   await vi.waitFor(() => {
@@ -480,12 +570,14 @@ test('edits a category from its row and lists the saved name', async () => {
   await user.click(within(form).getByRole('button', { name: 'Save changes' }));
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Fixed' })).toHaveTextContent('Flat');
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    'Flat',
+  );
   expect(screen.queryByRole('form', { name: 'Edit category' })).not.toBeInTheDocument();
   expect(updatedBody).toEqual({
     name: 'Flat',
     description: null,
-    category_type: 'FIXED',
+    classification_id: fixedType.id,
     category_purpose: 'PERSONAL',
   });
 });
@@ -512,8 +604,12 @@ test('deletes a category after the confirmation and moves the focus to the next 
     }),
   );
   render(<Component />, { initialEntries: ['/categories?deleted=off'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
-  await user.click(within(variable).getByRole('button', { name: 'Delete' }));
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
+  await user.click(
+    within(
+      within(variable).getByText('Groceries', { exact: true }).closest('li') ?? variable,
+    ).getByRole('button', { name: 'Delete' }),
+  );
   const confirmation = screen.getByRole('alertdialog', { name: 'Delete this category?' });
   expect(confirmation).toHaveAccessibleDescription(
     'Groceries. It leaves your categories and the pickers, and its past transactions keep showing it.',
@@ -524,12 +620,14 @@ test('deletes a category after the confirmation and moves the focus to the next 
 
   // assert
   await waitFor(() => {
-    expect(screen.queryByRole('region', { name: 'Variable' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Groceries', { exact: true })).not.toBeInTheDocument();
   });
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   expect(deletePath).toBe(`/api/accounting/accounts/${groceries.id}`);
   expect(
-    within(screen.getByRole('region', { name: 'Fixed' })).getByRole('button', { name: 'Edit' }),
+    within(screen.getByRole('region', { name: 'Categories', busy: false })).getByRole('button', {
+      name: 'Edit',
+    }),
   ).toHaveFocus();
 });
 
@@ -548,8 +646,12 @@ test('keeps the category when its deletion is cancelled and returns the focus to
     ),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
-  await user.click(within(variable).getByRole('button', { name: 'Delete' }));
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
+  await user.click(
+    within(
+      within(variable).getByText('Groceries', { exact: true }).closest('li') ?? variable,
+    ).getByRole('button', { name: 'Delete' }),
+  );
   const confirmation = screen.getByRole('alertdialog', { name: 'Delete this category?' });
 
   // act
@@ -557,7 +659,11 @@ test('keeps the category when its deletion is cancelled and returns the focus to
 
   // assert
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-  expect(within(variable).getByRole('button', { name: 'Delete' })).toHaveFocus();
+  expect(
+    within(
+      within(variable).getByText('Groceries', { exact: true }).closest('li') ?? variable,
+    ).getByRole('button', { name: 'Delete' }),
+  ).toHaveFocus();
 });
 
 test('restores a deleted category and moves the focus to its Edit', async () => {
@@ -586,7 +692,7 @@ test('restores a deleted category and moves the focus to its Edit', async () => 
     }),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
 
   // act
   await user.click(within(variable).getByRole('button', { name: 'Restore' }));
@@ -629,7 +735,7 @@ test('opens Restore category when a restore is refused because the name is taken
     ),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
 
   // act
   await user.click(within(variable).getByRole('button', { name: 'Restore' }));
@@ -684,7 +790,7 @@ test('restores a category under a new name, closes the window and moves the focu
     ),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
   await user.click(within(variable).getByRole('button', { name: 'Restore' }));
   const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
@@ -750,7 +856,7 @@ test('keeps Restore category closed after a category restored under a new name l
     }),
   );
   render(<Component />, { initialEntries: ['/categories?search=Cig'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
   await user.click(within(variable).getByRole('button', { name: 'Restore' }));
   const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
   const name = within(restoreForm).getByRole('textbox', { name: 'Name' });
@@ -766,7 +872,9 @@ test('keeps Restore category closed after a category restored under a new name l
   await user.click(screen.getByRole('button', { name: 'Clear search' }));
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent('Smokes');
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    'Smokes',
+  );
   expect(screen.getByRole('searchbox', { name: 'Search categories' })).toHaveFocus();
   expect(screen.queryByRole('form', { name: 'Restore category' })).not.toBeInTheDocument();
 });
@@ -795,7 +903,7 @@ test('closes Restore category on Back and leaves the category deleted', async ()
     ),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
   await user.click(within(variable).getByRole('button', { name: 'Restore' }));
   const restoreForm = await screen.findByRole('form', { name: 'Restore category' });
 
@@ -831,7 +939,7 @@ test('shows the error notification when a restore fails for another reason', asy
     ),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
 
   // act
   await user.click(within(variable).getByRole('button', { name: 'Restore' }));
@@ -847,9 +955,9 @@ test('keeps the edit form closed after a saved category left the filtered list',
   let categories: components['schemas']['Account'][] = [groceries, rent];
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
-      const types = new URL(request.url).searchParams.getAll('category_types');
+      const types = new URL(request.url).searchParams.getAll('classification_ids');
       const items = categories.filter(
-        (category) => types.length === 0 || types.includes(category.category_type ?? ''),
+        (category) => types.length === 0 || types.includes(category.classification_id ?? ''),
       );
       return HttpResponse.json({
         items,
@@ -862,17 +970,22 @@ test('keeps the edit form closed after a saved category left the filtered list',
     http.put(`http://localhost/api/accounting/accounts/${rent.id}`, () => {
       const periodicRent = {
         ...rent,
-        category_type: 'PERIODIC',
+        classification_id: periodicType.id,
       } satisfies components['schemas']['Account'];
       categories = [groceries, periodicRent];
       return HttpResponse.json(periodicRent);
     }),
   );
-  render(<Component />, { initialEntries: ['/categories?category_type=FIXED'] });
-  const fixed = await screen.findByRole('region', { name: 'Fixed' });
+  render(<Component />, { initialEntries: [`/categories?category_type=${fixedType.id}`] });
+  await screen.findByRole('region', { name: 'Categories', busy: false });
+  const fixed = screen.getAllByRole('listitem').find((row) => row.textContent.includes('Rent'));
+  if (fixed === undefined) throw new Error('Rent must be listed.');
   await user.click(within(fixed).getByRole('button', { name: 'Edit' }));
   const form = await screen.findByRole('form', { name: 'Edit category' });
-  await user.click(within(form).getByRole('radio', { name: 'Periodic' }));
+  await user.selectOptions(
+    await within(form).findByRole('combobox', { name: 'Type' }),
+    periodicType.id,
+  );
   await vi.waitFor(() => {
     expect(within(form).getByRole('button', { name: 'Save changes' })).toBeEnabled();
   });
@@ -889,7 +1002,9 @@ test('keeps the edit form closed after a saved category left the filtered list',
   );
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Periodic' })).toHaveTextContent('Rent');
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    'Rent',
+  );
   expect(screen.queryByRole('form', { name: 'Edit category' })).not.toBeInTheDocument();
 });
 
@@ -916,8 +1031,12 @@ test('moves the focus to Restore of the row when its deletion fails because it i
     }),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const variable = await screen.findByRole('region', { name: 'Variable' });
-  await user.click(within(variable).getByRole('button', { name: 'Delete' }));
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
+  await user.click(
+    within(
+      within(variable).getByText('Groceries', { exact: true }).closest('li') ?? variable,
+    ).getByRole('button', { name: 'Delete' }),
+  );
   const confirmation = screen.getByRole('alertdialog', { name: 'Delete this category?' });
 
   // act
@@ -959,7 +1078,9 @@ test('keeps the edit form of another category open when an earlier save finishes
     }),
   );
   render(<Component />, { initialEntries: ['/categories'] });
-  const fixed = await screen.findByRole('region', { name: 'Fixed' });
+  await screen.findByRole('region', { name: 'Categories', busy: false });
+  const fixed = screen.getAllByRole('listitem').find((row) => row.textContent.includes('Rent'));
+  if (fixed === undefined) throw new Error('Rent must be listed.');
   await user.click(within(fixed).getByRole('button', { name: 'Edit' }));
   const rentForm = await screen.findByRole('form', { name: 'Edit category' });
   await vi.waitFor(() => {
@@ -968,7 +1089,11 @@ test('keeps the edit form of another category open when an earlier save finishes
   await user.click(within(rentForm).getByRole('button', { name: 'Save changes' }));
   await user.click(within(rentForm).getByRole('button', { name: 'Back' }));
   await user.click(
-    within(screen.getByRole('region', { name: 'Variable' })).getByRole('button', { name: 'Edit' }),
+    within(
+      within(screen.getByRole('region', { name: 'Categories' }))
+        .getByText('Groceries', { exact: true })
+        .closest('li') ?? document.body,
+    ).getByRole('button', { name: 'Edit' }),
   );
   const groceriesForm = await screen.findByRole('form', { name: 'Edit category' });
 
@@ -977,7 +1102,9 @@ test('keeps the edit form of another category open when an earlier save finishes
 
   // assert
   await waitFor(() => {
-    expect(screen.getByRole('region', { name: 'Fixed' })).toHaveTextContent('Flat');
+    expect(screen.getByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+      'Flat',
+    );
   });
   expect(groceriesForm).toBeInTheDocument();
   expect(within(groceriesForm).getByRole('textbox', { name: 'Name' })).toHaveValue('Groceries');
@@ -989,7 +1116,7 @@ test('shows the transactions of the top category beside the list while none is c
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json({
-        items: [rent, groceries],
+        items: [groceries, rent],
         total: 2,
         page: 1,
         size: 100,
@@ -1466,7 +1593,10 @@ test('keeps the focus in the delete confirmation with Right on a wide desktop', 
   const rentTransactions = await screen.findByRole('region', { name: 'Transactions of Rent' });
   await within(rentTransactions).findByRole('link', { name: 'Main card' });
   await user.click(
-    within(screen.getByRole('region', { name: 'Fixed' })).getByRole('button', { name: 'Delete' }),
+    within(screen.getByRole('link', { name: 'Rent' }).closest('li') ?? document.body).getByRole(
+      'button',
+      { name: 'Delete' },
+    ),
   );
   const confirmation = screen.getByRole('alertdialog', { name: 'Delete this category?' });
 
@@ -1686,7 +1816,7 @@ test('gives a phone plain names and no transactions of a category', async () => 
   render(<Component />, { initialEntries: [`/categories?account=${rent.id}`] });
 
   // assert
-  const variable = await screen.findByRole('region', { name: 'Variable' });
+  const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
   expect(within(variable).getByText('Groceries')).toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Groceries' })).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Rent' })).not.toBeInTheDocument();
@@ -1749,12 +1879,14 @@ test.each([
       ),
     );
     const { router } = render(<Component />, { initialEntries: ['/categories'] });
-    const list = await screen.findByRole('region', { name: 'Variable' });
+    const list = await screen.findByRole('region', { name: 'Categories', busy: false });
     await user.click(await within(list).findByRole('button', { name: action }));
     expect(await screen.findByRole(role, { name: sheetName })).toBeInTheDocument();
     await act(() => router.navigate('/categories?search=Rent'));
     await waitFor(() => {
-      expect(screen.getByRole('region', { name: 'Fixed' })).toHaveTextContent(rent.name);
+      expect(screen.getByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+        rent.name,
+      );
     });
     expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
 
@@ -1762,7 +1894,9 @@ test.each([
     await act(() => router.navigate(-1));
 
     // assert
-    expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent(entry.name);
+    expect(
+      await screen.findByRole('region', { name: 'Categories', busy: false }),
+    ).toHaveTextContent(entry.name);
     expect(screen.queryByRole(role, { name: sheetName })).not.toBeInTheDocument();
   },
 );
@@ -1785,7 +1919,9 @@ test('shows the list skeleton instead of the previous categories while a search 
     }),
   );
   const { router } = render(<Component />, { initialEntries: ['/categories'] });
-  expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent(groceries.name);
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    groceries.name,
+  );
 
   // act
   await act(() => router.navigate('/categories?search=Rent'));
@@ -1848,7 +1984,9 @@ test('keeps purpose together with search, type and Deleted in the request and UR
   expect(params.get('category_type')).toBe('FIXED');
   expect(params.get('search')).toBe('tools');
   expect(params.get('deleted')).toBe('off');
-  expect(await screen.findByRole('region', { name: 'Fixed' })).toHaveTextContent('Work tools');
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    'Work tools',
+  );
 });
 
 test('hides the transaction pane until clearing filters that match no categories', async () => {
@@ -1883,7 +2021,9 @@ test('hides the transaction pane until clearing filters that match no categories
   await user.click(screen.getByRole('button', { name: 'Clear filters' }));
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Variable' })).toHaveTextContent('Groceries');
+  expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
+    'Groceries',
+  );
   const transactions = await screen.findByRole('region', { name: 'Transactions of Groceries' });
   expect(
     await within(transactions).findByText('No transactions in this category yet'),

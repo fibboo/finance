@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
-import { categoryTypeValues, categoryPurposeValues } from '@/lib/api-schema';
+import { categoryPurposeValues } from '@/lib/api-schema';
 
 const NAME_MIN_LENGTH = 3;
 export const NAME_MAX_LENGTH = 32;
@@ -25,14 +24,18 @@ export const accountFormSchema = z.object({
 });
 
 export const restoreFormSchema = accountFormSchema.pick({ name: true });
+export const classificationNameSchema = restoreFormSchema;
+export const classificationReplacementSchema = z.object({
+  replacement_id: z.union([z.literal(''), z.uuid()]),
+});
 
 export const categoryFormSchema = accountFormSchema.extend({
-  category_type: z.enum(categoryTypeValues),
+  classification_id: z.uuid(),
   category_purpose: z.enum(categoryPurposeValues),
 });
 
 export const moneyAccountFormSchema = accountFormSchema.extend({
-  kind: z.enum(MONEY_ACCOUNT_KINDS),
+  classification_id: z.uuid(),
   currency: z.string(),
   color: z.string(),
 });
@@ -45,3 +48,6 @@ export type CategoryFormValues = z.input<typeof categoryFormSchema>;
 export type CategoryFormOutput = z.output<typeof categoryFormSchema>;
 export type MoneyAccountFormValues = z.input<typeof moneyAccountFormSchema>;
 export type MoneyAccountFormOutput = z.output<typeof moneyAccountFormSchema>;
+
+export type ClassificationNameValues = z.infer<typeof classificationNameSchema>;
+export type ClassificationReplacementValues = z.infer<typeof classificationReplacementSchema>;

@@ -84,19 +84,33 @@
   cursor: pointer;
 }
 
-.purposeBadge {
-  align-self: flex-start;
-  margin-top: var(--space-1);
-  padding: var(--space-0-5) var(--space-1-5);
-  border-radius: var(--radius-badge);
-  background: var(--color-selected);
-  font-size: var(--font-size-2xs);
+.metadata {
+  font-size: var(--font-size-sm);
   line-height: var(--line-height-sub);
-  color: var(--color-accent);
+  color: var(--color-muted);
 }
 
-@media (--desktop) {
-  .purposeBadge {
-    font-size: var(--font-size-xs);
-  }
+.purposeBadge {
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-badge);
+  background: var(--color-income-cost-row);
+  color: var(--color-income-cost-icon);
+}
+
+.legacyType {
+  min-height: var(--size-touch);
+  margin-top: var(--space-2);
+  padding-inline: var(--space-2-5);
+  border: var(--size-border) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-band);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.legacyType:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: var(--size-focus);
 }

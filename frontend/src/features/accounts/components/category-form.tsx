@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { QueryKey } from '@tanstack/react-query';
+import { type QueryKey, useQuery } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { EntityForm } from '@/components/entity-form/entity-form';
@@ -8,6 +8,7 @@ import { TextField } from '@/components/text-field/text-field';
 import type { components } from '@/lib/api-schema';
 
 import type { AccountFieldError } from '../api/account-field-errors';
+import { classificationQueries, readStartingClassificationId } from '../api/classification-queries';
 import { useAccountCreate } from '../hooks/use-account-create';
 import { useAccountNameTaken } from '../hooks/use-account-name-taken';
 import { useAccountUpdate } from '../hooks/use-account-update';
@@ -19,11 +20,11 @@ import {
   NAME_MAX_LENGTH,
 } from '../schemas/account-form';
 
+import { ClassificationChoice } from './classification-choice';
 import styles from './category-form.module.css';
 
 type Account = components['schemas']['Account'];
 type CategoryPurpose = components['schemas']['CategoryPurpose'];
-type CategoryType = components['schemas']['CategoryType'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
 
 type CategoryFormMode =
@@ -37,65 +38,61 @@ type CategoryFormMode =
 
 type CategoryFormProps = Readonly<{
   mode: CategoryFormMode;
-  categoryTypes: readonly DictionaryItem[];
   categoryPurposes: readonly DictionaryItem[];
   onBack: () => void;
 }>;
-
-const CATEGORY_TYPE_HINTS = {
-  VARIABLE: 'Spending that changes from month to month, like groceries or taxis.',
-  FIXED: 'The same amount every month, like rent or subscriptions.',
-  PERIODIC: 'Comes a few times a year, like insurance or gifts.',
-} satisfies Readonly<Record<CategoryType, string>>;
 
 const CATEGORY_PURPOSE_HINTS = {
   PERSONAL: 'Everyday spending. Deducted after net income.',
   INCOME_COST: 'Fees, work subscriptions and taxes. Reduce net income.',
 } satisfies Readonly<Record<CategoryPurpose, string>>;
 
-function readStartingValues(mode: CategoryFormMode): CategoryFormValues {
+function readStartingValues({
+  mode,
+  classificationId,
+}: Readonly<{ mode: CategoryFormMode; classificationId: string }>): CategoryFormValues {
   if (mode.kind === 'create') {
     const createValues = {
       name: mode.name,
       description: '',
-      category_type: 'VARIABLE',
+      classification_id: classificationId,
       category_purpose: 'PERSONAL',
     } satisfies CategoryFormValues;
     return createValues;
   }
 
   const { category } = mode;
-  if (category.category_type === null) {
-    throw new Error('Only a category can be edited in the category form.');
-  }
-
   const editValues = {
     name: category.name,
     description: category.description ?? '',
-    category_type: category.category_type,
+    classification_id: classificationId,
     category_purpose: category.category_purpose ?? 'PERSONAL',
   } satisfies CategoryFormValues;
   return editValues;
 }
 
-export function CategoryForm({ mode, categoryTypes, categoryPurposes, onBack }: CategoryFormProps) {
-  const startingValues = readStartingValues(mode);
+export function CategoryForm({ mode, categoryPurposes, onBack }: CategoryFormProps) {
+  const classifications = useQuery(classificationQueries.list('EXPENSE_CATEGORY'));
+  const classificationId = readStartingClassificationId({
+    classifications: classifications.data,
+    classificationId: mode.kind === 'edit' ? mode.category.classification_id : undefined,
+  });
+  const startingValues = readStartingValues({ mode, classificationId });
   const { control, register, handleSubmit, setError, formState } = useForm<
     CategoryFormValues,
     unknown,
     CategoryFormOutput
   >({
     resolver: zodResolver(categoryFormSchema),
-    defaultValues: startingValues,
-    ...(mode.kind === 'edit' && {
-      values: startingValues,
-      resetOptions: { keepDirtyValues: true },
-    }),
+    values: startingValues,
+    resetOptions: { keepDirtyValues: true },
   });
-  const [categoryType, name, categoryPurpose] = useWatch({
+  const [chosenType, name, categoryPurpose] = useWatch({
     control,
-    name: ['category_type', 'name', 'category_purpose'],
+    name: ['classification_id', 'name', 'category_purpose'],
   });
+  const selectedType = classifications.data?.length === 1 ? classificationId : chosenType;
+  const isTypeAvailable = classifications.data?.some(({ id }) => id === selectedType) === true;
   const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind: 'EXPENSE',
@@ -130,7 +127,11 @@ export function CategoryForm({ mode, categoryTypes, categoryPurposes, onBack }: 
       title={mode.kind === 'create' ? 'New category' : 'Edit category'}
       submitLabel={mode.kind === 'create' ? 'Create category' : 'Save changes'}
       isSubmitDisabled={
-        isNameTaken || isLookupPending || accountCreate.isPending || accountUpdate.isPending
+        !isTypeAvailable ||
+        isNameTaken ||
+        isLookupPending ||
+        accountCreate.isPending ||
+        accountUpdate.isPending
       }
       error={formState.errors.root?.['server']?.message}
       onBack={onBack}
@@ -141,7 +142,8 @@ export function CategoryForm({ mode, categoryTypes, categoryPurposes, onBack }: 
               name: category.name,
               description: category.description,
               kind: 'EXPENSE',
-              category_type: category.category_type,
+              classification_id:
+                classifications.data?.length === 1 ? classificationId : category.classification_id,
               category_purpose: category.category_purpose,
             });
           } else {
@@ -149,7 +151,8 @@ export function CategoryForm({ mode, categoryTypes, categoryPurposes, onBack }: 
               account_id: mode.category.id,
               name: category.name,
               description: category.description,
-              category_type: category.category_type,
+              classification_id:
+                classifications.data?.length === 1 ? classificationId : category.classification_id,
               category_purpose: category.category_purpose,
             });
           }
@@ -171,11 +174,13 @@ export function CategoryForm({ mode, categoryTypes, categoryPurposes, onBack }: 
         options={categoryPurposes}
         hint={CATEGORY_PURPOSE_HINTS[categoryPurpose]}
       />
-      <SegmentedField
-        legend="Type"
-        registration={register('category_type')}
-        options={categoryTypes}
-        hint={CATEGORY_TYPE_HINTS[categoryType]}
+      <ClassificationChoice
+        classifications={classifications.data}
+        isError={classifications.isError}
+        registration={register('classification_id')}
+        onRetry={() => {
+          void classifications.refetch();
+        }}
       />
       <TextField
         label="Description"
