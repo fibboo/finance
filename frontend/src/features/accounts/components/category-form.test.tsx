@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { expect, test, vi } from 'vitest';
+import { beforeEach, expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
@@ -34,79 +34,85 @@ const categoryPurposes = [
   { key: 'INCOME_COST', label: 'Income costs' },
 ];
 
-const categoryTypes = [
-  { key: 'VARIABLE', label: 'Variable' },
-  { key: 'FIXED', label: 'Fixed' },
-  { key: 'PERIODIC', label: 'Periodic' },
-];
+const variableType = {
+  id: '10000000-0000-4000-8000-000000000011',
+  name: 'Variable',
+  kind: 'EXPENSE_CATEGORY',
+  is_default: true,
+};
+const fixedType = {
+  id: '10000000-0000-4000-8000-000000000012',
+  name: 'Fixed',
+  kind: 'EXPENSE_CATEGORY',
+  is_default: false,
+};
+const periodicType = {
+  id: '10000000-0000-4000-8000-000000000013',
+  name: 'Periodic',
+  kind: 'EXPENSE_CATEGORY',
+  is_default: false,
+};
 
-test.each([
-  {
-    type: 'Variable',
-    category_type: 'VARIABLE',
-    hint: 'Spending that changes from month to month, like groceries or taxis.',
-  },
-  {
-    type: 'Fixed',
-    category_type: 'FIXED',
-    hint: 'The same amount every month, like rent or subscriptions.',
-  },
-  {
-    type: 'Periodic',
-    category_type: 'PERIODIC',
-    hint: 'Comes a few times a year, like insurance or gifts.',
-  },
-])('creates a $type category with the hint of its type', async ({ type, category_type, hint }) => {
-  // arrange
-  let createdCategory: unknown = null;
-  const onCreated = vi.fn();
+beforeEach(() => {
   server.use(
-    http.get('http://localhost/api/accounting/accounts', () =>
-      HttpResponse.json({
-        items: [],
-        total: 0,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Account_']),
+    http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+      HttpResponse.json([variableType, fixedType, periodicType]),
     ),
-    http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
-      createdCategory = await request.json();
-      return HttpResponse.json(coffee satisfies components['schemas']['Account'], {
-        status: 201,
-      });
-    }),
   );
-  const user = userEvent.setup();
-  render(
-    <CategoryForm
-      mode={{ kind: 'create', name: 'Coffee shops', onCreated }}
-      categoryTypes={categoryTypes}
-      categoryPurposes={categoryPurposes}
-      onBack={vi.fn()}
-    />,
-  );
-  await user.click(screen.getByRole('radio', { name: type }));
-  await vi.waitFor(() => {
-    expect(screen.getByRole('button', { name: 'Create category' })).toBeEnabled();
-  });
-
-  // act
-  await user.click(screen.getByRole('button', { name: 'Create category' }));
-
-  // assert
-  await vi.waitFor(() => {
-    expect(onCreated).toHaveBeenCalledWith(coffee.id);
-  });
-  expect(screen.getByRole('group', { name: 'Type' })).toHaveAccessibleDescription(hint);
-  expect(createdCategory).toEqual({
-    name: 'Coffee shops',
-    description: null,
-    kind: 'EXPENSE',
-    category_type,
-    category_purpose: 'PERSONAL',
-  });
 });
+
+test.each([variableType, fixedType, periodicType])(
+  'creates a category with its $name type',
+  async ({ id }) => {
+    // arrange
+    let createdCategory: unknown = null;
+    const onCreated = vi.fn();
+    server.use(
+      http.get('http://localhost/api/accounting/accounts', () =>
+        HttpResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Account_']),
+      ),
+      http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
+        createdCategory = await request.json();
+        return HttpResponse.json(coffee satisfies components['schemas']['Account'], {
+          status: 201,
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    render(
+      <CategoryForm
+        mode={{ kind: 'create', name: 'Coffee shops', onCreated }}
+        categoryPurposes={categoryPurposes}
+        onBack={vi.fn()}
+      />,
+    );
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Type' }), id);
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create category' })).toBeEnabled();
+    });
+
+    // act
+    await user.click(screen.getByRole('button', { name: 'Create category' }));
+
+    // assert
+    await vi.waitFor(() => {
+      expect(onCreated).toHaveBeenCalledWith(coffee.id);
+    });
+    expect(createdCategory).toEqual({
+      name: 'Coffee shops',
+      description: null,
+      kind: 'EXPENSE',
+      classification_id: id,
+      category_purpose: 'PERSONAL',
+    });
+  },
+);
 
 test('saves the changed name, type and description of an edited category', async () => {
   // arrange
@@ -136,7 +142,6 @@ test('saves the changed name, type and description of an edited category', async
         relatedQueryKeys: [],
         onSaved,
       }}
-      categoryTypes={categoryTypes}
       categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
@@ -146,10 +151,10 @@ test('saves the changed name, type and description of an edited category', async
   expect(screen.getByRole('form', { name: 'Edit category' })).toBeInTheDocument();
   expect(name).toHaveValue('Groceries');
   expect(description).toHaveValue('Supermarkets');
-  expect(screen.getByRole('radio', { name: 'Variable' })).toBeChecked();
+  expect(await screen.findByRole('combobox', { name: 'Type' })).toHaveValue(variableType.id);
   await user.clear(name);
   await user.type(name, 'Food');
-  await user.click(screen.getByRole('radio', { name: 'Periodic' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Type' }), periodicType.id);
   await user.clear(description);
   await vi.waitFor(() => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
@@ -165,7 +170,7 @@ test('saves the changed name, type and description of an edited category', async
   expect(updatedCategory).toEqual({
     name: 'Food',
     description: null,
-    category_type: 'PERIODIC',
+    classification_id: periodicType.id,
     category_purpose: 'PERSONAL',
   });
 });
@@ -196,7 +201,6 @@ test('shows a name another category has under the name field of the edit form', 
   render(
     <CategoryForm
       mode={{ kind: 'edit', category: groceries, relatedQueryKeys: [], onSaved: vi.fn() }}
-      categoryTypes={categoryTypes}
       categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
@@ -232,7 +236,6 @@ test('says a name an active category holds while it is typed and keeps Create ca
   render(
     <CategoryForm
       mode={{ kind: 'create', name: '', onCreated: vi.fn() }}
-      categoryTypes={categoryTypes}
       categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
@@ -275,7 +278,6 @@ test('leaves the edited category out of the names it finds taken', async () => {
   render(
     <CategoryForm
       mode={{ kind: 'edit', category: groceries, relatedQueryKeys: [], onSaved: vi.fn() }}
-      categoryTypes={categoryTypes}
       categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,
@@ -299,7 +301,6 @@ test('warns only while the edited category purpose differs from the saved purpos
         relatedQueryKeys: [],
         onSaved: vi.fn(),
       }}
-      categoryTypes={categoryTypes}
       categoryPurposes={categoryPurposes}
       onBack={vi.fn()}
     />,

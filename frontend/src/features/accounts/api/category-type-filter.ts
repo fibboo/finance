@@ -2,50 +2,51 @@ import { z } from 'zod';
 
 import { categoryTypeValues, type components } from '@/lib/api-schema';
 
+import type { Classification } from './classification-queries';
+
 type CategoryType = components['schemas']['CategoryType'];
-type DictionaryItem = components['schemas']['DictionaryItem'];
+type ClassificationFilterParam = 'account_type' | 'category_type';
 
-const CATEGORY_TYPE_PARAM = 'category_type';
-
-export type CategoryTypeOption = Readonly<{ key: CategoryType; label: string }>;
-
-export function readCategoryTypeOptions(
-  categoryTypes: readonly DictionaryItem[],
-): readonly CategoryTypeOption[] {
-  const options = categoryTypes.flatMap((item) => {
-    const key = categoryTypeValues.find((type) => type === item.key);
-    return key === undefined ? [] : [{ key, label: item.label }];
-  });
-  return options;
-}
-
-export function readCategoryTypeFilter({
+export function readClassificationFilter({
   searchParams,
-  categoryTypes,
+  param,
+  classifications,
 }: Readonly<{
   searchParams: URLSearchParams;
-  categoryTypes: readonly CategoryTypeOption[];
-}>): CategoryType | undefined {
-  const categoryType = z
-    .string()
-    .nullable()
-    .transform((value) => categoryTypes.find((type) => type.key === value)?.key)
-    .parse(searchParams.get(CATEGORY_TYPE_PARAM));
+  param: ClassificationFilterParam;
+  classifications: readonly Classification[] | undefined;
+}>): string | undefined {
+  if (classifications === undefined || classifications.length < 2) {
+    return undefined;
+  }
+
+  const parsed = z.uuid().safeParse(searchParams.get(param));
+  const classificationId = parsed.success
+    ? classifications.find((classification) => classification.id === parsed.data)?.id
+    : undefined;
+  return classificationId;
+}
+
+export function readLegacyCategoryType(searchParams: URLSearchParams): CategoryType | undefined {
+  const parsed = z.enum(categoryTypeValues).safeParse(searchParams.get('category_type'));
+  const categoryType = parsed.success ? parsed.data : undefined;
   return categoryType;
 }
 
-export function writeCategoryTypeFilter({
+export function writeClassificationFilter({
   searchParams,
-  categoryType,
+  param,
+  classificationId,
 }: Readonly<{
   searchParams: URLSearchParams;
-  categoryType: CategoryType | undefined;
+  param: ClassificationFilterParam;
+  classificationId: string | undefined;
 }>): URLSearchParams {
   const nextSearchParams = new URLSearchParams(searchParams);
-  if (categoryType === undefined) {
-    nextSearchParams.delete(CATEGORY_TYPE_PARAM);
+  if (classificationId === undefined) {
+    nextSearchParams.delete(param);
   } else {
-    nextSearchParams.set(CATEGORY_TYPE_PARAM, categoryType);
+    nextSearchParams.set(param, classificationId);
   }
 
   return nextSearchParams;

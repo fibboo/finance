@@ -10,7 +10,21 @@ import { signOut } from '@/features/auth/api/session';
 
 configure({ asyncUtilTimeout: 5000 });
 
-export const server = setupServer();
+export const defaultMoneyTypeId = '10000000-0000-4000-8000-000000000001';
+export const defaultCategoryTypeId = '10000000-0000-4000-8000-000000000002';
+
+export const server = setupServer(
+  http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', () =>
+    HttpResponse.json([
+      { id: defaultMoneyTypeId, name: 'Standard', kind: 'MONEY_ACCOUNT', is_default: true },
+    ]),
+  ),
+  http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+    HttpResponse.json([
+      { id: defaultCategoryTypeId, name: 'Standard', kind: 'EXPENSE_CATEGORY', is_default: true },
+    ]),
+  ),
+);
 
 let lockQueue: Promise<unknown> = Promise.resolve();
 

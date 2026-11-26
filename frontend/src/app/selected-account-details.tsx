@@ -76,8 +76,6 @@ type SelectedAccountProps = Readonly<{
 type AccountFormProps = Readonly<{
   account: Readonly<Account>;
   baseCurrency: string;
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
   categoryPurposes: readonly DictionaryItem[];
   currencies: readonly DictionaryItem[];
   onSaved: () => void;
@@ -87,8 +85,6 @@ type AccountFormProps = Readonly<{
 function AccountForm({
   account,
   baseCurrency,
-  accountKinds,
-  categoryTypes,
   categoryPurposes,
   currencies,
   onSaved,
@@ -107,7 +103,6 @@ function AccountForm({
           relatedQueryKeys: [...relatedQueryKeys, summaryQueries.current().queryKey],
           onSaved,
         }}
-        categoryTypes={categoryTypes}
         categoryPurposes={categoryPurposes}
         onBack={onBack}
       />
@@ -126,7 +121,6 @@ function AccountForm({
   return (
     <MoneyAccountForm
       mode={{ kind: 'edit', account, relatedQueryKeys, onSaved }}
-      accountKinds={accountKinds}
       currencies={currencies}
       baseCurrency={baseCurrency}
       onBack={onBack}
@@ -289,8 +283,6 @@ function SelectedAccount({
             <AccountForm
               account={account}
               baseCurrency={baseCurrency}
-              accountKinds={dictionaries.account_kinds}
-              categoryTypes={dictionaries.category_types}
               categoryPurposes={dictionaries.category_purposes ?? []}
               currencies={dictionaries.currencies}
               onSaved={() => {

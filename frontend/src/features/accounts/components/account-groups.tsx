@@ -4,7 +4,6 @@ import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount'
 import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
-import type { MoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -14,7 +13,7 @@ import {
   writeSelectedAccount,
 } from '../api/selected-account';
 import { readEstimatedBaseBalance } from './account-estimate';
-import { readAccountGroups } from './account-grouping';
+import { type Classification, readClassificationLabel } from '../api/classification-queries';
 import { AccountMark } from './account-mark';
 import styles from './account-groups.module.css';
 import { readAccountRateText } from './account-rate';
@@ -23,32 +22,14 @@ type Account = components['schemas']['Account'];
 
 const ACCOUNT_SKELETON_COUNT = 3;
 
-const GROUP_HEADINGS = {
-  ASSET: 'Assets',
-  LIABILITY: 'Liabilities',
-} satisfies Readonly<Record<MoneyAccountKind, string>>;
-
 type AccountGroupsProps = Readonly<{
   accounts: readonly Account[] | undefined;
+  classifications: readonly Classification[] | undefined;
   topAccountId: string | undefined;
   baseCurrency: string;
   listSearchParams: URLSearchParams;
   isParamIgnored: boolean;
 }>;
-
-function sumBaseCurrencyBalances(accounts: readonly Account[]): number {
-  const total = accounts.reduce(
-    (sum, account) =>
-      sum + (readEstimatedBaseBalance(account) ?? Number(account.base_currency_balance)),
-    0,
-  );
-  return total;
-}
-
-function hasEstimatedBalance(accounts: readonly Account[]): boolean {
-  const hasEstimate = accounts.some((account) => readEstimatedBaseBalance(account) !== null);
-  return hasEstimate;
-}
 
 function readAccountClassName({
   account,
@@ -68,6 +49,7 @@ function readAccountClassName({
 
 export function AccountGroups({
   accounts,
+  classifications,
   topAccountId,
   baseCurrency,
   listSearchParams,
@@ -80,15 +62,18 @@ export function AccountGroups({
     isFocusRequired: false,
   });
   const selectedAccountId = isParamIgnored ? undefined : readSelectedAccountId(searchParams);
-  const groups = readAccountGroups(accounts ?? []);
   return (
-    <div className={styles['accountGroups']} aria-busy={accounts === undefined}>
+    <section
+      className={styles['accountGroups']}
+      aria-label={accounts === undefined ? undefined : 'Account balances'}
+      aria-busy={accounts === undefined}
+    >
       <div className={styles['columns']} aria-hidden="true">
         <span>Account</span>
         <span className={styles['amountColumn']}>In {baseCurrency}</span>
       </div>
       {accounts === undefined && (
-        <ul className={styles['group']}>
+        <ul className={styles['accounts']}>
           {listSkeletonKeys(ACCOUNT_SKELETON_COUNT).map((key) => (
             <li key={key} className={styles['account']}>
               <Skeleton className={styles['markSkeleton']} />
@@ -100,89 +85,78 @@ export function AccountGroups({
           ))}
         </ul>
       )}
-      {groups.map((group) => {
-        const total = sumBaseCurrencyBalances(group.accounts);
-        return (
-          <section
-            key={group.kind}
-            className={styles['group']}
-            aria-labelledby={`account-group-${group.kind}`}
-          >
-            <div className={styles['groupHeader']}>
-              <h2 id={`account-group-${group.kind}`} className={styles['groupHeading']}>
-                {GROUP_HEADINGS[group.kind]}
-              </h2>
-              <span className={total < 0 ? styles['debt'] : undefined}>
-                {hasEstimatedBalance(group.accounts) ? (
-                  <EstimatedAmount amount={total} currency={baseCurrency} />
-                ) : (
-                  formatMoney({ amount: total, currency: baseCurrency })
-                )}
-              </span>
-            </div>
-            <ul className={styles['accounts']}>
-              {group.accounts.map((account) => {
-                const rateText = readAccountRateText({ account, baseCurrency });
-                const estimatedBaseBalance = readEstimatedBaseBalance(account);
-                const isShownByDefault =
-                  selectedAccountId === undefined && account.id === topAccountId;
-                return (
-                  <li
-                    key={account.id}
-                    className={readAccountClassName({
-                      account,
-                      isSelected: account.id === selectedAccountId,
-                      isShownByDefault,
-                    })}
+      {accounts !== undefined && (
+        <ul className={styles['accounts']}>
+          {accounts.map((account) => {
+            if (account.currency === null) return null;
+            const hasDescription = account.description != null && account.description !== '';
+            const classificationLabel = readClassificationLabel({
+              classifications,
+              classificationId: account.classification_id,
+            });
+            const rateText = readAccountRateText({ account, baseCurrency });
+            const estimatedBaseBalance = readEstimatedBaseBalance(account);
+            const isShownByDefault = selectedAccountId === undefined && account.id === topAccountId;
+            return (
+              <li
+                key={account.id}
+                className={readAccountClassName({
+                  account,
+                  isSelected: account.id === selectedAccountId,
+                  isShownByDefault,
+                })}
+              >
+                <AccountMark account={account} />
+                <span className={styles['identity']}>
+                  <Link
+                    {...arrowKeySelection}
+                    data-shown-by-default={isShownByDefault ? '' : undefined}
+                    id={readAccountLinkId(account.id)}
+                    to={{
+                      search: writeSelectedAccount({
+                        searchParams: listSearchParams,
+                        accountId: account.id,
+                      }).toString(),
+                    }}
+                    preventScrollReset
+                    aria-current={account.id === selectedAccountId ? 'true' : undefined}
+                    aria-label={hasDescription ? account.name : undefined}
+                    className={styles['name']}
                   >
-                    <AccountMark account={account} />
-                    <span className={styles['identity']}>
-                      <Link
-                        {...arrowKeySelection}
-                        data-shown-by-default={isShownByDefault ? '' : undefined}
-                        id={readAccountLinkId(account.id)}
-                        to={{
-                          search: writeSelectedAccount({
-                            searchParams: listSearchParams,
-                            accountId: account.id,
-                          }).toString(),
-                        }}
-                        preventScrollReset
-                        aria-current={account.id === selectedAccountId ? 'true' : undefined}
-                        className={styles['name']}
-                      >
-                        {account.name}
-                      </Link>
-                      <span className={styles['currency']}>
-                        {account.currency}
-                        {rateText !== undefined && ` · ${rateText}`}
-                      </span>
-                    </span>
-                    <span className={styles['balance']}>
-                      {estimatedBaseBalance === null ? (
-                        formatMoney({
-                          amount: Number(account.base_currency_balance),
-                          currency: baseCurrency,
-                        })
-                      ) : (
-                        <EstimatedAmount amount={estimatedBaseBalance} currency={baseCurrency} />
-                      )}
-                    </span>
-                    {account.currency !== baseCurrency && (
-                      <span className={styles['accountBalance']}>
-                        {formatMoney({
-                          amount: Number(account.balance),
-                          currency: account.currency,
-                        })}
-                      </span>
+                    {account.name}
+                    {hasDescription && (
+                      <span className={styles['description']}> {account.description}</span>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        );
-      })}
-    </div>
+                  </Link>
+                  <span className={styles['currency']}>
+                    {classificationLabel !== undefined && `${classificationLabel} · `}
+                    {account.currency}
+                    {rateText !== undefined && ` · ${rateText}`}
+                  </span>
+                </span>
+                <span className={styles['balance']}>
+                  {estimatedBaseBalance === null ? (
+                    formatMoney({
+                      amount: Number(account.base_currency_balance),
+                      currency: baseCurrency,
+                    })
+                  ) : (
+                    <EstimatedAmount amount={estimatedBaseBalance} currency={baseCurrency} />
+                  )}
+                </span>
+                {account.currency !== baseCurrency && (
+                  <span className={styles['accountBalance']}>
+                    {formatMoney({
+                      amount: Number(account.balance),
+                      currency: account.currency,
+                    })}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

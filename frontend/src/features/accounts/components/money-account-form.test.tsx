@@ -5,7 +5,7 @@ import { expect, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
-import { server } from '@/test/setup';
+import { defaultMoneyTypeId, server } from '@/test/setup';
 
 import { MoneyAccountForm } from './money-account-form';
 
@@ -38,13 +38,13 @@ const travelCard = {
   color: '#5B6CD9',
 } satisfies components['schemas']['Account'];
 
-const accountKinds = [
-  { key: 'ASSET', label: 'Asset' },
-  { key: 'LIABILITY', label: 'Liability' },
-  { key: 'EQUITY', label: 'Equity' },
-  { key: 'INCOME', label: 'Income' },
-  { key: 'EXPENSE', label: 'Expense' },
-];
+const cashType = { id: defaultMoneyTypeId, name: 'Cash', kind: 'MONEY_ACCOUNT', is_default: true };
+const cardType = {
+  id: '10000000-0000-4000-8000-000000000003',
+  name: 'Cards',
+  kind: 'MONEY_ACCOUNT',
+  is_default: false,
+};
 
 const currencies = [
   { key: 'USD', label: 'US Dollar' },
@@ -52,28 +52,19 @@ const currencies = [
 ];
 
 test.each([
-  {
-    kindLabel: 'Asset',
-    kind: 'ASSET',
-    currency: 'USD',
-    hint: 'Money you have: a card, cash or savings.',
-    placeholder: 'e.g. Debit card for everyday spending',
-  },
-  {
-    kindLabel: 'Liability',
-    kind: 'LIABILITY',
-    currency: 'EUR',
-    hint: 'Money you owe: a credit card or a loan.',
-    placeholder: 'e.g. Credit card, repaid every month',
-  },
+  { classification: cashType, currency: 'USD' },
+  { classification: cardType, currency: 'EUR' },
 ])(
-  'creates an $kindLabel account in $currency with the hint of its kind',
-  async ({ kindLabel, kind, currency, hint, placeholder }) => {
+  'creates an account in $currency with the chosen $classification.name type',
+  async ({ classification, currency }) => {
     // arrange
     let createdAccount: unknown = null;
     const requestedColorKinds: string[][] = [];
     const onCreated = vi.fn();
     server.use(
+      http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', () =>
+        HttpResponse.json([cashType, cardType]),
+      ),
       http.get('http://localhost/api/accounting/accounts', ({ request }) => {
         const searchParams = new URL(request.url).searchParams;
         if (!searchParams.has('search_term')) {
@@ -98,14 +89,16 @@ test.each([
     render(
       <MoneyAccountForm
         mode={{ kind: 'create', name: 'Travel card', onCreated }}
-        accountKinds={accountKinds}
         currencies={currencies}
         baseCurrency="USD"
         onBack={vi.fn()}
       />,
     );
     await screen.findByText('Dimmed colors are used by other accounts.');
-    await user.click(screen.getByRole('radio', { name: kindLabel }));
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Type' }),
+      classification.id,
+    );
     await user.selectOptions(screen.getByRole('combobox', { name: 'Currency' }), currency);
     await vi.waitFor(() => {
       expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
@@ -118,26 +111,21 @@ test.each([
     await vi.waitFor(() => {
       expect(onCreated).toHaveBeenCalledWith(travelCard.id);
     });
-    expect(screen.queryByRole('radio', { name: 'Equity' })).not.toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Kind' })).toHaveAccessibleDescription(hint);
-    expect(screen.getByRole('textbox', { name: /^Description/ })).toHaveAttribute(
-      'placeholder',
-      placeholder,
-    );
     expect(new Set(requestedColorKinds.map((kinds) => kinds.join()))).toEqual(
       new Set(['ASSET,LIABILITY']),
     );
     expect(createdAccount).toEqual({
       name: 'Travel card',
       description: null,
-      kind,
+      kind: 'ASSET',
+      classification_id: classification.id,
       currency,
       color: '#5B6CD9',
     });
   },
 );
 
-test('starts as an asset in the base currency', () => {
+test('starts in the base currency and hides the sole type', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
@@ -155,7 +143,6 @@ test('starts as an asset in the base currency', () => {
   render(
     <MoneyAccountForm
       mode={{ kind: 'create', name: 'Travel card', onCreated: vi.fn() }}
-      accountKinds={accountKinds}
       currencies={currencies}
       baseCurrency="EUR"
       onBack={vi.fn()}
@@ -164,7 +151,10 @@ test('starts as an asset in the base currency', () => {
 
   // assert
   expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('EUR');
-  expect(screen.getByRole('radio', { name: 'Asset' })).toBeChecked();
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
+  });
+  expect(screen.queryByRole('combobox', { name: 'Type' })).not.toBeInTheDocument();
 });
 
 test('edits the name, color and description of an account and keeps its kind and currency', async () => {
@@ -193,7 +183,6 @@ test('edits the name, color and description of an account and keeps its kind and
   render(
     <MoneyAccountForm
       mode={{ kind: 'edit', account: euroWallet, relatedQueryKeys: [], onSaved }}
-      accountKinds={accountKinds}
       currencies={currencies}
       baseCurrency="USD"
       onBack={vi.fn()}
@@ -216,7 +205,7 @@ test('edits the name, color and description of an account and keeps its kind and
     expect(onSaved).toHaveBeenCalled();
   });
   expect(screen.getByRole('heading', { name: 'Edit account' })).toBeInTheDocument();
-  expect(screen.getByText('Asset · EUR')).toBeInTheDocument();
+  expect(screen.getByText('EUR', { exact: true })).toBeInTheDocument();
   expect(screen.queryByRole('combobox', { name: 'Currency' })).not.toBeInTheDocument();
   expect(screen.getByRole('radio', { name: 'Blue' })).toBeEnabled();
   expect(screen.getByRole('radio', { name: 'Teal' })).toBeDisabled();
@@ -225,6 +214,7 @@ test('edits the name, color and description of an account and keeps its kind and
     name: 'Pocket',
     description: 'Cash at home',
     color: '#5B6CD9',
+    classification_id: defaultMoneyTypeId,
   });
 });
 
@@ -251,7 +241,6 @@ test('starts the edit with the color of the account and shows a taken name at th
   render(
     <MoneyAccountForm
       mode={{ kind: 'edit', account: wallet, relatedQueryKeys: [], onSaved: vi.fn() }}
-      accountKinds={accountKinds}
       currencies={currencies}
       baseCurrency="USD"
       onBack={vi.fn()}
@@ -298,7 +287,6 @@ test.each([
   render(
     <MoneyAccountForm
       mode={{ kind: 'edit', account, relatedQueryKeys: [], onSaved }}
-      accountKinds={accountKinds}
       currencies={currencies}
       baseCurrency="USD"
       onBack={vi.fn()}
@@ -323,7 +311,12 @@ test.each([
     expect(onSaved).toHaveBeenCalled();
   });
   expect(screen.getByRole('radio', { name: 'Blue' })).toBeEnabled();
-  expect(updatedAccount).toEqual({ name: 'Pocket', description: null, color: '#4D8FBF' });
+  expect(updatedAccount).toEqual({
+    name: 'Pocket',
+    description: null,
+    color: '#4D8FBF',
+    classification_id: defaultMoneyTypeId,
+  });
 });
 
 test('counts an account without a color as using the first color', async () => {
@@ -349,7 +342,6 @@ test('counts an account without a color as using the first color', async () => {
   render(
     <MoneyAccountForm
       mode={{ kind: 'create', name: 'Credit card', onCreated }}
-      accountKinds={accountKinds}
       currencies={currencies}
       baseCurrency="USD"
       onBack={vi.fn()}
@@ -372,12 +364,13 @@ test('counts an account without a color as using the first color', async () => {
     name: 'Credit card',
     description: null,
     kind: 'ASSET',
+    classification_id: defaultMoneyTypeId,
     currency: 'USD',
     color: '#2E8C7A',
   });
 });
 
-test('says an asset name is taken while it is typed and frees it for a liability', async () => {
+test('checks a new account name while the user types it', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
@@ -403,7 +396,6 @@ test('says an asset name is taken while it is typed and frees it for a liability
   render(
     <MoneyAccountForm
       mode={{ kind: 'create', name: '', onCreated: vi.fn() }}
-      accountKinds={accountKinds}
       currencies={currencies}
       baseCurrency="USD"
       onBack={vi.fn()}
@@ -419,10 +411,4 @@ test('says an asset name is taken while it is typed and frees it for a liability
     expect(name).toHaveAccessibleDescription('An active account already has this name');
   });
   expect(screen.getByRole('button', { name: 'Create account' })).toBeDisabled();
-  // the same name is free among liabilities
-  await user.click(screen.getByRole('radio', { name: 'Liability' }));
-  await vi.waitFor(() => {
-    expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
-  });
-  expect(name).not.toHaveAccessibleDescription();
 });

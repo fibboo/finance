@@ -72,12 +72,37 @@ const amexCredit = {
   base_currency_balance: '-700.00',
 } satisfies components['schemas']['Account'];
 
-test('groups assets before liabilities, each with its total and its accounts in the order given', () => {
+test('shows account descriptions and types in one list in the order given', () => {
   // act
   render(
     // in each group neither by balance nor by name, in either direction
     <AccountGroups
-      accounts={[wallet, intesaCredit, mainCard, visaCredit, savings, amexCredit]}
+      accounts={[
+        {
+          ...wallet,
+          description: 'Everyday cash',
+          classification_id: '10000000-0000-4000-8000-000000000001',
+        },
+        intesaCredit,
+        mainCard,
+        visaCredit,
+        savings,
+        amexCredit,
+      ]}
+      classifications={[
+        {
+          name: 'Cash',
+          id: '10000000-0000-4000-8000-000000000001',
+          kind: 'MONEY_ACCOUNT',
+          is_default: true,
+        },
+        {
+          name: 'Card',
+          id: '10000000-0000-4000-8000-000000000003',
+          kind: 'MONEY_ACCOUNT',
+          is_default: false,
+        },
+      ]}
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
@@ -86,30 +111,20 @@ test('groups assets before liabilities, each with its total and its accounts in 
   );
 
   // assert
-  const groups = screen.getAllByRole('region');
-  expect(groups).toHaveLength(2);
-  const [assets, liabilities] = groups;
-  if (assets === undefined || liabilities === undefined) {
-    throw new Error('Both groups must be shown.');
-  }
-  expect(within(assets).getByRole('heading', { name: 'Assets' })).toBeInTheDocument();
-  expect(assets).toHaveTextContent('$4,883.70');
-  const assetRows = within(assets).getAllByRole('listitem');
-  expect(assetRows).toHaveLength(3);
-  expect(assetRows[0]).toHaveTextContent('WalletUSD$412.50');
-  expect(assetRows[0]).not.toHaveTextContent('$412.50$412.50');
-  expect(assetRows[1]).toHaveTextContent('Main cardEUR · 0.9161$3,471.20€3,180.00');
-  expect(assetRows[2]).toHaveTextContent('Savings');
-  expect(within(liabilities).getByRole('heading', { name: 'Liabilities' })).toBeInTheDocument();
-  expect(liabilities).toHaveTextContent('-$2,469.60');
-  const liabilityRows = within(liabilities).getAllByRole('listitem');
-  expect(liabilityRows).toHaveLength(3);
-  expect(liabilityRows[0]).toHaveTextContent('Intesa credit');
-  expect(liabilityRows[1]).toHaveTextContent('Visa credit');
-  expect(liabilityRows[2]).toHaveTextContent('Amex credit');
+  const rows = within(screen.getByRole('region', { name: 'Account balances' })).getAllByRole(
+    'listitem',
+  );
+  expect(rows).toHaveLength(6);
+  expect(rows[0]).toHaveTextContent('Wallet Everyday cashCash · USD$412.50');
+  expect(rows[0]).not.toHaveTextContent('$412.50$412.50');
+  expect(rows[1]).toHaveTextContent('Intesa credit');
+  expect(rows[2]).toHaveTextContent('Main cardEUR · 0.9161$3,471.20€3,180.00');
+  expect(rows[3]).toHaveTextContent('Visa credit');
+  expect(rows[4]).toHaveTextContent('Savings');
+  expect(rows[5]).toHaveTextContent('Amex credit');
 });
 
-test('shows the estimate of a balance with unvalued amounts and counts it in its group total', () => {
+test('shows the estimated balance and rate of an account with unvalued amounts', () => {
   // act
   render(
     <AccountGroups
@@ -124,6 +139,7 @@ test('shows the estimate of a balance with unvalued amounts and counts it in its
         },
         visaCredit,
       ]}
+      classifications={undefined}
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
@@ -132,22 +148,24 @@ test('shows the estimate of a balance with unvalued amounts and counts it in its
   );
 
   // assert
-  const liabilities = screen.getByRole('region', { name: 'Liabilities' });
-  // the estimate already holds the valued balance, so the total adds the estimate in its place,
-  // and the rate is the balance over its estimate
-  expect(within(liabilities).getByText('≈ -$1,818.40')).toBeInTheDocument();
-  const liabilityRows = within(liabilities).getAllByRole('listitem');
-  expect(liabilityRows[0]).toHaveTextContent('Intesa creditEUR · 0.8267≈ -$1,500.00-€1,240.00');
-  const assets = screen.getByRole('region', { name: 'Assets' });
-  expect(assets).toHaveTextContent('$3,883.70');
-  expect(assets).not.toHaveTextContent('≈');
+  const rows = screen.getAllByRole('listitem');
+  expect(rows[2]).toHaveTextContent('Intesa creditEUR · 0.8267≈ -$1,500.00-€1,240.00');
+  expect(rows[0]).not.toHaveTextContent('≈');
 });
 
-test('leaves out a group without accounts', () => {
+test('leaves out the type label when there is one type', () => {
   // act
   render(
     <AccountGroups
-      accounts={[wallet]}
+      accounts={[{ ...wallet, classification_id: '10000000-0000-4000-8000-000000000001' }]}
+      classifications={[
+        {
+          id: '10000000-0000-4000-8000-000000000001',
+          name: 'Standard',
+          kind: 'MONEY_ACCOUNT',
+          is_default: true,
+        },
+      ]}
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
@@ -156,15 +174,16 @@ test('leaves out a group without accounts', () => {
   );
 
   // assert
-  expect(screen.getByRole('region', { name: 'Assets' })).toBeInTheDocument();
-  expect(screen.queryByRole('region', { name: 'Liabilities' })).not.toBeInTheDocument();
+  expect(screen.getByRole('listitem')).toHaveTextContent('WalletUSD');
+  expect(screen.getByRole('listitem')).not.toHaveTextContent('Standard');
 });
 
-test('shows the groups as loading while the accounts are pending', () => {
+test('shows the list skeleton while the accounts are pending', () => {
   // act
   render(
     <AccountGroups
       accounts={undefined}
+      classifications={undefined}
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
@@ -177,12 +196,13 @@ test('shows the groups as loading while the accounts are pending', () => {
   expect(screen.getAllByRole('listitem')).toHaveLength(3);
 });
 
-test('moves the selection through the rows of both groups with the arrow keys', async () => {
+test('moves the selection through the rows with the arrow keys', async () => {
   // arrange
   const user = userEvent.setup();
   render(
     <AccountGroups
       accounts={[wallet, savings, intesaCredit]}
+      classifications={undefined}
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
@@ -192,7 +212,7 @@ test('moves the selection through the rows of both groups with the arrow keys', 
   await user.tab();
 
   // act
-  // past the last row the selection stays, so Up from there returns to the last asset
+  // past the last row the selection stays, so Up from there returns to the previous account
   await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowUp}');
 
   // assert
@@ -209,6 +229,7 @@ test('moves the selection from the selected row with the arrow keys while the fo
   render(
     <AccountGroups
       accounts={[wallet, savings, intesaCredit]}
+      classifications={undefined}
       topAccountId={undefined}
       baseCurrency="USD"
       listSearchParams={new URLSearchParams()}
@@ -239,6 +260,7 @@ test.each([
     render(
       <AccountGroups
         accounts={[wallet, savings, intesaCredit]}
+        classifications={undefined}
         topAccountId={topAccountId}
         baseCurrency="USD"
         listSearchParams={new URLSearchParams()}
@@ -264,6 +286,7 @@ test.each(['Shift', 'Control', 'Alt', 'Meta'])(
     render(
       <AccountGroups
         accounts={[wallet, savings]}
+        classifications={undefined}
         topAccountId={undefined}
         baseCurrency="USD"
         listSearchParams={new URLSearchParams()}

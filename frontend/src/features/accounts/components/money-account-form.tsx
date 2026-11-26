@@ -4,15 +4,15 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { ColorField } from '@/components/color-field/color-field';
 import { EntityForm } from '@/components/entity-form/entity-form';
-import { SegmentedField } from '@/components/segmented-field/segmented-field';
 import { SelectField } from '@/components/select-field/select-field';
 import { TextField } from '@/components/text-field/text-field';
 import { readAccountColor, readFreeAccountColors } from '@/lib/account-colors';
-import { isMoneyAccountKind, MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
 import type { AccountFieldError } from '../api/account-field-errors';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '../api/account-queries';
+import { classificationQueries, readStartingClassificationId } from '../api/classification-queries';
 import { useAccountCreate } from '../hooks/use-account-create';
 import { useAccountNameTaken } from '../hooks/use-account-name-taken';
 import { useAccountUpdate } from '../hooks/use-account-update';
@@ -23,11 +23,11 @@ import {
   type MoneyAccountFormValues,
   NAME_MAX_LENGTH,
 } from '../schemas/account-form';
+import { ClassificationChoice } from './classification-choice';
 import styles from './money-account-form.module.css';
 
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
-type MoneyAccountKind = (typeof MONEY_ACCOUNT_KINDS)[number];
 
 type MoneyAccountFormMode =
   | Readonly<{ kind: 'create'; name: string; onCreated: (id: string) => void }>
@@ -40,77 +40,56 @@ type MoneyAccountFormMode =
 
 type MoneyAccountFormProps = Readonly<{
   mode: MoneyAccountFormMode;
-  accountKinds: readonly DictionaryItem[];
   currencies: readonly DictionaryItem[];
   baseCurrency: string;
   onBack: () => void;
 }>;
 
-const MONEY_ACCOUNT_KIND_COPY = {
-  ASSET: {
-    hint: 'Money you have: a card, cash or savings.',
-    descriptionPlaceholder: 'e.g. Debit card for everyday spending',
-  },
-  LIABILITY: {
-    hint: 'Money you owe: a credit card or a loan.',
-    descriptionPlaceholder: 'e.g. Credit card, repaid every month',
-  },
-} satisfies Readonly<
-  Record<MoneyAccountKind, Readonly<{ hint: string; descriptionPlaceholder: string }>>
->;
-
 function readStartingValues({
   mode,
   baseCurrency,
-}: Readonly<{ mode: MoneyAccountFormMode; baseCurrency: string }>): MoneyAccountFormValues {
+  classificationId,
+}: Readonly<{
+  mode: MoneyAccountFormMode;
+  baseCurrency: string;
+  classificationId: string;
+}>): MoneyAccountFormValues {
   if (mode.kind === 'create') {
-    const createValues = {
+    return {
       name: mode.name,
       description: '',
       color: '',
-      kind: 'ASSET',
       currency: baseCurrency,
-    } satisfies MoneyAccountFormValues;
-    return createValues;
+      classification_id: classificationId,
+    };
   }
 
   const { account } = mode;
-  if (!isMoneyAccountKind(account.kind) || account.currency === null) {
+  if (account.currency === null) {
     throw new Error('Only a money account can be edited in the money account form.');
   }
 
-  const editValues = {
+  return {
     name: account.name,
     description: account.description ?? '',
     color: readAccountColor(account),
-    kind: account.kind,
     currency: account.currency,
-  } satisfies MoneyAccountFormValues;
-  return editValues;
-}
-
-function readKindAndCurrency({
-  startingValues,
-  accountKinds,
-}: Readonly<{
-  startingValues: MoneyAccountFormValues;
-  accountKinds: readonly DictionaryItem[];
-}>): string {
-  const kindLabel =
-    accountKinds.find((accountKind) => accountKind.key === startingValues.kind)?.label ??
-    startingValues.kind;
-  const kindAndCurrency = `${kindLabel} · ${startingValues.currency}`;
-  return kindAndCurrency;
+    classification_id: classificationId,
+  };
 }
 
 export function MoneyAccountForm({
   mode,
-  accountKinds,
   currencies,
   baseCurrency,
   onBack,
 }: MoneyAccountFormProps) {
-  const startingValues = readStartingValues({ mode, baseCurrency });
+  const classifications = useQuery(classificationQueries.list('MONEY_ACCOUNT'));
+  const classificationId = readStartingClassificationId({
+    classifications: classifications.data,
+    classificationId: mode.kind === 'edit' ? mode.account.classification_id : undefined,
+  });
+  const startingValues = readStartingValues({ mode, baseCurrency, classificationId });
   const { control, register, handleSubmit, setError, setValue, formState } = useForm<
     MoneyAccountFormValues,
     unknown,
@@ -120,7 +99,13 @@ export function MoneyAccountForm({
     values: startingValues,
     resetOptions: { keepDirtyValues: true },
   });
-  const [pickedColor, kind, name] = useWatch({ control, name: ['color', 'kind', 'name'] });
+  const [pickedColor, name, chosenType] = useWatch({
+    control,
+    name: ['color', 'name', 'classification_id'],
+  });
+  const selectedType = classifications.data?.length === 1 ? classificationId : chosenType;
+  const isTypeAvailable = classifications.data?.some(({ id }) => id === selectedType) === true;
+  const kind = mode.kind === 'edit' ? mode.account.kind : 'ASSET';
   const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind,
@@ -168,13 +153,13 @@ export function MoneyAccountForm({
     },
     onFieldError: showFieldError,
   });
-  const kindCopy = MONEY_ACCOUNT_KIND_COPY[kind];
 
   return (
     <EntityForm
       title={mode.kind === 'create' ? 'New account' : 'Edit account'}
       submitLabel={mode.kind === 'create' ? 'Create account' : 'Save changes'}
       isSubmitDisabled={
+        !isTypeAvailable ||
         color === undefined ||
         isNameTaken ||
         isLookupPending ||
@@ -193,13 +178,17 @@ export function MoneyAccountForm({
             accountCreate.create({
               name: account.name,
               description: account.description,
-              kind: account.kind,
+              kind,
+              classification_id:
+                classifications.data?.length === 1 ? classificationId : account.classification_id,
               currency: account.currency,
               color,
             });
           } else {
             accountUpdate.update({
               account_id: mode.account.id,
+              classification_id:
+                classifications.data?.length === 1 ? classificationId : account.classification_id,
               name: account.name,
               description: account.description,
               color,
@@ -217,30 +206,28 @@ export function MoneyAccountForm({
         isMultiline={false}
         error={formState.errors.name?.message ?? (isNameTaken ? nameTakenMessage : undefined)}
       />
+      <ClassificationChoice
+        classifications={classifications.data}
+        isError={classifications.isError}
+        registration={register('classification_id')}
+        onRetry={() => {
+          void classifications.refetch();
+        }}
+      />
       {mode.kind === 'create' ? (
-        <>
-          <SegmentedField
-            legend="Kind"
-            registration={register('kind')}
-            options={accountKinds.filter((accountKind) => isMoneyAccountKind(accountKind.key))}
-            hint={kindCopy.hint}
-          />
-          <SelectField
-            label="Currency"
-            registration={register('currency')}
-            options={currencies.map((currencyItem) => ({
-              value: currencyItem.key,
-              label: `${currencyItem.key} · ${currencyItem.label}`,
-            }))}
-          />
-        </>
+        <SelectField
+          label="Currency"
+          registration={register('currency')}
+          options={currencies.map((currencyItem) => ({
+            value: currencyItem.key,
+            label: `${currencyItem.key} · ${currencyItem.label}`,
+          }))}
+        />
       ) : (
         <div className={styles['fixedField']}>
-          <span className={styles['label']}>Kind and currency</span>
-          <span className={styles['fixedValue']}>
-            {readKindAndCurrency({ startingValues, accountKinds })}
-          </span>
-          <p className={styles['hint']}>They can&apos;t be changed once the account exists.</p>
+          <span className={styles['label']}>Currency</span>
+          <span className={styles['fixedValue']}>{startingValues.currency}</span>
+          <p className={styles['hint']}>Currency is fixed after creation.</p>
         </div>
       )}
       <ColorField
@@ -253,7 +240,7 @@ export function MoneyAccountForm({
       <TextField
         label="Description"
         registration={register('description')}
-        placeholder={kindCopy.descriptionPlaceholder}
+        placeholder="e.g. Debit card for everyday spending"
         maxLength={DESCRIPTION_MAX_LENGTH}
         isOptional
         isMultiline

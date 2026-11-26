@@ -86,7 +86,7 @@ beforeEach(() => {
   );
 });
 
-test('shows the number of money accounts next to the title and lists them by kind', async () => {
+test('shows the number of money accounts next to the title and lists both stored kinds together', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) =>
@@ -110,8 +110,10 @@ test('shows the number of money accounts next to the title and lists them by kin
   expect(
     await screen.findByRole('heading', { level: 1, name: 'Accounts, 2 accounts' }),
   ).toBeInTheDocument();
-  expect(await screen.findByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
-  expect(screen.getByRole('region', { name: 'Liabilities' })).toHaveTextContent('Credit card');
+  expect(await screen.findByRole('region', { name: 'Account balances' })).toHaveTextContent(
+    'Wallet',
+  );
+  expect(screen.getByRole('region', { name: 'Account balances' })).toHaveTextContent('Credit card');
 });
 
 test('creates an account from New account and lists it', async () => {
@@ -134,7 +136,7 @@ test('creates an account from New account and lists it', async () => {
     }),
   );
   render(<Component />);
-  await screen.findByRole('region', { name: 'Assets' });
+  await screen.findByRole('region', { name: 'Account balances' });
   await user.click(await screen.findByRole('button', { name: 'New account' }));
   const form = await screen.findByRole('form', { name: 'New account' });
   await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Travel card');
@@ -210,11 +212,11 @@ test('keeps the accounts listed and New account disabled when the dictionary fai
 
   // assert
   expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
-  expect(screen.getByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
+  expect(screen.getByRole('region', { name: 'Account balances' })).toHaveTextContent('Wallet');
   expect(screen.getByRole('button', { name: 'New account' })).toBeDisabled();
 });
 
-test('narrows the groups to the accounts matching a term of at least 3 characters', async () => {
+test('narrows the list to the accounts matching a term of at least 3 characters', async () => {
   // arrange
   const user = userEvent.setup();
   const searchTerms: (string | null)[] = [];
@@ -235,7 +237,7 @@ test('narrows the groups to the accounts matching a term of at least 3 character
     }),
   );
   render(<Component />);
-  await screen.findByRole('region', { name: 'Assets' });
+  await screen.findByRole('region', { name: 'Account balances' });
   await user.type(screen.getByRole('searchbox', { name: 'Search accounts' }), 'cr');
 
   // act
@@ -243,9 +245,9 @@ test('narrows the groups to the accounts matching a term of at least 3 character
 
   // assert
   await waitFor(() => {
-    expect(screen.queryByRole('region', { name: 'Assets' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Wallet' })).not.toBeInTheDocument();
   });
-  expect(screen.getByRole('region', { name: 'Liabilities' })).toHaveTextContent('Credit card');
+  expect(screen.getByRole('region', { name: 'Account balances' })).toHaveTextContent('Credit card');
   expect(
     screen.getByRole('heading', { level: 1, name: 'Accounts, 2 accounts' }),
   ).toBeInTheDocument();
@@ -276,7 +278,9 @@ test('reads the term from the URL and clears it into a focused field when nothin
   await user.click(await screen.findByRole('button', { name: 'Clear search' }));
 
   // assert
-  expect(await screen.findByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
+  expect(await screen.findByRole('region', { name: 'Account balances' })).toHaveTextContent(
+    'Wallet',
+  );
   expect(screen.getByRole('searchbox', { name: 'Search accounts' })).toHaveValue('');
   expect(screen.getByRole('searchbox', { name: 'Search accounts' })).toHaveFocus();
   expect(screen.queryByText('No accounts match this search')).not.toBeInTheDocument();
@@ -456,6 +460,7 @@ test('keeps the focus on the rows while the arrow keys move through them and sho
   await user.tab();
   await user.tab();
   await user.tab();
+  await user.tab();
   expect(screen.getByRole('link', { name: 'Wallet' })).toHaveFocus();
 
   // act
@@ -542,8 +547,8 @@ test('shows the details of the top account while no account is chosen', async ()
         pages: 1,
       } satisfies components['schemas']['Page_Account_']),
     ),
-    http.get(`http://localhost/api/accounting/accounts/${mainCard.id}`, () =>
-      HttpResponse.json(mainCard),
+    http.get(`http://localhost/api/accounting/accounts/${creditCard.id}`, () =>
+      HttpResponse.json(creditCard),
     ),
   );
 
@@ -551,13 +556,12 @@ test('shows the details of the top account while no account is chosen', async ()
   render(<Component />);
 
   // assert
-  // the assets group comes first, so its first account is the top one
   const details = await screen.findByRole('dialog', { name: 'Account details' });
   expect(
-    await within(details).findByRole('heading', { level: 2, name: 'Main card' }),
+    await within(details).findByRole('heading', { level: 2, name: 'Credit card' }),
   ).toBeInTheDocument();
   expect(details).not.toHaveFocus();
-  expect(screen.getByRole('link', { name: 'Main card' })).not.toHaveAttribute('aria-current');
+  expect(screen.getByRole('link', { name: 'Credit card' })).not.toHaveAttribute('aria-current');
 });
 
 test('drops the account param of an account that does not exist', async () => {
@@ -1125,7 +1129,7 @@ test('shows the transactions of the top account with its balance and actions and
   const walletTransactions = await screen.findByRole('region', {
     name: 'Transactions of Wallet',
   });
-  expect(walletTransactions).toHaveTextContent('Asset · USD · recent transactions');
+  expect(walletTransactions).toHaveTextContent('USD · recent transactions');
   expect(within(walletTransactions).getByRole('heading', { name: 'Wallet' })).toBeInTheDocument();
   expect(await within(walletTransactions).findAllByText('$412.50')).not.toHaveLength(0);
   expect(within(walletTransactions).getByRole('link', { name: 'Adjust balance' })).toHaveAttribute(
@@ -1193,12 +1197,16 @@ test('opens a transaction of the feed and drops it when another account is chose
   );
 
   // act
-  await user.click(within(screen.getByRole('region', { name: 'Liabilities' })).getByRole('link'));
+  await user.click(
+    within(screen.getByRole('region', { name: 'Account balances' })).getByRole('link', {
+      name: 'Credit card',
+    }),
+  );
 
   // assert
   expect(
     await screen.findByRole('region', { name: 'Transactions of Credit card' }),
-  ).toHaveTextContent('Liability · USD · recent transactions');
+  ).toHaveTextContent('USD · recent transactions');
   expect(router.state.location.search).toBe(`?account=${creditCard.id}`);
 });
 
@@ -1358,14 +1366,15 @@ test('shows the list skeleton instead of the previous accounts while a search lo
     }),
   );
   const { router } = render(<Component />);
-  expect(await screen.findByRole('region', { name: 'Assets' })).toHaveTextContent('Wallet');
+  expect(await screen.findByRole('region', { name: 'Account balances' })).toHaveTextContent(
+    'Wallet',
+  );
 
   // act
   await act(() => router.navigate('/?search=cre'));
 
   // assert
-  expect(screen.queryByRole('region', { name: 'Assets' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('region', { name: 'Liabilities' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Account balances' })).not.toBeInTheDocument();
   expect(screen.queryByText('No accounts match this search')).not.toBeInTheDocument();
   expect(
     screen.getByRole('heading', { level: 1, name: 'Accounts, 2 accounts' }),

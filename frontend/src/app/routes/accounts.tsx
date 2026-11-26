@@ -10,6 +10,7 @@ import {
 import { SelectedAccountDetails } from '@/app/selected-account-details';
 import { readTransactionsLink } from '@/app/transactions-link';
 import { useBaseCurrency } from '@/app/use-base-currency';
+import { CatalogFilters } from '@/components/catalog-list/catalog-filters';
 import { readCatalogSearch, writeCatalogSearch } from '@/components/catalog-list/catalog-search';
 import { NoMatchingEntries } from '@/components/catalog-list/no-matching-entries';
 import { NewButton } from '@/components/new-button/new-button';
@@ -18,9 +19,17 @@ import { SearchField } from '@/components/search-field/search-field';
 import { Sheet } from '@/components/sheet/sheet';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import { ACCOUNT_SEARCH_FIELD_ID } from '@/features/accounts/api/account-search';
+import {
+  readClassificationFilter,
+  writeClassificationFilter,
+} from '@/features/accounts/api/category-type-filter';
+import {
+  classificationQueries,
+  readClassificationLabel,
+} from '@/features/accounts/api/classification-queries';
 import { readSelectedAccountId } from '@/features/accounts/api/selected-account';
-import { readTopAccountId } from '@/features/accounts/components/account-grouping';
 import { AccountGroups } from '@/features/accounts/components/account-groups';
+import { ClassificationSettings } from '@/features/accounts/components/classification-settings';
 import { MoneyAccountForm } from '@/features/accounts/components/money-account-form';
 import { currencyQueries } from '@/features/currencies/api/currency-queries';
 import { dictionaryQueries } from '@/features/dictionaries/api/dictionary-queries';
@@ -52,6 +61,12 @@ export function Component() {
   const search = readCatalogSearch(searchParams);
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
+  const { data: classifications } = useQuery(classificationQueries.list('MONEY_ACCOUNT'));
+  const classificationId = readClassificationFilter({
+    searchParams,
+    param: 'account_type',
+    classifications,
+  });
   const accountQuery = {
     size: ACCOUNT_PAGE_SIZE,
     kinds: [...MONEY_ACCOUNT_KINDS],
@@ -62,13 +77,16 @@ export function Component() {
     throwOnError: isThrownWithoutData,
   });
   const { data: accountPage } = useQuery({
-    ...accountQueries.list(
-      searchTerm === undefined ? accountQuery : { ...accountQuery, search_term: searchTerm },
-    ),
+    ...accountQueries.list({
+      ...accountQuery,
+      ...(searchTerm !== undefined && { search_term: searchTerm }),
+      ...(classificationId !== undefined && { classification_ids: [classificationId] }),
+    }),
     throwOnError: isThrownWithoutData,
   });
-  const isNothingMatched = searchTerm !== undefined && accountPage?.items.length === 0;
-  const topAccountId = isNothingMatched ? undefined : readTopAccountId(accountPage?.items ?? []);
+  const isNothingMatched =
+    (searchTerm !== undefined || classificationId !== undefined) && accountPage?.items.length === 0;
+  const topAccountId = accountPage?.items[0]?.id;
   const listedAccounts = isNothingMatched ? [] : (accountPage?.items ?? []);
   const selectedAccountId = readSelectedAccountId(searchParams);
   const chosenAccount = listedAccounts.find((account) => account.id === selectedAccountId);
@@ -76,6 +94,17 @@ export function Component() {
     chosenAccount ?? listedAccounts.find((account) => account.id === topAccountId);
   const { data: dictionaries } = useQuery(dictionaryQueries.accounting());
   const { data: currencies } = useQuery(currencyQueries.recentUse());
+
+  function selectClassification(nextClassificationId: string | undefined) {
+    setSearchParams(
+      writeClassificationFilter({
+        searchParams: listSearchParams,
+        param: 'account_type',
+        classificationId: nextClassificationId,
+      }),
+      { replace: true },
+    );
+  }
 
   function closeForm() {
     setIsCreating(false);
@@ -112,19 +141,39 @@ export function Component() {
               setIsCreating(true);
             }}
           />
+          <ClassificationSettings kind="MONEY_ACCOUNT" />
         </>
       }
     >
       {baseCurrency !== undefined && (
         <div className={isWideDesktop ? styles['accountsWithTransactions'] : styles['accounts']}>
           <div className={isWideDesktop ? styles['list'] : styles['plainList']}>
+            {classifications !== undefined && classifications.length > 1 && (
+              <CatalogFilters
+                segment={{
+                  kind: 'shown',
+                  legend: 'Account type',
+                  options: classifications.map(({ id, name }) => ({ key: id, label: name })),
+                  chosenKey: classificationId,
+                  onChoose: selectClassification,
+                }}
+              />
+            )}
             {isNothingMatched ? (
               <NoMatchingEntries
                 entityNames="accounts"
+                isFiltered={classificationId !== undefined}
                 onClear={() => {
                   searchField.focusAfterClear();
                   setSearchParams(
-                    writeCatalogSearch({ searchParams: listSearchParams, search: '' }),
+                    writeClassificationFilter({
+                      searchParams: writeCatalogSearch({
+                        searchParams: listSearchParams,
+                        search: '',
+                      }),
+                      param: 'account_type',
+                      classificationId: undefined,
+                    }),
                     { replace: true },
                   );
                 }}
@@ -132,6 +181,7 @@ export function Component() {
             ) : (
               <AccountGroups
                 accounts={accountPage?.items}
+                classifications={classifications}
                 topAccountId={topAccountId}
                 baseCurrency={baseCurrency}
                 listSearchParams={listSearchParams}
@@ -143,13 +193,15 @@ export function Component() {
             (shownAccount !== undefined || accountPage === undefined) && (
               <CatalogTransactions
                 entryFeed={
-                  shownAccount === undefined || dictionaries === undefined
+                  shownAccount === undefined
                     ? undefined
                     : {
                         name: shownAccount.name,
                         description: [
-                          dictionaries.account_kinds.find((kind) => kind.key === shownAccount.kind)
-                            ?.label,
+                          readClassificationLabel({
+                            classifications,
+                            classificationId: shownAccount.classification_id,
+                          }),
                           shownAccount.currency ?? baseCurrency,
                           'recent transactions',
                         ]
@@ -195,20 +247,16 @@ export function Component() {
           )}
         </div>
       )}
-      {isCreating &&
-        dictionaries !== undefined &&
-        currencies !== undefined &&
-        baseCurrency !== undefined && (
-          <Sheet label="New account" onClose={closeForm}>
-            <MoneyAccountForm
-              mode={{ kind: 'create', name: '', onCreated: closeForm }}
-              accountKinds={dictionaries.account_kinds}
-              currencies={currencies}
-              baseCurrency={baseCurrency}
-              onBack={closeForm}
-            />
-          </Sheet>
-        )}
+      {isCreating && currencies !== undefined && baseCurrency !== undefined && (
+        <Sheet label="New account" onClose={closeForm}>
+          <MoneyAccountForm
+            mode={{ kind: 'create', name: '', onCreated: closeForm }}
+            currencies={currencies}
+            baseCurrency={baseCurrency}
+            onBack={closeForm}
+          />
+        </Sheet>
+      )}
     </Page>
   );
 }

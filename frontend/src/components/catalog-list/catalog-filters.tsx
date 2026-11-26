@@ -17,8 +17,8 @@ type CatalogSegment<Key extends string> =
 type CatalogFiltersProps<Key extends string> = Readonly<{
   segment: CatalogSegment<Key> | undefined;
   children?: ReactNode;
-  isDeletedShown: boolean;
-  onDeletedShownChange: (isDeletedShown: boolean) => void;
+  isDeletedShown?: boolean;
+  onDeletedShownChange?: (isDeletedShown: boolean) => void;
 }>;
 
 export function CatalogFilters<Key extends string>({
@@ -51,18 +51,20 @@ export function CatalogFilters<Key extends string>({
           ))}
         </fieldset>
       )}
-      <label className={styles['toggle']}>
-        <input
-          type="checkbox"
-          role="switch"
-          className={styles['switch']}
-          checked={isDeletedShown}
-          onChange={(event) => {
-            onDeletedShownChange(event.target.checked);
-          }}
-        />
-        Deleted
-      </label>
+      {onDeletedShownChange !== undefined && (
+        <label className={styles['toggle']}>
+          <input
+            type="checkbox"
+            role="switch"
+            className={styles['switch']}
+            checked={isDeletedShown}
+            onChange={(event) => {
+              onDeletedShownChange(event.target.checked);
+            }}
+          />
+          Deleted
+        </label>
+      )}
     </div>
   );
 }
