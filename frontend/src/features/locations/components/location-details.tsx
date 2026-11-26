@@ -5,6 +5,7 @@ import type { To } from 'react-router';
 import { ActionBar } from '@/components/action-bar/action-bar';
 import { ActionButton } from '@/components/action-button/action-button';
 import { EDIT_ICON_PATH, TRANSACTIONS_ICON_PATH } from '@/components/action-button/action-icons';
+import { DetailDescription } from '@/components/details-panel/detail-description';
 import { type DetailsBack, DetailsPanel } from '@/components/details-panel/details-panel';
 
 import { locationQueries } from '../api/location-queries';
@@ -104,7 +105,7 @@ export function LocationDetails({
             {location.description !== undefined &&
               location.description !== null &&
               location.description !== '' && (
-                <p className={styles['description']}>{location.description}</p>
+                <DetailDescription key={location.id} description={location.description} />
               )}
             <ActionBar>
               <ActionButton
