@@ -9,6 +9,7 @@ type DetailDescriptionProps = Readonly<{
 export function DetailDescription({ description }: DetailDescriptionProps) {
   const id = useId();
   const anchorName = `--detail-description-${id.replaceAll(':', '')}`;
+  const paragraphRef = useRef<HTMLParagraphElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const disclosureRef = useRef<HTMLSpanElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -48,18 +49,32 @@ export function DetailDescription({ description }: DetailDescriptionProps) {
       }
     }
 
+    function dismissOnBlur(event: FocusEvent) {
+      const nextFocus = event.relatedTarget;
+      if (!(nextFocus instanceof Node) || paragraphRef.current?.contains(nextFocus) !== true) {
+        disclosureRef.current?.hidePopover();
+      }
+    }
+
+    const paragraph = paragraphRef.current;
+    paragraph?.addEventListener('focusout', dismissOnBlur);
     window.addEventListener('keydown', dismissOnEscape, { capture: true });
     return () => {
+      paragraph?.removeEventListener('focusout', dismissOnBlur);
       window.removeEventListener('keydown', dismissOnEscape, { capture: true });
     };
   }, [isTruncated]);
 
   return (
     <p
+      ref={paragraphRef}
       className={styles['description']}
       style={{ anchorName }}
       onPointerLeave={(event) => {
-        if (event.pointerType === 'mouse') {
+        const focused = document.activeElement;
+        const hasKeyboardFocus =
+          event.currentTarget.contains(focused) && focused?.matches(':focus-visible') === true;
+        if (event.pointerType === 'mouse' && !hasKeyboardFocus) {
           disclosureRef.current?.hidePopover();
         }
       }}
@@ -80,19 +95,33 @@ export function DetailDescription({ description }: DetailDescriptionProps) {
               }
             }}
             onFocus={(event) => {
-              if (event.currentTarget.matches(':focus-visible')) {
+              if (
+                event.relatedTarget !== disclosureRef.current &&
+                event.currentTarget.matches(':focus-visible')
+              ) {
                 disclosureRef.current?.showPopover({ source: event.currentTarget });
               }
             }}
-            onBlur={() => {
-              disclosureRef.current?.hidePopover();
+            onKeyDown={(event) => {
+              const disclosure = disclosureRef.current;
+              if (
+                event.key === 'Tab' &&
+                !event.shiftKey &&
+                disclosure?.matches(':popover-open') === true &&
+                disclosure.scrollHeight > disclosure.clientHeight
+              ) {
+                event.preventDefault();
+                disclosure.focus({ preventScroll: true });
+              }
             }}
           />
           <span
             id={id}
             ref={disclosureRef}
             popover="auto"
-            aria-hidden="true"
+            role="region"
+            aria-label="Full description"
+            tabIndex={-1}
             className={styles['disclosure']}
             style={{ positionAnchor: anchorName }}
           >

@@ -37,13 +37,14 @@
 .disclosure {
   position: fixed;
   position-area: block-end;
+  position-try-order: most-height;
   position-try-fallbacks: flip-block;
   inset: auto;
   margin: 0;
   box-sizing: border-box;
   width: anchor-size(width);
   max-width: calc(100dvw - var(--space-6));
-  max-height: calc(100dvh - var(--space-6));
+  max-height: 100%;
   overflow: auto;
   padding: var(--space-3);
   border: var(--size-border) solid var(--color-muted);
@@ -52,4 +53,9 @@
   color: var(--color-ink);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.disclosure:focus-visible {
+  outline: var(--size-focus) solid var(--color-ink);
+  outline-offset: calc(var(--size-focus) * -1);
 }
