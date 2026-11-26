@@ -68,12 +68,8 @@ function TypeNameForm({ kind, classification, onBack, onSaved }: TypeNameFormPro
   function showError(error: Error) {
     if (error instanceof ApiError) {
       const fieldError = error.fieldErrors.find(({ field }) => field === 'name');
-      if (fieldError !== undefined || error.error_code === 'NAME_ALREADY_EXISTS') {
-        form.setError(
-          'name',
-          { message: fieldError?.message ?? error.message },
-          { shouldFocus: true },
-        );
+      if (fieldError !== undefined) {
+        form.setError('name', { message: fieldError.message }, { shouldFocus: true });
         return;
       }
     }

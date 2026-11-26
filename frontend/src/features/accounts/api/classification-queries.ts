@@ -4,6 +4,7 @@ import { apiClient, readData } from '@/lib/api-client';
 import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
+import { readNameError } from './account-field-errors';
 import { accountQueries } from './account-queries';
 
 export type Classification = components['schemas']['Classification'];
@@ -23,26 +24,34 @@ async function createClassification({
   kind,
   ...body
 }: Readonly<ClassificationName & { kind: ClassificationKind }>): Promise<Classification> {
-  const classification = readData(
-    await apiClient.POST('/accounting/classifications/{kind}', {
-      params: { path: { kind } },
-      body,
-    }),
-  );
-  return classification;
+  try {
+    const classification = readData(
+      await apiClient.POST('/accounting/classifications/{kind}', {
+        params: { path: { kind } },
+        body,
+      }),
+    );
+    return classification;
+  } catch (error) {
+    throw readNameError(error);
+  }
 }
 
 async function renameClassification({
   name,
   ...path
 }: Readonly<ClassificationName & ClassificationPath>): Promise<Classification> {
-  const classification = readData(
-    await apiClient.PUT('/accounting/classifications/{kind}/{classification_id}', {
-      params: { path },
-      body: { name },
-    }),
-  );
-  return classification;
+  try {
+    const classification = readData(
+      await apiClient.PUT('/accounting/classifications/{kind}/{classification_id}', {
+        params: { path },
+        body: { name },
+      }),
+    );
+    return classification;
+  } catch (error) {
+    throw readNameError(error);
+  }
 }
 
 async function deleteClassification({

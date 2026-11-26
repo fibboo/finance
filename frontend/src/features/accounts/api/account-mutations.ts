@@ -2,28 +2,15 @@ import { hashKey, mutationOptions, type QueryKey } from '@tanstack/react-query';
 
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import { apiClient, readData } from '@/lib/api-client';
-import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
+import { readNameError } from './account-field-errors';
 import { accountQueries } from './account-queries';
 
 type Account = components['schemas']['Account'];
 type AccountCreateRequest = components['schemas']['AccountCreateRequest'];
 type AccountRestoreRequest = components['schemas']['AccountRestoreRequest'];
 type AccountUpdate = components['schemas']['AccountUpdate'];
-
-function readNameError(error: unknown): unknown {
-  const nameError =
-    error instanceof ApiError && error.error_code === 'NAME_ALREADY_EXISTS'
-      ? new ApiError({
-          status: error.status,
-          message: error.message,
-          error_code: error.error_code,
-          fieldErrors: [{ field: 'name', message: error.message }],
-        })
-      : error;
-  return nameError;
-}
 
 async function postAccount(body: Readonly<AccountCreateRequest>): Promise<Account> {
   try {

@@ -99,3 +99,52 @@ test.each([
     expect(requestedReplacements).toEqual([null, defaultType.id]);
   },
 );
+
+test.each([
+  { open: 'New type', submit: 'Create type', field: 'Name' },
+  { open: 'Edit Travel', submit: 'Save name', field: 'Type name' },
+])('shows a duplicate name only at the field when using $open', async ({ open, submit, field }) => {
+  // arrange
+  const kind = 'MONEY_ACCOUNT';
+  const existing = {
+    id: '10000000-0000-4000-8000-000000000031',
+    name: 'Standard',
+    kind,
+    is_default: true,
+  };
+  const custom = {
+    id: '10000000-0000-4000-8000-000000000032',
+    name: 'Travel',
+    kind,
+    is_default: false,
+  };
+  const path = `http://localhost/api/accounting/classifications/${kind}`;
+  const message = 'A type with this name already exists';
+  const conflict = {
+    error_code: 'NAME_ALREADY_EXISTS',
+    message,
+  } satisfies components['schemas']['ErrorResponse'];
+  server.use(
+    http.get(path, () => HttpResponse.json([existing, custom])),
+    http.post(path, () => HttpResponse.json(conflict, { status: 409 })),
+    http.put(`${path}/${custom.id}`, () => HttpResponse.json(conflict, { status: 409 })),
+  );
+  const user = userEvent.setup();
+  render(<ClassificationSettings kind={kind} />);
+  await user.click(screen.getByRole('button', { name: 'Manage types' }));
+  const dialog = within(screen.getByRole('dialog', { name: 'Account types' }));
+  await user.click(await dialog.findByRole('button', { name: open }));
+  const name = dialog.getByRole('textbox', { name: field });
+  await user.clear(name);
+  await user.type(name, existing.name);
+
+  // act
+  await user.click(dialog.getByRole('button', { name: submit }));
+
+  // assert
+  expect(await dialog.findByRole('alert')).toHaveTextContent(message);
+  expect(name).toHaveAccessibleDescription(message);
+  expect(name).toHaveValue(existing.name);
+  expect(name).toHaveFocus();
+  expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+});
