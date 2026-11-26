@@ -1,0 +1,129 @@
+<meta charset="utf-8">
+<title>Finance #566 Location Rows</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one row per screen, the five variants side by side in each row, live app frames scaled to fit. */
+:root {
+  --bg: #eeeeeb;
+  --panel: #f7f7f5;
+  --ink: #17181a;
+  --muted: #5d6066;
+  --line: #d6d6d0;
+  --accent: #1f7a55;
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0c0e; --panel: #17191c; --ink: #ecedee; --muted: #a3a7ad; --line: #30343a; --accent: #4cc38a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0c0e; --panel: #17191c; --ink: #ecedee; --muted: #a3a7ad; --line: #30343a; --accent: #4cc38a;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  padding-block: 1.25rem 2.5rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: grid; gap: 0.5rem; max-width: 70rem; }
+h1 { margin: 0; font-size: 1.25rem; font-weight: 650; text-wrap: balance; }
+h1 span { color: var(--accent); }
+header p { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; margin: 0; padding: 0; list-style: none; font-size: 0.8125rem; color: var(--muted); }
+.legend b { color: var(--ink); font-weight: 600; }
+section { margin-top: 2rem; display: grid; gap: 0.75rem; }
+h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+h2 small { font-weight: 400; color: var(--muted); font-size: 0.8125rem; margin-inline-start: 0.5rem; }
+.row { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.75rem; min-width: 0; }
+figure { margin: 0; flex: none; display: grid; gap: 0.4rem; align-content: start; }
+figcaption { font-size: 0.8125rem; color: var(--muted); }
+figcaption b { color: var(--ink); font-weight: 600; }
+.frame { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--panel); }
+.frame iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: var(--bg); }
+</style>
+
+<header>
+  <h1>Finance <span>#566</span> · location in transaction rows</h1>
+  <p>The real app with sample data, every variant side by side. Rows to compare: Groceries (account, location and comment), Cafés (no comment), Freelance (no location), Travel (rate, long location, comment and a USD amount) and Transport (long comment). Accounts, Categories and Locations show their transaction feed only on a wide window. The frames follow your light or dark theme.</p>
+  <ul class="legend">
+    <li><b>0</b> current</li>
+    <li><b>1</b> text in the details line</li>
+    <li><b>2</b> pin in the details line</li>
+    <li><b>3</b> pin after the title</li>
+    <li><b>4</b> pin after the comment</li>
+  </ul>
+</header>
+<main id="sections"></main>
+<script>
+const VARIANTS = [
+  ['0', 'current'],
+  ['1', 'text in details'],
+  ['2', 'pin in details'],
+  ['3', 'pin after title'],
+  ['4', 'pin after comment'],
+];
+const SECTIONS = [
+  { screen: 'home', title: 'Home', width: 'phone', note: 'phone, Recent transactions' },
+  { screen: 'transactions', title: 'Transactions', width: 'phone', note: 'phone' },
+  { screen: 'transactions', title: 'Transactions', width: 'wide', note: 'window' },
+  { screen: 'accounts', title: 'Accounts', width: 'wide', note: 'window, the feed leaves out its own account' },
+  { screen: 'categories', title: 'Categories', width: 'wide', note: 'window' },
+  { screen: 'locations', title: 'Locations', width: 'wide', note: 'window, the feed leaves out its own location' },
+];
+const SIZES = {
+  phone: { width: 390, height: 760, scale: 0.8 },
+  wide: { width: 1280, height: 800, scale: 0.6 },
+};
+function readTheme() {
+  const pinned = document.documentElement.dataset.theme;
+  if (pinned === 'light' || pinned === 'dark') return pinned;
+  return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+function render() {
+  const theme = readTheme();
+  const root = document.querySelector('#sections');
+  root.replaceChildren();
+  for (const section of SECTIONS) {
+    const size = SIZES[section.width];
+    const block = document.createElement('section');
+    const heading = document.createElement('h2');
+    heading.textContent = section.title;
+    const note = document.createElement('small');
+    note.textContent = section.note;
+    heading.append(note);
+    const row = document.createElement('div');
+    row.className = 'row';
+    for (const [variant, label] of VARIANTS) {
+      const figure = document.createElement('figure');
+      const frame = document.createElement('div');
+      frame.className = 'frame';
+      frame.style.width = size.width * size.scale + 'px';
+      frame.style.height = size.height * size.scale + 'px';
+      const iframe = document.createElement('iframe');
+      iframe.title = section.title + ', variant ' + variant;
+      iframe.loading = 'lazy';
+      iframe.width = String(size.width);
+      iframe.height = String(size.height);
+      iframe.style.transform = 'scale(' + size.scale + ')';
+      iframe.src = 'app.html?' + new URLSearchParams({ screen: section.screen, variant, width: section.width, theme });
+      frame.append(iframe);
+      const caption = document.createElement('figcaption');
+      const strong = document.createElement('b');
+      strong.textContent = variant;
+      caption.append(strong, ' · ' + label);
+      figure.append(caption, frame);
+      row.append(figure);
+    }
+    block.append(heading, row);
+    root.append(block);
+  }
+}
+render();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+</script>

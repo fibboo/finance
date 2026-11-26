@@ -1,0 +1,1 @@
+import{n as e,t}from"./api-client-GxfUinIk.js";import{t as n}from"./queryOptions-DMFHehXV.js";async function r(){return e(await t.GET(`/user/me`))}var i={me(){return n({queryKey:[`user`,`me`],queryFn:r})}};export{i as t};
