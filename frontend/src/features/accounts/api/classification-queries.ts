@@ -1,6 +1,7 @@
 import { mutationOptions, queryOptions, type QueryClient } from '@tanstack/react-query';
 
 import { apiClient, readData } from '@/lib/api-client';
+import { ApiError } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
 import { accountQueries } from './account-queries';
@@ -48,9 +49,22 @@ async function deleteClassification({
   replacement_id,
   ...path
 }: Readonly<ClassificationPath & { replacement_id: string | undefined }>): Promise<void> {
-  await apiClient.DELETE('/accounting/classifications/{kind}/{classification_id}', {
-    params: { path, query: replacement_id === undefined ? {} : { replacement_id } },
-  });
+  try {
+    await apiClient.DELETE('/accounting/classifications/{kind}/{classification_id}', {
+      params: { path, query: replacement_id === undefined ? {} : { replacement_id } },
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.error_code === 'CLASSIFICATION_REPLACEMENT_REQUIRED') {
+      throw new ApiError({
+        status: error.status,
+        message: error.message,
+        error_code: error.error_code,
+        fieldErrors: [{ field: 'replacement_id', message: error.message }],
+      });
+    }
+
+    throw error;
+  }
 }
 
 export const classificationQueries = {

@@ -103,6 +103,9 @@ export function Component() {
     classifications,
   });
   const legacyCategoryType = readLegacyCategoryType(searchParams);
+  const legacyCategoryTypeLabel =
+    dictionaries?.category_types.find(({ key }) => key === legacyCategoryType)?.label ??
+    legacyCategoryType;
   const categoryPurposes =
     dictionaries === undefined
       ? undefined
@@ -155,6 +158,17 @@ export function Component() {
   ];
   const categoryDelete = useMutation(accountMutations.delete(relatedQueryKeys));
   const categoryRestore = useMutation(accountMutations.restore(relatedQueryKeys));
+
+  function chooseClassification(nextClassificationId: string | undefined) {
+    setSearchParams(
+      writeClassificationFilter({
+        searchParams: listSearchParams,
+        param: 'category_type',
+        classificationId: nextClassificationId,
+      }),
+      { replace: true },
+    );
+  }
 
   function closeForm() {
     setIsCreating(false);
@@ -216,16 +230,7 @@ export function Component() {
                     legend: 'Category type',
                     options: classifications.map(({ id, name }) => ({ key: id, label: name })),
                     chosenKey: classificationId ?? legacyCategoryType,
-                    onChoose: (nextClassificationId) => {
-                      setSearchParams(
-                        writeClassificationFilter({
-                          searchParams: listSearchParams,
-                          param: 'category_type',
-                          classificationId: nextClassificationId,
-                        }),
-                        { replace: true },
-                      );
-                    },
+                    onChoose: chooseClassification,
                   }
                 : undefined
             }
@@ -267,6 +272,19 @@ export function Component() {
                   ))}
                 </div>
               </fieldset>
+            )}
+            {legacyCategoryTypeLabel !== undefined && (
+              <button
+                type="button"
+                className={styles['legacyType']}
+                aria-label={`Clear legacy type filter: ${legacyCategoryTypeLabel}`}
+                onClick={() => {
+                  document.getElementById(CATEGORY_SEARCH_FIELD_ID)?.focus();
+                  chooseClassification(undefined);
+                }}
+              >
+                Type: {legacyCategoryTypeLabel} <span aria-hidden="true">×</span>
+              </button>
             )}
           </CatalogFilters>
           {isNothingMatched ? (

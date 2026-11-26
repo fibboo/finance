@@ -81,15 +81,14 @@ test.each([
     await user.type(dialog.getByRole('textbox', { name: 'Type name' }), 'Travel expenses{Enter}');
     await user.click(await dialog.findByRole('button', { name: 'Delete Travel expenses' }));
     await user.click(dialog.getByRole('button', { name: 'Remove type' }));
-    expect(
-      await dialog.findByText(`This type is in use. Choose where to move its ${entities}.`),
-    ).toBeInTheDocument();
+    const replacementMessage = `This type is in use. Choose where to move its ${entities}.`;
+    expect(await dialog.findByRole('alert')).toHaveTextContent(replacementMessage);
     const remove = dialog.getByRole('button', { name: 'Remove type' });
+    const replacement = dialog.getByRole('combobox', { name: `Move ${entities} to` });
+    expect(replacement).toHaveAccessibleDescription(replacementMessage);
     expect(remove).toBeDisabled();
-    await user.selectOptions(
-      dialog.getByRole('combobox', { name: `Move ${entities} to` }),
-      defaultType.id,
-    );
+    expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+    await user.selectOptions(replacement, defaultType.id);
     await user.click(remove);
 
     // assert

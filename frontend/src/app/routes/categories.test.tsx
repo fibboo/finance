@@ -253,6 +253,49 @@ test('requests the chosen type and only the active categories with Deleted off a
   expect(searchParams.get('deleted')).toBe('off');
 });
 
+test('shows and clears a legacy filter even when there is only one current type', async () => {
+  // arrange
+  const user = userEvent.setup();
+  server.use(
+    http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+      HttpResponse.json([variableType]),
+    ),
+    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+      const query = new URL(request.url).searchParams;
+      const items = query.get('category_types') === 'FIXED' ? [rent] : [groceries, rent];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const { router } = render(<Component />, {
+    initialEntries: ['/categories?category_type=FIXED&category_purpose=PERSONAL&deleted=off'],
+  });
+  const clearLegacy = await screen.findByRole('button', {
+    name: 'Clear legacy type filter: Fixed',
+  });
+  const catalog = await screen.findByRole('region', { name: 'Categories', busy: false });
+  expect(catalog).toHaveTextContent('Rent');
+  expect(catalog).not.toHaveTextContent('Groceries');
+  expect(screen.queryByRole('group', { name: 'Category type' })).not.toBeInTheDocument();
+
+  // act
+  await user.click(clearLegacy);
+
+  // assert
+  const unfiltered = await screen.findByRole('region', { name: 'Categories', busy: false });
+  expect(unfiltered).toHaveTextContent('Groceries');
+  expect(clearLegacy).not.toBeInTheDocument();
+  const params = new URLSearchParams(router.state.location.search);
+  expect(params.has('category_type')).toBe(false);
+  expect(params.get('category_purpose')).toBe('PERSONAL');
+  expect(params.get('deleted')).toBe('off');
+});
+
 test('opens with Deleted off when it was turned off on an earlier visit and stores turning it on', async () => {
   // arrange
   const user = userEvent.setup();

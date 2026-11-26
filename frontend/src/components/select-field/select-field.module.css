@@ -10,9 +10,30 @@
   color: var(--color-muted);
 }
 
+.control {
+  position: relative;
+}
+
+.control::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: var(--space-3);
+  width: var(--space-2);
+  height: var(--space-2);
+  border-right: var(--size-border) solid currentColor;
+  border-bottom: var(--size-border) solid currentColor;
+  color: var(--color-muted);
+  pointer-events: none;
+  transform: translateY(-75%) rotate(45deg);
+}
+
 .select {
+  width: 100%;
   min-height: var(--size-touch);
-  padding: 0 var(--space-3);
+  padding-inline-start: var(--space-3);
+  padding-inline-end: calc(var(--space-3) + var(--space-2) + var(--space-2));
+  appearance: none;
   border: var(--size-border) solid var(--color-border);
   border-radius: var(--radius-control);
   font-size: var(--font-size-base);
@@ -23,4 +44,10 @@
 .select:focus-visible {
   outline: var(--size-focus) solid var(--color-ink);
   outline-offset: calc(var(--size-focus) * -1);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
 }

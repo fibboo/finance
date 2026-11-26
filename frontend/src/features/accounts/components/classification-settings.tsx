@@ -234,7 +234,7 @@ function RemoveTypeForm({
                   error.error_code === 'CLASSIFICATION_REPLACEMENT_REQUIRED'
                 ) {
                   setIsReplacementRequired(true);
-                  form.setError('root.server', {
+                  form.setError('replacement_id', {
                     message: `This type is in use. Choose where to move its ${entityNames}.`,
                   });
                 } else {
@@ -250,6 +250,7 @@ function RemoveTypeForm({
       <SelectField
         label={`Move ${entityNames} to`}
         registration={form.register('replacement_id')}
+        error={form.formState.errors.replacement_id?.message}
         options={[
           { value: '', label: isReplacementRequired ? 'Choose a type' : 'Choose a type if needed' },
           ...options,
