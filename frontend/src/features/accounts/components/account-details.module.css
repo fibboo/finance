@@ -6,14 +6,6 @@
   gap: var(--space-3);
 }
 
-.description {
-  margin: 0;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-note);
-  color: var(--color-muted);
-  overflow-wrap: anywhere;
-}
-
 .balanceSkeleton {
   width: var(--size-skeleton-label-lg);
   height: var(--size-skeleton-text-lg);

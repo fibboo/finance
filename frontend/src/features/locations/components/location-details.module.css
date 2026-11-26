@@ -73,19 +73,6 @@
   color: var(--color-muted);
 }
 
-.description {
-  margin: 0;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-note);
-  color: var(--color-muted);
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-}
-
 .titleSkeleton {
   width: var(--size-skeleton-label);
   height: var(--size-skeleton-text-lg);

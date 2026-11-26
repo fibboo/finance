@@ -1,6 +1,7 @@
 import { type ReactNode, useId } from 'react';
 import type { To } from 'react-router';
 
+import { DetailDescription } from '@/components/details-panel/detail-description';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 
@@ -95,12 +96,7 @@ export function AccountOverview({
       {account.description !== undefined &&
         account.description !== null &&
         account.description !== '' && (
-          <p className={styles['description']}>
-            <span className={styles['descriptionText']}>{account.description}</span>
-            <span className={styles['descriptionLine']} aria-hidden="true">
-              {account.description}
-            </span>
-          </p>
+          <DetailDescription key={account.id} description={account.description} />
         )}
       <AccountActions
         account={account}

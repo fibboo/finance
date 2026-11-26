@@ -1,6 +1,7 @@
 import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
 import type { To } from 'react-router';
 
+import { DetailDescription } from '@/components/details-panel/detail-description';
 import { type DetailsBack, DetailsPanel } from '@/components/details-panel/details-panel';
 import { LoadError } from '@/components/load-error/load-error';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
@@ -116,7 +117,7 @@ export function AccountDetails({
         {account.description !== undefined &&
           account.description !== null &&
           account.description !== '' && (
-            <p className={styles['description']}>{account.description}</p>
+            <DetailDescription key={account.id} description={account.description} />
           )}
         <AccountActions
           account={account}
