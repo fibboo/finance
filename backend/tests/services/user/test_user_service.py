@@ -9,6 +9,7 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.classification import classification_crud
 from app.crud.user.external_user import external_user_crud
 from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import (
@@ -22,6 +23,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import AccountKind, CategoryType
+from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ExternalUserCreate, ProviderType
@@ -63,6 +65,12 @@ async def test_create_user_without_base_currency(db: AsyncSession, db_transactio
 
     accounts_db: list[AccountModel] = await account_crud.get_batch(db=db, user_id=user_db.id)
     assert len(accounts_db) == 0
+    classifications = await classification_crud.get_user_classifications(db=db, user_id=user_db.id)
+    assert {(classification.kind, classification.is_default) for classification in classifications} == {
+        (ClassificationKind.MONEY_ACCOUNT, True),
+        (ClassificationKind.EXPENSE_CATEGORY, True),
+    }
+    assert len(classifications) == 2
 
 
 @pytest.mark.parametrize("provider_username", ["stenbot", "StenBot"], ids=["same_case", "other_case"])

@@ -12,6 +12,7 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.classification import classification_crud
 from app.crud.accounting.location import location_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.crud.user.user import user_crud
@@ -34,6 +35,7 @@ from app.schemas.accounting.account import (
     CategoryPurpose,
     CategoryType,
 )
+from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
@@ -45,9 +47,9 @@ from app.services.accounting import account_service
 
 
 @pytest.mark.parametrize("currency", ["USD", "EUR"])
-async def test_create_account_ok(db_transaction: AsyncSession, currency: str):
+async def test_create_account_ok(db_transaction: AsyncSession, currency: str, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", description="test description", currency=currency
     )
@@ -68,9 +70,9 @@ async def test_create_account_ok(db_transaction: AsyncSession, currency: str):
     assert account.status == EntityStatusType.ACTIVE
 
 
-async def test_create_account_with_color(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_account_with_color(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", currency="USD", color="#2E8C7A"
     )
@@ -86,9 +88,9 @@ async def test_create_account_with_color(db: AsyncSession, db_transaction: Async
     assert account_db.color == "#2E8C7A"
 
 
-async def test_create_account_unknown_currency(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_account_unknown_currency(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="XXX")
 
     # Act / Assert
@@ -104,9 +106,9 @@ async def test_create_account_unknown_currency(db: AsyncSession, db_transaction:
     assert len(accounts_db) == 0
 
 
-async def test_create_account_existing_name(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_account_existing_name(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", description="test description", currency="USD"
     )
@@ -129,9 +131,11 @@ async def test_create_account_existing_name(db: AsyncSession, db_transaction: As
     assert len(transactions) == 1
 
 
-async def test_create_account_name_existing_in_another_case(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_account_name_existing_in_another_case(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
     # arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     existing_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Freelance", currency="USD")
     await account_service.create_account(db=db, user_id=user_id, create_data=existing_data)
     await db.commit()
@@ -147,9 +151,9 @@ async def test_create_account_name_existing_in_another_case(db: AsyncSession, db
     assert [account.name for account in accounts_db] == ["Freelance"]
 
 
-async def test_get_accounts(db: AsyncSession):
+async def test_get_accounts(db: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
 
     # 25 accounts, more than the 10 the removed per-user limit allowed
     for i in range(25):
@@ -195,9 +199,9 @@ async def test_get_accounts_no_accounts(db: AsyncSession):
     assert len(accounts.items) == 0
 
 
-async def test_get_account_ok(db: AsyncSession):
+async def test_get_account_ok(db: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", description="test description", currency="USD"
     )
@@ -579,9 +583,9 @@ async def test_get_account_deleted_category_of_another_user(db: AsyncSession):
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-async def test_update_account_ok(db: AsyncSession, db_transaction: AsyncSession):
+async def test_update_account_ok(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="test name", description="test description", currency="USD"
     )
@@ -633,9 +637,9 @@ async def test_update_account_not_found(db: AsyncSession, db_transaction: AsyncS
     assert len(transactions) == 0
 
 
-async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSession):
+async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data_1: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Account 1", currency="USD")
     account_created_1: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_1)
 
@@ -664,9 +668,11 @@ async def test_update_account_double(db: AsyncSession, db_transaction: AsyncSess
     assert len(transactions) == 2
 
 
-async def test_create_account_name_of_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_account_name_of_deleted_account(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     # Wallet stays active, so the deleted account is not the last money account
     wallet_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="Wallet", currency="USD"
@@ -695,9 +701,11 @@ async def test_create_account_name_of_deleted_account(db: AsyncSession, db_trans
     ]
 
 
-async def test_update_account_name_of_deleted_account(db: AsyncSession, db_transaction: AsyncSession):
+async def test_update_account_name_of_deleted_account(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data_1: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Account 1", currency="USD")
     account_created_1: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data_1)
 
@@ -720,9 +728,9 @@ async def test_update_account_name_of_deleted_account(db: AsyncSession, db_trans
     assert account.status == EntityStatusType.ACTIVE
 
 
-async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession):
+async def test_restore_account_ok(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     # Wallet stays active, so the deleted account is not the last money account
     wallet_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="Wallet", currency="USD"
@@ -770,9 +778,9 @@ async def test_restore_account_not_found(db_transaction: AsyncSession):
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSession):
+async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="test name", currency="USD")
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
@@ -791,9 +799,9 @@ async def test_restore_account_active(db: AsyncSession, db_transaction: AsyncSes
     assert account_db.status == EntityStatusType.ACTIVE
 
 
-async def test_restore_account_name_taken(db: AsyncSession, db_transaction: AsyncSession):
+async def test_restore_account_name_taken(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     # Wallet stays active, so the deleted account is not the last money account
     wallet_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.ASSET, name="Wallet", currency="USD"
@@ -822,9 +830,11 @@ async def test_restore_account_name_taken(db: AsyncSession, db_transaction: Asyn
     assert account_db.status == EntityStatusType.DELETED
 
 
-async def test_restore_account_body_without_name_ok(db: AsyncSession, db_transaction: AsyncSession):
+async def test_restore_account_body_without_name_ok(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
     )
@@ -845,9 +855,9 @@ async def test_restore_account_body_without_name_ok(db: AsyncSession, db_transac
     assert account.status == EntityStatusType.ACTIVE
 
 
-async def test_restore_account_new_name_ok(db: AsyncSession, db_transaction: AsyncSession):
+async def test_restore_account_new_name_ok(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
     )
@@ -877,9 +887,9 @@ async def test_restore_account_new_name_ok(db: AsyncSession, db_transaction: Asy
     }
 
 
-async def test_restore_account_new_name_taken(db: AsyncSession, db_transaction: AsyncSession):
+async def test_restore_account_new_name_taken(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
     )
@@ -911,10 +921,10 @@ async def test_restore_account_new_name_taken(db: AsyncSession, db_transaction: 
     "kind, category_type", [(AccountKind.EXPENSE, CategoryType.VARIABLE), (AccountKind.INCOME, None)]
 )
 async def test_create_account_without_currency_ok(
-    db_transaction: AsyncSession, kind: AccountKind, category_type: CategoryType | None
+    db_transaction: AsyncSession, kind: AccountKind, category_type: CategoryType | None, account_owner_id: UUID
 ):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", category_type=category_type)
 
     # Act
@@ -931,9 +941,11 @@ async def test_create_account_without_currency_ok(
     assert account.status == EntityStatusType.ACTIVE
 
 
-async def test_create_account_same_name_other_kind(db: AsyncSession, db_transaction: AsyncSession):
+async def test_create_account_same_name_other_kind(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     asset_create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Job", currency="USD")
     await account_service.create_account(db=db, user_id=user_id, create_data=asset_create_data)
     await db.commit()
@@ -951,9 +963,9 @@ async def test_create_account_same_name_other_kind(db: AsyncSession, db_transact
     assert account.name == "Job"
 
 
-async def test_get_accounts_kinds(db: AsyncSession):
+async def test_get_accounts_kinds(db: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     income_create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.INCOME, name="Salary")
     await account_service.create_account(db=db, user_id=user_id, create_data=income_create_data)
@@ -978,9 +990,9 @@ async def test_get_accounts_kinds(db: AsyncSession):
     assert [account.name for account in equity_accounts.items] == ["Adjustments"]
 
 
-async def test_get_accounts_category_types(db: AsyncSession):
+async def test_get_accounts_category_types(db: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     await db.commit()
 
@@ -1013,9 +1025,9 @@ async def test_get_accounts_category_types(db: AsyncSession):
     ]
 
 
-async def test_get_accounts_search_term(db: AsyncSession):
+async def test_get_accounts_search_term(db: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     await db.commit()
 
@@ -1028,9 +1040,9 @@ async def test_get_accounts_search_term(db: AsyncSession):
     assert [account.name for account in accounts.items] == ["Eating out"]
 
 
-async def test_get_accounts_statuses(db: AsyncSession):
+async def test_get_accounts_statuses(db: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     await db.commit()
     travel_db: AccountModel = await account_crud.get(db=db, user_id=user_id, name="Travel")
@@ -1056,9 +1068,9 @@ async def test_get_accounts_statuses(db: AsyncSession):
     assert [account.id for account in all_accounts.items] == [transport_db.id, travel_db.id]
 
 
-async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSession):
+async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.LIABILITY, name="Credit card", currency="USD", color="#112233"
     )
@@ -1084,10 +1096,14 @@ async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSessi
     "kind, category_type", [(AccountKind.EXPENSE, CategoryType.VARIABLE), (AccountKind.INCOME, None)]
 )
 async def test_update_account_color_kind_mismatch(
-    db: AsyncSession, db_transaction: AsyncSession, kind: AccountKind, category_type: CategoryType | None
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    kind: AccountKind,
+    category_type: CategoryType | None,
+    account_owner_id: UUID,
 ):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", category_type=category_type)
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
@@ -1110,9 +1126,9 @@ async def test_update_account_color_kind_mismatch(
     assert account_db.color is None
 
 
-async def test_update_account_category_type_ok(db: AsyncSession, db_transaction: AsyncSession):
+async def test_update_account_category_type_ok(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.EXPENSE, name="Netflix", category_type=CategoryType.VARIABLE
     )
@@ -1136,10 +1152,10 @@ async def test_update_account_category_type_ok(db: AsyncSession, db_transaction:
 
 @pytest.mark.parametrize("kind, currency", [(AccountKind.ASSET, "USD"), (AccountKind.INCOME, None)])
 async def test_update_account_category_type_mismatch(
-    db: AsyncSession, db_transaction: AsyncSession, kind: AccountKind, currency: str | None
+    db: AsyncSession, db_transaction: AsyncSession, kind: AccountKind, currency: str | None, account_owner_id: UUID
 ):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", currency=currency)
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
@@ -1162,9 +1178,9 @@ async def test_update_account_category_type_mismatch(
     assert account_db.category_type is None
 
 
-async def test_update_account_equity(db: AsyncSession, db_transaction: AsyncSession):
+async def test_update_account_equity(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     await db.commit()
     equity_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.EQUITY)
@@ -1309,9 +1325,9 @@ async def test_delete_account_category_keeps_transactions(db: AsyncSession, db_t
     assert expense_after_db.status == EntityStatusType.ACTIVE
 
 
-async def test_delete_account_equity(db: AsyncSession, db_transaction: AsyncSession):
+async def test_delete_account_equity(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     await db.commit()
     equity_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.EQUITY)
@@ -1328,9 +1344,11 @@ async def test_delete_account_equity(db: AsyncSession, db_transaction: AsyncSess
     assert equity_db.status == EntityStatusType.ACTIVE
 
 
-async def test_delete_account_last_money_account(db: AsyncSession, db_transaction: AsyncSession):
+async def test_delete_account_last_money_account(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     card_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.LIABILITY, name="Credit card", currency="USD"
@@ -1355,9 +1373,11 @@ async def test_delete_account_last_money_account(db: AsyncSession, db_transactio
     assert wallet_db.status == EntityStatusType.ACTIVE
 
 
-async def test_delete_account_other_money_account_active(db: AsyncSession, db_transaction: AsyncSession):
+async def test_delete_account_other_money_account_active(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
     # Arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     card_create_data: AccountCreateRequest = AccountCreateRequest(
         kind=AccountKind.LIABILITY, name="Credit card", currency="USD"
@@ -1550,10 +1570,10 @@ async def test_get_accounts_recent_use_order(db: AsyncSession):
 
 @pytest.mark.parametrize("purpose", [CategoryPurpose.PERSONAL, CategoryPurpose.INCOME_COST])
 async def test_create_category_persists_purpose(
-    db: AsyncSession, db_transaction: AsyncSession, purpose: CategoryPurpose
+    db: AsyncSession, db_transaction: AsyncSession, purpose: CategoryPurpose, account_owner_id: UUID
 ):
     # arrange
-    user_id: UUID = uuid4()
+    user_id: UUID = account_owner_id
 
     # act
     category: AccountModel = await account_service.create_account(
@@ -1686,3 +1706,85 @@ async def test_get_accounts_combines_purpose_with_other_filters(
     # assert
     assert [category.name for category in result.items] == expected_names
     assert all(category.category_purpose == purpose for category in result.items)
+
+
+async def test_update_account_classification_filters_alongside_legacy_type(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
+    # arrange
+    kind = ClassificationKind.EXPENSE_CATEGORY
+    default = await classification_crud.get(db=db, user_id=account_owner_id, kind=kind, is_default=True)
+    custom_type = await classification_crud.create(
+        db=db, obj_in={"user_id": account_owner_id, "kind": kind, "name": "Subscriptions"}, commit=True
+    )
+    category, _ = await account_crud.create_batch(
+        db=db,
+        objs_in=[
+            AccountCreate(
+                user_id=account_owner_id,
+                kind=AccountKind.EXPENSE,
+                name="Streaming",
+                category_type=CategoryType.FIXED,
+                classification_id=default.id,
+            ),
+            AccountCreate(
+                user_id=account_owner_id,
+                kind=AccountKind.EXPENSE,
+                name="Food",
+                category_type=CategoryType.VARIABLE,
+                classification_id=custom_type.id,
+            ),
+        ],
+        commit=True,
+    )
+
+    # act
+    updated = await account_service.update_account(
+        db=db_transaction,
+        user_id=account_owner_id,
+        account_id=category.id,
+        update_data=AccountUpdate(name=category.name, classification_id=custom_type.id),
+    )
+    await db_transaction.commit()
+    db.expunge_all()
+
+    # assert
+    matches = await account_service.get_accounts(
+        db=db,
+        user_id=account_owner_id,
+        request=AccountRequest(classification_ids=[custom_type.id], category_types=[CategoryType.FIXED]),
+    )
+    assert updated.classification_id == custom_type.id
+    assert [account.id for account in matches.items] == [category.id]
+
+
+@pytest.mark.parametrize("is_foreign", [True, False])
+async def test_create_account_rejects_other_owner_or_kind_classification(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID, is_foreign: bool
+):
+    # arrange
+    if is_foreign:
+        owner = await user_crud.create(
+            db=db, obj_in=UserCreate(username="other-owner", registration_provider=ProviderType.TELEGRAM), commit=True
+        )
+        classification_owner_id = owner.id
+        classification_kind = ClassificationKind.MONEY_ACCOUNT
+    else:
+        classification_owner_id = account_owner_id
+        classification_kind = ClassificationKind.EXPENSE_CATEGORY
+
+    classification = await classification_crud.create(
+        db=db,
+        obj_in={"user_id": classification_owner_id, "kind": classification_kind, "name": "Custom type"},
+        commit=True,
+    )
+
+    # act / assert
+    with pytest.raises(EntityNotFound):
+        await account_service.create_account(
+            db=db_transaction,
+            user_id=account_owner_id,
+            create_data=AccountCreateRequest(
+                kind=AccountKind.ASSET, name="Cash", currency="USD", classification_id=classification.id
+            ),
+        )

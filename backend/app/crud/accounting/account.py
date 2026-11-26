@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import func, or_, select, Select, Subquery, update, Update
+from sqlalchemy import case, func, or_, select, Select, Subquery, update, Update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -34,6 +34,9 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
 
         if len(request.category_types) > 0:
             query = query.where(self.model.category_type.in_(request.category_types))
+
+        if len(request.classification_ids) > 0:
+            query = query.where(self.model.classification_id.in_(request.classification_ids))
 
         if len(request.category_purposes) > 0:
             query = query.where(
@@ -141,6 +144,42 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
 
         values: list[dict] = [{"id": account_id, "name": name} for account_id, name in names.items()]
         await db.execute(update(self.model), values)
+        await db.flush()
+
+    async def has_classification_assignments(self, *, db: AsyncSession, classification_id: UUID) -> bool:
+        query: Select = select(select(self.model.id).where(self.model.classification_id == classification_id).exists())
+        has_assignments: bool = await db.scalar(query)
+        return has_assignments
+
+    async def replace_classification(self, *, db: AsyncSession, classification_id: UUID, replacement_id: UUID) -> None:
+        lock_query: Select = (
+            select(self.model.id)
+            .where(self.model.classification_id == classification_id)
+            .order_by(self.model.id)
+            .with_for_update()
+        )
+        await db.execute(lock_query)
+
+        query: Update = (
+            update(self.model)
+            .where(self.model.classification_id == classification_id)
+            .values(classification_id=replacement_id)
+        )
+        await db.execute(query)
+        await db.flush()
+
+    async def move_with_classifications(
+        self, *, db: AsyncSession, user_id: UUID, new_user_id: UUID, classification_ids: dict[UUID, UUID]
+    ) -> None:
+        query: Update = update(self.model).where(self.model.user_id == user_id).values(user_id=new_user_id)
+        if len(classification_ids) > 0:
+            query = query.values(
+                classification_id=case(
+                    classification_ids, value=self.model.classification_id, else_=self.model.classification_id
+                )
+            )
+
+        await db.execute(query)
         await db.flush()
 
 

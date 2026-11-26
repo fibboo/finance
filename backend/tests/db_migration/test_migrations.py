@@ -140,3 +140,61 @@ def test_category_purpose_revision_backfills_and_accepts_legacy_writes(postgresq
     )
     postgresql.commit()
     assert postgresql.execute("SELECT category_purpose FROM accounts WHERE name = 'Legacy'").fetchone() == (None,)
+
+
+def test_classification_revision_preserves_assignments_and_legacy_writes(postgresql, monkeypatch):
+    # arrange
+    database_url = f"postgresql+asyncpg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
+    monkeypatch.setattr(database_settings, "database_url", database_url)
+    alembic_config = Config("alembic.ini")
+    command.upgrade(alembic_config, "9d678ac4c332")
+    user_id = postgresql.execute(
+        "INSERT INTO users (username, registration_provider) VALUES ('first-owner', 'TELEGRAM') RETURNING id"
+    ).fetchone()[0]
+    entries = [
+        ("Wallet", "ASSET", "USD", None, None, "ACTIVE", 200, "Asset"),
+        ("Card", "LIABILITY", "USD", None, None, "ACTIVE", -30, "Liability"),
+        ("Rent", "EXPENSE", None, "FIXED", "PERSONAL", "ACTIVE", 0, "Fixed"),
+        ("Food", "EXPENSE", None, "VARIABLE", "PERSONAL", "ACTIVE", 0, "Variable"),
+        ("Travel", "EXPENSE", None, "PERIODIC", "INCOME_COST", "DELETED", 0, "Periodic"),
+        ("Salary", "INCOME", None, None, None, "ACTIVE", 0, None),
+    ]
+    expected = []
+    for name, kind, currency, category_type, purpose, status, balance, classification_name in entries:
+        account_id = postgresql.execute(
+            "INSERT INTO accounts (user_id, name, kind, currency, category_type, category_purpose, status, balance) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+            (user_id, name, kind, currency, category_type, purpose, status, balance),
+        ).fetchone()[0]
+        expected.append((account_id, name, kind, category_type, purpose, status, balance, classification_name))
+
+    postgresql.commit()
+
+    # act
+    command.upgrade(alembic_config, "head")
+
+    # assert
+    accounts = postgresql.execute(
+        "SELECT a.id, a.name, a.kind, a.category_type, a.category_purpose, a.status, a.balance, c.name "
+        "FROM accounts a LEFT JOIN classifications c ON c.id = a.classification_id ORDER BY a.id"
+    ).fetchall()
+    assert accounts == expected
+    other_user_id = postgresql.execute(
+        "INSERT INTO users (username, registration_provider) VALUES ('second-owner', 'GOOGLE') RETURNING id"
+    ).fetchone()[0]
+    defaults = postgresql.execute(
+        "SELECT kind, name, is_default FROM classifications WHERE user_id = %s ORDER BY kind", (other_user_id,)
+    ).fetchall()
+    assert defaults == [("EXPENSE_CATEGORY", "Variable", True), ("MONEY_ACCOUNT", "Asset", True)]
+
+    postgresql.execute(
+        "INSERT INTO accounts (user_id, kind, name, currency) VALUES (%s, 'ASSET', 'Legacy Wallet', 'USD')",
+        (other_user_id,),
+    )
+    postgresql.execute("UPDATE accounts SET user_id = %s WHERE name = 'Travel'", (other_user_id,))
+    postgresql.commit()
+    assignments = postgresql.execute(
+        "SELECT a.name, c.user_id, c.name FROM accounts a JOIN classifications c ON c.id = a.classification_id "
+        "WHERE a.name IN ('Legacy Wallet', 'Travel') ORDER BY a.name"
+    ).fetchall()
+    assert assignments == [("Legacy Wallet", other_user_id, "Asset"), ("Travel", other_user_id, "Periodic")]

@@ -150,3 +150,23 @@ class DestinationAmountNotAllowed(UnprocessableException):
             logger=logger,
             error_code=ErrorCodeType.DESTINATION_AMOUNT_NOT_ALLOWED,
         )
+
+
+class AccountClassificationNotAllowed(UnprocessableException):
+    def __init__(self, *, account_kind: AccountKind, logger: logging.Logger):
+        super().__init__(
+            message="This kind of account cannot have a classification",
+            log_message=f"Account kind {account_kind.value} does not allow classification_id",
+            error_code=ErrorCodeType.FIELD_NOT_ALLOWED,
+            logger=logger,
+        )
+
+
+class InvalidClassificationReplacement(UnprocessableException):
+    def __init__(self, *, classification_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="Choose a different replacement type",
+            log_message=f"Classification {classification_id} cannot replace itself",
+            error_code=ErrorCodeType.INVALID_CLASSIFICATION_REPLACEMENT,
+            logger=logger,
+        )

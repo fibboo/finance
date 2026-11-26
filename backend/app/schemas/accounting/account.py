@@ -81,6 +81,7 @@ class AccountCreateBase(AccountBase):
     color: AccountColor | None = None
     category_type: CategoryType | None = None
     category_purpose: CategoryPurpose | None = None
+    classification_id: UUID | None = None
 
     @model_validator(mode="after")
     def default_category_purpose(self) -> AccountCreateBase:
@@ -104,7 +105,10 @@ class AccountCreateRequest(AccountCreateBase):
             raise ValueError("color can be filled for ASSET and LIABILITY accounts only")
 
         is_expense_account: bool = self.kind == AccountKind.EXPENSE
-        if is_expense_account != (self.category_type is not None):
+        if self.category_type is not None and not is_expense_account:
+            raise ValueError("category_type should be filled for EXPENSE accounts only")
+
+        if is_expense_account and "category_type" in self.model_fields_set and self.category_type is None:
             raise ValueError("category_type should be filled for EXPENSE accounts only")
 
         if is_expense_account != (self.category_purpose is not None):
@@ -121,6 +125,7 @@ class AccountUpdate(AccountBase):
     color: AccountColor | None = None
     category_type: CategoryType | None = None
     category_purpose: CategoryPurpose | None = None
+    classification_id: UUID | None = None
 
     @model_validator(mode="after")
     def validate_category_type(self) -> AccountUpdate:
@@ -129,6 +134,9 @@ class AccountUpdate(AccountBase):
 
         if "category_purpose" in self.model_fields_set and self.category_purpose is None:
             raise ValueError("category_purpose can not be null")
+
+        if "classification_id" in self.model_fields_set and self.classification_id is None:
+            raise ValueError("classification_id can not be null")
 
         return self
 
@@ -147,6 +155,7 @@ class Account(AccountBase):
     color: str | None
     category_type: CategoryType | None
     category_purpose: CategoryPurpose | None = None
+    classification_id: UUID | None = None
     base_balance: Decimal = Field(exclude=True)
     estimated_base_balance: Decimal | None = None
     status: EntityStatusType
@@ -180,6 +189,7 @@ class AccountRequest(Params):
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
     kinds: list[AccountKind] = VISIBLE_ACCOUNT_KINDS
     category_types: list[CategoryType] = []
+    classification_ids: list[UUID] = []
     category_purposes: list[CategoryPurpose] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]
     order: ListOrderType = ListOrderType.NAME

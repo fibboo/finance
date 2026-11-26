@@ -136,3 +136,14 @@ class IdentityLinkedToAnotherUser(ConflictException):
             logger=logger,
             log_level=LogLevelType.WARNING,
         )
+
+
+class ClassificationReplacementRequired(ConflictException):
+    def __init__(self, *, classification_id: UUID, logger: logging.Logger):
+        super().__init__(
+            message="A replacement type is required",
+            log_message=f"Classification {classification_id} is in use or is the default",
+            log_level=LogLevelType.INFO,
+            error_code=ErrorCodeType.CLASSIFICATION_REPLACEMENT_REQUIRED,
+            logger=logger,
+        )
