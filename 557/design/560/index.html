@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finance · Типы счетов и категорий</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui,sans-serif;background:#0b0c0e;color:#ecedee}
+body{margin:0;display:flex;flex-direction:column;height:100dvh}
+nav{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.6rem 1rem;background:#17191c;border-bottom:1px solid #2a2d32}
+select,label{font:inherit} select{background:#24272b;color:inherit;border:1px solid #42464c;border-radius:.5rem;min-height:2.75rem;padding:.4rem .6rem} label{display:flex;gap:.4rem;align-items:center}
+iframe{display:block;flex:1;min-height:0;border:0;width:100%;margin:0 auto}.phone{max-width:390px}
+</style>
+<nav aria-label="Настройки макета">
+<label>Каталог <select id="screen"><option value="accounts">Accounts</option><option value="categories">Categories</option></select></label>
+<label>Экран <select id="flow"><option value="manage">Manage types</option><option value="create">Create</option><option value="edit">Edit</option></select></label>
+<label>Вариант <select id="variant"><option value="1">1 · Поле Type</option><option value="2">2 · Блок Type</option><option value="0">0 · Текущий экран</option></select></label>
+<label>Ширина <select id="size"><option value="desktop">Окно</option><option value="phone">Телефон</option></select></label>
+<label>Тема <select id="theme"><option value="dark">Тёмная</option><option value="light">Светлая</option></select></label>
+<label>Типы <select id="types"><option value="multiple">Несколько</option><option value="single">Один</option></select></label>
+</nav>
+<iframe title="Макет Finance"></iframe>
+<script>
+const controls = [...document.querySelectorAll('select')];
+const frame = document.querySelector('iframe');
+const params = new URLSearchParams(location.search);
+for (const control of controls) {
+  if ([...control.options].some(option => option.value === params.get(control.id))) {
+    control.value = params.get(control.id);
+  }
+  control.addEventListener('change', show);
+}
+function show() {
+  const values = Object.fromEntries(controls.map(control => [control.id, control.value]));
+  const current = new URLSearchParams(values);
+  history.replaceState(null, '', '?' + current);
+  frame.classList.toggle('phone', values.size === 'phone');
+  current.set('layout', values.variant === '0' ? 'before' : 'below');
+  frame.src = 'app.html?' + current;
+}
+show();
+</script>
+</html>
