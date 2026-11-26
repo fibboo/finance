@@ -87,7 +87,7 @@ type TransactionFormMode =
   | Readonly<{ kind: 'edit'; transaction: Readonly<Transaction> }>;
 
 type TransactionFormProps = Readonly<{
-  optionChoices?: AccountOptionChoices;
+  optionChoices: AccountOptionChoices;
   mode: TransactionFormMode;
   transactionType: AdjustmentTransactionType;
   moneyAccounts: readonly Account[] | undefined;

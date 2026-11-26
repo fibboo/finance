@@ -38,7 +38,7 @@ A **module** is a directory that ships as its own container. It owns a `Dockerfi
   - `features/<feature>/`: one domain each, in `api/`, `components/`, `hooks/` and `schemas/`: `auth` (the session, sign-in, linking a provider), `user`, `dictionaries`, `currencies`, `summary`, `accounts`, `transactions` and `locations`.
   - `components/`: shared UI without domain knowledge (`Page`, `Sheet`, `DetailsPanel`, `ActionBar`, `EntityForm`, `EntityPicker`, `SearchField`, `NewButton`, the catalog list of Categories, Income sources and Locations with its filters, row actions and URL params (Accounts shares its search param and empty search state), the fields, `Skeleton`, `LoadError`, `BootScreen`, the estimated amount, the amount calculator).
   - `hooks/`: hooks that features share (the local today, a typed value once typing pauses, the entry of an open sheet while the loaded list holds it, the search field that resets when the search changes other than by typing, arrow-key selection, the desktop width, sheet drag, outside click, the path a pending navigation heads to while its route code loads).
-  - `lib/`: the generated API types (`api-schema.ts`), the one openapi-fetch client (`api-client.ts`) with its `ApiError`, and the formatting and input rules of money, dates, amounts, amount calculations, search terms and account colors.
+  - `lib/`: the generated API types (`api-schema.ts`), the one openapi-fetch client (`api-client.ts`) with its `ApiError`, and the formatting and input rules of money, dates, amounts, amount calculations, search terms, account colors and account type labels.
   - `config/env.ts`: the one reader of `import.meta.env`.
   - `styles/`: `tokens.css`, `global.css` and `media.css`.
   - `test/`: the Vitest setup and the shared `render`.

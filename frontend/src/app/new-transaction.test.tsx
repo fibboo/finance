@@ -113,6 +113,33 @@ test('lists the money accounts in the account picker', async () => {
   expect(await screen.findByRole('button', { name: /^Wallet/ })).toBeInTheDocument();
 });
 
+test('lists the money accounts once their types have loaded', async () => {
+  // arrange
+  const typesGate = { open: (): void => undefined };
+  const typesAnswered = new Promise<void>((resolve) => {
+    typesGate.open = resolve;
+  });
+  server.use(
+    http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', async () => {
+      await typesAnswered;
+      return HttpResponse.json([] satisfies components['schemas']['Classification'][]);
+    }),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=ADJUSTMENT'] });
+  await user.click(await screen.findByRole('button', { name: /^Account/ }));
+  // The accounts answer at once, so Wallet would show here if the list did not wait for the types.
+  await expect(
+    screen.findByRole('button', { name: /^Wallet/ }, { timeout: 500 }),
+  ).rejects.toThrow();
+
+  // act
+  typesGate.open();
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Wallet/ })).toBeInTheDocument();
+});
+
 test.each(['{Escape}', 'close button'])('closes the form with the %s', async (closeWith) => {
   // arrange
   const user = userEvent.setup();

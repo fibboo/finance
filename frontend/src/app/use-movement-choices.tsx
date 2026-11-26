@@ -88,17 +88,21 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
     isEnabled: isOpen,
     hasCategories: isExpense,
   });
+  const moneyAccountItems =
+    optionChoices.moneyAccountTypes === undefined ? undefined : moneyAccounts?.items;
+  const categoryItems =
+    optionChoices.expenseCategoryTypes === undefined ? undefined : categories?.items;
   const isEveryListLoaded =
-    moneyAccounts !== undefined &&
-    (!isExpense || (categories !== undefined && locations !== undefined)) &&
+    moneyAccountItems !== undefined &&
+    (!isExpense || (categoryItems !== undefined && locations !== undefined)) &&
     (transactionType !== 'INCOME' || incomeSources !== undefined);
   const movementChoices = {
     dictionaries,
     optionChoices,
     currencies,
     baseCurrency,
-    moneyAccounts: moneyAccounts?.items,
-    categories: categories?.items,
+    moneyAccounts: moneyAccountItems,
+    categories: categoryItems,
     incomeSources: incomeSources?.items,
     locations: locations?.items,
     isEveryListLoaded,

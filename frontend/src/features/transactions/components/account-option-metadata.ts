@@ -75,10 +75,7 @@ export function toAccountPickerItem({
     id: account.id,
     name: account.name,
     color: readMoneyAccountColor(account),
-    description:
-      account.kind === 'EXPENSE' || isMoneyAccountKind(account.kind)
-        ? account.description?.trim()
-        : undefined,
+    description: account.description?.trim(),
     note: joinAccountOptionLabels([
       metadata.type,
       metadata.isHighlighted ? undefined : metadata.detail,

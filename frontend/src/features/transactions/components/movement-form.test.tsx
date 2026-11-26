@@ -346,6 +346,39 @@ test('lists the categories with their category type', async () => {
   expect(screen.getByRole('button', { name: 'Groceries Variable' })).toBeInTheDocument();
 });
 
+test('lists the income sources with their description', async () => {
+  // arrange
+  const user = userEvent.setup();
+  render(
+    <MovementForm
+      transactionType="INCOME"
+      mode={{
+        kind: 'create',
+        typeChoice: { transactionTypes, onTypeChange: vi.fn() },
+      }}
+      optionChoices={optionChoices}
+      currencies={currencies}
+      moneyAccounts={[euroCard]}
+      categories={undefined}
+      incomeSources={[{ ...salary, description: 'Monthly retainer' }]}
+      locations={undefined}
+      baseCurrency="USD"
+      relatedQueryKeys={[]}
+      renderCategoryForm={() => null}
+      renderIncomeSourceForm={() => null}
+      renderMoneyAccountForm={() => null}
+      renderLocationForm={() => null}
+      onClose={vi.fn()}
+    />,
+  );
+
+  // act
+  await user.click(screen.getByRole('button', { name: /^Source/ }));
+
+  // assert
+  expect(screen.getByRole('button', { name: 'Salary Monthly retainer' })).toBeInTheDocument();
+});
+
 test('shows a field error of the backend at its field', async () => {
   // arrange
   server.use(

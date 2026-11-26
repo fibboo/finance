@@ -556,6 +556,7 @@ test('lists categories in recent order with types from the configured set', asyn
     'Everyday costs · Income costs',
   );
   // Both categories share one type, and a second type exists in the configured set.
+  // Groceries before Cafes, as the list answers, not by name
   expect(checkboxes).toHaveLength(2);
   expect(checkboxes[0]).toHaveAccessibleName('Groceries Everyday costs');
   expect(checkboxes[1]).toHaveAccessibleName('Cafes Client meetings Everyday costs · Income costs');
