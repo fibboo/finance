@@ -214,8 +214,7 @@ export function Component() {
                   today={today}
                   anchorDate={anchorDate}
                   baseCurrency={baseCurrency}
-                  transactionTypes={dictionaries.transaction_types}
-                  transactionOrders={dictionaries.transaction_orders}
+                  dictionaries={dictionaries}
                   items={filterItems}
                   total={feed.total}
                   isTotalPending={feed.total === undefined}

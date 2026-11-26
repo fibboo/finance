@@ -24,8 +24,7 @@ type FiltersPanelProps = Readonly<{
   today: string;
   anchorDate: string | undefined;
   baseCurrency: string;
-  transactionTypes: readonly components['schemas']['DictionaryItem'][];
-  transactionOrders: readonly components['schemas']['DictionaryItem'][];
+  dictionaries: Readonly<components['schemas']['AccountingDictionaries']>;
   items: FilterItems;
   total: number | undefined;
   isTotalPending: boolean;
@@ -45,8 +44,7 @@ export function FiltersPanel({
   today,
   anchorDate,
   baseCurrency,
-  transactionTypes,
-  transactionOrders,
+  dictionaries,
   items,
   total,
   isTotalPending,
@@ -150,7 +148,11 @@ export function FiltersPanel({
             </section>
             <section className={styles['section']} aria-label="Type">
               <h3 className={styles['sectionTitle']}>Type</h3>
-              <TypeFilter filters={filters} transactionTypes={transactionTypes} onApply={onApply} />
+              <TypeFilter
+                filters={filters}
+                transactionTypes={dictionaries.transaction_types}
+                onApply={onApply}
+              />
             </section>
             <div className={styles['lists']}>
               {itemFilters.map(({ name, title }) => (
@@ -174,7 +176,7 @@ export function FiltersPanel({
               <h3 className={styles['sectionTitle']}>Sort</h3>
               <SortFilter
                 order={filters.order ?? DEFAULT_ORDER}
-                transactionOrders={transactionOrders}
+                transactionOrders={dictionaries.transaction_orders}
                 baseCurrency={baseCurrency}
                 onApply={({ order }) => {
                   onApply({ order: order === DEFAULT_ORDER ? undefined : order });
@@ -188,6 +190,7 @@ export function FiltersPanel({
             title={selectedFilter.title}
             emptyNote={selectedFilter.emptyNote}
             items={items[selectedFilter.name]}
+            dictionaries={dictionaries}
             itemIds={filters[selectedFilter.name]}
             note={
               excluded !== undefined && filters[excluded.name].length > 0
