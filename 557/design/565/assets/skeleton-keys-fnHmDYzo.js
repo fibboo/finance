@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BUPNk4aw.js";var t={line:`_5dU8RG_line`,shimmer:`_5dU8RG_shimmer`,skeleton:`_5dU8RG_skeleton`},n=e();function r({className:e}){return(0,n.jsx)(`span`,{"aria-hidden":`true`,className:[t.skeleton,e].join(` `)})}function i(e){return Array.from({length:e},(e,t)=>`skeleton-${String(t+1)}`)}export{r as n,t as r,i as t};

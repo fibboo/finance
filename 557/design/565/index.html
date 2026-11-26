@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finance #565 — Description preview</title>
+<style>
+:root{font:1rem system-ui,sans-serif;color-scheme:dark;background:#111316;color:#f2f3f4}
+body{margin:0;display:grid;grid-template-rows:auto minmax(0,1fr);height:100dvh}
+header{display:flex;align-items:center;gap:.65rem 1rem;flex-wrap:wrap;padding:.75rem 1rem;background:#1c1f23;border-bottom:1px solid #373c44}
+h1{font-size:1rem;margin:0}
+#instruction{flex-basis:100%;margin:0;font-size:.875rem;color:#c8ccd0}
+label{font-size:.875rem;display:flex;gap:.4rem;align-items:center}
+select{font:inherit;padding:.4rem;border:1px solid #555b64;border-radius:.35rem;background:#292d33;color:inherit}
+main{overflow:auto;display:flex;justify-content:center}
+iframe{display:block;width:100%;height:100%;min-height:38rem;border:0}
+.phone{max-width:390px;min-height:0;height:min(844px,100%);border-inline:1px solid #373c44}
+</style>
+</head>
+<body>
+<header>
+<h1>Finance #565</h1>
+<label>Screen <select id="screen">
+<option value="home">Home account overview</option>
+<option value="accounts">Account details</option>
+<option value="categories">Category details</option>
+<option value="income-sources">Income source details</option>
+<option value="locations">Location details</option>
+</select></label>
+<label>Variant <select id="variant">
+<option value="0">0 · Current</option>
+<option value="1">1 · Single-line ellipsis</option>
+<option value="2" selected>2 · Full text on hover or tap</option>
+</select></label>
+<label>Width <select id="width"><option value="wide">Window</option><option value="phone">Phone</option></select></label>
+<label>Theme <select id="theme"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+<label>Description <select id="length"><option value="long">Long</option><option value="short">Short</option></select></label>
+<p id="instruction">Hover over the shortened description. In Phone mode, tap it to read the full text.</p>
+</header>
+<main><iframe id="preview" title="Finance screen preview"></iframe></main>
+<script>
+const frame = document.querySelector('#preview');
+const controls = Array.from(document.querySelectorAll('select'));
+function render() {
+  const params = new URLSearchParams(controls.map(control => [control.id, control.value]));
+  frame.classList.toggle('phone', params.get('width') === 'phone');
+  frame.src = 'app.html?' + params;
+}
+controls.forEach(control => control.addEventListener('change', render));
+render();
+</script>
+</body>
+</html>
