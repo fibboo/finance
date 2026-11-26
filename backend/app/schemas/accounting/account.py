@@ -22,7 +22,6 @@ from app.utils import utils
 
 class AccountKind(str, Enum):
     ASSET = "ASSET"
-    LIABILITY = "LIABILITY"
     EQUITY = "EQUITY"
     INCOME = "INCOME"
     EXPENSE = "EXPENSE"
@@ -31,14 +30,12 @@ class AccountKind(str, Enum):
 ACCOUNT_KIND_LABELS: frozendict[AccountKind, str] = frozendict(
     {
         AccountKind.ASSET: "Asset",
-        AccountKind.LIABILITY: "Liability",
         AccountKind.EQUITY: "Equity",
         AccountKind.INCOME: "Income",
         AccountKind.EXPENSE: "Expense",
     }
 )
 
-MONEY_ACCOUNT_KINDS: list[AccountKind] = [AccountKind.ASSET, AccountKind.LIABILITY]
 VISIBLE_ACCOUNT_KINDS: list[AccountKind] = [kind for kind in AccountKind if kind != AccountKind.EQUITY]
 
 AccountColor: TypeAlias = Annotated[str, StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$")]
@@ -97,12 +94,12 @@ class AccountCreateRequest(AccountCreateBase):
         if self.kind == AccountKind.EQUITY:
             raise ValueError(f"{AccountKind.EQUITY.value} accounts can not be created")
 
-        is_money_account: bool = self.kind in MONEY_ACCOUNT_KINDS
+        is_money_account: bool = self.kind == AccountKind.ASSET
         if is_money_account != (self.currency is not None):
-            raise ValueError("currency should be filled for ASSET and LIABILITY accounts only")
+            raise ValueError("currency should be filled for ASSET accounts only")
 
         if not is_money_account and self.color is not None:
-            raise ValueError("color can be filled for ASSET and LIABILITY accounts only")
+            raise ValueError("color can be filled for ASSET accounts only")
 
         is_expense_account: bool = self.kind == AccountKind.EXPENSE
         if self.category_type is not None and not is_expense_account:

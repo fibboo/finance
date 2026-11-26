@@ -14,7 +14,7 @@ from app.models.accounting.account import Account
 from app.models.accounting.location import Location
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import ENTRY_ORDER_SEQUENCE, Transaction
-from app.schemas.accounting.account import AccountKind, CategoryPurpose, MONEY_ACCOUNT_KINDS, VISIBLE_ACCOUNT_KINDS
+from app.schemas.accounting.account import AccountKind, CategoryPurpose, VISIBLE_ACCOUNT_KINDS
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import (
     OrderDirectionType,
@@ -131,8 +131,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             accounts: Sequence[Row] = (await db.execute(accounts_query)).all()
             account_ids_by_kind: dict[AccountKind, list[UUID]] = {}
             for account_id, kind in accounts:
-                filter_kind: AccountKind = AccountKind.ASSET if kind in MONEY_ACCOUNT_KINDS else kind
-                account_ids_by_kind.setdefault(filter_kind, []).append(account_id)
+                account_ids_by_kind.setdefault(kind, []).append(account_id)
 
             if len(accounts) < len(set(request.account_ids)):
                 query = query.where(false())
@@ -145,7 +144,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             deleted_account_ids: Select = select(Account.id).where(
                 Account.user_id == user_id,
                 Account.status == EntityStatusType.DELETED,
-                Account.kind.in_(MONEY_ACCOUNT_KINDS),
+                Account.kind == AccountKind.ASSET,
             )
             transaction_ids: Select = self.__get_account_transaction_ids(account_ids=deleted_account_ids)
             query = query.where(Transaction.id.in_(transaction_ids))

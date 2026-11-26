@@ -27,7 +27,7 @@ const creditCard = {
   ...wallet,
   name: 'Credit card',
   id: '8c1a7f0c-2f4e-4b9e-9d1f-0e6a3c2b1a04',
-  kind: 'LIABILITY',
+  kind: 'ASSET',
   balance: '-318.40',
   color: '#C2613F',
   base_currency_balance: '-318.40',
@@ -57,10 +57,7 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'USD', label: 'US Dollar' }],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'LIABILITY', label: 'Liability' },
-        ],
+        account_kinds: [{ key: 'ASSET', label: 'Asset' }],
         category_types: [],
         transaction_types: [],
         transaction_orders: [],
@@ -90,7 +87,7 @@ test('shows the number of money accounts next to the title and lists both stored
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) =>
-      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET,LIABILITY' &&
+      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET' &&
       new URL(request.url).searchParams.get('order') === 'recent_use'
         ? HttpResponse.json({
             items: [wallet, creditCard],
@@ -1103,7 +1100,6 @@ function serveAccountTransactions() {
         currencies: [{ key: 'USD', label: 'US Dollar' }],
         account_kinds: [
           { key: 'ASSET', label: 'Asset' },
-          { key: 'LIABILITY', label: 'Liability' },
           { key: 'EXPENSE', label: 'Expense' },
         ],
         category_types: [{ key: 'VARIABLE', label: 'Variable' }],

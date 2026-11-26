@@ -33,7 +33,6 @@ from app.schemas.accounting.account import (
     AccountKind,
     AdjustmentCreate,
     CategoryType,
-    MONEY_ACCOUNT_KINDS,
 )
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
@@ -1341,7 +1340,7 @@ async def test_account_cache_equals_active_postings(db: AsyncSession, db_transac
     )
     wallet_db: AccountModel = await account_crud.create(db=db, obj_in=wallet_create_data, commit=True)
     card_create_data: AccountCreate = AccountCreate(
-        kind=AccountKind.LIABILITY, user_id=user_db.id, name="Card EUR", currency="EUR"
+        kind=AccountKind.ASSET, user_id=user_db.id, name="Card EUR", currency="EUR"
     )
     card_db: AccountModel = await account_crud.create(db=db, obj_in=card_create_data, commit=True)
     category_create_data: AccountCreate = AccountCreate(
@@ -1455,7 +1454,7 @@ async def test_account_cache_equals_active_postings(db: AsyncSession, db_transac
     }
 
     money_accounts_query: Select = select(AccountModel).where(
-        AccountModel.user_id == user_db.id, AccountModel.kind.in_(MONEY_ACCOUNT_KINDS)
+        AccountModel.user_id == user_db.id, AccountModel.kind == AccountKind.ASSET
     )
     money_accounts: list[AccountModel] = (await db.scalars(money_accounts_query)).all()
     assert len(money_accounts) == 2
@@ -1640,7 +1639,7 @@ async def test_update_transfer_ok(db: AsyncSession, db_transaction: AsyncSession
     )
     new_to_account_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in={"kind": AccountKind.LIABILITY, "user_id": user_id, "name": "Credit card", "currency": "USD"},
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Credit card", "currency": "USD"},
         commit=True,
     )
 

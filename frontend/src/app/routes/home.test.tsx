@@ -677,7 +677,7 @@ test('replaces the estimates with the valued amounts once refreshed data values 
     ...wallet,
     name: 'Credit EUR',
     id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a09',
-    kind: 'LIABILITY',
+    kind: 'ASSET',
     balance: '-300.00',
     currency: 'EUR',
     base_currency_rate: '0',

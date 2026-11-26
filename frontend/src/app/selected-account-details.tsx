@@ -38,7 +38,6 @@ type AccountingDictionaries = components['schemas']['AccountingDictionaries'];
 
 const EDIT_SHEET_LABELS = {
   ASSET: 'Edit account',
-  LIABILITY: 'Edit account',
   EXPENSE: 'Edit category',
   INCOME: 'Edit income source',
 } as const;

@@ -528,7 +528,7 @@ async def test_get_account_deleted_category_or_income_source(
 
 @pytest.mark.parametrize(
     ("kind", "currency"),
-    [(AccountKind.ASSET, "USD"), (AccountKind.LIABILITY, "USD"), (AccountKind.EQUITY, None)],
+    [(AccountKind.ASSET, "USD"), (AccountKind.EQUITY, None)],
 )
 @pytest.mark.parametrize("balance_date", [None, date(2026, 3, 10)])
 async def test_get_account_deleted_ledger_account(
@@ -963,6 +963,113 @@ async def test_create_account_same_name_other_kind(
     assert account.name == "Job"
 
 
+@pytest.mark.parametrize("is_same_type", [True, False])
+async def test_create_account_same_name_money_account(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID, is_same_type: bool
+):
+    # Arrange
+    user_id: UUID = account_owner_id
+    savings_type = await classification_crud.create(
+        db=db, obj_in={"user_id": user_id, "kind": ClassificationKind.MONEY_ACCOUNT, "name": "Savings"}, commit=True
+    )
+    card_create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.ASSET, name="Card", currency="USD")
+    await account_service.create_account(db=db, user_id=user_id, create_data=card_create_data)
+    await db.commit()
+
+    # the default type when it is the same, the user's other type when it is not
+    create_data: AccountCreateRequest = AccountCreateRequest(
+        kind=AccountKind.ASSET,
+        name="card",
+        currency="EUR",
+        classification_id=None if is_same_type else savings_type.id,
+    )
+
+    # Act
+    try:
+        await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
+        await db_transaction.commit()
+        is_name_taken: bool = False
+    except NameAlreadyExists:
+        is_name_taken: bool = True
+
+    # Assert
+    assert is_name_taken == is_same_type
+    names: list[str] = (await db.scalars(select(AccountModel.name).order_by(AccountModel.id))).all()
+    assert names == (["Card"] if is_same_type else ["Card", "card"])
+
+
+async def test_update_account_type_with_name_taken(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
+    # Arrange
+    user_id: UUID = account_owner_id
+    default_type = await classification_crud.get(
+        db=db, user_id=user_id, kind=ClassificationKind.MONEY_ACCOUNT, is_default=True
+    )
+    savings_type = await classification_crud.create(
+        db=db, obj_in={"user_id": user_id, "kind": ClassificationKind.MONEY_ACCOUNT, "name": "Savings"}, commit=True
+    )
+    await account_service.create_account(
+        db=db, user_id=user_id, create_data=AccountCreateRequest(kind=AccountKind.ASSET, name="Card", currency="USD")
+    )
+    savings_card: Account = await account_service.create_account(
+        db=db,
+        user_id=user_id,
+        create_data=AccountCreateRequest(
+            kind=AccountKind.ASSET, name="Card", currency="EUR", classification_id=savings_type.id
+        ),
+    )
+    await db.commit()
+
+    # Act / Assert
+    with pytest.raises(NameAlreadyExists) as exc:
+        await account_service.update_account(
+            db=db_transaction,
+            account_id=savings_card.id,
+            update_data=AccountUpdate(name="Card", classification_id=default_type.id),
+            user_id=user_id,
+        )
+        await db_transaction.commit()
+
+    assert exc.value.error_code == ErrorCodeType.NAME_ALREADY_EXISTS
+    classification_id: UUID = await db.scalar(
+        select(AccountModel.classification_id).where(AccountModel.id == savings_card.id)
+    )
+    assert classification_id == savings_type.id
+
+
+async def test_restore_account_name_taken_in_other_type_ok(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
+    # Arrange
+    user_id: UUID = account_owner_id
+    savings_type = await classification_crud.create(
+        db=db, obj_in={"user_id": user_id, "kind": ClassificationKind.MONEY_ACCOUNT, "name": "Savings"}, commit=True
+    )
+    await account_service.create_account(
+        db=db, user_id=user_id, create_data=AccountCreateRequest(kind=AccountKind.ASSET, name="Card", currency="USD")
+    )
+    deleted_card: Account = await account_service.create_account(
+        db=db,
+        user_id=user_id,
+        create_data=AccountCreateRequest(
+            kind=AccountKind.ASSET, name="Card", currency="EUR", classification_id=savings_type.id
+        ),
+    )
+    await account_service.delete_account(db=db, account_id=deleted_card.id, user_id=user_id)
+    await db.commit()
+
+    # Act
+    account: Account = await account_service.restore_account(
+        db=db_transaction, account_id=deleted_card.id, restore_data=None, user_id=user_id
+    )
+    await db_transaction.commit()
+
+    # Assert
+    assert account.name == "Card"
+    assert account.status == EntityStatusType.ACTIVE
+
+
 async def test_get_accounts_kinds(db: AsyncSession, account_owner_id: UUID):
     # Arrange
     user_id: UUID = account_owner_id
@@ -1072,7 +1179,7 @@ async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSessi
     # Arrange
     user_id: UUID = account_owner_id
     create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.LIABILITY, name="Credit card", currency="USD", color="#112233"
+        kind=AccountKind.ASSET, name="Credit card", currency="USD", color="#112233"
     )
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
@@ -1118,7 +1225,7 @@ async def test_update_account_color_kind_mismatch(
         await db_transaction.commit()
 
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-    assert exc.value.log_message == f"Account `{account_created.id}` is not an active account of kind ASSET, LIABILITY"
+    assert exc.value.log_message == f"Account `{account_created.id}` is not an active account of kind ASSET"
     assert exc.value.error_code == ErrorCodeType.ACCOUNT_KIND_MISMATCH
 
     account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
@@ -1206,7 +1313,7 @@ async def test_delete_account_with_balance(db: AsyncSession, db_transaction: Asy
     user_id: UUID = uuid4()
     account_create_data: dict = {
         "user_id": user_id,
-        "kind": AccountKind.LIABILITY,
+        "kind": AccountKind.ASSET,
         "name": "Credit card",
         "currency": "USD",
         "balance": Decimal("-100.00"),
@@ -1232,7 +1339,7 @@ async def test_delete_account_writes_off_base_balance(db: AsyncSession, db_trans
     user_id: UUID = uuid4()
     card_create_data: dict = {
         "user_id": user_id,
-        "kind": AccountKind.LIABILITY,
+        "kind": AccountKind.ASSET,
         "name": "Credit card",
         "currency": "EUR",
         "balance": Decimal("0"),
@@ -1351,13 +1458,13 @@ async def test_delete_account_last_money_account(
     user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     card_create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.LIABILITY, name="Credit card", currency="USD"
+        kind=AccountKind.ASSET, name="Credit card", currency="USD"
     )
     card: Account = await account_service.create_account(db=db, user_id=user_id, create_data=card_create_data)
     await db.commit()
     await account_service.delete_account(db=db, account_id=card.id, user_id=user_id)
     await db.commit()
-    wallet_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.ASSET)
+    wallet_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.ASSET, name="Wallet")
 
     # Act / Assert
     with pytest.raises(LastAccountDeletionForbidden) as exc:
@@ -1380,11 +1487,11 @@ async def test_delete_account_other_money_account_active(
     user_id: UUID = account_owner_id
     await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
     card_create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.LIABILITY, name="Credit card", currency="USD"
+        kind=AccountKind.ASSET, name="Credit card", currency="USD"
     )
     await account_service.create_account(db=db, user_id=user_id, create_data=card_create_data)
     await db.commit()
-    wallet_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.ASSET)
+    wallet_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.ASSET, name="Wallet")
 
     # Act
     account: Account = await account_service.delete_account(db=db_transaction, account_id=wallet_db.id, user_id=user_id)
@@ -1407,7 +1514,7 @@ async def test_get_accounts_estimated_base_balance(db: AsyncSession, httpx_mock:
     eur_card_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "user_id": user_db.id,
             "name": "Card EUR",
             "currency": "EUR",
@@ -1460,7 +1567,7 @@ async def test_get_accounts_estimated_base_balance(db: AsyncSession, httpx_mock:
         url="https://open.er-api.test/v6/latest/USD",
         json={"result": "success", "base_code": "USD", "rates": {"USD": 1, "EUR": 0.8}},
     )
-    request = AccountRequest(kinds=[AccountKind.ASSET, AccountKind.LIABILITY, AccountKind.EXPENSE])
+    request = AccountRequest(kinds=[AccountKind.ASSET, AccountKind.EXPENSE])
 
     # Act
     accounts: Page[Account] = await account_service.get_accounts(db=db, request=request, user_id=user_db.id)

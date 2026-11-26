@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.classification import classification_crud
 from app.crud.user.user import user_crud
-from app.exceptions.conflict_409 import ClassificationReplacementRequired
+from app.exceptions.conflict_409 import ClassificationReplacementRequired, NameAlreadyExists
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import InvalidClassificationReplacement
 from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryPurpose, CategoryType
@@ -178,6 +178,43 @@ async def test_delete_classification_rejects_invalid_replacement(
         )
 
     assert await classification_crud.get_or_none(db=db, id=in_use.id) is not None
+
+
+async def test_delete_classification_replacement_with_account_name_taken(
+    db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
+):
+    # arrange
+    kind = ClassificationKind.MONEY_ACCOUNT
+    default_type = await classification_crud.get(db=db, user_id=account_owner_id, kind=kind, is_default=True)
+    savings_type = await classification_crud.create(
+        db=db, obj_in={"user_id": account_owner_id, "kind": kind, "name": "Savings"}, commit=True
+    )
+    for classification_id, currency in [(default_type.id, "USD"), (savings_type.id, "EUR")]:
+        await account_crud.create(
+            db=db,
+            obj_in=AccountCreate(
+                user_id=account_owner_id,
+                kind=AccountKind.ASSET,
+                name="Card",
+                currency=currency,
+                classification_id=classification_id,
+            ),
+            commit=True,
+        )
+
+    # act / assert
+    with pytest.raises(NameAlreadyExists) as exc:
+        await delete_classification(
+            db=db_transaction,
+            user_id=account_owner_id,
+            kind=kind,
+            classification_id=savings_type.id,
+            replacement_id=default_type.id,
+        )
+        await db_transaction.commit()
+
+    assert exc.value.log_message == f"User `{account_owner_id}` already has an active Account with this name"
+    assert await classification_crud.get_or_none(db=db, id=savings_type.id) is not None
 
 
 async def test_replacement_locks_money_accounts_in_ledger_order(

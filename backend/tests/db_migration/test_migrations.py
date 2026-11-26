@@ -171,7 +171,7 @@ def test_classification_revision_preserves_assignments_and_legacy_writes(postgre
     postgresql.commit()
 
     # act
-    command.upgrade(alembic_config, "head")
+    command.upgrade(alembic_config, "6f417f37d6f9")
 
     # assert
     accounts = postgresql.execute(
@@ -198,3 +198,56 @@ def test_classification_revision_preserves_assignments_and_legacy_writes(postgre
         "WHERE a.name IN ('Legacy Wallet', 'Travel') ORDER BY a.name"
     ).fetchall()
     assert assignments == [("Legacy Wallet", other_user_id, "Asset"), ("Travel", other_user_id, "Periodic")]
+
+
+def test_money_account_kind_revision_keeps_same_name_accounts(postgresql, monkeypatch):
+    # arrange
+    database_url = f"postgresql+asyncpg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
+    monkeypatch.setattr(database_settings, "database_url", database_url)
+    alembic_config = Config("alembic.ini")
+    command.upgrade(alembic_config, "6f417f37d6f9")
+    user_id = postgresql.execute(
+        "INSERT INTO users (username, registration_provider) VALUES ('owner', 'TELEGRAM') RETURNING id"
+    ).fetchone()[0]
+    postgresql.execute(
+        "INSERT INTO classifications (user_id, kind, name) VALUES (%s, 'MONEY_ACCOUNT', 'Liability')", (user_id,)
+    )
+    entries = [
+        ("Card", "ASSET", "ACTIVE", 200),
+        ("card", "LIABILITY", "ACTIVE", -30),
+        ("Wallet", "ASSET", "ACTIVE", 50),
+        ("Wallet 2", "ASSET", "ACTIVE", 10),
+        ("WALLET", "LIABILITY", "ACTIVE", -5),
+        ("Old loan", "LIABILITY", "DELETED", 0),
+    ]
+    account_ids = {}
+    for name, kind, status, balance in entries:
+        account_ids[name] = postgresql.execute(
+            "INSERT INTO accounts (user_id, name, kind, currency, status, balance) "
+            "VALUES (%s, %s, %s, 'USD', %s, %s) RETURNING id",
+            (user_id, name, kind, status, balance),
+        ).fetchone()[0]
+
+    # the debt account moved into the type of the same-name asset account before the revision
+    postgresql.execute(
+        "UPDATE accounts SET classification_id = (SELECT classification_id FROM accounts WHERE id = %s) WHERE id = %s",
+        (account_ids["Wallet"], account_ids["WALLET"]),
+    )
+    postgresql.commit()
+
+    # act
+    command.upgrade(alembic_config, "head")
+
+    # assert
+    accounts = postgresql.execute(
+        "SELECT a.id, a.name, a.kind, a.status, a.balance, c.name "
+        "FROM accounts a JOIN classifications c ON c.id = a.classification_id ORDER BY a.id"
+    ).fetchall()
+    assert accounts == [
+        (account_ids["Card"], "Card", "ASSET", "ACTIVE", 200, "Asset"),
+        (account_ids["card"], "card", "ASSET", "ACTIVE", -30, "Liability"),
+        (account_ids["Wallet"], "Wallet", "ASSET", "ACTIVE", 50, "Asset"),
+        (account_ids["Wallet 2"], "Wallet 2", "ASSET", "ACTIVE", 10, "Asset"),
+        (account_ids["WALLET"], "WALLET 3", "ASSET", "ACTIVE", -5, "Asset"),
+        (account_ids["Old loan"], "Old loan", "ASSET", "DELETED", 0, "Liability"),
+    ]

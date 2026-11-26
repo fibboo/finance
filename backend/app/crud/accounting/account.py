@@ -17,7 +17,6 @@ from app.schemas.accounting.account import (
     AccountRequest,
     AccountUpdate,
     CategoryPurpose,
-    MONEY_ACCOUNT_KINDS,
 )
 from app.schemas.base import EntityStatusType, ListOrderType
 
@@ -77,7 +76,7 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
         query: Select = select(self.model).where(
             self.model.user_id == user_id,
             self.model.status == EntityStatusType.ACTIVE,
-            self.model.kind.in_(MONEY_ACCOUNT_KINDS),
+            self.model.kind == AccountKind.ASSET,
         )
         accounts: list[Account] = (await db.scalars(query)).all()
         return accounts
@@ -86,7 +85,7 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
         query: Select = select(func.count(self.model.id)).where(
             self.model.user_id == user_id,
             self.model.status == EntityStatusType.ACTIVE,
-            self.model.kind.in_(MONEY_ACCOUNT_KINDS),
+            self.model.kind == AccountKind.ASSET,
         )
         accounts_count: int = await db.scalar(query)
         return accounts_count
@@ -94,7 +93,7 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
     async def get_locked_active_money_accounts(self, *, db: AsyncSession, user_id: UUID) -> dict[UUID, Account]:
         query: Select = (
             self._build_get_query(with_for_update=True, user_id=user_id, status=EntityStatusType.ACTIVE)
-            .where(self.model.kind.in_(MONEY_ACCOUNT_KINDS))
+            .where(self.model.kind == AccountKind.ASSET)
             .order_by(self.model.id)
             .execution_options(populate_existing=True)
         )
@@ -105,7 +104,7 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
     async def lock_money_accounts(self, *, db: AsyncSession, user_id: UUID) -> None:
         query: Select = (
             select(self.model.id)
-            .where(self.model.user_id == user_id, self.model.kind.in_(MONEY_ACCOUNT_KINDS))
+            .where(self.model.user_id == user_id, self.model.kind == AccountKind.ASSET)
             .order_by(self.model.id)
             .with_for_update()
         )

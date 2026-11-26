@@ -67,19 +67,26 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
         },
         commit=True,
     )
-    target_type, matching_type, source_type = await classification_crud.create_batch(
+    target_type, matching_type, source_type, savings_type = await classification_crud.create_batch(
         db=db,
         objs_in=[
             {"user_id": user_db.id, "kind": ClassificationKind.MONEY_ACCOUNT, "name": "Checking"},
             {"user_id": other_user_db.id, "kind": ClassificationKind.MONEY_ACCOUNT, "name": "checking"},
             {"user_id": other_user_db.id, "kind": ClassificationKind.EXPENSE_CATEGORY, "name": "Vacations"},
+            {"user_id": other_user_db.id, "kind": ClassificationKind.MONEY_ACCOUNT, "name": "Savings"},
         ],
         commit=True,
     )
     accounts_db: list[AccountModel] = await account_crud.create_batch(
         db=db,
         objs_in=[
-            {"user_id": user_db.id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
+            {
+                "user_id": user_db.id,
+                "kind": AccountKind.ASSET,
+                "name": "Wallet",
+                "currency": "USD",
+                "classification_id": target_type.id,
+            },
             {
                 "user_id": user_db.id,
                 "kind": AccountKind.EXPENSE,
@@ -95,7 +102,13 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
                 "currency": "USD",
                 "classification_id": matching_type.id,
             },
-            {"user_id": other_user_db.id, "kind": AccountKind.ASSET, "name": "Wallet 2", "currency": "USD"},
+            {
+                "user_id": other_user_db.id,
+                "kind": AccountKind.ASSET,
+                "name": "Wallet 2",
+                "currency": "USD",
+                "classification_id": matching_type.id,
+            },
             {
                 "user_id": other_user_db.id,
                 "kind": AccountKind.EXPENSE,
@@ -119,13 +132,19 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
                 "status": EntityStatusType.DELETED,
                 "classification_id": matching_type.id,
             },
+            {
+                "user_id": other_user_db.id,
+                "kind": AccountKind.ASSET,
+                "name": "Wallet",
+                "currency": "USD",
+                "classification_id": savings_type.id,
+            },
         ],
         commit=True,
     )
     wallet_db, groceries_db, adjustments_db = accounts_db[:3]
-    other_wallet_db, other_wallet_2_db, other_groceries_db, travel_db, other_adjustments_db, deleted_wallet_db = (
-        accounts_db[3:]
-    )
+    other_wallet_db, other_wallet_2_db, other_groceries_db, travel_db, other_adjustments_db = accounts_db[3:8]
+    deleted_wallet_db, savings_wallet_db = accounts_db[8:]
     # the other wallet holds 10 USD left of an adjustment of 25 USD after an expense of 15 USD
     await account_crud.update_orm(
         db=db, obj_in={"balance": Decimal("10"), "base_balance": Decimal("10")}, id=other_wallet_db.id, commit=True
@@ -235,7 +254,8 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
         ProviderType.TELEGRAM,
     ]
 
-    # the same-named money accounts get a free suffix, while the categories and Adjustments fold
+    # a same-named money account of the same type gets a free suffix and one of another type keeps its name,
+    # while the categories and Adjustments fold
     accounts_after_db: list[AccountModel] = (
         await db.scalars(
             select(AccountModel)
@@ -252,15 +272,20 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
         (other_wallet_2_db.id, "Wallet 2", EntityStatusType.ACTIVE),
         (travel_db.id, "Travel", EntityStatusType.ACTIVE),
         (deleted_wallet_db.id, "Wallet", EntityStatusType.DELETED),
+        (savings_wallet_db.id, "Wallet", EntityStatusType.ACTIVE),
     ]
     assert accounts_after_db[1].category_type == CategoryType.VARIABLE
     assert accounts_after_db[1].category_purpose == CategoryPurpose.INCOME_COST
     other_wallet_after_db: AccountModel = accounts_after_db[3]
     assert other_wallet_after_db.balance == Decimal("10")
     assert other_wallet_after_db.base_balance == Decimal("10")
-    assert other_wallet_after_db.classification_id == accounts_after_db[-1].classification_id == target_type.id
-    moved_type = await classification_crud.get(db=db, user_id=user_db.id, id=accounts_after_db[-2].classification_id)
+    assert other_wallet_after_db.classification_id == accounts_after_db[-2].classification_id == target_type.id
+    moved_type = await classification_crud.get(db=db, user_id=user_db.id, id=accounts_after_db[-3].classification_id)
     assert moved_type.name == "Vacations"
+    savings_type_after = await classification_crud.get(
+        db=db, user_id=user_db.id, id=accounts_after_db[-1].classification_id
+    )
+    assert savings_type_after.name == "Savings"
     assert moved_type.kind == ClassificationKind.EXPENSE_CATEGORY
     assert await classification_crud.get_user_classifications(db=db, user_id=other_user_db.id) == []
 
@@ -374,8 +399,8 @@ async def test_merge_long_name(db: AsyncSession, db_transaction: AsyncSession):
     accounts_db: list[AccountModel] = await account_crud.create_batch(
         db=db,
         objs_in=[
-            {"user_id": user_db.id, "kind": AccountKind.LIABILITY, "name": long_name, "currency": "USD"},
-            {"user_id": other_user_db.id, "kind": AccountKind.LIABILITY, "name": long_name, "currency": "USD"},
+            {"user_id": user_db.id, "kind": AccountKind.ASSET, "name": long_name, "currency": "USD"},
+            {"user_id": other_user_db.id, "kind": AccountKind.ASSET, "name": long_name, "currency": "USD"},
         ],
         commit=True,
     )

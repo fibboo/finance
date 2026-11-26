@@ -28,7 +28,7 @@ async def create_transaction(
 ) -> Transaction:
     """
     Moves money from one account to another. The kinds of the two accounts give the transaction type:
-    a money (ASSET or LIABILITY) account to an EXPENSE account is an expense, an INCOME account to a money account
+    a money (ASSET) account to an EXPENSE account is an expense, an INCOME account to a money account
     is an income, and a money account to another money account is a transfer. Any other pair is refused with
     `MOVEMENT_NOT_ALLOWED`.
 
@@ -72,8 +72,7 @@ async def get_transactions(
     `date_to` defaults to today in UTC, and without `date_from` the list starts at the first transaction; a
     `date_from` later than `date_to` is refused. `account_ids` of one kind match a transaction with a posting on any
     of them, and kinds combine: a transaction is listed only when it has a posting on a listed account of every kind
-    sent. ASSET and LIABILITY accounts count as one kind, so a card and a category list the card's expenses in that
-    category. An id that is not one of the user's accounts leaves the list empty. `location_ids` match a transaction
+    sent. A card and a category list the card's expenses in that category. An id that is not one of the user's accounts leaves the list empty. `location_ids` match a transaction
     at any of them, and an id that is not one of the user's locations matches nothing. Transactions that tie on the
     sort fields follow the order they were entered or last edited in, in the direction of the first order.
     """

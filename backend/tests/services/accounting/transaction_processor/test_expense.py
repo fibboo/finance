@@ -1360,9 +1360,7 @@ async def test_create_expense_from_income_account(db: AsyncSession, db_transacti
 
     # Assert
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-    assert (
-        exc.value.log_message == f"Account `{income_account_db.id}` is not an active account of kind ASSET, LIABILITY"
-    )
+    assert exc.value.log_message == f"Account `{income_account_db.id}` is not an active account of kind ASSET"
     assert exc.value.error_code == ErrorCodeType.ACCOUNT_KIND_MISMATCH
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()
@@ -1882,7 +1880,7 @@ async def test_update_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     )
     new_account_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in={"kind": AccountKind.LIABILITY, "user_id": user_id, "name": "Credit card", "currency": "USD"},
+        obj_in={"kind": AccountKind.ASSET, "user_id": user_id, "name": "Credit card", "currency": "USD"},
         commit=True,
     )
     old_category_db: AccountModel = await account_crud.create(
@@ -2074,6 +2072,122 @@ async def test_update_expense_revalues_later_expense(db: AsyncSession, db_transa
         await db.execute(select(TransactionModel.base_currency_amount).where(TransactionModel.id == expenses_db[1].id))
     ).scalar_one()
     assert later_expense_amount == Decimal("100")
+
+
+async def test_update_expense_crossing_zero_revalues_repayment_crossing_back(
+    db: AsyncSession, db_transaction: AsyncSession
+):
+    # Arrange
+    user_create_data: UserCreate = UserCreate(
+        username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
+    )
+    user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
+    user_id: UUID = user_db.id
+    await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
+    await db.commit()
+    checking_db: AccountModel = await account_crud.get(db=db, user_id=user_id, kind=AccountKind.ASSET, name="Wallet")
+    await account_crud.update_orm(
+        db=db, obj_in={"balance": Decimal("1000"), "base_balance": Decimal("1000")}, id=checking_db.id, commit=True
+    )
+    card: Account = await account_service.create_account(
+        db=db, user_id=user_id, create_data=AccountCreateRequest(kind=AccountKind.ASSET, name="Card", currency="EUR")
+    )
+    income_source: Account = await account_service.create_account(
+        db=db, user_id=user_id, create_data=AccountCreateRequest(kind=AccountKind.INCOME, name="Salary")
+    )
+    category: Account = await account_service.create_account(
+        db=db,
+        user_id=user_id,
+        create_data=AccountCreateRequest(kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE),
+    )
+    location_db: LocationModel = await location_crud.create(
+        db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
+    )
+    await db.commit()
+
+    # 100 EUR worth 110 USD, an expense of 150 EUR taking the card below zero and 100 EUR bought for 120 USD
+    # taking it back above zero
+    movements: list[tuple[TransactionType, MovementRequest]] = [
+        (
+            TransactionType.INCOME,
+            MovementRequest(
+                transaction_date=date(2025, 1, 1),
+                from_account_id=income_source.id,
+                to_account_id=card.id,
+                source_amount=Decimal("100"),
+                source_currency="EUR",
+                destination_amount=Decimal("100"),
+                destination_currency="EUR",
+                base_currency_amount=Decimal("110"),
+                income_period=date(2025, 1, 1),
+            ),
+        ),
+        (
+            TransactionType.EXPENSE,
+            MovementRequest(
+                transaction_date=date(2025, 1, 5),
+                from_account_id=card.id,
+                to_account_id=category.id,
+                source_amount=Decimal("150"),
+                source_currency="EUR",
+                destination_amount=Decimal("150"),
+                destination_currency="EUR",
+                location_id=location_db.id,
+            ),
+        ),
+        (
+            TransactionType.TRANSFER,
+            MovementRequest(
+                transaction_date=date(2025, 1, 10),
+                from_account_id=checking_db.id,
+                to_account_id=card.id,
+                source_amount=Decimal("120"),
+                source_currency="USD",
+                destination_amount=Decimal("100"),
+                destination_currency="EUR",
+            ),
+        ),
+    ]
+    transactions: list[Transaction] = []
+    for transaction_type, movement in movements:
+        processor: TransactionProcessor = factory.get_processor(
+            db=db, user_id=user_id, transaction_type=transaction_type
+        )
+        transactions.append(await processor.create(data=movement))
+        await db.commit()
+
+    update_data: MovementRequest = movements[1][1].model_copy(
+        update={"source_amount": Decimal("120"), "destination_amount": Decimal("120")}
+    )
+
+    # Act
+    transaction_processor: TransactionProcessor = factory.get_processor(
+        db=db_transaction, user_id=user_id, transaction_type=TransactionType.EXPENSE
+    )
+    transaction: Transaction = await transaction_processor.update(transaction_id=transactions[1].id, data=update_data)
+    await db_transaction.commit()
+
+    # Assert
+    # The expense of 120 EUR is valued at 110 / 100 and leaves a debt of 20 EUR worth 22 USD
+    assert transaction.base_currency_amount == Decimal("132")
+
+    # The repayment of the debt costs 24 of its 120 USD, so the card keeps 80 EUR worth 96 USD
+    # and the 2 USD the debt cost more moves to the EQUITY account
+    exchange_postings = (
+        await db.execute(
+            select(PostingModel.amount, PostingModel.base_amount)
+            .where(PostingModel.transaction_id == transactions[2].id, PostingModel.amount == 0)
+            .order_by(PostingModel.base_amount)
+        )
+    ).all()
+    assert [tuple(posting) for posting in exchange_postings] == [
+        (Decimal("0"), Decimal("-2")),
+        (Decimal("0"), Decimal("2")),
+    ]
+    card_after = (
+        await db.execute(select(AccountModel.balance, AccountModel.base_balance).where(AccountModel.id == card.id))
+    ).one()
+    assert tuple(card_after) == (Decimal("80"), Decimal("96"))
 
 
 async def test_update_expense_after_income_drops_valued_date(db: AsyncSession, db_transaction: AsyncSession):

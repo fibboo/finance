@@ -8,7 +8,6 @@ from app.schemas.accounting.account import AccountCreateRequest, AccountKind, Ac
     "kind, currency, category_type",
     [
         (AccountKind.ASSET, "USD", None),
-        (AccountKind.LIABILITY, "EUR", None),
         (AccountKind.INCOME, None, None),
         (AccountKind.EXPENSE, None, CategoryType.FIXED),
     ],
@@ -37,7 +36,6 @@ def test_account_create_request_equity():
     "kind, currency",
     [
         (AccountKind.ASSET, None),
-        (AccountKind.LIABILITY, None),
         (AccountKind.INCOME, "USD"),
     ],
 )
@@ -46,7 +44,7 @@ def test_account_create_request_currency_mismatch(kind: AccountKind, currency: s
     with pytest.raises(ValidationError) as exc:
         AccountCreateRequest(kind=kind, name="Account", currency=currency)
 
-    assert "currency should be filled for ASSET and LIABILITY accounts only" in str(exc.value)
+    assert "currency should be filled for ASSET accounts only" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -73,7 +71,7 @@ def test_account_create_request_color_mismatch(kind: AccountKind, category_type:
     with pytest.raises(ValidationError) as exc:
         AccountCreateRequest(kind=kind, name="Account", category_type=category_type, color="#2E8C7A")
 
-    assert "color can be filled for ASSET and LIABILITY accounts only" in str(exc.value)
+    assert "color can be filled for ASSET accounts only" in str(exc.value)
 
 
 def test_account_update_null_category_type():

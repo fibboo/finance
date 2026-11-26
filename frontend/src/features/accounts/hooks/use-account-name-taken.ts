@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { readSearchTerm } from '@/lib/search-term';
 
@@ -11,13 +12,13 @@ type AccountKind = components['schemas']['AccountKind'];
 type AccountNameLookup = Readonly<{
   name: string;
   kind: AccountKind;
+  classificationId?: string | null | undefined;
   ownAccountId: string | undefined;
   unchangedName: string | undefined;
 }>;
 
 const NAME_TAKEN_MESSAGES_BY_KIND = {
   ASSET: 'An active account already has this name',
-  LIABILITY: 'An active account already has this name',
   EQUITY: 'An active account already has this name',
   EXPENSE: 'An active category already has this name',
   INCOME: 'An active income source already has this name',
@@ -26,6 +27,7 @@ const NAME_TAKEN_MESSAGES_BY_KIND = {
 export function useAccountNameTaken({
   name,
   kind,
+  classificationId,
   ownAccountId,
   unchangedName,
 }: AccountNameLookup): Readonly<{
@@ -52,7 +54,10 @@ export function useAccountNameTaken({
     isNameTaken:
       isCurrentNameLookedUp &&
       (accounts?.items.some(
-        (account) => account.name.toLowerCase() === searchTerm && account.id !== ownAccountId,
+        (account) =>
+          account.name.toLowerCase() === searchTerm &&
+          account.id !== ownAccountId &&
+          (!isMoneyAccountKind(kind) || account.classification_id === classificationId),
       ) ??
         false),
     isLookupPending: searchTerm !== null && (!isCurrentNameLookedUp || isPending),

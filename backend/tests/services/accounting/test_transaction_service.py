@@ -1246,7 +1246,7 @@ async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
             None,
         ),
         (
-            {"kind": AccountKind.LIABILITY, "name": "Credit card USD", "currency": "USD"},
+            {"kind": AccountKind.ASSET, "name": "Credit card USD", "currency": "USD"},
             {"kind": AccountKind.EXPENSE, "name": "Food", "category_type": CategoryType.VARIABLE},
             TransactionType.EXPENSE,
             True,
@@ -1261,7 +1261,7 @@ async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
         ),
         (
             {"kind": AccountKind.ASSET, "name": "Checking USD", "currency": "USD"},
-            {"kind": AccountKind.LIABILITY, "name": "Credit card USD", "currency": "USD"},
+            {"kind": AccountKind.ASSET, "name": "Credit card USD", "currency": "USD"},
             TransactionType.TRANSFER,
             False,
             None,
@@ -1595,7 +1595,7 @@ async def test_get_transactions_estimates_unvalued(db: AsyncSession, httpx_mock:
     eur_card_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "user_id": user_db.id,
             "name": "Card EUR",
             "currency": "EUR",

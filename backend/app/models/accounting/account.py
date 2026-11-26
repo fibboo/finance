@@ -24,6 +24,7 @@ from app.schemas.accounting.account import AccountKind, CategoryPurpose, Categor
 from app.schemas.base import EntityStatusType
 
 ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_kind_name"
+MONEY_ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_classification_id_name"
 
 
 class Account(Base):
@@ -35,7 +36,7 @@ class Account(Base):
             name="account_classification_owner_fk",
         ),
         CheckConstraint(
-            "classification_id IS NULL OR kind IN ('ASSET', 'LIABILITY', 'EXPENSE')",
+            f"classification_id IS NULL OR kind IN ('{AccountKind.ASSET.value}', '{AccountKind.EXPENSE.value}')",
             name="account_classification_by_kind",
         ),
         CheckConstraint(
@@ -43,7 +44,7 @@ class Account(Base):
             name="account_category_purpose_by_kind",
         ),
         CheckConstraint(
-            f"(currency IS NOT NULL) = (kind IN ('{AccountKind.ASSET.value}', '{AccountKind.LIABILITY.value}'))",
+            f"(currency IS NOT NULL) = (kind = '{AccountKind.ASSET.value}')",
             name="account_currency_by_kind",
         ),
         CheckConstraint(
@@ -51,7 +52,7 @@ class Account(Base):
             name="account_category_type_by_kind",
         ),
         CheckConstraint(
-            f"color IS NULL OR kind IN ('{AccountKind.ASSET.value}', '{AccountKind.LIABILITY.value}')",
+            f"color IS NULL OR kind = '{AccountKind.ASSET.value}'",
             name="account_color_by_kind",
         ),
     )
@@ -106,5 +107,15 @@ Index(
     Account.kind,
     func.lower(Account.name),
     unique=True,
-    postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}'"),
+    postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}' AND kind <> '{AccountKind.ASSET.value}'"),
+)
+
+Index(
+    MONEY_ACCOUNT_UNIQUE_NAME_INDEX,
+    Account.user_id,
+    Account.classification_id,
+    func.lower(Account.name),
+    unique=True,
+    postgresql_nulls_not_distinct=True,
+    postgresql_where=text(f"status = '{EntityStatusType.ACTIVE.value}' AND kind = '{AccountKind.ASSET.value}'"),
 )
