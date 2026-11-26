@@ -51,13 +51,37 @@
 }
 
 .name {
-  overflow: hidden;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: inherit;
   text-decoration: none;
+}
+
+.nameLabel,
+.description,
+.typeLabel,
+.currencySuffix {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  flex: 1 1 0;
+}
+
+.currency {
+  display: flex;
+}
+
+.currencySuffix {
+  flex-shrink: 0;
+  max-width: 100%;
+  white-space: pre;
 }
 
 .name::after {
@@ -154,8 +178,12 @@
   .accountGroups {
     flex: 1 1 auto;
     min-width: 0;
-    align-self: flex-start;
     padding: var(--space-2) var(--space-5) var(--space-3);
+  }
+
+  .withTypeFilters {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
   }
 
   .columns {
@@ -194,6 +222,14 @@
   .columns::after {
     z-index: -2;
     background: var(--color-ground);
+  }
+
+  .withTypeFilters .columns::before {
+    border-radius: 0;
+  }
+
+  .withTypeFilters .columns::after {
+    content: none;
   }
 
   .amountColumn {

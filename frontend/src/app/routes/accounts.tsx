@@ -62,6 +62,7 @@ export function Component() {
   const searchField = useSearchField(search);
   const searchTerm = readSearchTerm(search);
   const { data: classifications } = useQuery(classificationQueries.list('MONEY_ACCOUNT'));
+  const hasTypeFilters = classifications !== undefined && classifications.length > 1;
   const classificationId = readClassificationFilter({
     searchParams,
     param: 'account_type',
@@ -148,7 +149,7 @@ export function Component() {
       {baseCurrency !== undefined && (
         <div className={isWideDesktop ? styles['accountsWithTransactions'] : styles['accounts']}>
           <div className={isWideDesktop ? styles['list'] : styles['plainList']}>
-            {classifications !== undefined && classifications.length > 1 && (
+            {hasTypeFilters && (
               <CatalogFilters
                 segment={{
                   kind: 'shown',
@@ -182,6 +183,7 @@ export function Component() {
               <AccountGroups
                 accounts={accountPage?.items}
                 classifications={classifications}
+                hasTypeFilters={hasTypeFilters}
                 topAccountId={topAccountId}
                 baseCurrency={baseCurrency}
                 listSearchParams={listSearchParams}

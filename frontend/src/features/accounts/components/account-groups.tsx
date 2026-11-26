@@ -25,6 +25,7 @@ const ACCOUNT_SKELETON_COUNT = 3;
 type AccountGroupsProps = Readonly<{
   accounts: readonly Account[] | undefined;
   classifications: readonly Classification[] | undefined;
+  hasTypeFilters?: boolean;
   topAccountId: string | undefined;
   baseCurrency: string;
   listSearchParams: URLSearchParams;
@@ -50,6 +51,7 @@ function readAccountClassName({
 export function AccountGroups({
   accounts,
   classifications,
+  hasTypeFilters = false,
   topAccountId,
   baseCurrency,
   listSearchParams,
@@ -64,7 +66,9 @@ export function AccountGroups({
   const selectedAccountId = isParamIgnored ? undefined : readSelectedAccountId(searchParams);
   return (
     <section
-      className={styles['accountGroups']}
+      className={[styles['accountGroups'], hasTypeFilters ? styles['withTypeFilters'] : undefined]
+        .filter(Boolean)
+        .join(' ')}
       aria-label={accounts === undefined ? undefined : 'Account balances'}
       aria-busy={accounts === undefined}
     >
@@ -123,15 +127,20 @@ export function AccountGroups({
                     aria-label={hasDescription ? account.name : undefined}
                     className={styles['name']}
                   >
-                    {account.name}
+                    <span className={styles['nameLabel']}>{account.name}</span>
                     {hasDescription && (
                       <span className={styles['description']}> {account.description}</span>
                     )}
                   </Link>
                   <span className={styles['currency']}>
-                    {classificationLabel !== undefined && `${classificationLabel} · `}
-                    {account.currency}
-                    {rateText !== undefined && ` · ${rateText}`}
+                    {classificationLabel !== undefined && (
+                      <span className={styles['typeLabel']}>{classificationLabel}</span>
+                    )}
+                    <span className={styles['currencySuffix']}>
+                      {classificationLabel !== undefined && ' · '}
+                      {account.currency}
+                      {rateText !== undefined && ` · ${rateText}`}
+                    </span>
                   </span>
                 </span>
                 <span className={styles['balance']}>
