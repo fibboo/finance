@@ -47,7 +47,7 @@ def get_shared_providers(*, user_db: UserModel, merge_user_db: UserModel) -> lis
 def _build_free_name(*, name: str, taken_names: set[str]) -> str:
     number: int = 1
     free_name: str = name
-    while free_name in taken_names:
+    while free_name.lower() in taken_names:
         number += 1
         suffix: str = f" {number}"
         free_name = f"{name[: AccountModel.name.type.length - len(suffix)].rstrip()}{suffix}"
@@ -97,9 +97,9 @@ async def _move_accounts(*, db: AsyncSession, user_id: UUID, merge_user_id: UUID
         name_group: tuple[AccountKind, UUID | None] = _get_name_group(
             account_db=account_db, classification_ids=classification_ids
         )
-        taken_names.setdefault(name_group, set()).add(account_db.name)
+        taken_names.setdefault(name_group, set()).add(account_db.name.lower())
         if account_db.user_id == user_id:
-            active_account_ids[(*name_group, account_db.name)] = account_db.id
+            active_account_ids[(*name_group, account_db.name.lower())] = account_db.id
 
     folded_account_ids: dict[UUID, UUID] = {}
     names: dict[UUID, str] = {}
@@ -107,7 +107,7 @@ async def _move_accounts(*, db: AsyncSession, user_id: UUID, merge_user_id: UUID
         merge_name_group: tuple[AccountKind, UUID | None] = _get_name_group(
             account_db=merge_account_db, classification_ids=classification_ids
         )
-        account_id: UUID | None = active_account_ids.get((*merge_name_group, merge_account_db.name))
+        account_id: UUID | None = active_account_ids.get((*merge_name_group, merge_account_db.name.lower()))
         if merge_account_db.status != EntityStatusType.ACTIVE or account_id is None:
             continue
 
@@ -117,7 +117,7 @@ async def _move_accounts(*, db: AsyncSession, user_id: UUID, merge_user_id: UUID
 
         group_taken_names: set[str] = taken_names[merge_name_group]
         name: str = _build_free_name(name=merge_account_db.name, taken_names=group_taken_names)
-        group_taken_names.add(name)
+        group_taken_names.add(name.lower())
         names[merge_account_db.id] = name
 
     await posting_crud.update_account_ids(db=db, account_ids=folded_account_ids)

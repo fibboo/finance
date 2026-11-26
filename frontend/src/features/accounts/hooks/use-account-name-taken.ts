@@ -57,7 +57,8 @@ export function useAccountNameTaken({
         (account) =>
           account.name.toLowerCase() === searchTerm &&
           account.id !== ownAccountId &&
-          (!isMoneyAccountKind(kind) || account.classification_id === classificationId),
+          (!isMoneyAccountKind(kind) ||
+            (account.classification_id ?? null) === (classificationId ?? null)),
       ) ??
         false),
     isLookupPending: searchTerm !== null && (!isCurrentNameLookedUp || isPending),

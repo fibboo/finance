@@ -98,7 +98,7 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
             {
                 "user_id": other_user_db.id,
                 "kind": AccountKind.ASSET,
-                "name": "Wallet",
+                "name": "wallet",
                 "currency": "USD",
                 "classification_id": matching_type.id,
             },
@@ -112,7 +112,7 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
             {
                 "user_id": other_user_db.id,
                 "kind": AccountKind.EXPENSE,
-                "name": "Groceries",
+                "name": "groceries",
                 "category_type": CategoryType.FIXED,
                 "category_purpose": CategoryPurpose.PERSONAL,
             },
@@ -254,8 +254,8 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
         ProviderType.TELEGRAM,
     ]
 
-    # a same-named money account of the same type gets a free suffix and one of another type keeps its name,
-    # while the categories and Adjustments fold
+    # names match whatever their case: a same-named money account of the same type gets a free suffix and one of
+    # another type keeps its name, while the categories and Adjustments fold
     accounts_after_db: list[AccountModel] = (
         await db.scalars(
             select(AccountModel)
@@ -268,7 +268,7 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
         (wallet_db.id, "Wallet", EntityStatusType.ACTIVE),
         (groceries_db.id, "Groceries", EntityStatusType.ACTIVE),
         (adjustments_db.id, "Adjustments", EntityStatusType.ACTIVE),
-        (other_wallet_db.id, "Wallet 3", EntityStatusType.ACTIVE),
+        (other_wallet_db.id, "wallet 3", EntityStatusType.ACTIVE),
         (other_wallet_2_db.id, "Wallet 2", EntityStatusType.ACTIVE),
         (travel_db.id, "Travel", EntityStatusType.ACTIVE),
         (deleted_wallet_db.id, "Wallet", EntityStatusType.DELETED),
