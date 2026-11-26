@@ -56,7 +56,8 @@
   line-height: var(--line-height-sub);
 }
 
-.name {
+.name,
+.description {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -66,12 +67,12 @@
 .metadata {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
-  overflow-wrap: anywhere;
 }
 
 .metadata {
   flex: none;
   max-width: 45%;
+  overflow-wrap: anywhere;
   text-align: right;
 }
 
