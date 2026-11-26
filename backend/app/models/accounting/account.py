@@ -2,10 +2,22 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, func, Index, Numeric, String, text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    ForeignKeyConstraint,
+    func,
+    Index,
+    Numeric,
+    String,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID as DB_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.models.accounting.classification import Classification
 from app.models.accounting.currency import Currency
 from app.models.base import Base
 from app.schemas.accounting.account import AccountKind, CategoryPurpose, CategoryType
@@ -17,6 +29,15 @@ ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_kind_name"
 class Account(Base):
     __tablename__ = "accounts"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["user_id", "classification_id"],
+            [Classification.user_id, Classification.id],
+            name="account_classification_owner_fk",
+        ),
+        CheckConstraint(
+            "classification_id IS NULL OR kind IN ('ASSET', 'LIABILITY', 'EXPENSE')",
+            name="account_classification_by_kind",
+        ),
         CheckConstraint(
             f"category_purpose IS NULL OR kind = '{AccountKind.EXPENSE.value}'",
             name="account_category_purpose_by_kind",
@@ -55,6 +76,7 @@ class Account(Base):
         Enum(CategoryType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
         nullable=True,
     )
+    classification_id: Mapped[UUID | None] = mapped_column(DB_UUID, index=True)
     category_purpose: Mapped[CategoryPurpose | None] = mapped_column(
         Enum(CategoryPurpose, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
         nullable=True,

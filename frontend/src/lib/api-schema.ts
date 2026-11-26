@@ -124,6 +124,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounting/classifications/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Classifications */
+        get: operations["get_classifications_accounting_classifications__kind__get"];
+        put?: never;
+        /** Create Classification */
+        post: operations["create_classification_accounting_classifications__kind__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounting/classifications/{kind}/{classification_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename Classification */
+        put: operations["rename_classification_accounting_classifications__kind___classification_id__put"];
+        post?: never;
+        /**
+         * Delete Classification
+         * @description Move all assignments to a replacement when deleting a type in use. A replacement for the default becomes the default.
+         */
+        delete: operations["delete_classification_accounting_classifications__kind___classification_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounting/currencies": {
         parameters: {
             query?: never;
@@ -624,6 +663,8 @@ export interface components {
             color: string | null;
             category_type: components["schemas"]["CategoryType"] | null;
             category_purpose?: components["schemas"]["CategoryPurpose"] | null;
+            /** Classification Id */
+            classification_id?: string | null;
             /** Estimated Base Balance */
             estimated_base_balance?: string | null;
             status: components["schemas"]["EntityStatusType"];
@@ -645,6 +686,8 @@ export interface components {
             color?: string | null;
             category_type?: components["schemas"]["CategoryType"] | null;
             category_purpose?: components["schemas"]["CategoryPurpose"] | null;
+            /** Classification Id */
+            classification_id?: string | null;
         };
         /**
          * AccountKind
@@ -666,6 +709,8 @@ export interface components {
             color?: string | null;
             category_type?: components["schemas"]["CategoryType"] | null;
             category_purpose?: components["schemas"]["CategoryPurpose"] | null;
+            /** Classification Id */
+            classification_id?: string | null;
         };
         /** AccountingDictionaries */
         AccountingDictionaries: {
@@ -716,6 +761,29 @@ export interface components {
          * @enum {string}
          */
         CategoryType: "VARIABLE" | "FIXED" | "PERIODIC";
+        /** Classification */
+        Classification: {
+            /** Name */
+            name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["ClassificationKind"];
+            /** Is Default */
+            is_default: boolean;
+        };
+        /**
+         * ClassificationKind
+         * @enum {string}
+         */
+        ClassificationKind: "MONEY_ACCOUNT" | "EXPENSE_CATEGORY";
+        /** ClassificationNameRequest */
+        ClassificationNameRequest: {
+            /** Name */
+            name: string;
+        };
         /** CurrencyAmount */
         CurrencyAmount: {
             /** Currency */
@@ -746,7 +814,7 @@ export interface components {
          * ErrorCodeType
          * @enum {string}
          */
-        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "BASE_CURRENCY_MISMATCH" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
+        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "CLASSIFICATION_REPLACEMENT_REQUIRED" | "INVALID_CLASSIFICATION_REPLACEMENT" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "BASE_CURRENCY_MISMATCH" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
         /** ErrorResponse */
         ErrorResponse: {
             /** Message */
@@ -1150,6 +1218,7 @@ export interface operations {
                 search_term?: string | null;
                 kinds?: components["schemas"]["AccountKind"][];
                 category_types?: components["schemas"]["CategoryType"][];
+                classification_ids?: string[];
                 category_purposes?: components["schemas"]["CategoryPurpose"][];
                 statuses?: components["schemas"]["EntityStatusType"][];
                 order?: components["schemas"]["ListOrderType"];
@@ -1470,6 +1539,176 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Transaction"];
                 };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_classifications_accounting_classifications__kind__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: components["schemas"]["ClassificationKind"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Classification"][];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_classification_accounting_classifications__kind__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: components["schemas"]["ClassificationKind"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassificationNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Classification"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_classification_accounting_classifications__kind___classification_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: components["schemas"]["ClassificationKind"];
+                classification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassificationNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Classification"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_classification_accounting_classifications__kind___classification_id__delete: {
+        parameters: {
+            query?: {
+                replacement_id?: string | null;
+            };
+            header?: never;
+            path: {
+                kind: components["schemas"]["ClassificationKind"];
+                classification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
             418: {
@@ -2585,8 +2824,9 @@ type ReadonlyArray<T> = [
 export const accountKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["AccountKind"]> = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"];
 export const categoryPurposeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryPurpose"]> = ["PERSONAL", "INCOME_COST"];
 export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryType"]> = ["VARIABLE", "FIXED", "PERIODIC"];
+export const classificationKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ClassificationKind"]> = ["MONEY_ACCOUNT", "EXPENSE_CATEGORY"];
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
-export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
+export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "CLASSIFICATION_REPLACEMENT_REQUIRED", "INVALID_CLASSIFICATION_REPLACEMENT", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
 export const linkStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["LinkStatusType"]> = ["linked", "merge_required"];
 export const listOrderTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ListOrderType"]> = ["name", "recent_use"];
 export const orderDirectionTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderDirectionType"]> = ["asc", "desc"];

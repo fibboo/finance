@@ -39,3 +39,7 @@ A transaction that touches a deleted account can be neither created nor deleted 
 ## Category purpose compatibility
 
 Category purpose stays nullable in storage so the previous backend can still create accounts between migration and replacement; legacy expense categories are read as Personal, while the new backend writes an explicit purpose.
+
+## Classification compatibility
+
+User-defined types are separate from the legacy account kind and category type so older clients can continue reading and filtering on their original keys. Migration triggers cover inserts and ownership changes from the previous backend while both versions can write. The composite foreign key prevents one user's ledger account from retaining a reference to another user's classification after a merge.

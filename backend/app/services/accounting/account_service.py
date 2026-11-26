@@ -27,10 +27,11 @@ from app.schemas.accounting.account import (
     CategoryType,
     MONEY_ACCOUNT_KINDS,
 )
+from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
-from app.services.accounting import currency_service, exchange_rate_service, ledger_service
+from app.services.accounting import classification_service, currency_service, exchange_rate_service, ledger_service
 
 logger = get_logger(logger_name=__name__)
 
@@ -62,9 +63,19 @@ async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest,
     if create_data.currency is not None:
         await currency_service.get_currency(db=db, code=create_data.currency)
 
-    create_data: AccountCreate = AccountCreate(**create_data.model_dump(), user_id=user_id)
+    if classification_service.get_classification_kind(account_kind=create_data.kind) is not None:
+        await classification_service.lock_classifications(db=db, user_id=user_id)
+
+    classification_id: UUID | None = await classification_service.get_classification_id(
+        db=db, user_id=user_id, account_kind=create_data.kind, classification_id=create_data.classification_id
+    )
+    account_data = AccountCreate(
+        **create_data.model_dump(exclude={"classification_id"}), user_id=user_id, classification_id=classification_id
+    )
+    if account_data.kind == AccountKind.EXPENSE and account_data.category_type is None:
+        account_data.category_type = CategoryType.VARIABLE
     try:
-        account_db: AccountModel = await account_crud.create(db=db, obj_in=create_data)
+        account_db: AccountModel = await account_crud.create(db=db, obj_in=account_data)
 
     except IntegrityError as exc:
         raise _get_integrity_exception(exception=exc, user_id=user_id)
@@ -74,12 +85,25 @@ async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest,
 
 
 async def create_default_accounts(*, db: AsyncSession, user_id: UUID, base_currency: CurrencyCode) -> None:
+    default_ids: dict[ClassificationKind, UUID] = await classification_service.ensure_defaults(db=db, user_id=user_id)
     create_data: list[AccountCreate] = [
-        AccountCreate(user_id=user_id, kind=AccountKind.ASSET, name="Wallet", currency=base_currency)
+        AccountCreate(
+            user_id=user_id,
+            kind=AccountKind.ASSET,
+            name="Wallet",
+            currency=base_currency,
+            classification_id=default_ids[ClassificationKind.MONEY_ACCOUNT],
+        )
     ]
     for name, category_type in DEFAULT_CATEGORIES.items():
         create_data.append(
-            AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name=name, category_type=category_type)
+            AccountCreate(
+                user_id=user_id,
+                kind=AccountKind.EXPENSE,
+                name=name,
+                category_type=category_type,
+                classification_id=default_ids[ClassificationKind.EXPENSE_CATEGORY],
+            )
         )
 
     create_data.append(AccountCreate(user_id=user_id, kind=AccountKind.EQUITY, name="Adjustments"))
@@ -215,6 +239,9 @@ async def get_account(
 
 
 async def update_account(*, db: AsyncSession, account_id: UUID, update_data: AccountUpdate, user_id: UUID) -> Account:
+    if update_data.classification_id is not None:
+        await classification_service.lock_classifications(db=db, user_id=user_id)
+
     account_db: AccountModel | None = await account_crud.get_or_none(
         db=db, id=account_id, user_id=user_id, status=EntityStatusType.ACTIVE, with_for_update=True
     )
@@ -229,6 +256,11 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
 
     if update_data.color is not None and account_db.kind not in MONEY_ACCOUNT_KINDS:
         raise AccountKindMismatch(account_id=account_id, kinds=MONEY_ACCOUNT_KINDS, logger=logger)
+
+    if update_data.classification_id is not None:
+        await classification_service.get_classification_id(
+            db=db, user_id=user_id, account_kind=account_db.kind, classification_id=update_data.classification_id
+        )
 
     try:
         account_db: AccountModel = await account_crud.update_orm(

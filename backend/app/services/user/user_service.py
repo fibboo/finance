@@ -34,7 +34,7 @@ from app.schemas.user.user import (
     USERNAME_MAX_LENGTH,
     USERNAME_MIN_LENGTH,
 )
-from app.services.accounting import account_service, currency_service
+from app.services.accounting import account_service, classification_service, currency_service
 
 logger = get_logger(logger_name=__name__)
 
@@ -94,6 +94,7 @@ async def create_user(*, db: AsyncSession, identity: ProviderIdentity) -> UserMo
         db=db, user_id=user_db.id, identity=identity, username=external_username
     )
     user_db.external_users = [external_user_db]
+    await classification_service.ensure_defaults(db=db, user_id=user_db.id)
 
     return user_db
 

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.classification import classification_crud
 from app.crud.accounting.location import location_crud
 from app.crud.accounting.posting import posting_crud
 from app.crud.accounting.transaction import transaction_crud
@@ -22,6 +23,7 @@ from app.schemas.accounting.account import AccountKind
 from app.schemas.base import EntityStatusType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import User
+from app.services.accounting import classification_service
 from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
@@ -100,7 +102,12 @@ async def _move_accounts(*, db: AsyncSession, user_id: UUID, merge_user_id: UUID
     await posting_crud.update_account_ids(db=db, account_ids=folded_account_ids)
     await account_crud.delete_by_ids(db=db, ids=list(folded_account_ids))
     await account_crud.update_names(db=db, names=names)
-    await account_crud.move_to_user(db=db, user_id=merge_user_id, new_user_id=user_id)
+    classification_ids: dict[UUID, UUID] = await classification_crud.copy_for_merge(
+        db=db, user_id=user_id, merge_user_id=merge_user_id
+    )
+    await account_crud.move_with_classifications(
+        db=db, user_id=merge_user_id, new_user_id=user_id, classification_ids=classification_ids
+    )
 
 
 async def _move_locations(*, db: AsyncSession, user_id: UUID, merge_user_id: UUID) -> None:
@@ -146,6 +153,7 @@ async def merge(*, db: AsyncSession, user_id: UUID, merge_code: str) -> User:
     if user_db.base_currency is None:
         await user_crud.update_orm(db=db, obj_in={"base_currency": merge_user_db.base_currency}, id=user_id)
 
+    await classification_service.ensure_defaults(db=db, user_id=user_id)
     await _move_accounts(db=db, user_id=user_id, merge_user_id=merge_user_id)
     await _move_locations(db=db, user_id=user_id, merge_user_id=merge_user_id)
     await transaction_crud.move_to_user(db=db, user_id=merge_user_id, new_user_id=user_id)
