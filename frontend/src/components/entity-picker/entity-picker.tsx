@@ -16,6 +16,8 @@ export type EntityPickerItem = Readonly<{
   name: string;
   color: string | undefined;
   note: string;
+  description?: string | undefined;
+  highlightedNote?: string | undefined;
 }>;
 
 export type CreateFormProps = Readonly<{
@@ -74,10 +76,20 @@ export function EntityPicker({
   }, [onBack, newName]);
 
   const searchName = search.trim();
-  const searchText = searchName.toLowerCase();
-  const matchingItems = items?.filter((item) => item.name.toLowerCase().includes(searchText));
+  const searchText = searchName.toLocaleLowerCase();
+  const matchingItems = items?.filter((item) => {
+    const metadata =
+      item.highlightedNote === undefined
+        ? item.note
+        : item.note === ''
+          ? item.highlightedNote
+          : `${item.note} · ${item.highlightedNote}`;
+    const optionText = [item.name, item.description, metadata].join(' ').toLocaleLowerCase();
+    return optionText.includes(searchText);
+  });
   const isCreateShown =
-    create !== undefined && items?.some((item) => item.name.toLowerCase() === searchText) === false;
+    create !== undefined &&
+    items?.some((item) => item.name.toLocaleLowerCase() === searchText) === false;
   if (create !== undefined && newName !== undefined) {
     return create.renderForm({
       name: newName,
@@ -163,8 +175,31 @@ export function EntityPicker({
                       aria-hidden="true"
                     />
                   )}
-                  <span className={styles['name']}>{item.name}</span>
-                  <span className={styles['note']}>{item.note}</span>
+                  <span className={styles['identity']}>
+                    <span className={styles['name']}>{item.name}</span>
+                    {item.description !== undefined && item.description !== '' && (
+                      <>
+                        {' '}
+                        <span className={styles['description']}>{item.description}</span>
+                      </>
+                    )}
+                  </span>
+                  {(item.note !== '' || item.highlightedNote !== undefined) && (
+                    <>
+                      {' '}
+                      <span className={styles['note']}>
+                        {item.note}
+                        {item.highlightedNote !== undefined && (
+                          <>
+                            {item.note !== '' && ' · '}
+                            <span className={styles['highlightedNote']}>
+                              {item.highlightedNote}
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </>
+                  )}
                   {item.id === selectedId && (
                     <svg className={styles['check']} aria-hidden="true" viewBox="0 0 24 24">
                       <path d={CHECK_ICON_PATH} />

@@ -54,9 +54,23 @@ const transactionTypes = [
   { key: 'ADJUSTMENT', label: 'Adjustment' },
 ] satisfies components['schemas']['DictionaryItem'][];
 
-const categoryTypes = [
-  { key: 'VARIABLE', label: 'Variable' },
-] satisfies components['schemas']['DictionaryItem'][];
+const optionChoices = {
+  legacyCategoryTypes: [{ key: 'VARIABLE', label: 'Variable' }],
+  expenseCategoryTypes: [
+    {
+      id: 'd98162e0-2f4b-4a4d-8ace-1a18cd1af002',
+      name: 'Everyday',
+      kind: 'EXPENSE_CATEGORY',
+      is_default: true,
+    },
+    {
+      id: 'd98162e0-2f4b-4a4d-8ace-1a18cd1af003',
+      name: 'Periodic',
+      kind: 'EXPENSE_CATEGORY',
+      is_default: false,
+    },
+  ],
+} satisfies import('./account-option-metadata').AccountOptionChoices;
 
 const currencies = [
   { key: 'EUR', label: 'Euro' },
@@ -155,7 +169,7 @@ test.each([
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -217,7 +231,7 @@ test('shows the amount in the base currency at the account rate', async () => {
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -259,7 +273,7 @@ test('asks for the category, the location and the seller’s currency before sen
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -309,7 +323,7 @@ test('lists the categories with their category type', async () => {
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -329,7 +343,7 @@ test('lists the categories with their category type', async () => {
   await user.click(screen.getByRole('button', { name: /^Category/ }));
 
   // assert
-  expect(screen.getByRole('button', { name: /^Groceries/ })).toHaveTextContent('GroceriesVariable');
+  expect(screen.getByRole('button', { name: 'Groceries Variable' })).toBeInTheDocument();
 });
 
 test('shows a field error of the backend at its field', async () => {
@@ -350,7 +364,7 @@ test('shows a field error of the backend at its field', async () => {
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -405,7 +419,7 @@ test('shows a backend error of the seller’s amount at the amount when another 
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -470,7 +484,7 @@ test.each([
           kind: 'create',
           typeChoice: { transactionTypes, onTypeChange: vi.fn() },
         }}
-        categoryTypes={categoryTypes}
+        optionChoices={optionChoices}
         currencies={currencies}
         moneyAccounts={[euroCard]}
         categories={undefined}
@@ -542,7 +556,7 @@ test.each([
           kind: 'create',
           typeChoice: { transactionTypes, onTypeChange: vi.fn() },
         }}
-        categoryTypes={categoryTypes}
+        optionChoices={optionChoices}
         currencies={[...currencies, { key: 'USD', label: 'US dollar' }]}
         moneyAccounts={[account]}
         categories={undefined}
@@ -584,7 +598,7 @@ test('shows the base currency amount of an income right under the amount receive
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={undefined}
@@ -627,7 +641,7 @@ test('keeps the month of an income on the month before the date until a month is
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={undefined}
@@ -662,7 +676,7 @@ test('shows the exchange rate of a transfer with the dearer currency on the left
     <MovementForm
       transactionType="TRANSFER"
       mode={{ kind: 'create', typeChoice: { transactionTypes, onTypeChange: vi.fn() } }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[gelSavings, dollarCash, euroCard]}
       categories={undefined}
@@ -718,7 +732,7 @@ test.each([
           kind: 'create',
           typeChoice: { transactionTypes, onTypeChange: vi.fn() },
         }}
-        categoryTypes={categoryTypes}
+        optionChoices={optionChoices}
         currencies={currencies}
         moneyAccounts={[euroCard, account]}
         categories={undefined}
@@ -784,7 +798,7 @@ test('shows the amount received immediately after the amount sent in a cross-cur
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard, gelSavings]}
       categories={undefined}
@@ -828,7 +842,7 @@ test('lists the accounts to send to without the account sent from', async () => 
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard, gelSavings]}
       categories={undefined}
@@ -864,7 +878,7 @@ test('keeps a picked month of an income that matches the month before the date w
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={undefined}
@@ -928,7 +942,7 @@ test.each([
           kind: 'create',
           typeChoice: { transactionTypes, onTypeChange: vi.fn() },
         }}
-        categoryTypes={categoryTypes}
+        optionChoices={optionChoices}
         currencies={currencies}
         moneyAccounts={[euroCard, dollarCash]}
         categories={undefined}
@@ -978,7 +992,7 @@ test('leaves out the base currency estimate of an income paid in another currenc
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={undefined}
@@ -1021,7 +1035,7 @@ test.each([
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -1062,7 +1076,7 @@ test('pads a grouped amount to two decimals on leaving it and sends it as a plai
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -1117,7 +1131,7 @@ test('sends an amount ending in a point when Enter is pressed in its field', asy
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
       }}
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[groceries]}
@@ -1310,7 +1324,7 @@ test.each([
       <MovementForm
         mode={{ kind: 'edit', transaction }}
         transactionType={transactionType}
-        categoryTypes={categoryTypes}
+        optionChoices={optionChoices}
         currencies={currencies}
         moneyAccounts={[euroCard, gelSavings]}
         categories={[groceries]}
@@ -1394,7 +1408,7 @@ test('saves an edited expense whose account, category and location are not among
     <MovementForm
       mode={{ kind: 'edit', transaction }}
       transactionType="EXPENSE"
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[gelSavings]}
       categories={[]}
@@ -1465,7 +1479,7 @@ test('asks for a category before saving an edited expense whose category is dele
     <MovementForm
       mode={{ kind: 'edit', transaction }}
       transactionType="EXPENSE"
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard]}
       categories={[]}
@@ -1519,7 +1533,7 @@ test('leaves the amount received empty when an edited transfer into the base cur
     <MovementForm
       mode={{ kind: 'edit', transaction }}
       transactionType="TRANSFER"
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[euroCard, dollarCash, gelSavings]}
       categories={undefined}
@@ -1573,7 +1587,7 @@ test('lists both accounts of an edited transfer on either side when the choices 
     <MovementForm
       mode={{ kind: 'edit', transaction }}
       transactionType="TRANSFER"
-      categoryTypes={categoryTypes}
+      optionChoices={optionChoices}
       currencies={currencies}
       moneyAccounts={[dollarCash]}
       categories={undefined}
@@ -1615,7 +1629,7 @@ test.each(['EXPENSE', 'INCOME'] as const)(
       <MovementForm
         transactionType={transactionType}
         mode={{ kind: 'create', typeChoice: { transactionTypes, onTypeChange: vi.fn() } }}
-        categoryTypes={categoryTypes}
+        optionChoices={optionChoices}
         currencies={currencies}
         moneyAccounts={[dollarCash]}
         categories={[groceries]}

@@ -23,10 +23,7 @@ import {
   readClassificationFilter,
   writeClassificationFilter,
 } from '@/features/accounts/api/category-type-filter';
-import {
-  classificationQueries,
-  readClassificationLabel,
-} from '@/features/accounts/api/classification-queries';
+import { classificationQueries } from '@/features/accounts/api/classification-queries';
 import { readSelectedAccountId } from '@/features/accounts/api/selected-account';
 import { AccountGroups } from '@/features/accounts/components/account-groups';
 import { ClassificationSettings } from '@/features/accounts/components/classification-settings';
@@ -37,6 +34,7 @@ import { writeSelectedTransaction } from '@/features/transactions/api/selected-t
 import { useIsWideDesktop } from '@/hooks/use-is-desktop';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { MONEY_ACCOUNT_KINDS } from '@/lib/account-kinds';
+import { readClassificationLabel } from '@/lib/classification-label';
 import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
 

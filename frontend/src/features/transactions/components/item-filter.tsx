@@ -4,57 +4,33 @@ import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
 import { readMoneyAccountColor } from '@/lib/account-colors';
-import { isMoneyAccountKind } from '@/lib/account-kinds';
 import type { components } from '@/lib/api-schema';
 import { SearchField } from '@/components/search-field/search-field';
 
 import { itemFilterFormSchema } from '../schemas/transaction-filter-forms';
+import {
+  type AccountOptionChoices,
+  joinAccountOptionLabels,
+  readAccountOptionMetadata,
+} from './account-option-metadata';
 import styles from './item-filter.module.css';
 
 type FilterItem = components['schemas']['Account'] | components['schemas']['Location'];
-type ItemFilterDictionaries = Readonly<
-  Pick<
-    components['schemas']['AccountingDictionaries'],
-    'account_kinds' | 'category_types' | 'category_purposes'
-  >
->;
-
 type ItemFilterProps = Readonly<{
   title: string;
   emptyNote: string;
   items: readonly FilterItem[];
-  dictionaries: ItemFilterDictionaries;
+  optionChoices: AccountOptionChoices;
   itemIds: readonly string[];
   note: string | undefined;
   onApply: (itemIds: string[]) => void;
 }>;
 
-function readItemMetadata({
-  item,
-  dictionaries,
-}: Readonly<{ item: FilterItem; dictionaries: ItemFilterDictionaries }>): string {
-  if (!('kind' in item)) {
-    return '';
-  }
-
-  const labels =
-    item.kind === 'EXPENSE'
-      ? [
-          dictionaries.category_types.find(({ key }) => key === item.category_type)?.label,
-          dictionaries.category_purposes?.find(({ key }) => key === item.category_purpose)?.label,
-        ]
-      : isMoneyAccountKind(item.kind)
-        ? [dictionaries.account_kinds.find(({ key }) => key === item.kind)?.label, item.currency]
-        : [];
-  const metadata = labels.filter((label) => label != null && label !== '').join(' · ');
-  return metadata;
-}
-
 export function ItemFilter({
   title,
   emptyNote,
   items,
-  dictionaries,
+  optionChoices,
   itemIds,
   note,
   onApply,
@@ -67,7 +43,11 @@ export function ItemFilter({
   const searchTerm = search.trim().toLocaleLowerCase();
   const matchingItems = items.flatMap((item) => {
     const description = item.description?.trim() ?? '';
-    const metadata = readItemMetadata({ item, dictionaries });
+    const labels =
+      'kind' in item
+        ? readAccountOptionMetadata({ account: item, choices: optionChoices })
+        : undefined;
+    const metadata = joinAccountOptionLabels([labels?.type, labels?.detail]);
     const searchText = [item.name, description, metadata].join(' ').toLocaleLowerCase();
     return searchText.includes(searchTerm) ? [{ item, description, metadata }] : [];
   });

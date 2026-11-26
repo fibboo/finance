@@ -21,6 +21,7 @@ export function NewTransaction() {
   const transactionType = readNewTransactionType(searchParams);
   const {
     dictionaries,
+    optionChoices,
     currencies,
     baseCurrency,
     moneyAccounts,
@@ -63,6 +64,7 @@ export function NewTransaction() {
             renderMoneyAccountForm: createForms.renderMoneyAccountForm,
           }}
           transactionType={transactionType}
+          optionChoices={optionChoices}
           moneyAccounts={moneyAccounts}
           baseCurrency={baseCurrency}
           relatedQueryKeys={relatedQueryKeys}
@@ -79,8 +81,7 @@ export function NewTransaction() {
             },
           }}
           transactionType={transactionType}
-          categoryTypes={dictionaries.category_types}
-          categoryPurposes={dictionaries.category_purposes ?? []}
+          optionChoices={optionChoices}
           currencies={currencies}
           moneyAccounts={moneyAccounts}
           categories={categories}

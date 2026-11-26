@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/skeleton/skeleton';
 import { listSkeletonKeys } from '@/components/skeleton/skeleton-keys';
 import { useArrowKeySelection } from '@/hooks/use-arrow-key-selection';
 import type { components } from '@/lib/api-schema';
+import { readClassificationLabel } from '@/lib/classification-label';
 import { formatMoney } from '@/lib/format-money';
 
 import {
@@ -13,7 +14,7 @@ import {
   writeSelectedAccount,
 } from '../api/selected-account';
 import { readEstimatedBaseBalance } from './account-estimate';
-import { type Classification, readClassificationLabel } from '../api/classification-queries';
+import type { Classification } from '../api/classification-queries';
 import { AccountMark } from './account-mark';
 import styles from './account-groups.module.css';
 import { readAccountRateText } from './account-rate';

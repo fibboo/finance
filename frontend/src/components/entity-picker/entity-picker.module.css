@@ -153,17 +153,40 @@
   border-radius: var(--radius-mark);
 }
 
-.name {
+.identity {
   flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: var(--line-height-sub);
+}
+
+.name,
+.description {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.description,
 .note {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
+}
+
+.note {
+  flex: none;
+  max-width: 45%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.highlightedNote {
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-badge);
+  background: var(--color-income-cost-row);
+  color: var(--color-income-cost-icon);
 }
 
 .check {

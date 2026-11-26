@@ -371,7 +371,7 @@ test('shows a field error of the backend at its field', async () => {
   );
 });
 
-test('finds an account by a part of its name', async () => {
+test('finds an account by its currency', async () => {
   // arrange
   const user = userEvent.setup();
   render(
@@ -395,9 +395,8 @@ test('finds an account by a part of its name', async () => {
   await user.type(screen.getByRole('searchbox', { name: 'Search accounts' }), 'eur');
 
   // assert
-  expect(screen.getAllByRole('button', { name: /€|\$/ }).map((item) => item.textContent)).toEqual([
-    'Euro card€0.00',
-  ]);
+  expect(screen.getByRole('button', { name: 'Euro card EUR' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^Wallet/ })).not.toBeInTheDocument();
 });
 
 test('offers only the transaction types the form can enter', () => {

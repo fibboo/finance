@@ -9,6 +9,20 @@ import { server } from '@/test/setup';
 
 import { Component } from './transactions';
 
+const dailyAccountType = {
+  id: 'ad4eb0d2-d84b-4131-8d5b-041fae56fbad',
+  name: 'Everyday account',
+  kind: 'MONEY_ACCOUNT',
+  is_default: true,
+} satisfies components['schemas']['Classification'];
+
+const spendingType = {
+  id: 'e00cf2fc-b333-4b78-bde4-1b0a20f41e3e',
+  name: 'Everyday costs',
+  kind: 'EXPENSE_CATEGORY',
+  is_default: true,
+} satisfies components['schemas']['Classification'];
+
 const wallet = {
   name: 'Wallet',
   id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
@@ -18,6 +32,7 @@ const wallet = {
   currency: 'USD',
   color: null,
   category_type: null,
+  classification_id: dailyAccountType.id,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -30,6 +45,7 @@ const category = {
   kind: 'EXPENSE',
   currency: null,
   category_type: 'VARIABLE',
+  classification_id: spendingType.id,
 } satisfies components['schemas']['Account'];
 
 const cafes = {
@@ -78,6 +94,28 @@ beforeEach(() => {
   document.documentElement.style.fontSize = '16px';
   document.documentElement.style.setProperty('--size-transaction-row', '3.25rem');
   server.use(
+    http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', () =>
+      HttpResponse.json([
+        dailyAccountType,
+        {
+          ...dailyAccountType,
+          id: 'ad4eb0d2-d84b-4131-8d5b-041fae56fbae',
+          name: 'Savings',
+          is_default: false,
+        },
+      ]),
+    ),
+    http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+      HttpResponse.json([
+        spendingType,
+        {
+          ...spendingType,
+          id: 'e00cf2fc-b333-4b78-bde4-1b0a20f41e3f',
+          name: 'Periodic',
+          is_default: false,
+        },
+      ]),
+    ),
     http.get('http://localhost/api/user/me', () =>
       HttpResponse.json({
         id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
@@ -453,8 +491,11 @@ test('applies account choices on the list screen and keeps them in the summary',
   }
   await user.click(screen.getByRole('button', { name: /^Accounts/ }));
   const accountFilter = screen.getByRole('dialog', { name: 'Filters' });
-  await user.type(within(accountFilter).getByRole('searchbox', { name: 'Search accounts' }), 'usd');
-  expect(within(accountFilter).getByText('Asset · USD')).toBeInTheDocument();
+  expect(await within(accountFilter).findByText('Everyday account · USD')).toBeInTheDocument();
+  await user.type(
+    within(accountFilter).getByRole('searchbox', { name: 'Search accounts' }),
+    'everyday',
+  );
   await user.click(within(accountFilter).getByRole('checkbox', { name: /Wallet/ }));
   if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
     await waitFor(() => {
@@ -479,7 +520,7 @@ test('applies account choices on the list screen and keeps them in the summary',
   });
 });
 
-test('lists the accounts of a filter panel in the order of their recent use', async () => {
+test('lists categories in recent order with types from the configured set', async () => {
   // arrange
   const user = userEvent.setup();
   server.use(
@@ -511,10 +552,13 @@ test('lists the accounts of a filter panel in the order of their recent use', as
   const checkboxes = within(screen.getByRole('dialog', { name: 'Filters' })).getAllByRole(
     'checkbox',
   );
-  // Groceries before Cafes, as the list answers, not by name
+  await within(screen.getByRole('dialog', { name: 'Filters' })).findByText(
+    'Everyday costs · Income costs',
+  );
+  // Both categories share one type, and a second type exists in the configured set.
   expect(checkboxes).toHaveLength(2);
-  expect(checkboxes[0]).toHaveAccessibleName('Groceries Variable');
-  expect(checkboxes[1]).toHaveAccessibleName('Cafes Client meetings Variable · Income costs');
+  expect(checkboxes[0]).toHaveAccessibleName('Groceries Everyday costs');
+  expect(checkboxes[1]).toHaveAccessibleName('Cafes Client meetings Everyday costs · Income costs');
 });
 
 test('clears the income sources when categories are applied', async () => {
