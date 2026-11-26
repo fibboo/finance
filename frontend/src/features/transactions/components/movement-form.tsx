@@ -25,6 +25,7 @@ import {
   type MovementFormValues,
   readAccountCurrency,
 } from '../schemas/transaction-form';
+import type { AccountOptionChoices } from './account-option-metadata';
 import { AmountField } from './amount-field';
 import { readAmountInputProps } from './amount-input';
 import { CalendarButton } from './calendar-button';
@@ -67,8 +68,7 @@ type MovementFormMode =
 type MovementFormProps = Readonly<{
   mode: MovementFormMode;
   transactionType: MovementTransactionType;
-  categoryTypes: readonly DictionaryItem[];
-  categoryPurposes?: readonly DictionaryItem[];
+  optionChoices: AccountOptionChoices;
   currencies: readonly DictionaryItem[];
   moneyAccounts: readonly Account[] | undefined;
   categories: readonly Account[] | undefined;
@@ -86,8 +86,7 @@ type MovementFormProps = Readonly<{
 export function MovementForm({
   mode,
   transactionType,
-  categoryTypes,
-  categoryPurposes = [],
+  optionChoices,
   currencies,
   moneyAccounts,
   categories,
@@ -233,8 +232,7 @@ export function MovementForm({
     fromAccounts,
     toAccounts,
     locations: places,
-    categoryTypes,
-    categoryPurposes,
+    optionChoices,
     fromAccountId,
     toAccountId,
     locationId,

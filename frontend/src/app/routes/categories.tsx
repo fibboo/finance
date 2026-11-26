@@ -43,10 +43,7 @@ import {
   readLegacyCategoryType,
   writeClassificationFilter,
 } from '@/features/accounts/api/category-type-filter';
-import {
-  classificationQueries,
-  readClassificationLabel,
-} from '@/features/accounts/api/classification-queries';
+import { classificationQueries } from '@/features/accounts/api/classification-queries';
 import {
   readAccountLinkId,
   readSelectedAccountId,
@@ -64,6 +61,7 @@ import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { useListedEntry } from '@/hooks/use-listed-entry';
 import { TYPED_SEARCH_STATE, useSearchField } from '@/hooks/use-search-field';
 import { ApiError } from '@/lib/api-error';
+import { readClassificationLabel } from '@/lib/classification-label';
 import { isThrownWithoutData } from '@/lib/query-meta';
 import { readSearchTerm } from '@/lib/search-term';
 

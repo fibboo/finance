@@ -1,16 +1,14 @@
 import type { EntityPickerItem } from '@/components/entity-picker/entity-picker';
-import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { formatMoney, formatRate } from '@/lib/format-money';
 
 import type { MovementTransactionType } from '../api/new-transaction';
 import { readAccountCurrency, readAmountText } from '../schemas/transaction-form';
-import { toMoneyAccountItem } from './money-account-item';
+import { type AccountOptionChoices, toAccountPickerItem } from './account-option-metadata';
 import { readRateText } from './transaction-view';
 
 type Account = components['schemas']['Account'];
 type Location = components['schemas']['Location'];
-type DictionaryItem = components['schemas']['DictionaryItem'];
 type PickerCopy = Readonly<{
   title: string;
   placeholder: string;
@@ -234,21 +232,12 @@ export function readExchangeRateEquation({
   return equation;
 }
 
-function toAccountItem({
-  account,
-  note,
-}: Readonly<{ account: Readonly<Account>; note: string }>): EntityPickerItem {
-  const item = { id: account.id, name: account.name, color: readMoneyAccountColor(account), note };
-  return item;
-}
-
 export function readMovementPickers({
   transactionType,
   fromAccounts,
   toAccounts,
   locations,
-  categoryTypes,
-  categoryPurposes,
+  optionChoices,
   fromAccountId,
   toAccountId,
   locationId,
@@ -257,14 +246,12 @@ export function readMovementPickers({
   fromAccounts: readonly Account[] | undefined;
   toAccounts: readonly Account[] | undefined;
   locations: readonly Location[] | undefined;
-  categoryTypes: readonly DictionaryItem[];
-  categoryPurposes: readonly DictionaryItem[];
+  optionChoices: AccountOptionChoices;
   fromAccountId: string;
   toAccountId: string;
   locationId: string;
 }>): Readonly<Record<MovementPickerField, MovementPicker>> {
   const isTransfer = transactionType === 'TRANSFER';
-  const incomeCostLabel = categoryPurposes.find((purpose) => purpose.key === 'INCOME_COST')?.label;
   const copy = MOVEMENT_COPY[transactionType];
   const pickers = {
     from_account_id: {
@@ -274,11 +261,7 @@ export function readMovementPickers({
       selectedId: fromAccounts?.find((account) => account.id === fromAccountId)?.id,
       items: fromAccounts
         ?.filter((account) => !isTransfer || account.id !== toAccountId)
-        .map((account) =>
-          transactionType === 'INCOME'
-            ? toAccountItem({ account, note: '' })
-            : toMoneyAccountItem(account),
-        ),
+        .map((account) => toAccountPickerItem({ account, choices: optionChoices })),
     },
     to_account_id: {
       title: copy.to.title,
@@ -287,19 +270,7 @@ export function readMovementPickers({
       selectedId: toAccounts?.find((account) => account.id === toAccountId)?.id,
       items: toAccounts
         ?.filter((account) => !isTransfer || account.id !== fromAccountId)
-        .map((account) =>
-          transactionType === 'EXPENSE'
-            ? toAccountItem({
-                account,
-                note: [
-                  categoryTypes.find((type) => type.key === account.category_type)?.label,
-                  account.category_purpose === 'INCOME_COST' ? incomeCostLabel : undefined,
-                ]
-                  .filter((label) => label !== undefined)
-                  .join(' · '),
-              })
-            : toMoneyAccountItem(account),
-        ),
+        .map((account) => toAccountPickerItem({ account, choices: optionChoices })),
     },
     location_id: {
       title: LOCATION_COPY.title,

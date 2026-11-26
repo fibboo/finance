@@ -32,7 +32,8 @@ import { readDateInputProps } from './date-input';
 import { FormHeader, NEW_TRANSACTION_TITLE, type TypeChoice } from './form-header';
 import { InputRow } from './input-row';
 import { readBaseCurrencyHint, readEnteredRate } from './movement-config';
-import { readMoneyAccountNote, toMoneyAccountItem } from './money-account-item';
+import { type AccountOptionChoices, toAccountPickerItem } from './account-option-metadata';
+import { readMoneyAccountNote } from './money-account-item';
 import { addOwnChoices } from './movement-values';
 import { PickerRow } from './picker-row';
 import { readSaveErrors } from './save-errors';
@@ -86,6 +87,7 @@ type TransactionFormMode =
   | Readonly<{ kind: 'edit'; transaction: Readonly<Transaction> }>;
 
 type TransactionFormProps = Readonly<{
+  optionChoices: AccountOptionChoices;
   mode: TransactionFormMode;
   transactionType: AdjustmentTransactionType;
   moneyAccounts: readonly Account[] | undefined;
@@ -98,6 +100,7 @@ export function TransactionForm({
   mode,
   transactionType,
   moneyAccounts,
+  optionChoices,
   baseCurrency,
   relatedQueryKeys,
   onClose,
@@ -373,7 +376,9 @@ export function TransactionForm({
           title="Account"
           searchLabel="Search accounts"
           emptyText="There are no accounts yet."
-          items={moneyAccounts?.map(toMoneyAccountItem)}
+          items={moneyAccounts?.map((account) =>
+            toAccountPickerItem({ account, choices: optionChoices }),
+          )}
           selectedId={account?.id}
           create={{ label: 'Create account', renderForm: mode.renderMoneyAccountForm }}
           onSelect={(selectedAccountId) => {

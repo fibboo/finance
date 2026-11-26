@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router';
 
 import { DetailsColumn, TRANSACTION_FULL_MENU_MIN_WIDTH } from '@/app/details-column';
 import { writeSelectedEntry } from '@/app/selected-entry';
+import { useAccountOptionChoices } from '@/app/use-account-option-choices';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import { useOpenNewTransaction } from '@/app/use-open-new-transaction';
 import { NewButton } from '@/components/new-button/new-button';
@@ -96,6 +97,11 @@ export function Component() {
   const { data: dictionaries } = useQuery({
     ...dictionaryQueries.accounting(),
     throwOnError: true,
+  });
+  const optionChoices = useAccountOptionChoices({
+    dictionaries,
+    isEnabled: isFiltersOpen,
+    hasCategories: true,
   });
   const { data: moneyAccounts } = useQuery(readAccountsQuery(MONEY_ACCOUNT_KINDS));
   const { data: categories } = useQuery(readAccountsQuery(['EXPENSE']));
@@ -215,6 +221,7 @@ export function Component() {
                   anchorDate={anchorDate}
                   baseCurrency={baseCurrency}
                   dictionaries={dictionaries}
+                  optionChoices={optionChoices}
                   items={filterItems}
                   total={feed.total}
                   isTotalPending={feed.total === undefined}

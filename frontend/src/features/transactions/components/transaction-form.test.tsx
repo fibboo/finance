@@ -144,6 +144,7 @@ test('sends the typed amount and closes', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -186,6 +187,7 @@ test('shows the current balance and the balance the amount leads to', async () =
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -225,6 +227,7 @@ test('asks for the base currency amount of an account without a rate', async () 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -275,6 +278,7 @@ test.each([
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -304,6 +308,7 @@ test('refuses an amount of zero', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -343,6 +348,7 @@ test('shows a field error of the backend at its field', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -371,11 +377,12 @@ test('shows a field error of the backend at its field', async () => {
   );
 });
 
-test('finds an account by a part of its name', async () => {
+test('finds an account by its currency', async () => {
   // arrange
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -395,15 +402,15 @@ test('finds an account by a part of its name', async () => {
   await user.type(screen.getByRole('searchbox', { name: 'Search accounts' }), 'eur');
 
   // assert
-  expect(screen.getAllByRole('button', { name: /€|\$/ }).map((item) => item.textContent)).toEqual([
-    'Euro card€0.00',
-  ]);
+  expect(screen.getByRole('button', { name: 'Euro card EUR' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^Wallet/ })).not.toBeInTheDocument();
 });
 
 test('offers only the transaction types the form can enter', () => {
   // act
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -455,6 +462,7 @@ test('asks for the base currency amount when the account had no rate on the date
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -494,6 +502,7 @@ test('refuses a date after today', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -533,6 +542,7 @@ test('leaves out the base currency amount typed for another account', async () =
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -581,6 +591,7 @@ test('starts with the preset account chosen and adjusts its balance', async () =
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -612,6 +623,7 @@ test('asks for the account when the preset account is not a money account', asyn
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -638,6 +650,7 @@ test('keeps Adjust balance disabled until the money accounts have loaded', () =>
   // act
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -665,6 +678,7 @@ test.each([
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -699,6 +713,7 @@ test('asks for the base currency amount once the date is one the account had no 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -734,6 +749,7 @@ test('stops asking for the base currency amount once the date is one the account
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -781,6 +797,7 @@ test('stops asking for the amount the backend asked for once the date changes', 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -832,6 +849,7 @@ test('leaves out an amount typed before the account turned out to have a rate on
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -876,6 +894,7 @@ test('keeps the typed base currency amount when the date changes', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -924,6 +943,7 @@ test('leaves out the base currency amount typed for a date once the date is one 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -970,6 +990,7 @@ test('shows the base currency amount right under the amount', async () => {
   // act
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -1000,6 +1021,7 @@ test('starts the edit form from the adjustment with its account fixed', () => {
   // act
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{ kind: 'edit', transaction: walletAdjustment }}
       transactionType="ADJUSTMENT"
       moneyAccounts={[wallet, euroCard]}
@@ -1037,6 +1059,7 @@ test('sends the update of the edited adjustment and closes', async () => {
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{ kind: 'edit', transaction: walletAdjustment }}
       transactionType="ADJUSTMENT"
       moneyAccounts={[wallet, euroCard]}
@@ -1080,6 +1103,7 @@ test.each([
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{ kind: 'edit', transaction: walletAdjustment }}
       transactionType="ADJUSTMENT"
       moneyAccounts={[wallet]}
@@ -1112,6 +1136,7 @@ test('reads the account on the date without the edited adjustment and starts fro
   // act
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{ kind: 'edit', transaction: euroCardAdjustment }}
       transactionType="ADJUSTMENT"
       moneyAccounts={[ratedEuroCard]}
@@ -1140,6 +1165,7 @@ test('keeps Save changes disabled until the account on the date of the edited ad
   // act
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{ kind: 'edit', transaction: walletAdjustment }}
       transactionType="ADJUSTMENT"
       moneyAccounts={[wallet]}
@@ -1168,6 +1194,7 @@ test('asks for the base currency amount afresh when the edited adjustment moves 
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{ kind: 'edit', transaction: euroCardAdjustment }}
       transactionType="ADJUSTMENT"
       moneyAccounts={[ratedEuroCard]}
@@ -1195,6 +1222,7 @@ test('empties the base currency amount typed for an account once another account
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },
@@ -1233,6 +1261,7 @@ test('keeps Save changes disabled when the account on the date of the edited adj
   // act
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{ kind: 'edit', transaction: walletAdjustment }}
       transactionType="ADJUSTMENT"
       moneyAccounts={[wallet]}
@@ -1259,6 +1288,7 @@ test('estimates a negative adjustment using the rate on its selected date', asyn
   const user = userEvent.setup();
   render(
     <TransactionForm
+      optionChoices={{}}
       mode={{
         kind: 'create',
         typeChoice: { transactionTypes, onTypeChange: vi.fn() },

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { useAccountOptionChoices } from '@/app/use-account-option-choices';
 import { useBaseCurrency } from '@/app/use-base-currency';
 import type { CreateFormProps } from '@/components/entity-picker/entity-picker';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
@@ -82,16 +83,26 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
     );
   }
 
+  const optionChoices = useAccountOptionChoices({
+    dictionaries,
+    isEnabled: isOpen,
+    hasCategories: isExpense,
+  });
+  const moneyAccountItems =
+    optionChoices.moneyAccountTypes === undefined ? undefined : moneyAccounts?.items;
+  const categoryItems =
+    optionChoices.expenseCategoryTypes === undefined ? undefined : categories?.items;
   const isEveryListLoaded =
-    moneyAccounts !== undefined &&
-    (!isExpense || (categories !== undefined && locations !== undefined)) &&
+    moneyAccountItems !== undefined &&
+    (!isExpense || (categoryItems !== undefined && locations !== undefined)) &&
     (transactionType !== 'INCOME' || incomeSources !== undefined);
   const movementChoices = {
     dictionaries,
+    optionChoices,
     currencies,
     baseCurrency,
-    moneyAccounts: moneyAccounts?.items,
-    categories: categories?.items,
+    moneyAccounts: moneyAccountItems,
+    categories: categoryItems,
     incomeSources: incomeSources?.items,
     locations: locations?.items,
     isEveryListLoaded,

@@ -138,6 +138,7 @@ function SelectedTransaction({
             <TransactionForm
               mode={{ kind: 'edit', transaction }}
               transactionType={transaction.transaction_type}
+              optionChoices={choices.optionChoices}
               moneyAccounts={choices.moneyAccounts}
               baseCurrency={choices.baseCurrency}
               relatedQueryKeys={relatedQueryKeys}
@@ -147,8 +148,7 @@ function SelectedTransaction({
             <MovementForm
               mode={{ kind: 'edit', transaction }}
               transactionType={transaction.transaction_type}
-              categoryTypes={choices.dictionaries.category_types}
-              categoryPurposes={choices.dictionaries.category_purposes ?? []}
+              optionChoices={choices.optionChoices}
               currencies={choices.currencies}
               moneyAccounts={choices.moneyAccounts}
               categories={choices.categories}

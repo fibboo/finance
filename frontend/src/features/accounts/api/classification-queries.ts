@@ -124,20 +124,6 @@ function invalidateClassifications({
   return invalidation;
 }
 
-export function readClassificationLabel({
-  classifications,
-  classificationId,
-}: Readonly<{
-  classifications: readonly Classification[] | undefined;
-  classificationId: string | null | undefined;
-}>): string | undefined {
-  const name =
-    classifications !== undefined && classifications.length > 1
-      ? classifications.find((classification) => classification.id === classificationId)?.name
-      : undefined;
-  return name;
-}
-
 export function readStartingClassificationId({
   classifications,
   classificationId,

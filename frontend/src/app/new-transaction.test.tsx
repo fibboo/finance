@@ -113,6 +113,33 @@ test('lists the money accounts in the account picker', async () => {
   expect(await screen.findByRole('button', { name: /^Wallet/ })).toBeInTheDocument();
 });
 
+test('lists the money accounts once their types have loaded', async () => {
+  // arrange
+  const typesGate = { open: (): void => undefined };
+  const typesAnswered = new Promise<void>((resolve) => {
+    typesGate.open = resolve;
+  });
+  server.use(
+    http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', async () => {
+      await typesAnswered;
+      return HttpResponse.json([] satisfies components['schemas']['Classification'][]);
+    }),
+  );
+  const user = userEvent.setup();
+  render(<NewTransaction />, { initialEntries: ['/?new_transaction=ADJUSTMENT'] });
+  await user.click(await screen.findByRole('button', { name: /^Account/ }));
+  // The accounts answer at once, so Wallet would show here if the list did not wait for the types.
+  await expect(
+    screen.findByRole('button', { name: /^Wallet/ }, { timeout: 500 }),
+  ).rejects.toThrow();
+
+  // act
+  typesGate.open();
+
+  // assert
+  expect(await screen.findByRole('button', { name: /^Wallet/ })).toBeInTheDocument();
+});
+
 test.each(['{Escape}', 'close button'])('closes the form with the %s', async (closeWith) => {
   // arrange
   const user = userEvent.setup();
@@ -227,90 +254,129 @@ test('lists the money accounts used most recently first', async () => {
   expect(requestedOrder).toBe('recent_use');
 });
 
-test('lists recent categories with income-cost labels and recent locations', async () => {
-  // arrange
-  let requestedCategoryOrder: string | null = null;
-  let requestedLocationOrder: string | null = null;
-  const platformFees = {
-    ...groceries,
-    id: '3c2b1a18-8c1a-4b9e-9d1f-0e6a7f0c2f4e',
-    name: 'Platform fees',
-    category_purpose: 'INCOME_COST',
-  } satisfies components['schemas']['Account'];
-  server.use(
-    http.get('http://localhost/api/dictionaries/accounting', () =>
-      HttpResponse.json({
-        currencies: [],
-        account_kinds: [],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
-        category_purposes: [
-          { key: 'PERSONAL', label: 'Personal' },
-          { key: 'INCOME_COST', label: 'Income costs' },
-        ],
-        transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
-        transaction_orders: [],
-      } satisfies components['schemas']['AccountingDictionaries']),
-    ),
-    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
-      const searchParams = new URL(request.url).searchParams;
-      const items: components['schemas']['Account'][] = searchParams
-        .getAll('kinds')
-        .includes('EXPENSE')
-        ? [{ ...groceries, category_purpose: 'PERSONAL' }, platformFees]
-        : [wallet];
-      if (searchParams.getAll('kinds').includes('EXPENSE')) {
-        requestedCategoryOrder = searchParams.get('order');
-      }
-      return HttpResponse.json({
-        items,
-        total: items.length,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Account_']);
-    }),
-    http.get('http://localhost/api/accounting/locations', ({ request }) => {
-      requestedLocationOrder = new URL(request.url).searchParams.get('order');
-      return HttpResponse.json({
-        items: [
-          {
-            name: 'Central market',
-            description: null,
-            user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
-            id: '9e0f1a2b-2b4f-4e6a-8c7d-5a1d9c3e3c40',
-            status: 'ACTIVE',
-            created_at: '2026-10-01T09:00:00Z',
-            updated_at: '2026-10-01T09:00:00Z',
-          },
-        ],
-        total: 1,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Location_']);
-    }),
-  );
-  const user = userEvent.setup();
-  render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
+test.each([true, false])(
+  'searches recent category metadata with multiple types set to %s',
+  async (hasMultipleTypes) => {
+    // arrange
+    let requestedCategoryOrder: string | null = null;
+    let requestedLocationOrder: string | null = null;
+    const classification = {
+      id: 'e00cf2fc-b333-4b78-bde4-1b0a20f41e3e',
+      name: 'Everyday costs',
+      kind: 'EXPENSE_CATEGORY',
+      is_default: true,
+    } satisfies components['schemas']['Classification'];
+    const platformFees = {
+      ...groceries,
+      id: '3c2b1a18-8c1a-4b9e-9d1f-0e6a7f0c2f4e',
+      name: 'Platform fees',
+      classification_id: classification.id,
+      category_purpose: 'INCOME_COST',
+    } satisfies components['schemas']['Account'];
+    server.use(
+      http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+        HttpResponse.json(
+          hasMultipleTypes
+            ? [
+                classification,
+                {
+                  ...classification,
+                  id: 'e00cf2fc-b333-4b78-bde4-1b0a20f41e3f',
+                  name: 'Periodic',
+                  is_default: false,
+                },
+              ]
+            : [classification],
+        ),
+      ),
+      http.get('http://localhost/api/dictionaries/accounting', () =>
+        HttpResponse.json({
+          currencies: [],
+          account_kinds: [],
+          category_types: [{ key: 'VARIABLE', label: 'Variable' }],
+          category_purposes: [
+            { key: 'PERSONAL', label: 'Personal' },
+            { key: 'INCOME_COST', label: 'Income costs' },
+          ],
+          transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
+          transaction_orders: [],
+        } satisfies components['schemas']['AccountingDictionaries']),
+      ),
+      http.get('http://localhost/api/accounting/accounts', ({ request }) => {
+        const searchParams = new URL(request.url).searchParams;
+        const items: components['schemas']['Account'][] = searchParams
+          .getAll('kinds')
+          .includes('EXPENSE')
+          ? [
+              { ...groceries, category_purpose: 'PERSONAL', classification_id: classification.id },
+              platformFees,
+            ]
+          : [wallet];
+        if (searchParams.getAll('kinds').includes('EXPENSE')) {
+          requestedCategoryOrder = searchParams.get('order');
+        }
+        return HttpResponse.json({
+          items,
+          total: items.length,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Account_']);
+      }),
+      http.get('http://localhost/api/accounting/locations', ({ request }) => {
+        requestedLocationOrder = new URL(request.url).searchParams.get('order');
+        return HttpResponse.json({
+          items: [
+            {
+              name: 'Central market',
+              description: null,
+              user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+              id: '9e0f1a2b-2b4f-4e6a-8c7d-5a1d9c3e3c40',
+              status: 'ACTIVE',
+              created_at: '2026-10-01T09:00:00Z',
+              updated_at: '2026-10-01T09:00:00Z',
+            },
+          ],
+          total: 1,
+          page: 1,
+          size: 100,
+          pages: 1,
+        } satisfies components['schemas']['Page_Location_']);
+      }),
+    );
+    const user = userEvent.setup();
+    render(<NewTransaction />, { initialEntries: ['/?new_transaction=EXPENSE'] });
 
-  // act
-  await user.click(await screen.findByRole('button', { name: /^Category/ }));
-  const categories = await screen.findByRole('list', { name: 'Category' });
-  const personalCategory = within(categories).getByRole('button', { name: /^Groceries/ });
-  const incomeCostCategory = within(categories).getByRole('button', { name: /^Platform fees/ });
-  expect(within(personalCategory).getByText('Variable', { exact: true })).toBeVisible();
-  expect(within(incomeCostCategory).getByText('Variable · Income costs')).toBeVisible();
-  await user.type(screen.getByRole('searchbox', { name: 'Search categories' }), 'platform');
-  expect(within(categories).queryByRole('button', { name: /Groceries/ })).not.toBeInTheDocument();
-  await user.click(incomeCostCategory);
+    // act
+    await user.click(await screen.findByRole('button', { name: /^Category/ }));
+    const categories = await screen.findByRole('list', { name: 'Category' });
+    const personalCategory = within(categories).getByRole('button', { name: /^Groceries/ });
+    const incomeCostCategory = within(categories).getByRole('button', { name: /^Platform fees/ });
+    expect(
+      within(personalCategory).getByText(
+        hasMultipleTypes ? 'Everyday costs · Personal' : 'Personal',
+      ),
+    ).toBeVisible();
+    expect(within(incomeCostCategory).getByText('Income costs')).toBeVisible();
+    expect(incomeCostCategory.textContent.includes(classification.name)).toBe(hasMultipleTypes);
+    const search = screen.getByRole('searchbox', { name: 'Search categories' });
+    await user.type(search, classification.name);
+    expect(within(categories).queryByRole('button', { name: /^Platform fees/ }) !== null).toBe(
+      hasMultipleTypes,
+    );
+    await user.clear(search);
+    await user.type(search, 'income costs');
+    expect(within(categories).queryByRole('button', { name: /Groceries/ })).not.toBeInTheDocument();
+    await user.click(within(categories).getByRole('button', { name: /^Platform fees/ }));
 
-  // assert
-  expect(screen.getByRole('button', { name: /^Category/ })).toHaveTextContent('Platform fees');
-  await user.click(screen.getByRole('button', { name: /^Location/ }));
+    // assert
+    expect(screen.getByRole('button', { name: /^Category/ })).toHaveTextContent('Platform fees');
+    await user.click(screen.getByRole('button', { name: /^Location/ }));
 
-  expect(await screen.findByRole('button', { name: /^Central market/ })).toBeInTheDocument();
-  expect([requestedCategoryOrder, requestedLocationOrder]).toEqual(['recent_use', 'recent_use']);
-});
+    expect(await screen.findByRole('button', { name: /^Central market/ })).toBeInTheDocument();
+    expect([requestedCategoryOrder, requestedLocationOrder]).toEqual(['recent_use', 'recent_use']);
+  },
+);
 
 test('lists the seller’s currencies in the order of their recent use', async () => {
   // arrange

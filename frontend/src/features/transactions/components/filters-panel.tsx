@@ -7,6 +7,7 @@ import {
   type ItemIdParam,
   type TransactionFilters,
 } from '../api/transaction-filters';
+import type { AccountOptionChoices } from './account-option-metadata';
 import { AmountFilter } from './amount-filter';
 import { itemFilters, readItemFilterLabel, type FilterItems } from './filter-labels';
 import styles from './filters-panel.module.css';
@@ -25,6 +26,7 @@ type FiltersPanelProps = Readonly<{
   anchorDate: string | undefined;
   baseCurrency: string;
   dictionaries: Readonly<components['schemas']['AccountingDictionaries']>;
+  optionChoices: AccountOptionChoices;
   items: FilterItems;
   total: number | undefined;
   isTotalPending: boolean;
@@ -45,6 +47,7 @@ export function FiltersPanel({
   anchorDate,
   baseCurrency,
   dictionaries,
+  optionChoices,
   items,
   total,
   isTotalPending,
@@ -190,7 +193,7 @@ export function FiltersPanel({
             title={selectedFilter.title}
             emptyNote={selectedFilter.emptyNote}
             items={items[selectedFilter.name]}
-            dictionaries={dictionaries}
+            optionChoices={optionChoices}
             itemIds={filters[selectedFilter.name]}
             note={
               excluded !== undefined && filters[excluded.name].length > 0
