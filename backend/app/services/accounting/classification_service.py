@@ -15,6 +15,7 @@ from app.exceptions.conflict_409 import (
 )
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import AccountClassificationNotAllowed, InvalidClassificationReplacement
+from app.models.accounting.account import Account as AccountModel, MONEY_ACCOUNT_UNIQUE_NAME_INDEX
 from app.models.accounting.classification import Classification as ClassificationModel, CLASSIFICATION_UNIQUE_NAME_INDEX
 from app.models.user.user import User as UserModel
 from app.schemas.accounting.account import (
@@ -22,7 +23,6 @@ from app.schemas.accounting.account import (
     AccountKind,
     CATEGORY_TYPE_LABELS,
     CategoryType,
-    MONEY_ACCOUNT_KINDS,
 )
 from app.schemas.accounting.classification import Classification, ClassificationKind, ClassificationNameRequest
 
@@ -37,7 +37,7 @@ DEFAULT_CLASSIFICATION_NAMES: frozendict[ClassificationKind, str] = frozendict(
 
 
 def get_classification_kind(*, account_kind: AccountKind) -> ClassificationKind | None:
-    if account_kind in MONEY_ACCOUNT_KINDS:
+    if account_kind == AccountKind.ASSET:
         return ClassificationKind.MONEY_ACCOUNT
 
     if account_kind == AccountKind.EXPENSE:
@@ -109,6 +109,10 @@ def _get_integrity_exception(*, exception: IntegrityError, user_id: UUID) -> Con
     if exception.driver_exception.constraint_name == CLASSIFICATION_UNIQUE_NAME_INDEX:
         name_exception = NameAlreadyExists(entity=ClassificationModel, user_id=user_id, logger=logger)
         return name_exception
+
+    if exception.driver_exception.constraint_name == MONEY_ACCOUNT_UNIQUE_NAME_INDEX:
+        account_name_exception = NameAlreadyExists(entity=AccountModel, user_id=user_id, logger=logger)
+        return account_name_exception
 
     integrity_exception = IntegrityException(entity=ClassificationModel, exception=exception, logger=logger)
     return integrity_exception
@@ -183,9 +187,12 @@ async def delete_classification(
 
         await _get_classification(db=db, user_id=user_id, kind=kind, classification_id=replacement_id)
         if has_assignments:
-            await account_crud.replace_classification(
-                db=db, classification_id=classification_id, replacement_id=replacement_id
-            )
+            try:
+                await account_crud.replace_classification(
+                    db=db, classification_id=classification_id, replacement_id=replacement_id
+                )
+            except IntegrityError as exc:
+                raise _get_integrity_exception(exception=exc, user_id=user_id)
 
     await classification_crud.delete_by_ids(db=db, ids=[classification_id])
     if classification_db.is_default:

@@ -47,7 +47,7 @@ def get_shared_providers(*, user_db: UserModel, merge_user_db: UserModel) -> lis
 def _build_free_name(*, name: str, taken_names: set[str]) -> str:
     number: int = 1
     free_name: str = name
-    while free_name in taken_names:
+    while free_name.lower() in taken_names:
         number += 1
         suffix: str = f" {number}"
         free_name = f"{name[: AccountModel.name.type.length - len(suffix)].rstrip()}{suffix}"
@@ -70,23 +70,44 @@ async def _get_merge_request(
     return request_db
 
 
+def _get_name_group(
+    *, account_db: AccountModel, classification_ids: dict[UUID, UUID]
+) -> tuple[AccountKind, UUID | None]:
+    if account_db.kind != AccountKind.ASSET or account_db.classification_id is None:
+        kind_group: tuple[AccountKind, UUID | None] = (account_db.kind, None)
+        return kind_group
+
+    classification_id: UUID = classification_ids.get(account_db.classification_id, account_db.classification_id)
+    classification_group: tuple[AccountKind, UUID | None] = (account_db.kind, classification_id)
+    return classification_group
+
+
 async def _move_accounts(*, db: AsyncSession, user_id: UUID, merge_user_id: UUID) -> None:
+    classification_ids: dict[UUID, UUID] = await classification_crud.copy_for_merge(
+        db=db, user_id=user_id, merge_user_id=merge_user_id
+    )
     accounts_db: list[AccountModel] = await account_crud.get_user_accounts(db=db, user_id=user_id)
     merge_accounts_db: list[AccountModel] = await account_crud.get_user_accounts(db=db, user_id=merge_user_id)
-    active_account_ids: dict[tuple[AccountKind, str], UUID] = {}
-    taken_names: dict[AccountKind, set[str]] = {}
+    active_account_ids: dict[tuple[AccountKind, UUID | None, str], UUID] = {}
+    taken_names: dict[tuple[AccountKind, UUID | None], set[str]] = {}
     for account_db in [*accounts_db, *merge_accounts_db]:
         if account_db.status != EntityStatusType.ACTIVE:
             continue
 
-        taken_names.setdefault(account_db.kind, set()).add(account_db.name)
+        name_group: tuple[AccountKind, UUID | None] = _get_name_group(
+            account_db=account_db, classification_ids=classification_ids
+        )
+        taken_names.setdefault(name_group, set()).add(account_db.name.lower())
         if account_db.user_id == user_id:
-            active_account_ids[(account_db.kind, account_db.name)] = account_db.id
+            active_account_ids[(*name_group, account_db.name.lower())] = account_db.id
 
     folded_account_ids: dict[UUID, UUID] = {}
     names: dict[UUID, str] = {}
     for merge_account_db in merge_accounts_db:
-        account_id: UUID | None = active_account_ids.get((merge_account_db.kind, merge_account_db.name))
+        merge_name_group: tuple[AccountKind, UUID | None] = _get_name_group(
+            account_db=merge_account_db, classification_ids=classification_ids
+        )
+        account_id: UUID | None = active_account_ids.get((*merge_name_group, merge_account_db.name.lower()))
         if merge_account_db.status != EntityStatusType.ACTIVE or account_id is None:
             continue
 
@@ -94,17 +115,14 @@ async def _move_accounts(*, db: AsyncSession, user_id: UUID, merge_user_id: UUID
             folded_account_ids[merge_account_db.id] = account_id
             continue
 
-        kind_taken_names: set[str] = taken_names[merge_account_db.kind]
-        name: str = _build_free_name(name=merge_account_db.name, taken_names=kind_taken_names)
-        kind_taken_names.add(name)
+        group_taken_names: set[str] = taken_names[merge_name_group]
+        name: str = _build_free_name(name=merge_account_db.name, taken_names=group_taken_names)
+        group_taken_names.add(name.lower())
         names[merge_account_db.id] = name
 
     await posting_crud.update_account_ids(db=db, account_ids=folded_account_ids)
     await account_crud.delete_by_ids(db=db, ids=list(folded_account_ids))
     await account_crud.update_names(db=db, names=names)
-    classification_ids: dict[UUID, UUID] = await classification_crud.copy_for_merge(
-        db=db, user_id=user_id, merge_user_id=merge_user_id
-    )
     await account_crud.move_with_classifications(
         db=db, user_id=merge_user_id, new_user_id=user_id, classification_ids=classification_ids
     )

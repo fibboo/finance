@@ -892,7 +892,7 @@ async def test_recalculate_accounts_income_values_unvalued_expenses(db: AsyncSes
         db=db,
         obj_in={
             "user_id": user_id,
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "name": "Card EUR",
             "currency": "EUR",
             "balance": Decimal("0"),
@@ -1009,7 +1009,7 @@ async def test_recalculate_accounts_transfer_repaying_debt_posts_exchange_differ
         db=db,
         obj_in={
             "user_id": user_id,
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "name": "Card EUR",
             "currency": "EUR",
             "balance": Decimal("0"),
@@ -1114,7 +1114,7 @@ async def test_recalculate_accounts_deleted_debt_removes_exchange_difference(
         db=db,
         obj_in={
             "user_id": user_id,
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "name": "Card EUR",
             "currency": "EUR",
             "balance": Decimal("600"),
@@ -1223,7 +1223,7 @@ async def test_recalculate_accounts_deleted_income_returns_valued_expenses_to_un
         db=db,
         obj_in={
             "user_id": user_id,
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "name": "Card EUR",
             "currency": "EUR",
             "balance": Decimal("-300"),
@@ -1338,7 +1338,7 @@ async def test_recalculate_accounts_rate_leaves_out_unvalued_expenses(db: AsyncS
         db=db,
         obj_in={
             "user_id": user_id,
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "name": "Card EUR",
             "currency": "EUR",
             "balance": Decimal("-130"),
@@ -1443,7 +1443,7 @@ async def test_recalculate_accounts_adjustment_posts_no_exchange_difference(
         db=db,
         obj_in={
             "user_id": user_id,
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "name": "Card EUR",
             "currency": "EUR",
             "balance": Decimal("50"),

@@ -4,7 +4,7 @@ import { readMoneyAccountColor } from './account-colors';
 
 test.each([
   { kind: 'ASSET', color: '#2E8C7A', dot: '#2E8C7A' },
-  { kind: 'LIABILITY', color: null, dot: '#4D8FBF' },
+  { kind: 'ASSET', color: null, dot: '#4D8FBF' },
   { kind: 'EXPENSE', color: null, dot: undefined },
   { kind: 'EXPENSE', color: '#2E8C7A', dot: undefined },
   { kind: 'INCOME', color: null, dot: undefined },

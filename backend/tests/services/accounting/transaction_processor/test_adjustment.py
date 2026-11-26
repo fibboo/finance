@@ -903,7 +903,7 @@ async def test_create_adjustment_category_account(db: AsyncSession, db_transacti
 
     # Assert
     assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-    assert exc.value.log_message == f"Account `{account_db.id}` is not an active account of kind ASSET, LIABILITY"
+    assert exc.value.log_message == f"Account `{account_db.id}` is not an active account of kind ASSET"
     assert exc.value.error_code == ErrorCodeType.ACCOUNT_KIND_MISMATCH
 
     transactions: list[TransactionModel] = (await db.scalars(select(TransactionModel))).all()

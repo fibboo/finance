@@ -89,7 +89,7 @@ beforeEach(() => {
     ),
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const kinds = new URL(request.url).searchParams.getAll('kinds');
-      const items = kinds.includes('ASSET') && kinds.includes('LIABILITY') ? [wallet] : [];
+      const items = kinds.includes('ASSET') ? [wallet] : [];
       return HttpResponse.json({
         items,
         total: items.length,

@@ -2301,12 +2301,12 @@ async def test_complete_link_identity_of_another_user(
         },
         commit=True,
     )
-    # only the other user's active ASSET and LIABILITY accounts count
+    # only the other user's active ASSET accounts count
     await account_crud.create_batch(
         db=db,
         objs_in=[
             {"user_id": other_user_db.id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "EUR"},
-            {"user_id": other_user_db.id, "kind": AccountKind.LIABILITY, "name": "Credit card", "currency": "EUR"},
+            {"user_id": other_user_db.id, "kind": AccountKind.ASSET, "name": "Credit card", "currency": "EUR"},
             {
                 "user_id": other_user_db.id,
                 "kind": AccountKind.ASSET,

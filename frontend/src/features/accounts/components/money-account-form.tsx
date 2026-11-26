@@ -109,6 +109,7 @@ export function MoneyAccountForm({
   const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind,
+    classificationId: selectedType,
     ownAccountId: mode.kind === 'edit' ? mode.account.id : undefined,
     unchangedName: mode.kind === 'edit' ? mode.account.name : undefined,
   });

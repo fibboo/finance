@@ -27,7 +27,7 @@ const creditCard = {
   ...wallet,
   name: 'Credit card',
   id: '8c1a7f0c-2f4e-4b9e-9d1f-0e6a3c2b1a04',
-  kind: 'LIABILITY',
+  kind: 'ASSET',
   color: '#2E8C7A',
 } satisfies components['schemas']['Account'];
 
@@ -111,9 +111,7 @@ test.each([
     await vi.waitFor(() => {
       expect(onCreated).toHaveBeenCalledWith(travelCard.id);
     });
-    expect(new Set(requestedColorKinds.map((kinds) => kinds.join()))).toEqual(
-      new Set(['ASSET,LIABILITY']),
-    );
+    expect(new Set(requestedColorKinds.map((kinds) => kinds.join()))).toEqual(new Set(['ASSET']));
     expect(createdAccount).toEqual({
       name: 'Travel card',
       description: null,
@@ -370,15 +368,60 @@ test('counts an account without a color as using the first color', async () => {
   });
 });
 
+test('takes a money account name only within the chosen type', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', () =>
+      HttpResponse.json([cashType, cardType]),
+    ),
+    http.get('http://localhost/api/accounting/accounts', () => {
+      const items = [{ ...wallet, classification_id: cardType.id }];
+      return HttpResponse.json({
+        items,
+        total: items.length,
+        page: 1,
+        size: 100,
+        pages: 1,
+      } satisfies components['schemas']['Page_Account_']);
+    }),
+  );
+  const user = userEvent.setup();
+  render(
+    <MoneyAccountForm
+      mode={{ kind: 'create', name: '', onCreated: vi.fn() }}
+      currencies={currencies}
+      baseCurrency="USD"
+      onBack={vi.fn()}
+    />,
+  );
+  const type = await screen.findByRole('combobox', { name: 'Type' });
+  await user.selectOptions(type, cashType.id);
+  const name = screen.getByRole('textbox', { name: 'Name' });
+  await user.type(name, 'Wallet');
+  await vi.waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
+  });
+
+  // act
+  await user.selectOptions(type, cardType.id);
+
+  // assert
+  await vi.waitFor(() => {
+    expect(name).toHaveAccessibleDescription('An active account already has this name');
+  });
+  expect(screen.getByRole('button', { name: 'Create account' })).toBeDisabled();
+});
+
 test('checks a new account name while the user types it', async () => {
   // arrange
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) => {
       const searchParams = new URL(request.url).searchParams;
+      const accounts = [{ ...wallet, classification_id: defaultMoneyTypeId }, creditCard];
       const items =
         searchParams.get('search_term') === null
-          ? [wallet, creditCard]
-          : [wallet, creditCard].filter(
+          ? accounts
+          : accounts.filter(
               (account) =>
                 searchParams.getAll('kinds').includes(account.kind) &&
                 account.name.toLowerCase().includes(searchParams.get('search_term') ?? ''),

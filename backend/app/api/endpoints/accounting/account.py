@@ -90,7 +90,7 @@ async def update_account(
 @router.delete("/{account_id}")
 async def delete_account(*, account_id: UUID, user_id: UUID = Depends(get_user_id), db: DbTransaction) -> Account:
     """
-    Deleting an ASSET or LIABILITY account is possible only if balance is 0
+    Deleting an ASSET account is possible only if balance is 0
     """
     account: Account = await account_service.delete_account(db=db, account_id=account_id, user_id=user_id)
     return account

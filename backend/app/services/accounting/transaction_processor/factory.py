@@ -27,13 +27,8 @@ TRANSACTION_PROCESSORS: frozendict[TransactionType, type[TransactionProcessor]] 
 MOVEMENT_TYPES: frozendict[tuple[AccountKind, AccountKind], TransactionType] = frozendict(
     {
         (AccountKind.ASSET, AccountKind.EXPENSE): TransactionType.EXPENSE,
-        (AccountKind.LIABILITY, AccountKind.EXPENSE): TransactionType.EXPENSE,
         (AccountKind.INCOME, AccountKind.ASSET): TransactionType.INCOME,
-        (AccountKind.INCOME, AccountKind.LIABILITY): TransactionType.INCOME,
         (AccountKind.ASSET, AccountKind.ASSET): TransactionType.TRANSFER,
-        (AccountKind.ASSET, AccountKind.LIABILITY): TransactionType.TRANSFER,
-        (AccountKind.LIABILITY, AccountKind.ASSET): TransactionType.TRANSFER,
-        (AccountKind.LIABILITY, AccountKind.LIABILITY): TransactionType.TRANSFER,
     }
 )
 

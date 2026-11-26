@@ -449,7 +449,7 @@ async def test_get_summary_money_accounts_only(db: AsyncSession):
     await account_crud.create(
         db=db,
         obj_in={
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Credit card",
             "currency": "USD",
@@ -486,7 +486,7 @@ async def test_get_summary_unvalued_spent_by_currency(db: AsyncSession):
     eur_card_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Card EUR",
             "currency": "EUR",
@@ -497,7 +497,7 @@ async def test_get_summary_unvalued_spent_by_currency(db: AsyncSession):
     rsd_card_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "user_id": user_id,
             "name": "Card RSD",
             "currency": "RSD",
@@ -602,7 +602,7 @@ async def test_get_summary_estimates_unvalued_at_market_rate(db: AsyncSession, h
     eur_card_db: AccountModel = await account_crud.create(
         db=db,
         obj_in={
-            "kind": AccountKind.LIABILITY,
+            "kind": AccountKind.ASSET,
             "user_id": user_db.id,
             "name": "Card EUR",
             "currency": "EUR",
@@ -708,7 +708,7 @@ async def test_get_summary_estimate_rates_of_estimated_currencies(db: AsyncSessi
         card_db: AccountModel = await account_crud.create(
             db=db,
             obj_in={
-                "kind": AccountKind.LIABILITY,
+                "kind": AccountKind.ASSET,
                 "user_id": user_db.id,
                 "name": f"Card {currency}",
                 "currency": currency,

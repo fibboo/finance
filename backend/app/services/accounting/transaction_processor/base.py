@@ -26,7 +26,7 @@ from app.exceptions.unprocessable_422 import (
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import (
     MovementRequest,
@@ -65,8 +65,8 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
         if account_db.status == EntityStatusType.DELETED:
             raise DeletedAccountTransactionForbidden(account_id=account_db.id, logger=logger)
 
-        if account_db.kind not in MONEY_ACCOUNT_KINDS:
-            raise AccountKindMismatch(account_id=account_db.id, kinds=MONEY_ACCOUNT_KINDS, logger=logger)
+        if account_db.kind != AccountKind.ASSET:
+            raise AccountKindMismatch(account_id=account_db.id, kinds=[AccountKind.ASSET], logger=logger)
 
     def _validate_fields(self, *, required_fields: dict[str, object], forbidden_fields: dict[str, object]) -> None:
         for field, value in required_fields.items():
@@ -165,7 +165,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
     async def __update_account_balances(self, *, postings_db: list[PostingModel], sign: Decimal) -> None:
         for posting_db in postings_db:
-            if posting_db.account.kind in MONEY_ACCOUNT_KINDS:
+            if posting_db.account.kind == AccountKind.ASSET:
                 await account_crud.add_to_balance(
                     db=self.db,
                     account_id=posting_db.account_id,

@@ -46,6 +46,7 @@ export function RestoreForm({
   const { isNameTaken, isLookupPending, nameTakenMessage } = useAccountNameTaken({
     name,
     kind: account.kind,
+    classificationId: account.classification_id,
     ownAccountId: account.id,
     unchangedName: undefined,
   });

@@ -15,7 +15,11 @@ from app.exceptions.conflict_409 import ConflictException, IntegrityException, N
 from app.exceptions.forbidden_403 import AccountDeletionForbidden, LastAccountDeletionForbidden
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import AccountKindMismatch
-from app.models.accounting.account import Account as AccountModel, ACCOUNT_UNIQUE_NAME_INDEX
+from app.models.accounting.account import (
+    Account as AccountModel,
+    ACCOUNT_UNIQUE_NAME_INDEX,
+    MONEY_ACCOUNT_UNIQUE_NAME_INDEX,
+)
 from app.schemas.accounting.account import (
     Account,
     AccountCreate,
@@ -25,7 +29,6 @@ from app.schemas.accounting.account import (
     AccountRestoreRequest,
     AccountUpdate,
     CategoryType,
-    MONEY_ACCOUNT_KINDS,
 )
 from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.accounting.posting import PostingCreate
@@ -51,7 +54,7 @@ from app.utils import utils
 
 
 def _get_integrity_exception(*, exception: IntegrityError, user_id: UUID) -> ConflictException:
-    if exception.driver_exception.constraint_name == ACCOUNT_UNIQUE_NAME_INDEX:
+    if exception.driver_exception.constraint_name in (ACCOUNT_UNIQUE_NAME_INDEX, MONEY_ACCOUNT_UNIQUE_NAME_INDEX):
         name_exception = NameAlreadyExists(entity=AccountModel, user_id=user_id, logger=logger)
         return name_exception
 
@@ -176,7 +179,7 @@ async def get_accounts(*, db: AsyncSession, request: AccountRequest, user_id: UU
 
     money_account_ids: list[UUID] = []
     for account_db in accounts_db.items:
-        if account_db.kind in MONEY_ACCOUNT_KINDS:
+        if account_db.kind == AccountKind.ASSET:
             money_account_ids.append(account_db.id)
 
     if len(money_account_ids) == 0:
@@ -212,7 +215,7 @@ async def get_account(
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
     account: Account = Account.model_validate(account_db)
-    if account_db.kind not in MONEY_ACCOUNT_KINDS:
+    if account_db.kind != AccountKind.ASSET:
         return account
 
     if balance_date is not None:
@@ -254,8 +257,8 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
     if update_data.category_purpose is not None and account_db.kind != AccountKind.EXPENSE:
         raise AccountKindMismatch(account_id=account_id, kinds=[AccountKind.EXPENSE], logger=logger)
 
-    if update_data.color is not None and account_db.kind not in MONEY_ACCOUNT_KINDS:
-        raise AccountKindMismatch(account_id=account_id, kinds=MONEY_ACCOUNT_KINDS, logger=logger)
+    if update_data.color is not None and account_db.kind != AccountKind.ASSET:
+        raise AccountKindMismatch(account_id=account_id, kinds=[AccountKind.ASSET], logger=logger)
 
     if update_data.classification_id is not None:
         await classification_service.get_classification_id(
@@ -280,7 +283,7 @@ async def delete_account(*, db: AsyncSession, account_id: UUID, user_id: UUID) -
     if account_db is None or account_db.kind == AccountKind.EQUITY:
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
 
-    is_money_account: bool = account_db.kind in MONEY_ACCOUNT_KINDS
+    is_money_account: bool = account_db.kind == AccountKind.ASSET
     if is_money_account:
         locked_accounts_db: dict[UUID, AccountModel] = await account_crud.get_locked_active_money_accounts(
             db=db, user_id=user_id

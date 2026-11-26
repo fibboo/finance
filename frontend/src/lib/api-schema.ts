@@ -47,7 +47,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Account
-         * @description Deleting an ASSET or LIABILITY account is possible only if balance is 0
+         * @description Deleting an ASSET account is possible only if balance is 0
          */
         delete: operations["delete_account_accounting_accounts__account_id__delete"];
         options?: never;
@@ -254,9 +254,9 @@ export interface paths {
          *     `date_to` defaults to today in UTC, and without `date_from` the list starts at the first transaction; a
          *     `date_from` later than `date_to` is refused. `account_ids` of one kind match a transaction with a posting on any
          *     of them, and kinds combine: a transaction is listed only when it has a posting on a listed account of every kind
-         *     sent. ASSET and LIABILITY accounts count as one kind, so a card and a category list the card's expenses in that
-         *     category. An id that is not one of the user's accounts leaves the list empty. `location_ids` match a transaction
-         *     at any of them, and an id that is not one of the user's locations matches nothing. Transactions that tie on the
+         *     sent, so a card and a category list the card's expenses in that category. An id that is not one of the user's
+         *     accounts leaves the list empty. `location_ids` match a transaction at any of them, and an id that is not one of
+         *     the user's locations matches nothing. Transactions that tie on the
          *     sort fields follow the order they were entered or last edited in, in the direction of the first order.
          */
         get: operations["get_transactions_accounting_transactions_get"];
@@ -264,7 +264,7 @@ export interface paths {
         /**
          * Create Transaction
          * @description Moves money from one account to another. The kinds of the two accounts give the transaction type:
-         *     a money (ASSET or LIABILITY) account to an EXPENSE account is an expense, an INCOME account to a money account
+         *     a money (ASSET) account to an EXPENSE account is an expense, an INCOME account to a money account
          *     is an income, and a money account to another money account is a transfer. Any other pair is refused with
          *     `MOVEMENT_NOT_ALLOWED`.
          *
@@ -693,7 +693,7 @@ export interface components {
          * AccountKind
          * @enum {string}
          */
-        AccountKind: "ASSET" | "LIABILITY" | "EQUITY" | "INCOME" | "EXPENSE";
+        AccountKind: "ASSET" | "EQUITY" | "INCOME" | "EXPENSE";
         /** AccountRestoreRequest */
         AccountRestoreRequest: {
             /** Name */
@@ -2821,7 +2821,7 @@ type ReadonlyArray<T> = [
 ] extends [
     unknown[]
 ] ? Readonly<Exclude<T, undefined>> : Readonly<Exclude<T, undefined>[]>;
-export const accountKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["AccountKind"]> = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"];
+export const accountKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["AccountKind"]> = ["ASSET", "EQUITY", "INCOME", "EXPENSE"];
 export const categoryPurposeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryPurpose"]> = ["PERSONAL", "INCOME_COST"];
 export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryType"]> = ["VARIABLE", "FIXED", "PERIODIC"];
 export const classificationKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ClassificationKind"]> = ["MONEY_ACCOUNT", "EXPENSE_CATEGORY"];

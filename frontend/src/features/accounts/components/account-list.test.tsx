@@ -61,7 +61,7 @@ test('shows every account in the order of their recent use, in the base currency
   server.use(
     http.get('http://localhost/api/accounting/accounts', ({ request }) =>
       new URL(request.url).searchParams.get('size') === '100' &&
-      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET,LIABILITY' &&
+      new URL(request.url).searchParams.getAll('kinds').join() === 'ASSET' &&
       new URL(request.url).searchParams.get('order') === 'recent_use'
         ? HttpResponse.json({
             items: accounts,

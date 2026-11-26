@@ -14,7 +14,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.account import AccountKind, MONEY_ACCOUNT_KINDS
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.utils import utils
@@ -56,7 +56,7 @@ def get_valued_amount(*, base_amount: Decimal | None) -> Decimal:
 def get_money_account_dates(*, transaction_db: TransactionModel) -> dict[UUID, date]:
     account_dates: dict[UUID, date] = {}
     for posting_db in transaction_db.postings:
-        if posting_db.account.kind in MONEY_ACCOUNT_KINDS:
+        if posting_db.account.kind == AccountKind.ASSET:
             account_dates[posting_db.account_id] = transaction_db.transaction_date
 
     return account_dates
@@ -233,7 +233,7 @@ def _get_revalued_postings(
             base_amount: Decimal = base_currency_amount if posting_db.amount > 0 else -base_currency_amount
             is_derived_amount: bool = (
                 posting_db.account_id != account_id
-                and posting_db.account.kind in MONEY_ACCOUNT_KINDS
+                and posting_db.account.kind == AccountKind.ASSET
                 and posting_db.currency == base_currency
             )
             amount: Decimal = base_amount if is_derived_amount else posting_db.amount
@@ -358,7 +358,7 @@ async def recalculate_accounts(
         for revalued_transaction_db in transactions_db:
             for posting_db in revalued_transaction_db.postings:
                 revalued_posting: tuple[Decimal, Decimal | None] | None = revalued_postings.get(posting_db.id)
-                if revalued_posting is None or posting_db.account.kind not in MONEY_ACCOUNT_KINDS:
+                if revalued_posting is None or posting_db.account.kind != AccountKind.ASSET:
                     continue
 
                 amount_change: Decimal = revalued_posting[0] - posting_db.amount
