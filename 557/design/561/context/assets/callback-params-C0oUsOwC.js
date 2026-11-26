@@ -1,0 +1,1 @@
+import{d as e,f as t,m as n}from"./api-client-GxfUinIk.js";var r=n([e({state:t().min(1),code:t().min(1)}),e({state:t().min(1),error:t().min(1)})]);export{r as t};
