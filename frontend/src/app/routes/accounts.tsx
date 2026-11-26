@@ -135,9 +135,7 @@ export function Component() {
           />
           <NewButton
             entityName="account"
-            isDisabled={
-              dictionaries === undefined || currencies === undefined || baseCurrency === undefined
-            }
+            isDisabled={currencies === undefined || baseCurrency === undefined}
             onClick={() => {
               setIsCreating(true);
             }}

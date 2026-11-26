@@ -5,7 +5,7 @@ import { beforeEach, expect, onTestFinished, test, vi } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
-import { server } from '@/test/setup';
+import { defaultMoneyTypeId, server } from '@/test/setup';
 
 import { Component } from './accounts';
 
@@ -190,30 +190,58 @@ test('lists the currencies of New account in the order of their recent use', asy
   ).toEqual(['EUR · Euro', 'USD · US Dollar']);
 });
 
-test('keeps the accounts listed and New account disabled when the dictionary fails', async () => {
+test('creates an account when the accounting dictionary fails', async () => {
   // arrange
+  const user = userEvent.setup();
+  let accounts: components['schemas']['Account'][] = [wallet];
+  let created: unknown;
   server.use(
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json(null, { status: 500 }),
     ),
     http.get('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json({
-        items: [wallet],
-        total: 1,
+        items: accounts,
+        total: accounts.length,
         page: 1,
         size: 100,
         pages: 1,
       } satisfies components['schemas']['Page_Account_']),
     ),
+    http.post('http://localhost/api/accounting/accounts', async ({ request }) => {
+      created = await request.json();
+      accounts = [wallet, travelCard];
+      return HttpResponse.json(travelCard);
+    }),
   );
+  render(<Component />);
+  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+  expect(await screen.findByRole('region', { name: 'Account balances' })).toHaveTextContent(
+    'Wallet',
+  );
+  const newAccount = await screen.findByRole('button', { name: 'New account' });
+  await waitFor(() => {
+    expect(newAccount).toBeEnabled();
+  });
+  await user.click(newAccount);
+  const form = await screen.findByRole('form', { name: 'New account' });
+  expect(within(form).getByRole('combobox', { name: 'Currency' })).toHaveValue('USD');
+  await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Travel card');
+  const create = within(form).getByRole('button', { name: 'Create account' });
+  await waitFor(() => {
+    expect(create).toBeEnabled();
+  });
 
   // act
-  render(<Component />);
+  await user.click(create);
 
   // assert
-  expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
-  expect(screen.getByRole('region', { name: 'Account balances' })).toHaveTextContent('Wallet');
-  expect(screen.getByRole('button', { name: 'New account' })).toBeDisabled();
+  expect(await screen.findByRole('link', { name: 'Travel card' })).toBeInTheDocument();
+  expect(created).toMatchObject({
+    name: 'Travel card',
+    currency: 'USD',
+    classification_id: defaultMoneyTypeId,
+  });
 });
 
 test('narrows the list to the accounts matching a term of at least 3 characters', async () => {
