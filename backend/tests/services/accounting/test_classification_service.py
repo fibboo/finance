@@ -1,6 +1,8 @@
-from uuid import UUID
+import asyncio
+from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.accounting.account import account_crud
@@ -9,14 +11,12 @@ from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import ClassificationReplacementRequired
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import InvalidClassificationReplacement
-from app.schemas.accounting.account import AccountCreateRequest, AccountKind, CategoryPurpose, CategoryType
+from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryPurpose, CategoryType
 from app.schemas.accounting.classification import ClassificationKind, ClassificationNameRequest
 from app.schemas.base import EntityStatusType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
-from app.services.accounting.account_service import create_account
 from app.services.accounting.classification_service import (
-    create_classification,
     delete_classification,
     get_classifications,
     rename_classification,
@@ -28,17 +28,20 @@ async def test_rename_classification_keeps_assignment(
 ):
     # arrange
     kind = ClassificationKind.MONEY_ACCOUNT
-    classification = await create_classification(
-        db=db, user_id=account_owner_id, kind=kind, create_data=ClassificationNameRequest(name="Checking")
+    classification = await classification_crud.create(
+        db=db, obj_in={"user_id": account_owner_id, "kind": kind, "name": "Checking"}, commit=True
     )
-    account = await create_account(
+    account = await account_crud.create(
         db=db,
-        user_id=account_owner_id,
-        create_data=AccountCreateRequest(
-            kind=AccountKind.ASSET, name="Current", currency="USD", classification_id=classification.id
+        obj_in=AccountCreate(
+            user_id=account_owner_id,
+            kind=AccountKind.ASSET,
+            name="Current",
+            currency="USD",
+            classification_id=classification.id,
         ),
+        commit=True,
     )
-    await db.commit()
 
     # act
     renamed = await rename_classification(
@@ -49,6 +52,7 @@ async def test_rename_classification_keeps_assignment(
         update_data=ClassificationNameRequest(name=" Everyday "),
     )
     await db_transaction.commit()
+    db.expunge_all()
 
     # assert
     stored_account = await account_crud.get(db=db, id=account.id, user_id=account_owner_id)
@@ -63,10 +67,17 @@ async def test_delete_default_classification_reassigns_archived_and_active_categ
 ):
     # arrange
     kind = ClassificationKind.EXPENSE_CATEGORY
-    active = await create_account(
+    default = await classification_crud.get(db=db, user_id=account_owner_id, kind=kind, is_default=True)
+    active = await account_crud.create(
         db=db,
-        user_id=account_owner_id,
-        create_data=AccountCreateRequest(kind=AccountKind.EXPENSE, name="Groceries", category_type=CategoryType.FIXED),
+        obj_in=AccountCreate(
+            user_id=account_owner_id,
+            kind=AccountKind.EXPENSE,
+            name="Groceries",
+            category_type=CategoryType.FIXED,
+            classification_id=default.id,
+        ),
+        commit=True,
     )
     archived = await account_crud.create(
         db=db,
@@ -79,11 +90,11 @@ async def test_delete_default_classification_reassigns_archived_and_active_categ
             "category_type": CategoryType.PERIODIC,
             "category_purpose": CategoryPurpose.INCOME_COST,
         },
+        commit=True,
     )
-    replacement = await create_classification(
-        db=db, user_id=account_owner_id, kind=kind, create_data=ClassificationNameRequest(name="Household")
+    replacement = await classification_crud.create(
+        db=db, obj_in={"user_id": account_owner_id, "kind": kind, "name": "Household"}, commit=True
     )
-    await db.commit()
     db.expunge_all()
 
     # act
@@ -126,28 +137,33 @@ async def test_delete_classification_rejects_invalid_replacement(
 ):
     # arrange
     kind = ClassificationKind.MONEY_ACCOUNT
-    account = await create_account(
+    category_default = await classification_crud.get(
+        db=db, user_id=account_owner_id, kind=ClassificationKind.EXPENSE_CATEGORY, is_default=True
+    )
+    in_use = await classification_crud.create(
+        db=db, obj_in={"user_id": account_owner_id, "kind": kind, "name": "Cash"}, commit=True
+    )
+    await account_crud.create(
         db=db,
-        user_id=account_owner_id,
-        create_data=AccountCreateRequest(kind=AccountKind.ASSET, name="Cash", currency="USD"),
+        obj_in=AccountCreate(
+            user_id=account_owner_id,
+            kind=AccountKind.ASSET,
+            name="Cash",
+            currency="USD",
+            classification_id=in_use.id,
+        ),
+        commit=True,
     )
     other_user = await user_crud.create(
-        db=db, obj_in=UserCreate(username="other-owner", registration_provider=ProviderType.GOOGLE)
+        db=db, obj_in=UserCreate(username="other-owner", registration_provider=ProviderType.GOOGLE), commit=True
     )
-    foreign_type = await create_classification(
-        db=db, user_id=other_user.id, kind=kind, create_data=ClassificationNameRequest(name="Savings")
+    foreign_type = await classification_crud.create(
+        db=db, obj_in={"user_id": other_user.id, "kind": kind, "name": "Savings"}, commit=True
     )
-    category_type = await create_classification(
-        db=db,
-        user_id=account_owner_id,
-        kind=ClassificationKind.EXPENSE_CATEGORY,
-        create_data=ClassificationNameRequest(name="Household"),
-    )
-    await db.commit()
     replacement_ids = {
         "missing": None,
-        "same": account.classification_id,
-        "other_kind": category_type.id,
+        "same": in_use.id,
+        "other_kind": category_default.id,
         "other_user": foreign_type.id,
     }
 
@@ -157,8 +173,80 @@ async def test_delete_classification_rejects_invalid_replacement(
             db=db_transaction,
             user_id=account_owner_id,
             kind=kind,
-            classification_id=account.classification_id,
+            classification_id=in_use.id,
             replacement_id=replacement_ids[replacement],
         )
 
-    assert await classification_crud.get_or_none(db=db, id=account.classification_id) is not None
+    assert await classification_crud.get_or_none(db=db, id=in_use.id) is not None
+
+
+async def test_replacement_locks_money_accounts_in_ledger_order(
+    db: AsyncSession, db_transaction: AsyncSession, other_db_transaction: AsyncSession, account_owner_id: UUID
+):
+    # arrange
+    kind = ClassificationKind.MONEY_ACCOUNT
+    default = await classification_crud.get(db=db, user_id=account_owner_id, kind=kind, is_default=True)
+    replacement = await classification_crud.create(
+        db=db, obj_in={"user_id": account_owner_id, "kind": kind, "name": "Checking"}, commit=True
+    )
+    first_id, second_id = sorted([uuid4(), uuid4()])
+    await account_crud.create_batch(
+        db=db,
+        objs_in=[
+            {
+                "id": second_id,
+                "user_id": account_owner_id,
+                "kind": AccountKind.ASSET,
+                "name": "Second",
+                "currency": "USD",
+                "classification_id": default.id,
+            },
+            {
+                "id": first_id,
+                "user_id": account_owner_id,
+                "kind": AccountKind.ASSET,
+                "name": "First",
+                "currency": "USD",
+                "classification_id": default.id,
+            },
+        ],
+        commit=True,
+    )
+
+    # Force heap order to differ from ledger order if replacement takes locks through an unordered UPDATE.
+    await db_transaction.execute(text("SET LOCAL enable_indexscan = off"))
+    await db_transaction.execute(text("SET LOCAL enable_bitmapscan = off"))
+    replacement_pid: int = await db_transaction.scalar(text("SELECT pg_backend_pid()"))
+    await other_db_transaction.execute(text("SET LOCAL lock_timeout = '1s'"))
+    ledger_pid: int = await other_db_transaction.scalar(text("SELECT pg_backend_pid()"))
+    await account_crud.get_locked_by_ids(db=other_db_transaction, ids=[first_id])
+    blockers_query = text("SELECT pg_blocking_pids(:replacement_pid)")
+
+    # act
+    replace_task = asyncio.create_task(
+        delete_classification(
+            db=db_transaction,
+            user_id=account_owner_id,
+            kind=kind,
+            classification_id=default.id,
+            replacement_id=replacement.id,
+        )
+    )
+    try:
+        async with asyncio.timeout(5):
+            while await db.scalar(blockers_query, {"replacement_pid": replacement_pid}) != [ledger_pid]:
+                await asyncio.sleep(0.01)
+
+        await account_crud.lock_money_accounts(db=other_db_transaction, user_id=account_owner_id)
+    finally:
+        await other_db_transaction.rollback()
+        await replace_task
+
+    await db_transaction.commit()
+
+    # assert
+    accounts = await account_crud.get_user_accounts(db=db, user_id=account_owner_id)
+    assert [(account.id, account.classification_id) for account in accounts] == [
+        (first_id, replacement.id),
+        (second_id, replacement.id),
+    ]

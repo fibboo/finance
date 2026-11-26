@@ -152,6 +152,14 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
         return has_assignments
 
     async def replace_classification(self, *, db: AsyncSession, classification_id: UUID, replacement_id: UUID) -> None:
+        lock_query: Select = (
+            select(self.model.id)
+            .where(self.model.classification_id == classification_id)
+            .order_by(self.model.id)
+            .with_for_update()
+        )
+        await db.execute(lock_query)
+
         query: Update = (
             update(self.model)
             .where(self.model.classification_id == classification_id)

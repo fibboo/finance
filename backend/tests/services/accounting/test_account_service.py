@@ -12,6 +12,7 @@ from starlette import status
 
 from app.configs.logging_settings import LogLevelType
 from app.crud.accounting.account import account_crud
+from app.crud.accounting.classification import classification_crud
 from app.crud.accounting.location import location_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.crud.user.user import user_crud
@@ -34,7 +35,7 @@ from app.schemas.accounting.account import (
     CategoryPurpose,
     CategoryType,
 )
-from app.schemas.accounting.classification import ClassificationKind, ClassificationNameRequest
+from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
@@ -42,7 +43,7 @@ from app.schemas.base import EntityStatusType, ListOrderType
 from app.schemas.error_response import ErrorCodeType
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
-from app.services.accounting import account_service, classification_service
+from app.services.accounting import account_service
 
 
 @pytest.mark.parametrize("currency", ["USD", "EUR"])
@@ -1711,24 +1712,31 @@ async def test_update_account_classification_filters_alongside_legacy_type(
     db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
 ):
     # arrange
-    custom_type = await classification_service.create_classification(
-        db=db,
-        user_id=account_owner_id,
-        kind=ClassificationKind.EXPENSE_CATEGORY,
-        create_data=ClassificationNameRequest(name="Subscriptions"),
+    kind = ClassificationKind.EXPENSE_CATEGORY
+    default = await classification_crud.get(db=db, user_id=account_owner_id, kind=kind, is_default=True)
+    custom_type = await classification_crud.create(
+        db=db, obj_in={"user_id": account_owner_id, "kind": kind, "name": "Subscriptions"}, commit=True
     )
-    category = await account_service.create_account(
+    category, _ = await account_crud.create_batch(
         db=db,
-        user_id=account_owner_id,
-        create_data=AccountCreateRequest(kind=AccountKind.EXPENSE, name="Streaming", category_type=CategoryType.FIXED),
+        objs_in=[
+            AccountCreate(
+                user_id=account_owner_id,
+                kind=AccountKind.EXPENSE,
+                name="Streaming",
+                category_type=CategoryType.FIXED,
+                classification_id=default.id,
+            ),
+            AccountCreate(
+                user_id=account_owner_id,
+                kind=AccountKind.EXPENSE,
+                name="Food",
+                category_type=CategoryType.VARIABLE,
+                classification_id=custom_type.id,
+            ),
+        ],
+        commit=True,
     )
-    await account_service.create_account(
-        db=db,
-        user_id=account_owner_id,
-        create_data=AccountCreateRequest(kind=AccountKind.EXPENSE, name="Food", classification_id=custom_type.id),
-    )
-    await db.commit()
-    assert category.classification_id != custom_type.id
 
     # act
     updated = await account_service.update_account(
@@ -1757,7 +1765,7 @@ async def test_create_account_rejects_other_owner_or_kind_classification(
     # arrange
     if is_foreign:
         owner = await user_crud.create(
-            db=db, obj_in=UserCreate(username="other-owner", registration_provider=ProviderType.TELEGRAM)
+            db=db, obj_in=UserCreate(username="other-owner", registration_provider=ProviderType.TELEGRAM), commit=True
         )
         classification_owner_id = owner.id
         classification_kind = ClassificationKind.MONEY_ACCOUNT
@@ -1765,13 +1773,11 @@ async def test_create_account_rejects_other_owner_or_kind_classification(
         classification_owner_id = account_owner_id
         classification_kind = ClassificationKind.EXPENSE_CATEGORY
 
-    classification = await classification_service.create_classification(
+    classification = await classification_crud.create(
         db=db,
-        user_id=classification_owner_id,
-        kind=classification_kind,
-        create_data=ClassificationNameRequest(name="Custom type"),
+        obj_in={"user_id": classification_owner_id, "kind": classification_kind, "name": "Custom type"},
+        commit=True,
     )
-    await db.commit()
 
     # act / assert
     with pytest.raises(EntityNotFound):

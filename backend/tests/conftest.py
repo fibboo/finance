@@ -3,15 +3,16 @@ from uuid import UUID
 import pytest
 import pytest_asyncio
 from sqlalchemy import insert
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, create_async_engine
 
+from app.crud.accounting.classification import classification_crud
 from app.crud.user.user import user_crud
 from app.models.accounting.currency import Currency
 from app.models.base import Base
 from app.models.user.user import User
+from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.user.external_user import ProviderType
 from app.schemas.user.user import UserCreate
-from app.services.accounting.classification_service import ensure_defaults
 from app.services.accounting.exchange_rate_service import exchange_rates_cache
 
 CURRENCIES: list[dict[str, str | int]] = [
@@ -79,10 +80,16 @@ def empty_exchange_rates_cache():
 
 
 @pytest_asyncio.fixture
-async def account_owner_id(db) -> UUID:
+async def account_owner_id(db: AsyncSession) -> UUID:
     user: User = await user_crud.create(
-        db=db, obj_in=UserCreate(username="account-owner", registration_provider=ProviderType.TELEGRAM)
+        db=db, obj_in=UserCreate(username="account-owner", registration_provider=ProviderType.TELEGRAM), commit=True
     )
-    await ensure_defaults(db=db, user_id=user.id)
-    await db.commit()
+    await classification_crud.create_batch(
+        db=db,
+        objs_in=[
+            {"user_id": user.id, "kind": ClassificationKind.MONEY_ACCOUNT, "name": "Asset", "is_default": True},
+            {"user_id": user.id, "kind": ClassificationKind.EXPENSE_CATEGORY, "name": "Variable", "is_default": True},
+        ],
+        commit=True,
+    )
     return user.id
