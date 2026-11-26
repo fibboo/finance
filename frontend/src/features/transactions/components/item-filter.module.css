@@ -22,6 +22,7 @@
 }
 
 .item {
+  flex: none;
   min-height: var(--size-option);
   display: flex;
   align-items: center;
@@ -31,6 +32,7 @@
 }
 
 .checkbox {
+  flex: none;
   width: var(--size-icon-md);
   height: var(--size-icon-md);
   margin: 0;
@@ -46,17 +48,32 @@
   background: currentColor;
 }
 
-.name {
+.identity {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: var(--line-height-sub);
+}
+
+.name,
+.description {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.currency {
+.description,
+.metadata {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
+}
+
+.metadata {
+  flex: none;
+  max-width: 45%;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .note {

@@ -36,6 +36,8 @@ const cafes = {
   ...category,
   name: 'Cafes',
   id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e60',
+  description: 'Client meetings',
+  category_purpose: 'INCOME_COST',
 } satisfies components['schemas']['Account'];
 
 const walletPosting = {
@@ -99,6 +101,7 @@ beforeEach(() => {
           { key: 'FIXED', label: 'Fixed' },
           { key: 'PERIODIC', label: 'Periodic' },
         ],
+        category_purposes: [{ key: 'INCOME_COST', label: 'Income costs' }],
         transaction_types: [
           { key: 'EXPENSE', label: 'Expense' },
           { key: 'INCOME', label: 'Income' },
@@ -450,7 +453,8 @@ test('applies account choices on the list screen and keeps them in the summary',
   }
   await user.click(screen.getByRole('button', { name: /^Accounts/ }));
   const accountFilter = screen.getByRole('dialog', { name: 'Filters' });
-  expect(within(accountFilter).getByText('USD')).toBeInTheDocument();
+  await user.type(within(accountFilter).getByRole('searchbox', { name: 'Search accounts' }), 'usd');
+  expect(within(accountFilter).getByText('Asset · USD')).toBeInTheDocument();
   await user.click(within(accountFilter).getByRole('checkbox', { name: /Wallet/ }));
   if (screen.queryByRole('dialog', { name: 'Filters' }) === null) {
     await waitFor(() => {
@@ -463,7 +467,7 @@ test('applies account choices on the list screen and keeps them in the summary',
   }
   await user.click(screen.getByRole('button', { name: /^Categories/ }));
   const categoryFilter = screen.getByRole('dialog', { name: 'Filters' });
-  await user.click(within(categoryFilter).getByRole('checkbox', { name: 'Cafes' }));
+  await user.click(within(categoryFilter).getByRole('checkbox', { name: /^Cafes/ }));
 
   // act
 
@@ -509,8 +513,8 @@ test('lists the accounts of a filter panel in the order of their recent use', as
   );
   // Groceries before Cafes, as the list answers, not by name
   expect(checkboxes).toHaveLength(2);
-  expect(checkboxes[0]).toHaveAccessibleName('Groceries');
-  expect(checkboxes[1]).toHaveAccessibleName('Cafes');
+  expect(checkboxes[0]).toHaveAccessibleName('Groceries Variable');
+  expect(checkboxes[1]).toHaveAccessibleName('Cafes Client meetings Variable · Income costs');
 });
 
 test('clears the income sources when categories are applied', async () => {
@@ -566,7 +570,7 @@ test('clears the income sources when categories are applied', async () => {
   expect(
     within(categoryFilter).getByText('Choosing categories clears the income sources filter.'),
   ).toBeInTheDocument();
-  await user.click(within(categoryFilter).getByRole('checkbox', { name: 'Cafes' }));
+  await user.click(within(categoryFilter).getByRole('checkbox', { name: /^Cafes/ }));
 
   // act
 
@@ -2741,7 +2745,7 @@ test('counts each applied group once and Clear keeps the search while resetting 
   expect(screen.getByRole('searchbox', { name: 'Search transactions' })).toHaveValue('food');
 });
 
-test('searches within a list without clearing hidden selections and Back returns to the sections', async () => {
+test('searches by category purpose without clearing hidden selections and Back returns to the sections', async () => {
   const user = userEvent.setup();
   server.use(
     http.get('http://localhost/api/accounting/transactions', () =>
@@ -2760,10 +2764,10 @@ test('searches within a list without clearing hidden selections and Back returns
   });
   await user.click(screen.getByRole('button', { name: 'Filters' }));
   await user.click(screen.getByRole('button', { name: /^Categories/ }));
-  await user.click(screen.getByRole('checkbox', { name: 'Groceries' }));
-  await user.type(screen.getByRole('searchbox', { name: 'Search categories' }), 'caf');
-  expect(screen.queryByRole('checkbox', { name: 'Groceries' })).not.toBeInTheDocument();
-  await user.click(screen.getByRole('checkbox', { name: 'Cafes' }));
+  await user.click(screen.getByRole('checkbox', { name: /^Groceries/ }));
+  await user.type(screen.getByRole('searchbox', { name: 'Search categories' }), 'income costs');
+  expect(screen.queryByRole('checkbox', { name: /^Groceries/ })).not.toBeInTheDocument();
+  await user.click(screen.getByRole('checkbox', { name: /^Cafes/ }));
   await waitFor(() => {
     expect(new URLSearchParams(router.state.location.search).getAll('category_ids')).toEqual([
       category.id,
@@ -2771,8 +2775,8 @@ test('searches within a list without clearing hidden selections and Back returns
     ]);
   });
   await user.clear(screen.getByRole('searchbox', { name: 'Search categories' }));
-  expect(screen.getByRole('checkbox', { name: 'Groceries' })).toBeChecked();
-  expect(screen.getByRole('checkbox', { name: 'Cafes' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: /^Groceries/ })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: /^Cafes/ })).toBeChecked();
   await user.type(screen.getByRole('searchbox', { name: 'Search categories' }), 'absent');
   expect(screen.getByText('No matches.')).toBeInTheDocument();
   await user.click(
