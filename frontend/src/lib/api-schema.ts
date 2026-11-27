@@ -240,6 +240,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounting/transaction-imports/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Transaction Import Template
+         * @description Download the transaction import template in XLSX or CSV format.
+         */
+        get: operations["get_transaction_import_template_accounting_transaction_imports_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounting/transactions": {
         parameters: {
             query?: never;
@@ -854,6 +874,11 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * ImportFileFormat
+         * @enum {string}
+         */
+        ImportFileFormat: "XLSX" | "CSV";
         /** LinkCompleteRequest */
         LinkCompleteRequest: {
             /** Code */
@@ -2015,6 +2040,47 @@ export interface operations {
             };
         };
     };
+    get_transaction_import_template_accounting_transaction_imports_template_get: {
+        parameters: {
+            query: {
+                file_format: components["schemas"]["ImportFileFormat"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    "text/csv": string;
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_transactions_accounting_transactions_get: {
         parameters: {
             query?: {
@@ -2827,6 +2893,7 @@ export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>
 export const classificationKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ClassificationKind"]> = ["MONEY_ACCOUNT", "EXPENSE_CATEGORY"];
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
 export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "CLASSIFICATION_REPLACEMENT_REQUIRED", "INVALID_CLASSIFICATION_REPLACEMENT", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
+export const importFileFormatValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportFileFormat"]> = ["XLSX", "CSV"];
 export const linkStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["LinkStatusType"]> = ["linked", "merge_required"];
 export const listOrderTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ListOrderType"]> = ["name", "recent_use"];
 export const orderDirectionTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderDirectionType"]> = ["asc", "desc"];
