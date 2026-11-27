@@ -118,7 +118,7 @@ export function CatalogList<Entry extends CatalogEntry>({
                   <Link
                     to={readTransactionsLink(entry)}
                     aria-label={isDescriptionInline && hasDescription ? entry.name : undefined}
-                    className={styles['nameLink']}
+                    className={`${styles['nameLink'] ?? ''} ${styles['rowLink'] ?? ''}`}
                   >
                     {nameContent}
                   </Link>

@@ -101,6 +101,10 @@
   flex-direction: column;
 }
 
+.identity:has(.rowLink) {
+  position: static;
+}
+
 .name,
 .description {
   overflow: hidden;

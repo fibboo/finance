@@ -8,6 +8,8 @@
 }
 
 .action {
+  position: relative;
+  z-index: 1;
   width: var(--size-touch);
   height: var(--size-touch);
   border: 0;
