@@ -148,8 +148,8 @@ async def update_adjustment(
     is not on this account answers `ENTITY_NOT_FOUND`, a transaction of another type
     `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED` and one on a deleted account `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`.
     `base_currency_amount` follows the rule of a create on the ledger without the transaction, which
-    `GET /accounting/accounts/{account_id}` answers with `date` and `excluded_transaction_id`. The edited transaction
-    moves to the end of its date, as a new one is placed, and the account is recalculated.
+    `GET /accounting/accounts/{account_id}` answers with `date` and `excluded_transaction_id`. During ledger
+    recalculation, the edited adjustment is processed last on its date.
     """
     transaction: Transaction = await transaction_service.update_adjustment(
         db=db, account_id=account_id, transaction_id=transaction_id, adjustment_data=adjustment_data, user_id=user_id
