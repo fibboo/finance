@@ -205,6 +205,7 @@ test('groups the transactions by day with each day total in the base currency', 
       isGroupedByDay
       selection="keysOnPage"
       omittedAccountIds={[]}
+      omittedLocationIds={[]}
     />,
   );
 
@@ -252,6 +253,7 @@ test('names the day again after midnight', () => {
       isGroupedByDay
       selection="keysOnPage"
       omittedAccountIds={[]}
+      omittedLocationIds={[]}
     />,
   );
   expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
@@ -312,6 +314,7 @@ test('moves the selection through the rows of every day with the arrow keys', as
       isGroupedByDay
       selection="keysOnPage"
       omittedAccountIds={[]}
+      omittedLocationIds={[]}
     />,
   );
   await user.tab();

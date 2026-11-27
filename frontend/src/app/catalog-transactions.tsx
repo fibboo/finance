@@ -113,6 +113,7 @@ export function CatalogTransactions({
           label={entryFeed === undefined ? 'Transactions' : `Transactions of ${entryFeed.name}`}
           selection={isDetailsShown ? 'keysInList' : 'none'}
           omittedAccountIds={entryAccountIds}
+          omittedLocationIds={entryLocationIds}
           emptyState={<p className={styles['empty']}>{emptyText}</p>}
           header={
             <div className={styles['header']}>

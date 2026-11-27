@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from 'react-router';
 
 import { EstimatedAmount } from '@/components/estimated-amount/estimated-amount';
+import { LOCATION_ICON_PATH } from '@/components/location-icon';
 import type { ArrowKeySelectionProps } from '@/hooks/use-arrow-key-selection';
 import { readAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
@@ -32,6 +33,7 @@ type TransactionRowProps = Readonly<{
   isTop: boolean;
   arrowKeySelection: ArrowKeySelectionProps | undefined;
   omittedAccountIds?: readonly string[] | undefined;
+  omittedLocationIds?: readonly string[] | undefined;
   dateLabel?: string | undefined;
 }>;
 
@@ -42,6 +44,7 @@ export function TransactionRow({
   isTop,
   arrowKeySelection,
   omittedAccountIds = [],
+  omittedLocationIds = [],
   dateLabel,
 }: TransactionRowProps) {
   const [searchParams] = useSearchParams();
@@ -53,7 +56,6 @@ export function TransactionRow({
     omittedAccountIds,
   });
   const view = moneyEntryView ?? transactionView;
-  const isMoneyEntryOmitted = moneyEntryView !== undefined;
   const selectedTransactionId = readSelectedTransactionId(searchParams);
   const isSelected = arrowKeySelection !== undefined && selectedTransactionId === transaction.id;
   const isShownByDefault = selectedTransactionId === undefined && isTop;
@@ -74,13 +76,11 @@ export function TransactionRow({
   const rowTitle = isEntryInTitle ? view.accountNames : view.rowTitle;
   const accountNames = isEntryInTitle ? [] : view.accountNames;
   const rateText = readRowRateText({ transaction, baseCurrency, transactionView, view });
-  const locationName =
-    isMoneyEntryOmitted || isEntryInTitle ? transaction.location?.name : undefined;
-  const postingDetails = [rateText, locationName]
-    .filter((detail) => detail !== undefined)
-    .join(DETAILS_SEPARATOR);
-  const hasPostingDetails = postingDetails !== '';
-  const hasDetails = dateLabel !== undefined || accountNames.length > 0 || hasPostingDetails;
+  const location =
+    transaction.location !== null && !omittedLocationIds.includes(transaction.location.id)
+      ? transaction.location
+      : undefined;
+  const hasDetails = dateLabel !== undefined || accountNames.length > 0 || rateText !== undefined;
   const hasComment = transaction.comment !== null && transaction.comment !== '';
   const title = (
     <>
@@ -130,6 +130,23 @@ export function TransactionRow({
             {title}
           </Link>
         )}
+        {location !== undefined && (
+          <span className={styles['location']}>
+            <svg
+              className={styles['locationIcon']}
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d={LOCATION_ICON_PATH} />
+            </svg>
+            {location.name}
+          </span>
+        )}
       </span>
       <span className={view.isIncome ? styles['incomeAmount'] : styles['amount']}>
         {isIncomeCost && (
@@ -172,15 +189,15 @@ export function TransactionRow({
           <span className={styles['detailsText']}>
             {dateLabel !== undefined && <span>{dateLabel}</span>}
             {dateLabel !== undefined &&
-              (accountNames.length > 0 || hasPostingDetails) &&
+              (accountNames.length > 0 || rateText !== undefined) &&
               DETAILS_SEPARATOR}
             {accountNames.length > 0 && (
               <>
                 <TransactionTextParts text={accountNames} />
-                {hasPostingDetails && DETAILS_SEPARATOR}
+                {rateText !== undefined && DETAILS_SEPARATOR}
               </>
             )}
-            {postingDetails}
+            {rateText}
           </span>
           {hasComment && (
             <span className={styles['comment']}>

@@ -101,6 +101,22 @@
   vertical-align: calc(0.5cap - var(--size-dot) / 2);
 }
 
+.location {
+  margin-inline-start: var(--space-2);
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+}
+
+.locationIcon {
+  --location-icon-size: var(--size-location-icon);
+
+  display: inline-block;
+  width: var(--location-icon-size);
+  height: var(--location-icon-size);
+  margin-inline-end: var(--space-0-5);
+  vertical-align: calc(0.5cap - var(--location-icon-size) / 2);
+}
+
 .dot {
   grid-area: 1 / 1;
 }
@@ -208,6 +224,11 @@
     font-size: var(--font-size-base);
   }
 
+  .locationIcon {
+    --location-icon-size: var(--size-location-icon-lg);
+  }
+
+  .location,
   .details,
   .detailsText,
   .comment,

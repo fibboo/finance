@@ -51,6 +51,7 @@ type TransactionFeedProps = Readonly<{
   isGroupedByDay?: boolean;
   selection?: RowSelection;
   omittedAccountIds?: readonly string[];
+  omittedLocationIds?: readonly string[];
   emptyState?: ReactNode;
   onReturnToToday?: () => void;
 }>;
@@ -65,6 +66,7 @@ export function TransactionFeed({
   isGroupedByDay = true,
   selection = 'keysOnPage',
   omittedAccountIds = [],
+  omittedLocationIds = [],
   emptyState = <NoTransactions />,
   onReturnToToday,
 }: TransactionFeedProps) {
@@ -142,6 +144,7 @@ export function TransactionFeed({
               isGroupedByDay={isGroupedByDay}
               selection={selection}
               omittedAccountIds={omittedAccountIds}
+              omittedLocationIds={omittedLocationIds}
             />
             {isFetchingNextPage && <TransactionSkeletonRows count={LOADING_MORE_ROW_COUNT} />}
             {hasNextPage && !isFetchingNextPage && isFetchNextPageError && (

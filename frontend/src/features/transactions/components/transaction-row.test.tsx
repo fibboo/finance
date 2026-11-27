@@ -505,7 +505,7 @@ test.each([
   expect(link.getAttribute('aria-current')).toBe(current);
 });
 
-test('names the money account and the location instead of the entry every row of the feed has', async () => {
+test('names the money account instead of the entry every row of the feed has', async () => {
   // act
   render(
     <TransactionRow
@@ -534,7 +534,7 @@ test('names the money account and the location instead of the entry every row of
   );
 
   // assert
-  expect(await screen.findByRole('listitem')).toHaveTextContent('Wallet-$42.80Spar');
+  expect(await screen.findByRole('listitem')).toHaveTextContent('WalletSpar-$42.80');
 });
 
 test.each([
@@ -556,7 +556,7 @@ test.each([
         { ...posting, amount: '42.10', currency: 'EUR', base_amount: '49.26', account: category },
       ],
     },
-    cells: ['Groceries', '-$49.26', '0.8546 · Spar', '-€42.10'],
+    cells: ['Groceries', 'Spar', '-$49.26', '0.8546', '-€42.10'],
   },
   {
     kind: 'the other account of an outgoing transfer with the amount that left',
@@ -657,3 +657,69 @@ test.each([
     expect(await screen.findByRole('listitem')).toHaveTextContent(cells.join(''));
   },
 );
+
+const spar = {
+  id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
+  user_id: '0b5c1f0e-1d7b-4a52-9f3a-2f1a6f0c8d11',
+  name: 'Spar',
+  description: null,
+  status: 'ACTIVE',
+  created_at: '2026-10-01T09:00:00Z',
+  updated_at: '2026-10-01T09:00:00Z',
+} satisfies components['schemas']['Location'];
+
+test.each([
+  {
+    kind: 'shows the location once after the title',
+    location: spar,
+    omittedLocationIds: [],
+    text: 'GroceriesSpar-$42.80Wallet · Weekly shopping',
+    locationCount: 1,
+  },
+  {
+    kind: 'shows no location and no separator for it when the transaction has none',
+    location: null,
+    omittedLocationIds: [],
+    text: 'Groceries-$42.80Wallet · Weekly shopping',
+    locationCount: 0,
+  },
+  {
+    kind: 'leaves out the location every row of the feed has',
+    location: spar,
+    omittedLocationIds: [spar.id],
+    text: 'Groceries-$42.80Wallet · Weekly shopping',
+    locationCount: 0,
+  },
+] satisfies {
+  kind: string;
+  location: components['schemas']['Location'] | null;
+  omittedLocationIds: string[];
+  text: string;
+  locationCount: number;
+}[])('$kind', async ({ location, omittedLocationIds, text, locationCount }) => {
+  // act
+  render(
+    <TransactionRow
+      transaction={{
+        ...transaction,
+        comment: 'Weekly shopping',
+        location,
+        postings: [
+          { ...posting, amount: '-42.80', base_amount: '-42.80', account: wallet },
+          { ...posting, amount: '42.80', base_amount: '42.80', account: category },
+        ],
+      }}
+      baseCurrency="USD"
+      transactionTypes={transactionTypes}
+      isTop={false}
+      arrowKeySelection={undefined}
+      omittedLocationIds={omittedLocationIds}
+    />,
+  );
+
+  // assert
+  expect(await screen.findByRole('listitem')).toHaveTextContent(text, {
+    normalizeWhitespace: true,
+  });
+  expect(screen.queryAllByText('Spar')).toHaveLength(locationCount);
+});
