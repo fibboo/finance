@@ -227,6 +227,7 @@ export function Component() {
                     }
                   : undefined
               }
+              readTransactionsLink={readTransactionsLink}
               renderMark={readCatalogInitial}
               renderActions={(incomeSource) => (
                 <CatalogRowActions

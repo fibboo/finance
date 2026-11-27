@@ -334,6 +334,7 @@ export function Component() {
                     }
                   : undefined
               }
+              readTransactionsLink={readTransactionsLink}
               renderMark={readCatalogInitial}
               isDescriptionInline
               renderMetadata={(category) => {

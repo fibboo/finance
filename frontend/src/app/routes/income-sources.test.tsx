@@ -210,8 +210,9 @@ test('opens with Deleted off when it was turned off on an earlier visit and stor
   expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('on');
 });
 
-test('gives an active row Transactions, Edit and Delete and a deleted one Restore on a phone', async () => {
+test('opens filtered transactions from an active entry and offers Restore on a deleted row on a phone', async () => {
   // arrange
+  const user = userEvent.setup();
   vi.stubGlobal('innerWidth', 390);
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
@@ -220,7 +221,7 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   );
 
   // act
-  render(<Component />, { initialEntries: ['/income-sources'] });
+  const { router } = render(<Component />, { initialEntries: ['/income-sources'] });
 
   // assert
   const list = await screen.findByRole('region', { name: 'Income sources' });
@@ -238,6 +239,21 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   expect(within(salaryRow).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   expect(within(scholarshipRow).getAllByRole('button')).toHaveLength(1);
   expect(within(scholarshipRow).getByRole('button', { name: 'Restore' })).toBeInTheDocument();
+  const entryLink = within(salaryRow).getByRole('link', { name: salary.name });
+  expect(entryLink).toHaveAttribute(
+    'href',
+    within(salaryRow).getByRole('link', { name: 'Transactions' }).getAttribute('href'),
+  );
+  expect(within(scholarshipRow).queryByRole('link')).not.toBeInTheDocument();
+
+  // act
+  await user.click(entryLink);
+
+  // assert
+  expect(router.state.location.pathname).toBe('/transactions');
+  expect(new URLSearchParams(router.state.location.search).get('income_source_ids')).toBe(
+    salary.id,
+  );
 });
 
 test('gives an active row Edit and Delete without Transactions on desktop', async () => {
@@ -454,7 +470,7 @@ test('shows the transactions of the top income source beside the list while none
   expect(requestedAccountIds).toEqual([salary.id]);
 });
 
-test('gives a phone plain names and no transactions of an income source', async () => {
+test('does not load an inline transaction feed on a phone', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 390);
   let transactionRequestCount = 0;
@@ -474,7 +490,6 @@ test('gives a phone plain names and no transactions of an income source', async 
   // assert
   const list = await screen.findByRole('region', { name: 'Income sources' });
   expect(await within(list).findByText('Salary')).toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: 'Freelance' })).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: /^Transactions of/ })).not.toBeInTheDocument();
   expect(transactionRequestCount).toBe(0);
 });
