@@ -62,6 +62,15 @@ def get_money_account_dates(*, transaction_db: TransactionModel) -> dict[UUID, d
     return account_dates
 
 
+def get_earliest_account_dates(*, account_dates: list[dict[UUID, date]]) -> dict[UUID, date]:
+    earliest_dates: dict[UUID, date] = {}
+    for dates in account_dates:
+        for account_id, transaction_date in dates.items():
+            earliest_dates[account_id] = min(earliest_dates.get(account_id, transaction_date), transaction_date)
+
+    return earliest_dates
+
+
 def get_exchange_difference(
     *,
     currency: CurrencyCode | None,

@@ -21,7 +21,40 @@ from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
-from app.services.accounting.ledger_service import get_money_account_dates, recalculate_accounts
+from app.services.accounting.ledger_service import (
+    get_earliest_account_dates,
+    get_money_account_dates,
+    recalculate_accounts,
+)
+
+
+def test_get_earliest_account_dates():
+    # arrange
+    first_account: UUID = uuid4()
+    second_account: UUID = uuid4()
+    third_account: UUID = uuid4()
+    first_date: date = date(2025, 1, 1)
+    later_date: date = date(2025, 1, 10)
+    account_dates: list[dict[UUID, date]] = [
+        {first_account: later_date, second_account: first_date},
+        {},
+        {first_account: first_date, second_account: later_date, third_account: later_date},
+    ]
+
+    # act
+    earliest_dates: dict[UUID, date] = get_earliest_account_dates(account_dates=account_dates)
+
+    # assert
+    assert earliest_dates == {first_account: first_date, second_account: first_date, third_account: later_date}
+    assert account_dates[0] == {first_account: later_date, second_account: first_date}
+
+
+def test_get_earliest_account_dates_for_empty_input() -> None:
+    # act
+    earliest_dates: dict[UUID, date] = get_earliest_account_dates(account_dates=[])
+
+    # assert
+    assert earliest_dates == {}
 
 
 async def test_recalculate_accounts_back_dated_income_revalues_later_expense(

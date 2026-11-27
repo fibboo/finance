@@ -51,9 +51,15 @@ async def db(engine):
         await session.close()
 
 
-@pytest_asyncio.fixture
-async def db_transaction(engine):
+@pytest.fixture
+def db_transaction_factory(engine) -> async_sessionmaker[AsyncSession]:
     session_maker = async_sessionmaker(engine, autocommit=False, autoflush=False, expire_on_commit=False)
+    return session_maker
+
+
+@pytest_asyncio.fixture
+async def db_transaction(db_transaction_factory):
+    session_maker: async_sessionmaker[AsyncSession] = db_transaction_factory
     try:
         async with session_maker.begin() as session:
             yield session

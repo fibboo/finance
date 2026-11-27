@@ -173,7 +173,7 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
                     base_amount=sign * ledger_service.get_valued_amount(base_amount=posting_db.base_amount),
                 )
 
-    async def create(self, *, data: T) -> Transaction:
+    async def __add_transaction(self, *, data: T) -> tuple[UUID, dict[UUID, date]]:
         self.base_currency = await user_service.get_user_base_currency(db=self.db, user_id=self.user_id)
         await account_crud.lock_money_accounts(db=self.db, user_id=self.user_id)
 
@@ -192,12 +192,21 @@ class TransactionProcessor[T: TransactionCreateRequest](ABC):
 
         await self.__update_account_balances(postings_db=transaction_db.postings, sign=Decimal("1"))
         account_dates: dict[UUID, date] = ledger_service.get_money_account_dates(transaction_db=transaction_db)
+        added_transaction: tuple[UUID, dict[UUID, date]] = (transaction_db.id, account_dates)
+        return added_transaction
+
+    async def add(self, *, data: T) -> dict[UUID, date]:
+        _, account_dates = await self.__add_transaction(data=data)
+        return account_dates
+
+    async def create(self, *, data: T) -> Transaction:
+        transaction_id, account_dates = await self.__add_transaction(data=data)
         await ledger_service.recalculate_accounts(
             db=self.db, account_dates=account_dates, base_currency=self.base_currency
         )
 
         transaction_db: TransactionModel = await transaction_crud.get_refreshed(
-            db=self.db, transaction_id=transaction_db.id
+            db=self.db, transaction_id=transaction_id
         )
         transaction: Transaction = Transaction.model_validate(transaction_db)
         return transaction
