@@ -101,6 +101,20 @@
   vertical-align: calc(0.5cap - var(--size-dot) / 2);
 }
 
+.location {
+  margin-inline-start: var(--space-2);
+  font-size: var(--font-size-2xs);
+  color: var(--color-muted);
+}
+
+.locationIcon {
+  display: inline-block;
+  width: var(--size-inline-icon);
+  height: var(--size-inline-icon);
+  margin-inline-end: var(--space-0-5);
+  vertical-align: calc(0.5cap - var(--size-inline-icon) / 2);
+}
+
 .dot {
   grid-area: 1 / 1;
 }
@@ -208,6 +222,7 @@
     font-size: var(--font-size-base);
   }
 
+  .location,
   .details,
   .detailsText,
   .comment,

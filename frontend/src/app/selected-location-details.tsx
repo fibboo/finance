@@ -11,7 +11,7 @@ import { LocationRestoreForm } from '@/features/locations/components/location-re
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 
-import { LOCATION_ICON_PATH } from './location-icon';
+import { LOCATION_ICON_PATH } from '@/components/location-icon';
 import { writeClosedEntry, writeSelectedEntry } from './selected-entry';
 import { readLocationTransactionsLink } from './transactions-link';
 

@@ -71,6 +71,7 @@ type TransactionDayListProps = Readonly<{
   isGroupedByDay: boolean;
   selection: RowSelection;
   omittedAccountIds: readonly string[];
+  omittedLocationIds: readonly string[];
 }>;
 
 export function TransactionDayList({
@@ -81,6 +82,7 @@ export function TransactionDayList({
   isGroupedByDay,
   selection,
   omittedAccountIds,
+  omittedLocationIds,
 }: TransactionDayListProps) {
   const today = useToday();
   const arrowKeySelection = useArrowKeySelection({
@@ -124,6 +126,7 @@ export function TransactionDayList({
                   isTop={transaction.id === topTransactionId}
                   arrowKeySelection={rowSelection}
                   omittedAccountIds={omittedAccountIds}
+                  omittedLocationIds={omittedLocationIds}
                 />
               ))}
             </ul>
@@ -140,6 +143,7 @@ export function TransactionDayList({
               isTop={transaction.id === topTransactionId}
               arrowKeySelection={rowSelection}
               omittedAccountIds={omittedAccountIds}
+              omittedLocationIds={omittedLocationIds}
               dateLabel={readDayLabel({ transactionDate: transaction.transaction_date, today })}
             />
           ))}

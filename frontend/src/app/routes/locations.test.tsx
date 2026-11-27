@@ -601,6 +601,35 @@ test('shows the transactions of the chosen location beside the list', async () =
   expect(requestedLocationIds).toEqual([coffeeLab.id]);
 });
 
+test('names the chosen location in the heading of its transactions and not in their rows', async () => {
+  // arrange
+  server.use(
+    http.get('http://localhost/api/accounting/locations', () =>
+      HttpResponse.json(readLocationPage([spar, coffeeLab])),
+    ),
+    http.get('http://localhost/api/accounting/transactions', () =>
+      HttpResponse.json({
+        items: [sparPurchase],
+        total: 1,
+        page: 1,
+        size: 15,
+        pages: 1,
+      } satisfies components['schemas']['Page_Transaction_']),
+    ),
+  );
+
+  // act
+  render(<Component />, { initialEntries: [`/locations?location=${spar.id}`] });
+
+  // assert
+  const transactions = await screen.findByRole('region', { name: 'Transactions of Spar' });
+  expect(within(transactions).getByRole('heading', { name: 'Spar' })).toBeInTheDocument();
+  expect(await within(transactions).findByRole('listitem')).toHaveTextContent(
+    'Groceries-$42.80Wallet',
+  );
+  expect(within(transactions).getAllByText('Spar')).toHaveLength(1);
+});
+
 test('gives a phone plain names and no transactions of a location', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 390);

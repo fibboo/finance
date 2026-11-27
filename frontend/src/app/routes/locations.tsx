@@ -7,7 +7,7 @@ import {
   CATALOG_FULL_MENU_MIN_WIDTH,
   CatalogTransactions,
 } from '@/app/catalog-transactions';
-import { LOCATION_ICON_PATH } from '@/app/location-icon';
+import { LOCATION_ICON_PATH } from '@/components/location-icon';
 import { readLocationTransactionsLink } from '@/app/transactions-link';
 import { CatalogFilters } from '@/components/catalog-list/catalog-filters';
 import { CatalogList } from '@/components/catalog-list/catalog-list';
