@@ -7,6 +7,7 @@ from app.api.endpoints.accounting import (
     dictionaries as accounting_dictionaries,
     locations,
     summary,
+    transaction_imports,
     transactions,
 )
 from app.api.endpoints.user import auth, dictionaries as user_dictionaries, user
@@ -19,6 +20,9 @@ accounting_router.include_router(account.router, prefix="/accounts", tags=["Acco
 accounting_router.include_router(classifications.router, prefix="/classifications", tags=["Classifications"])
 accounting_router.include_router(currencies.router, prefix="/currencies", tags=["Currencies"])
 accounting_router.include_router(locations.router, prefix="/locations", tags=["Locations"])
+accounting_router.include_router(
+    transaction_imports.router, prefix="/transaction-imports", tags=["Transaction imports"]
+)
 accounting_router.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
 accounting_router.include_router(summary.router, prefix="/summary", tags=["Summary"])
 
