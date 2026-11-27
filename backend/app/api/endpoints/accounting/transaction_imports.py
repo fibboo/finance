@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response
 
+from app.api import transaction_import_responses
 from app.api.deps import get_user_id
 from app.schemas.accounting.transaction_import import ImportFileFormat
 from app.services.accounting import transaction_import_template
@@ -25,9 +26,5 @@ router = APIRouter()
 def get_transaction_import_template(*, file_format: ImportFileFormat, user_id: UUID = Depends(get_user_id)) -> Response:
     """Download the transaction import template in XLSX or CSV format."""
     template: TransactionImportTemplate = transaction_import_template.get_template(file_format=file_format)
-    response = Response(
-        content=template.content,
-        media_type=template.media_type,
-        headers={"Content-Disposition": f'attachment; filename="{template.filename}"'},
-    )
+    response: Response = transaction_import_responses.build_template_response(template=template)
     return response
