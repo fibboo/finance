@@ -99,3 +99,13 @@ async def account_owner_id(db: AsyncSession) -> UUID:
         commit=True,
     )
     return user.id
+
+
+@pytest_asyncio.fixture
+async def import_user_id(db: AsyncSession) -> UUID:
+    user: User = await user_crud.create(
+        db=db,
+        obj_in=UserCreate(username="import-user", registration_provider=ProviderType.TELEGRAM, base_currency="USD"),
+        commit=True,
+    )
+    return user.id

@@ -170,3 +170,13 @@ class InvalidClassificationReplacement(UnprocessableException):
             error_code=ErrorCodeType.INVALID_CLASSIFICATION_REPLACEMENT,
             logger=logger,
         )
+
+
+class ImportFileInvalid(UnprocessableException):
+    def __init__(self, *, problems: list[str], logger: logging.Logger):
+        super().__init__(
+            message="; ".join(problems),
+            log_message="Invalid transaction import file",
+            logger=logger,
+            error_code=ErrorCodeType.IMPORT_FILE_INVALID,
+        )
