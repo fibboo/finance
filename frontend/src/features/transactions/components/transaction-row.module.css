@@ -108,11 +108,13 @@
 }
 
 .locationIcon {
+  --location-icon-size: var(--size-location-icon);
+
   display: inline-block;
-  width: var(--size-inline-icon);
-  height: var(--size-inline-icon);
+  width: var(--location-icon-size);
+  height: var(--location-icon-size);
   margin-inline-end: var(--space-0-5);
-  vertical-align: calc(0.5cap - var(--size-inline-icon) / 2);
+  vertical-align: calc(0.5cap - var(--location-icon-size) / 2);
 }
 
 .dot {
@@ -220,6 +222,10 @@
   .transactionRow {
     min-height: var(--size-transaction-row-lg);
     font-size: var(--font-size-base);
+  }
+
+  .locationIcon {
+    --location-icon-size: var(--size-location-icon-lg);
   }
 
   .location,

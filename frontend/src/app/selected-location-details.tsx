@@ -3,6 +3,7 @@ import { useId, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 
 import type { DetailsBack } from '@/components/details-panel/details-panel';
+import { LOCATION_ICON_PATH } from '@/components/location-icon';
 import { Sheet } from '@/components/sheet/sheet';
 import { locationQueries } from '@/features/locations/api/location-queries';
 import { LocationDetails } from '@/features/locations/components/location-details';
@@ -11,7 +12,6 @@ import { LocationRestoreForm } from '@/features/locations/components/location-re
 import { transactionQueries } from '@/features/transactions/api/transaction-queries';
 import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 
-import { LOCATION_ICON_PATH } from '@/components/location-icon';
 import { writeClosedEntry, writeSelectedEntry } from './selected-entry';
 import { readLocationTransactionsLink } from './transactions-link';
 

@@ -1,10 +1,10 @@
 import { matchPath } from 'react-router';
 
 import { TRANSACTIONS_ICON_PATH } from '@/components/action-button/action-icons';
+import { LOCATION_ICON_PATH } from '@/components/location-icon';
 
 import { CATEGORY_ICON_PATH } from './category-icon';
 import { INCOME_SOURCE_ICON_PATH } from './income-source-icon';
-import { LOCATION_ICON_PATH } from '@/components/location-icon';
 
 const HOME_ICON_PATH = 'M4 11 12 4l8 7v9h-5v-6H9v6H4z';
 const ACCOUNTS_ICON_PATH =

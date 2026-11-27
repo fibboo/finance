@@ -7,7 +7,6 @@ import {
   CATALOG_FULL_MENU_MIN_WIDTH,
   CatalogTransactions,
 } from '@/app/catalog-transactions';
-import { LOCATION_ICON_PATH } from '@/components/location-icon';
 import { readLocationTransactionsLink } from '@/app/transactions-link';
 import { CatalogFilters } from '@/components/catalog-list/catalog-filters';
 import { CatalogList } from '@/components/catalog-list/catalog-list';
@@ -26,6 +25,7 @@ import {
 import { NoEntries } from '@/components/catalog-list/no-entries';
 import { NoMatchingEntries } from '@/components/catalog-list/no-matching-entries';
 import { DeleteConfirmation } from '@/components/delete-confirmation/delete-confirmation';
+import { LOCATION_ICON_PATH } from '@/components/location-icon';
 import { NewButton } from '@/components/new-button/new-button';
 import { Page } from '@/components/page/page';
 import { SearchField } from '@/components/search-field/search-field';
