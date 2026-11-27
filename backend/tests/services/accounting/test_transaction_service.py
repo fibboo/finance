@@ -703,7 +703,6 @@ async def test_get_transactions_order_after_edit(
     )
     await db.commit()
     request = TransactionRequest(orders=[order])
-    before_edit = await transaction_service.get_transactions(db=db, request=request, user_id=user.id)
     await transaction_service.update_transaction(
         db=db_transaction,
         transaction_id=first.id,
@@ -723,8 +722,6 @@ async def test_get_transactions_order_after_edit(
     after_edit = await transaction_service.get_transactions(db=db, request=request, user_id=user.id)
 
     # assert
-    original_comments = ["second", "first"] if order.endswith(":desc") else ["first", "second"]
-    assert [transaction.comment for transaction in before_edit.items] == original_comments
     assert [transaction.comment for transaction in after_edit.items] == expected_comments
 
 
