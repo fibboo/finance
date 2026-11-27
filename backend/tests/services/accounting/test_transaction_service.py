@@ -646,6 +646,85 @@ async def test_get_transactions_by_date(db: AsyncSession):
     ]
 
 
+@pytest.mark.parametrize(
+    ("order", "edited_date", "edited_amount", "expected_comments"),
+    [
+        ("transaction_date:desc", date(2026, 6, 15), Decimal("20"), ["second", "edited"]),
+        ("transaction_date:asc", date(2026, 6, 15), Decimal("20"), ["edited", "second"]),
+        ("base_currency_amount:desc", date(2026, 6, 15), Decimal("20"), ["second", "edited"]),
+        ("base_currency_amount:asc", date(2026, 6, 15), Decimal("20"), ["edited", "second"]),
+        ("transaction_date:desc", date(2026, 6, 16), Decimal("20"), ["edited", "second"]),
+        ("transaction_date:asc", date(2026, 6, 16), Decimal("20"), ["second", "edited"]),
+        ("base_currency_amount:desc", date(2026, 6, 15), Decimal("30"), ["edited", "second"]),
+        ("base_currency_amount:asc", date(2026, 6, 15), Decimal("30"), ["second", "edited"]),
+    ],
+)
+async def test_get_transactions_order_after_edit(
+    db: AsyncSession,
+    db_transaction: AsyncSession,
+    order: str,
+    edited_date: date,
+    edited_amount: Decimal,
+    expected_comments: list[str],
+):
+    # arrange
+    user = await user_crud.create(
+        db=db,
+        obj_in=UserCreate(username="test", registration_provider=ProviderType.TELEGRAM, base_currency="USD"),
+        commit=True,
+    )
+    account = await account_crud.create(
+        db=db,
+        obj_in={"user_id": user.id, "kind": AccountKind.ASSET, "name": "Checking", "currency": "USD"},
+        commit=True,
+    )
+    category = await account_crud.create(
+        db=db,
+        obj_in=AccountCreate(
+            user_id=user.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        ),
+        commit=True,
+    )
+    location = await location_crud.create(db=db, obj_in=LocationCreate(user_id=user.id, name="Shop"), commit=True)
+    movement = MovementRequest(
+        transaction_date=date(2026, 6, 15),
+        source_amount=Decimal("20"),
+        source_currency="USD",
+        destination_amount=Decimal("20"),
+        destination_currency="USD",
+        from_account_id=account.id,
+        to_account_id=category.id,
+        location_id=location.id,
+        comment="first",
+    )
+    first = await transaction_service.create_transaction(db=db, create_data=movement, user_id=user.id)
+    await transaction_service.create_transaction(
+        db=db, create_data=movement.model_copy(update={"comment": "second"}), user_id=user.id
+    )
+    await db.commit()
+    request = TransactionRequest(orders=[order])
+    await transaction_service.update_transaction(
+        db=db_transaction,
+        transaction_id=first.id,
+        update_data=movement.model_copy(
+            update={
+                "transaction_date": edited_date,
+                "source_amount": edited_amount,
+                "destination_amount": edited_amount,
+                "comment": "edited",
+            }
+        ),
+        user_id=user.id,
+    )
+    await db_transaction.commit()
+
+    # act
+    after_edit = await transaction_service.get_transactions(db=db, request=request, user_id=user.id)
+
+    # assert
+    assert [transaction.comment for transaction in after_edit.items] == expected_comments
+
+
 @time_machine.travel(datetime(2026, 6, 15, 12, tzinfo=UTC), tick=False)
 async def test_get_transactions_by_locations(db: AsyncSession):
     # Arrange

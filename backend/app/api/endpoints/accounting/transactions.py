@@ -74,8 +74,8 @@ async def get_transactions(
     of them, and kinds combine: a transaction is listed only when it has a posting on a listed account of every kind
     sent, so a card and a category list the card's expenses in that category. An id that is not one of the user's
     accounts leaves the list empty. `location_ids` match a transaction at any of them, and an id that is not one of
-    the user's locations matches nothing. Transactions that tie on the
-    sort fields follow the order they were entered or last edited in, in the direction of the first order.
+    the user's locations matches nothing. Transactions that tie on the requested sort fields are ordered by
+    creation time and then transaction ID, both in the direction of the first sort field.
     """
     transactions: Page[Transaction] = await transaction_service.get_transactions(
         db=db, request=request, user_id=user_id
@@ -120,8 +120,8 @@ async def update_transaction(
     `PUT /accounting/accounts/{account_id}/adjustment/{transaction_id}`, and a transaction on a deleted money account
     `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. The old postings are then removed and their accounts
     recalculated, and the new postings pass the checks of creation on that ledger, so a transfer from an account
-    without a rate answers `NO_ACCOUNT_BASE_CURRENCY_RATE`. The edited transaction moves to the end of its date, as a
-    new one is placed, and the accounts of its new postings are recalculated from that date.
+    without a rate answers `NO_ACCOUNT_BASE_CURRENCY_RATE`. During ledger recalculation, the edited transaction is
+    processed last on its date, and the accounts of its new postings are recalculated from that date.
     """
     transaction: Transaction = await transaction_service.update_transaction(
         db=db, transaction_id=transaction_id, update_data=update_data, user_id=user_id

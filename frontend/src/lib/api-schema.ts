@@ -113,8 +113,8 @@ export interface paths {
          *     is not on this account answers `ENTITY_NOT_FOUND`, a transaction of another type
          *     `TRANSACTION_TYPE_CHANGE_NOT_ALLOWED` and one on a deleted account `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`.
          *     `base_currency_amount` follows the rule of a create on the ledger without the transaction, which
-         *     `GET /accounting/accounts/{account_id}` answers with `date` and `excluded_transaction_id`. The edited transaction
-         *     moves to the end of its date, as a new one is placed, and the account is recalculated.
+         *     `GET /accounting/accounts/{account_id}` answers with `date` and `excluded_transaction_id`. During ledger
+         *     recalculation, the edited adjustment is processed last on its date.
          */
         put: operations["update_adjustment_accounting_accounts__account_id__adjustment__transaction_id__put"];
         post?: never;
@@ -276,8 +276,8 @@ export interface paths {
          *     of them, and kinds combine: a transaction is listed only when it has a posting on a listed account of every kind
          *     sent, so a card and a category list the card's expenses in that category. An id that is not one of the user's
          *     accounts leaves the list empty. `location_ids` match a transaction at any of them, and an id that is not one of
-         *     the user's locations matches nothing. Transactions that tie on the
-         *     sort fields follow the order they were entered or last edited in, in the direction of the first order.
+         *     the user's locations matches nothing. Transactions that tie on the requested sort fields are ordered by
+         *     creation time and then transaction ID, both in the direction of the first sort field.
          */
         get: operations["get_transactions_accounting_transactions_get"];
         put?: never;
@@ -345,8 +345,8 @@ export interface paths {
          *     `PUT /accounting/accounts/{account_id}/adjustment/{transaction_id}`, and a transaction on a deleted money account
          *     `DELETED_ACCOUNT_TRANSACTION_FORBIDDEN`. The old postings are then removed and their accounts
          *     recalculated, and the new postings pass the checks of creation on that ledger, so a transfer from an account
-         *     without a rate answers `NO_ACCOUNT_BASE_CURRENCY_RATE`. The edited transaction moves to the end of its date, as a
-         *     new one is placed, and the accounts of its new postings are recalculated from that date.
+         *     without a rate answers `NO_ACCOUNT_BASE_CURRENCY_RATE`. During ledger recalculation, the edited transaction is
+         *     processed last on its date, and the accounts of its new postings are recalculated from that date.
          */
         put: operations["update_transaction_accounting_transactions__transaction_id__put"];
         post?: never;
