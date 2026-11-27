@@ -47,7 +47,14 @@ def test_get_earliest_account_dates():
     # assert
     assert earliest_dates == {first_account: first_date, second_account: first_date, third_account: later_date}
     assert account_dates[0] == {first_account: later_date, second_account: first_date}
-    assert get_earliest_account_dates(account_dates=[]) == {}
+
+
+def test_get_earliest_account_dates_for_empty_input() -> None:
+    # act
+    earliest_dates: dict[UUID, date] = get_earliest_account_dates(account_dates=[])
+
+    # assert
+    assert earliest_dates == {}
 
 
 async def test_recalculate_accounts_back_dated_income_revalues_later_expense(
