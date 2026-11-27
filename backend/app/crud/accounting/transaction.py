@@ -179,7 +179,8 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionCreate
             query = query.order_by(func_ordering(order_fields_map[order.field]).nulls_last())
 
         is_descending: bool = len(request.orders) > 0 and request.orders[0].ordering == OrderDirectionType.DESC
-        query = query.order_by(desc(Transaction.entry_order) if is_descending else asc(Transaction.entry_order))
+        tie_ordering = desc if is_descending else asc
+        query = query.order_by(tie_ordering(Transaction.created_at), tie_ordering(Transaction.id))
 
         paginated_expenses = await apaginate(db, query, request)
         return paginated_expenses
