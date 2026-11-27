@@ -260,6 +260,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounting/transaction-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Transaction Import
+         * @description Upload an XLSX or CSV file and store its validated rows for review.
+         */
+        post: operations["upload_transaction_import_accounting_transaction_imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounting/transaction-imports/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Current Transaction Import
+         * @description Get the signed-in user's open transaction import.
+         */
+        get: operations["get_current_transaction_import_accounting_transaction_imports_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounting/transaction-imports/{import_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Transaction Import
+         * @description Get a transaction import by id.
+         */
+        get: operations["get_transaction_import_accounting_transaction_imports__import_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Discard Transaction Import
+         * @description Cancel a transaction import that is in review.
+         */
+        delete: operations["discard_transaction_import_accounting_transaction_imports__import_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounting/transaction-imports/{import_id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Transaction Import Rows
+         * @description List the rows of a transaction import in file order, optionally filtered by validation errors.
+         */
+        get: operations["get_transaction_import_rows_accounting_transaction_imports__import_id__rows_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounting/transaction-imports/{import_id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Transaction Import Report
+         * @description Download a CSV report of the validation errors in a transaction import.
+         */
+        get: operations["get_transaction_import_report_accounting_transaction_imports__import_id__report_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounting/transactions": {
         parameters: {
             query?: never;
@@ -771,6 +875,11 @@ export interface components {
             /** Base Currency */
             base_currency: string;
         };
+        /** Body_upload_transaction_import_accounting_transaction_imports_post */
+        Body_upload_transaction_import_accounting_transaction_imports_post: {
+            /** File */
+            file: string;
+        };
         /**
          * CategoryPurpose
          * @enum {string}
@@ -834,7 +943,7 @@ export interface components {
          * ErrorCodeType
          * @enum {string}
          */
-        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "CLASSIFICATION_REPLACEMENT_REQUIRED" | "INVALID_CLASSIFICATION_REPLACEMENT" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "BASE_CURRENCY_MISMATCH" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
+        ErrorCodeType: "ENTITY_NOT_FOUND" | "INTEGRITY_ERROR" | "NAME_ALREADY_EXISTS" | "CLASSIFICATION_REPLACEMENT_REQUIRED" | "INVALID_CLASSIFICATION_REPLACEMENT" | "IMPORT_FILE_INVALID" | "IMPORT_IN_PROGRESS" | "NOT_IMPLEMENTED" | "INVALID_TOKEN" | "TOKEN_EXPIRED" | "INVALID_AUTH_DATA" | "ACCOUNT_UPDATE_FORBIDDEN" | "ACCOUNT_DELETION_FORBIDDEN" | "LAST_ACCOUNT_DELETION_FORBIDDEN" | "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN" | "NO_ACCOUNT_BASE_CURRENCY_RATE" | "CURRENCY_MISMATCH" | "ACCOUNT_KIND_MISMATCH" | "MOVEMENT_NOT_ALLOWED" | "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED" | "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_AMOUNT_REQUIRED" | "TRANSFER_AMOUNT_MISMATCH" | "DESTINATION_AMOUNT_NOT_ALLOWED" | "BASE_CURRENCY_NOT_SET" | "BASE_CURRENCY_ALREADY_SET" | "BASE_CURRENCY_MISMATCH" | "USERNAME_ALREADY_TAKEN" | "REDIRECT_URI_NOT_ALLOWED" | "ORIGIN_NOT_ALLOWED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_ALREADY_LINKED" | "IDENTITY_LINKED_TO_ANOTHER_USER" | "LAST_IDENTITY_UNLINK_FORBIDDEN";
         /** ErrorResponse */
         ErrorResponse: {
             /** Message */
@@ -875,10 +984,29 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * ImportColumn
+         * @enum {string}
+         */
+        ImportColumn: "TYPE" | "DATE" | "FROM" | "TO" | "AMOUNT" | "CURRENCY" | "TO_AMOUNT" | "TO_CURRENCY" | "BASE_AMOUNT" | "INCOME_MONTH" | "LOCATION" | "COMMENT";
+        /**
          * ImportFileFormat
          * @enum {string}
          */
         ImportFileFormat: "XLSX" | "CSV";
+        /** ImportRowError */
+        ImportRowError: {
+            column: components["schemas"]["ImportColumn"] | null;
+            code: components["schemas"]["ImportRowErrorCode"];
+            /** Message */
+            message: string;
+            /** Correction */
+            correction: string | null;
+        };
+        /**
+         * ImportRowErrorCode
+         * @enum {string}
+         */
+        ImportRowErrorCode: "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "INVALID_TYPE" | "INVALID_DATE" | "INVALID_AMOUNT" | "AMOUNT_PRECISION" | "UNKNOWN_CURRENCY" | "FORMULA_NOT_ALLOWED";
         /** LinkCompleteRequest */
         LinkCompleteRequest: {
             /** Code */
@@ -1047,6 +1175,19 @@ export interface components {
             /** Pages */
             pages: number;
         };
+        /** Page[TransactionImportRow] */
+        Page_TransactionImportRow_: {
+            /** Items */
+            items: components["schemas"]["TransactionImportRow"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
         /** Page[Transaction] */
         Page_Transaction_: {
             /** Items */
@@ -1179,6 +1320,73 @@ export interface components {
              */
             updated_at: string;
         };
+        /** TransactionImport */
+        TransactionImport: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["TransactionImportStatus"];
+            /** File Name */
+            file_name: string;
+            file_format: components["schemas"]["ImportFileFormat"];
+            /** Row Count */
+            row_count: number;
+            /** Error Row Count */
+            error_row_count: number;
+            /** Ignored Columns */
+            ignored_columns: string[];
+            /** Already Imported On */
+            already_imported_on: string | null;
+            /** Failure */
+            failure: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** TransactionImportRow */
+        TransactionImportRow: {
+            /** Row Number */
+            row_number: number;
+            transaction_type: components["schemas"]["TransactionType"] | null;
+            /** Transaction Date */
+            transaction_date: string | null;
+            /** From Name */
+            from_name: string | null;
+            /** To Name */
+            to_name: string | null;
+            /** Amount */
+            amount: string | null;
+            /** Currency */
+            currency: string | null;
+            /** To Amount */
+            to_amount: string | null;
+            /** To Currency */
+            to_currency: string | null;
+            /** Base Currency Amount */
+            base_currency_amount: string | null;
+            /** Income Period */
+            income_period: string | null;
+            /** Location Name */
+            location_name: string | null;
+            /** Comment */
+            comment: string | null;
+            /** Errors */
+            errors: components["schemas"]["ImportRowError"][];
+        };
+        /**
+         * TransactionImportStatus
+         * @enum {string}
+         */
+        TransactionImportStatus: "REVIEW" | "CANCELLED";
         /**
          * TransactionType
          * @enum {string}
@@ -2081,6 +2289,243 @@ export interface operations {
             };
         };
     };
+    upload_transaction_import_accounting_transaction_imports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_transaction_import_accounting_transaction_imports_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionImport"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_current_transaction_import_accounting_transaction_imports_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionImport"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_transaction_import_accounting_transaction_imports__import_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionImport"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_transaction_import_accounting_transaction_imports__import_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionImport"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_transaction_import_rows_accounting_transaction_imports__import_id__rows_get: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+                has_errors?: boolean | null;
+            };
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_TransactionImportRow_"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_transaction_import_report_accounting_transaction_imports__import_id__report_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_transactions_accounting_transactions_get: {
         parameters: {
             query?: {
@@ -2892,12 +3337,15 @@ export const categoryPurposeValues: ReadonlyArray<FlattenedDeepRequired<componen
 export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryType"]> = ["VARIABLE", "FIXED", "PERIODIC"];
 export const classificationKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ClassificationKind"]> = ["MONEY_ACCOUNT", "EXPENSE_CATEGORY"];
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
-export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "CLASSIFICATION_REPLACEMENT_REQUIRED", "INVALID_CLASSIFICATION_REPLACEMENT", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
+export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "CLASSIFICATION_REPLACEMENT_REQUIRED", "INVALID_CLASSIFICATION_REPLACEMENT", "IMPORT_FILE_INVALID", "IMPORT_IN_PROGRESS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
+export const importColumnValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportColumn"]> = ["TYPE", "DATE", "FROM", "TO", "AMOUNT", "CURRENCY", "TO_AMOUNT", "TO_CURRENCY", "BASE_AMOUNT", "INCOME_MONTH", "LOCATION", "COMMENT"];
 export const importFileFormatValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportFileFormat"]> = ["XLSX", "CSV"];
+export const importRowErrorCodeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportRowErrorCode"]> = ["FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "INVALID_TYPE", "INVALID_DATE", "INVALID_AMOUNT", "AMOUNT_PRECISION", "UNKNOWN_CURRENCY", "FORMULA_NOT_ALLOWED"];
 export const linkStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["LinkStatusType"]> = ["linked", "merge_required"];
 export const listOrderTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ListOrderType"]> = ["name", "recent_use"];
 export const orderDirectionTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderDirectionType"]> = ["asc", "desc"];
 export const orderFieldTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderFieldType"]> = ["created_at", "transaction_date", "base_currency_amount"];
 export const providerTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ProviderType"]> = ["TELEGRAM", "GOOGLE"];
 export const tokenRequestGrant_typeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["TokenRequest"]["grant_type"]> = ["authorization_code", "refresh_token"];
+export const transactionImportStatusValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["TransactionImportStatus"]> = ["REVIEW", "CANCELLED"];
 export const transactionTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["TransactionType"]> = ["EXPENSE", "INCOME", "TRANSFER", "ADJUSTMENT"];

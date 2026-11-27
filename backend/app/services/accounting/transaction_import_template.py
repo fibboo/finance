@@ -10,7 +10,12 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.worksheet import Worksheet
 
 from app.schemas.accounting.transaction import TRANSACTION_TYPE_LABELS, TransactionType
-from app.schemas.accounting.transaction_import import IMPORT_COLUMN_HEADERS, ImportColumn, ImportFileFormat
+from app.schemas.accounting.transaction_import import (
+    IMPORT_COLUMN_HEADERS,
+    ImportColumn,
+    ImportFileFormat,
+    TRANSACTIONS_SHEET,
+)
 
 XLSX_MEDIA_TYPE: str = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CSV_MEDIA_TYPE: str = "text/csv"
@@ -185,7 +190,7 @@ def get_template(*, file_format: ImportFileFormat) -> TransactionImportTemplate:
     else:
         workbook = Workbook()
         transactions: Worksheet = workbook.active
-        transactions.title = "Transactions"
+        transactions.title = TRANSACTIONS_SHEET
         instructions: Worksheet = workbook.create_sheet("Instructions")
         examples: Worksheet = workbook.create_sheet("Examples")
         _write_table_header(sheet=transactions, headers=headers)

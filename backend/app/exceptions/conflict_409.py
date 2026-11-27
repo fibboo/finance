@@ -147,3 +147,14 @@ class ClassificationReplacementRequired(ConflictException):
             error_code=ErrorCodeType.CLASSIFICATION_REPLACEMENT_REQUIRED,
             logger=logger,
         )
+
+
+class ImportInProgress(ConflictException):
+    def __init__(self, *, logger: logging.Logger):
+        super().__init__(
+            message="The transaction import cannot be changed in its current status",
+            log_message="Transaction import is not in review",
+            error_code=ErrorCodeType.IMPORT_IN_PROGRESS,
+            logger=logger,
+            log_level=LogLevelType.INFO,
+        )

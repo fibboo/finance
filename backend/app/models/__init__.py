@@ -3,6 +3,7 @@ from app.models.accounting.currency import Currency
 from app.models.accounting.location import Location
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
+from app.models.accounting.transaction_import import TransactionImport, TransactionImportRow
 from app.models.base import Base
 from app.models.user.authorization_request import AuthorizationRequest
 from app.models.user.external_user import ExternalUser
