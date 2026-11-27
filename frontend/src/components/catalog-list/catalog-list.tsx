@@ -21,6 +21,7 @@ type CatalogListProps<Entry extends CatalogEntry> = Readonly<{
   label: string;
   groups: readonly CatalogGroup<Entry>[] | undefined;
   selection: CatalogSelection | undefined;
+  readTransactionsLink: (entry: Entry) => To;
   renderMark: (entry: Entry) => ReactNode;
   isDescriptionInline?: boolean;
   renderMetadata?: (entry: Entry) => ReactNode;
@@ -31,6 +32,7 @@ export function CatalogList<Entry extends CatalogEntry>({
   label,
   groups,
   selection,
+  readTransactionsLink,
   renderMark,
   isDescriptionInline = false,
   renderMetadata,
@@ -81,16 +83,17 @@ export function CatalogList<Entry extends CatalogEntry>({
                   <span className="visually-hidden">(deleted)</span>
                 </>
               ) : null;
+              const nameContent = (
+                <>
+                  {entry.name}
+                  {isDescriptionInline && hasDescription && (
+                    <span className={styles['description']}> {entry.description}</span>
+                  )}
+                  {deletedNote}
+                </>
+              );
               const name =
-                selection === undefined ? (
-                  <>
-                    {entry.name}
-                    {isDescriptionInline && hasDescription && (
-                      <span className={styles['description']}> {entry.description}</span>
-                    )}
-                    {deletedNote}
-                  </>
-                ) : (
+                selection !== undefined ? (
                   <Link
                     {...arrowKeySelection}
                     data-shown-by-default={isShownByDefault ? '' : undefined}
@@ -107,11 +110,17 @@ export function CatalogList<Entry extends CatalogEntry>({
                     }
                     className={styles['nameLink']}
                   >
-                    {entry.name}
-                    {isDescriptionInline && hasDescription && (
-                      <span className={styles['description']}> {entry.description}</span>
-                    )}
-                    {deletedNote}
+                    {nameContent}
+                  </Link>
+                ) : isDeleted ? (
+                  nameContent
+                ) : (
+                  <Link
+                    to={readTransactionsLink(entry)}
+                    aria-label={isDescriptionInline && hasDescription ? entry.name : undefined}
+                    className={styles['nameLink']}
+                  >
+                    {nameContent}
                   </Link>
                 );
               return (

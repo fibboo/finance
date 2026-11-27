@@ -264,8 +264,9 @@ test('requests the search term and offers to clear a search that matches nothing
   expect(requestedTerms).toContain('zoo');
 });
 
-test('gives an active row Transactions, Edit and Delete and a deleted one Restore on a phone', async () => {
+test('opens filtered transactions from an active entry and offers Restore on a deleted row on a phone', async () => {
   // arrange
+  const user = userEvent.setup();
   vi.stubGlobal('innerWidth', 390);
   server.use(
     http.get('http://localhost/api/accounting/locations', () =>
@@ -274,7 +275,7 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   );
 
   // act
-  render(<Component />, { initialEntries: ['/locations'] });
+  const { router } = render(<Component />, { initialEntries: ['/locations'] });
 
   // assert
   const list = await screen.findByRole('region', { name: 'Locations' });
@@ -292,6 +293,19 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   expect(within(sparRow).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   expect(within(oldMarketRow).getAllByRole('button')).toHaveLength(1);
   expect(within(oldMarketRow).getByRole('button', { name: 'Restore' })).toBeInTheDocument();
+  const entryLink = within(sparRow).getByRole('link', { name: spar.name });
+  expect(entryLink).toHaveAttribute(
+    'href',
+    within(sparRow).getByRole('link', { name: 'Transactions' }).getAttribute('href'),
+  );
+  expect(within(oldMarketRow).queryByRole('link')).not.toBeInTheDocument();
+
+  // act
+  await user.click(entryLink);
+
+  // assert
+  expect(router.state.location.pathname).toBe('/transactions');
+  expect(new URLSearchParams(router.state.location.search).get('location_ids')).toBe(spar.id);
 });
 
 test('gives an active row Edit and Delete without Transactions on desktop', async () => {
@@ -630,7 +644,7 @@ test('names the chosen location in the heading of its transactions and not in th
   expect(within(transactions).getAllByText('Spar')).toHaveLength(1);
 });
 
-test('gives a phone plain names and no transactions of a location', async () => {
+test('does not load an inline transaction feed on a phone', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 390);
   let transactionRequestCount = 0;
@@ -650,7 +664,6 @@ test('gives a phone plain names and no transactions of a location', async () => 
   // assert
   const list = await screen.findByRole('region', { name: 'Locations' });
   expect(await within(list).findByText('Spar')).toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: 'Coffee Lab' })).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: /^Transactions of/ })).not.toBeInTheDocument();
   expect(transactionRequestCount).toBe(0);
 });

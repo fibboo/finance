@@ -451,8 +451,9 @@ test('creates a category from New category and lists it', async () => {
   });
 });
 
-test('gives an active row Transactions, Edit and Delete and a deleted one Restore on a phone', async () => {
+test('opens filtered transactions from an active entry and offers Restore on a deleted row on a phone', async () => {
   // arrange
+  const user = userEvent.setup();
   vi.stubGlobal('innerWidth', 390);
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
@@ -467,7 +468,7 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
   );
 
   // act
-  render(<Component />, { initialEntries: ['/categories'] });
+  const { router } = render(<Component />, { initialEntries: ['/categories'] });
 
   // assert
   const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
@@ -488,6 +489,19 @@ test('gives an active row Transactions, Edit and Delete and a deleted one Restor
     within(cigarettesRow).queryByRole('link', { name: 'Transactions' }),
   ).not.toBeInTheDocument();
   expect(within(cigarettesRow).getAllByRole('button')).toHaveLength(1);
+  const entryLink = within(groceriesRow).getByRole('link', { name: groceries.name });
+  expect(entryLink).toHaveAttribute(
+    'href',
+    within(groceriesRow).getByRole('link', { name: 'Transactions' }).getAttribute('href'),
+  );
+  expect(within(cigarettesRow).queryByRole('link')).not.toBeInTheDocument();
+
+  // act
+  await user.click(entryLink);
+
+  // assert
+  expect(router.state.location.pathname).toBe('/transactions');
+  expect(new URLSearchParams(router.state.location.search).get('category_ids')).toBe(groceries.id);
 });
 
 test('gives an active row Edit and Delete without Transactions on desktop', async () => {
@@ -1792,7 +1806,7 @@ test('drops a chosen transaction that is not of the shown category on a wide des
   ).toBeInTheDocument();
 });
 
-test('gives a phone plain names and no transactions of a category', async () => {
+test('does not load an inline transaction feed on a phone', async () => {
   // arrange
   vi.stubGlobal('innerWidth', 390);
   let transactionRequestCount = 0;
@@ -1818,8 +1832,6 @@ test('gives a phone plain names and no transactions of a category', async () => 
   // assert
   const variable = await screen.findByRole('region', { name: 'Categories', busy: false });
   expect(within(variable).getByText('Groceries')).toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: 'Groceries' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: 'Rent' })).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: /^Transactions of/ })).not.toBeInTheDocument();
   expect(transactionRequestCount).toBe(0);
 });

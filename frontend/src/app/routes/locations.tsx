@@ -223,6 +223,7 @@ export function Component() {
                     }
                   : undefined
               }
+              readTransactionsLink={(location) => readLocationTransactionsLink(location.id)}
               renderMark={() => (
                 <svg className={styles['markIcon']} viewBox="0 0 24 24">
                   <path d={LOCATION_ICON_PATH} />
