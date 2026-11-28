@@ -29,6 +29,7 @@ MONEY_ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_classification_id_name
 
 class Account(Base):
     __tablename__ = "accounts"
+    __mapper_args__ = {"exclude_properties": ["category_type"]}
     __table_args__ = (
         ForeignKeyConstraint(
             ["user_id", "classification_id"],
