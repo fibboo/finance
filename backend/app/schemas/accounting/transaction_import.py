@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi_pagination import Params
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.accounting.account import AccountName, CategoryPurpose
 from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import CurrencyCode
 
@@ -55,6 +56,63 @@ class TransactionImportStatus(StrEnum):
     CANCELLED = "CANCELLED"
 
 
+class ImportEntityKind(StrEnum):
+    MONEY_ACCOUNT = "MONEY_ACCOUNT"
+    CATEGORY = "CATEGORY"
+    INCOME_SOURCE = "INCOME_SOURCE"
+    LOCATION = "LOCATION"
+
+
+class ImportEntityAction(StrEnum):
+    USE_EXISTING = "USE_EXISTING"
+    CREATE = "CREATE"
+
+
+class ImportMatchIssue(StrEnum):
+    AMBIGUOUS = "AMBIGUOUS"
+    CURRENCY_MISMATCH = "CURRENCY_MISMATCH"
+    DELETED = "DELETED"
+    CURRENCY_CONFLICT = "CURRENCY_CONFLICT"
+    UNASSIGNED = "UNASSIGNED"
+
+
+class ImportNewEntity(BaseModel):
+    name: AccountName
+    currency: CurrencyCode | None = None
+    classification_id: UUID | None = None
+    category_purpose: CategoryPurpose | None = None
+
+
+class ImportEntityDecision(BaseModel):
+    kind: ImportEntityKind
+    name: str | None
+    currency: CurrencyCode | None
+    row_numbers: list[int] | None = None
+    action: ImportEntityAction
+    entity_id: UUID | None = None
+    new_entity: ImportNewEntity | None = None
+
+
+class ImportEntityGroup(BaseModel):
+    kind: ImportEntityKind
+    name: str | None
+    currency: CurrencyCode | None
+    row_count: int
+    issue: ImportMatchIssue | None
+    candidate_ids: list[UUID]
+    decisions: list[ImportEntityDecision]
+
+
+class ImportDuplicateDecision(BaseModel):
+    row_number: int
+    is_kept: bool
+
+
+class ImportDecisionsRequest(BaseModel):
+    entities: list[ImportEntityDecision]
+    duplicates: list[ImportDuplicateDecision]
+
+
 class ImportRowErrorCode(StrEnum):
     FIELD_REQUIRED = "FIELD_REQUIRED"
     FIELD_NOT_ALLOWED = "FIELD_NOT_ALLOWED"
@@ -64,11 +122,12 @@ class ImportRowErrorCode(StrEnum):
     AMOUNT_PRECISION = "AMOUNT_PRECISION"
     UNKNOWN_CURRENCY = "UNKNOWN_CURRENCY"
     FORMULA_NOT_ALLOWED = "FORMULA_NOT_ALLOWED"
+    SAME_ACCOUNT = "SAME_ACCOUNT"
 
 
 class ImportRowError(BaseModel):
     column: ImportColumn | None
-    code: ImportRowErrorCode
+    code: ImportRowErrorCode | ImportMatchIssue
     message: str
     correction: str | None
 
@@ -90,10 +149,14 @@ class TransactionImportRow(BaseModel):
     location_name: str | None
     comment: str | None
     errors: list[ImportRowError]
+    duplicate_transaction_id: UUID | None = None
+    duplicate_row_number: int | None = None
+    is_kept: bool | None = None
 
 
 class TransactionImportRowsRequest(Params):
     has_errors: bool | None = None
+    is_duplicate: bool | None = None
 
 
 class TransactionImport(BaseModel):
@@ -105,6 +168,10 @@ class TransactionImport(BaseModel):
     file_format: ImportFileFormat
     row_count: int
     error_row_count: int
+    entities: list[ImportEntityGroup]
+    duplicate_row_count: int
+    undecided_duplicate_count: int
+    is_ready_for_preview: bool
     ignored_columns: list[str]
     already_imported_on: date | None
     failure: str | None

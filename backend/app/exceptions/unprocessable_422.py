@@ -32,6 +32,11 @@ class UnprocessableException(AppBaseException):
         )
 
 
+class ImportDecisionsInvalid(UnprocessableException):
+    def __init__(self, *, reason: str, logger: logging.Logger):
+        super().__init__(message=reason, log_message=reason, logger=logger)
+
+
 class RedirectUriNotAllowed(UnprocessableException):
     def __init__(self, *, redirect_uri: str, logger: logging.Logger):
         super().__init__(

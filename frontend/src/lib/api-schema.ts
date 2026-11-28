@@ -333,10 +333,30 @@ export interface paths {
         };
         /**
          * Get Transaction Import Rows
-         * @description List the rows of a transaction import in file order, optionally filtered by validation errors.
+         * @description List import rows in file order, optionally filtered by errors or suspected duplicates.
          */
         get: operations["get_transaction_import_rows_accounting_transaction_imports__import_id__rows_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounting/transaction-imports/{import_id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save Transaction Import Decisions
+         * @description Replace the entity and duplicate decisions for a transaction import in review.
+         */
+        put: operations["save_transaction_import_decisions_accounting_transaction_imports__import_id__decisions_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -976,15 +996,84 @@ export interface components {
          * @enum {string}
          */
         ImportColumn: "TYPE" | "DATE" | "FROM" | "TO" | "AMOUNT" | "CURRENCY" | "TO_AMOUNT" | "TO_CURRENCY" | "BASE_AMOUNT" | "INCOME_MONTH" | "LOCATION" | "COMMENT";
+        /** ImportDecisionsRequest */
+        ImportDecisionsRequest: {
+            /** Entities */
+            entities: components["schemas"]["ImportEntityDecision"][];
+            /** Duplicates */
+            duplicates: components["schemas"]["ImportDuplicateDecision"][];
+        };
+        /** ImportDuplicateDecision */
+        ImportDuplicateDecision: {
+            /** Row Number */
+            row_number: number;
+            /** Is Kept */
+            is_kept: boolean;
+        };
+        /**
+         * ImportEntityAction
+         * @enum {string}
+         */
+        ImportEntityAction: "USE_EXISTING" | "CREATE";
+        /** ImportEntityDecision */
+        ImportEntityDecision: {
+            kind: components["schemas"]["ImportEntityKind"];
+            /** Name */
+            name: string | null;
+            /** Currency */
+            currency: string | null;
+            /** Row Numbers */
+            row_numbers?: number[] | null;
+            action: components["schemas"]["ImportEntityAction"];
+            /** Entity Id */
+            entity_id?: string | null;
+            new_entity?: components["schemas"]["ImportNewEntity"] | null;
+        };
+        /** ImportEntityGroup */
+        ImportEntityGroup: {
+            kind: components["schemas"]["ImportEntityKind"];
+            /** Name */
+            name: string | null;
+            /** Currency */
+            currency: string | null;
+            /** Row Count */
+            row_count: number;
+            issue: components["schemas"]["ImportMatchIssue"] | null;
+            /** Candidate Ids */
+            candidate_ids: string[];
+            /** Decisions */
+            decisions: components["schemas"]["ImportEntityDecision"][];
+        };
+        /**
+         * ImportEntityKind
+         * @enum {string}
+         */
+        ImportEntityKind: "MONEY_ACCOUNT" | "CATEGORY" | "INCOME_SOURCE" | "LOCATION";
         /**
          * ImportFileFormat
          * @enum {string}
          */
         ImportFileFormat: "XLSX" | "CSV";
+        /**
+         * ImportMatchIssue
+         * @enum {string}
+         */
+        ImportMatchIssue: "AMBIGUOUS" | "CURRENCY_MISMATCH" | "DELETED" | "CURRENCY_CONFLICT" | "UNASSIGNED";
+        /** ImportNewEntity */
+        ImportNewEntity: {
+            /** Name */
+            name: string;
+            /** Currency */
+            currency?: string | null;
+            /** Classification Id */
+            classification_id?: string | null;
+            category_purpose?: components["schemas"]["CategoryPurpose"] | null;
+        };
         /** ImportRowError */
         ImportRowError: {
             column: components["schemas"]["ImportColumn"] | null;
-            code: components["schemas"]["ImportRowErrorCode"];
+            /** Code */
+            code: components["schemas"]["ImportRowErrorCode"] | components["schemas"]["ImportMatchIssue"];
             /** Message */
             message: string;
             /** Correction */
@@ -994,7 +1083,7 @@ export interface components {
          * ImportRowErrorCode
          * @enum {string}
          */
-        ImportRowErrorCode: "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "INVALID_TYPE" | "INVALID_DATE" | "INVALID_AMOUNT" | "AMOUNT_PRECISION" | "UNKNOWN_CURRENCY" | "FORMULA_NOT_ALLOWED";
+        ImportRowErrorCode: "FIELD_REQUIRED" | "FIELD_NOT_ALLOWED" | "INVALID_TYPE" | "INVALID_DATE" | "INVALID_AMOUNT" | "AMOUNT_PRECISION" | "UNKNOWN_CURRENCY" | "FORMULA_NOT_ALLOWED" | "SAME_ACCOUNT";
         /** LinkCompleteRequest */
         LinkCompleteRequest: {
             /** Code */
@@ -1323,6 +1412,14 @@ export interface components {
             row_count: number;
             /** Error Row Count */
             error_row_count: number;
+            /** Entities */
+            entities: components["schemas"]["ImportEntityGroup"][];
+            /** Duplicate Row Count */
+            duplicate_row_count: number;
+            /** Undecided Duplicate Count */
+            undecided_duplicate_count: number;
+            /** Is Ready For Preview */
+            is_ready_for_preview: boolean;
             /** Ignored Columns */
             ignored_columns: string[];
             /** Already Imported On */
@@ -1369,6 +1466,12 @@ export interface components {
             comment: string | null;
             /** Errors */
             errors: components["schemas"]["ImportRowError"][];
+            /** Duplicate Transaction Id */
+            duplicate_transaction_id?: string | null;
+            /** Duplicate Row Number */
+            duplicate_row_number?: number | null;
+            /** Is Kept */
+            is_kept?: boolean | null;
         };
         /**
          * TransactionImportStatus
@@ -2435,6 +2538,7 @@ export interface operations {
                 /** @description Page size */
                 size?: number;
                 has_errors?: boolean | null;
+                is_duplicate?: boolean | null;
             };
             header?: never;
             path: {
@@ -2451,6 +2555,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_TransactionImportRow_"];
+                };
+            };
+            /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_transaction_import_decisions_accounting_transaction_imports__import_id__decisions_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportDecisionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionImport"];
                 };
             };
             /** @description Custom errors with possible codes: 400, 401, 403, 404, 409, 501, 502 */
@@ -3325,8 +3473,11 @@ export const classificationKindValues: ReadonlyArray<FlattenedDeepRequired<compo
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
 export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "CLASSIFICATION_REPLACEMENT_REQUIRED", "INVALID_CLASSIFICATION_REPLACEMENT", "IMPORT_FILE_INVALID", "IMPORT_IN_PROGRESS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];
 export const importColumnValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportColumn"]> = ["TYPE", "DATE", "FROM", "TO", "AMOUNT", "CURRENCY", "TO_AMOUNT", "TO_CURRENCY", "BASE_AMOUNT", "INCOME_MONTH", "LOCATION", "COMMENT"];
+export const importEntityActionValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportEntityAction"]> = ["USE_EXISTING", "CREATE"];
+export const importEntityKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportEntityKind"]> = ["MONEY_ACCOUNT", "CATEGORY", "INCOME_SOURCE", "LOCATION"];
 export const importFileFormatValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportFileFormat"]> = ["XLSX", "CSV"];
-export const importRowErrorCodeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportRowErrorCode"]> = ["FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "INVALID_TYPE", "INVALID_DATE", "INVALID_AMOUNT", "AMOUNT_PRECISION", "UNKNOWN_CURRENCY", "FORMULA_NOT_ALLOWED"];
+export const importMatchIssueValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportMatchIssue"]> = ["AMBIGUOUS", "CURRENCY_MISMATCH", "DELETED", "CURRENCY_CONFLICT", "UNASSIGNED"];
+export const importRowErrorCodeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ImportRowErrorCode"]> = ["FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "INVALID_TYPE", "INVALID_DATE", "INVALID_AMOUNT", "AMOUNT_PRECISION", "UNKNOWN_CURRENCY", "FORMULA_NOT_ALLOWED", "SAME_ACCOUNT"];
 export const linkStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["LinkStatusType"]> = ["linked", "merge_required"];
 export const listOrderTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ListOrderType"]> = ["name", "recent_use"];
 export const orderDirectionTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["OrderDirectionType"]> = ["asc", "desc"];
