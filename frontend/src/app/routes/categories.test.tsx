@@ -288,7 +288,7 @@ test('opens with Deleted off when it was turned off on an earlier visit and stor
   expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('on');
 });
 
-test('reads the type and the toggle from the URL and drops a type the dictionary lacks', async () => {
+test('reads the toggle from the URL and drops a type that is no current type, such as a legacy key', async () => {
   // arrange
   const requestedQueries: URLSearchParams[] = [];
   server.use(
@@ -306,7 +306,9 @@ test('reads the type and the toggle from the URL and drops a type the dictionary
   );
 
   // act
-  render(<Component />, { initialEntries: ['/categories?category_type=OTHER&deleted=off'] });
+  const { router } = render(<Component />, {
+    initialEntries: ['/categories?category_type=FIXED&deleted=off'],
+  });
 
   // assert
   expect(
@@ -319,6 +321,10 @@ test('reads the type and the toggle from the URL and drops a type the dictionary
   ).toBeChecked();
   expect(screen.getByRole('switch', { name: 'Deleted' })).not.toBeChecked();
   expect(requestedQueries.some((query) => query.has('category_types'))).toBe(false);
+  expect(requestedQueries.some((query) => query.has('classification_ids'))).toBe(false);
+  const params = new URLSearchParams(router.state.location.search);
+  expect(params.has('category_type')).toBe(false);
+  expect(params.get('deleted')).toBe('off');
 });
 
 test('searches from 3 characters and clears the search into a focused field when nothing matches', async () => {

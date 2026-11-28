@@ -11,20 +11,22 @@ export function useAccountOptionChoices({
   dictionaries,
   isEnabled,
   hasCategories,
+  isFailureThrown,
 }: Readonly<{
   dictionaries: AccountingDictionaries | undefined;
   isEnabled: boolean;
   hasCategories: boolean;
+  isFailureThrown: boolean;
 }>): AccountOptionChoices {
   const { data: moneyAccountTypes } = useQuery({
     ...classificationQueries.list('MONEY_ACCOUNT'),
     enabled: isEnabled,
-    throwOnError: isThrownWithoutData,
+    throwOnError: isFailureThrown ? isThrownWithoutData : false,
   });
   const { data: expenseCategoryTypes } = useQuery({
     ...classificationQueries.list('EXPENSE_CATEGORY'),
     enabled: isEnabled && hasCategories,
-    throwOnError: isThrownWithoutData,
+    throwOnError: isFailureThrown ? isThrownWithoutData : false,
   });
   const choices = {
     moneyAccountTypes,

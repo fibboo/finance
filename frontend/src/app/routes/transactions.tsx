@@ -102,6 +102,7 @@ export function Component() {
     dictionaries,
     isEnabled: isFiltersOpen,
     hasCategories: true,
+    isFailureThrown: true,
   });
   const { data: moneyAccounts } = useQuery(readAccountsQuery(MONEY_ACCOUNT_KINDS));
   const { data: categories } = useQuery(readAccountsQuery(['EXPENSE']));

@@ -87,6 +87,7 @@ export function useMovementChoices(transactionType: EntryTransactionType | undef
     dictionaries,
     isEnabled: isOpen,
     hasCategories: isExpense,
+    isFailureThrown: true,
   });
   const moneyAccountItems =
     optionChoices.moneyAccountTypes === undefined ? undefined : moneyAccounts?.items;

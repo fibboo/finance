@@ -113,6 +113,13 @@ test.each([
     text: 'FromRRent, deletedBills · Personal-€900.00≈ -$1,053.00',
   },
   {
+    kind: 'shows only the purpose of a category without a classification',
+    account: { ...category, classification_id: null },
+    pageEntryId: null,
+    href: `/accounts?account=${category.id}`,
+    text: 'FromRRentPersonal-€900.00≈ -$1,053.00',
+  },
+  {
     kind: 'shows an income source as such',
     account: incomeSource,
     pageEntryId: null,

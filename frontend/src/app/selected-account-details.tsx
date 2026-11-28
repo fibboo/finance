@@ -180,6 +180,7 @@ function SelectedAccount({
     dictionaries,
     isEnabled: account !== undefined,
     hasCategories: account?.kind === 'EXPENSE',
+    isFailureThrown: false,
   });
   const isOpened = back !== undefined;
   const isAccountRevealEnabled = !isOpened && (isDesktop || !isShownByDefault);

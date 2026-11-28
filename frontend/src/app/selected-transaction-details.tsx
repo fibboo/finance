@@ -72,6 +72,7 @@ function SelectedTransaction({
     dictionaries,
     isEnabled: transactionId !== undefined,
     hasCategories: transaction?.transaction_type === 'EXPENSE',
+    isFailureThrown: false,
   });
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   if (isNotFound && isShownByDefault) {

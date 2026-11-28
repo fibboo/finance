@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Navigate, useSearchParams } from 'react-router';
 
 import {
   CATALOG_DESCRIPTION_SEPARATOR,
@@ -174,6 +174,25 @@ export function Component() {
   function closeConfirmation(categoryId: string) {
     setConfirmedCategoryId(undefined);
     document.getElementById(readCatalogDeleteButtonId(categoryId))?.focus();
+  }
+
+  const isClassificationParamUnknown =
+    classifications !== undefined &&
+    searchParams.has('category_type') &&
+    classificationId === undefined;
+  if (isClassificationParamUnknown) {
+    return (
+      <Navigate
+        to={{
+          search: writeClassificationFilter({
+            searchParams,
+            param: 'category_type',
+            classificationId: undefined,
+          }).toString(),
+        }}
+        replace
+      />
+    );
   }
 
   return (
