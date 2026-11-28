@@ -279,8 +279,32 @@ def test_category_type_revisions_downgrade_from_classifications(postgresql, monk
     postgresql.commit()
 
     # act
+    command.downgrade(alembic_config, "3c68d022c920")
+
+    # assert
+    # the revision refills the former category types only, and the restored trigger types a legacy insert
+    rows = postgresql.execute("SELECT name, category_type FROM accounts ORDER BY name").fetchall()
+    assert rows == [("Food", "VARIABLE"), ("Power", None), ("Rent", "FIXED"), ("Wallet", None)]
+    postgresql.execute(
+        "INSERT INTO accounts (user_id, kind, name, category_type) VALUES (%s, 'EXPENSE', 'Legacy', 'FIXED')",
+        (user_id,),
+    )
+    postgresql.commit()
+    legacy_type = postgresql.execute(
+        "SELECT c.name FROM accounts a JOIN classifications c ON c.id = a.classification_id WHERE a.name = 'Legacy'"
+    ).fetchone()
+    postgresql.commit()
+    assert legacy_type == ("Fixed",)
+
+    # act
     command.downgrade(alembic_config, "878bcc08a8a3")
 
     # assert
     rows = postgresql.execute("SELECT name, category_type FROM accounts ORDER BY name").fetchall()
-    assert rows == [("Food", "VARIABLE"), ("Power", "VARIABLE"), ("Rent", "FIXED"), ("Wallet", None)]
+    assert rows == [
+        ("Food", "VARIABLE"),
+        ("Legacy", "FIXED"),
+        ("Power", "VARIABLE"),
+        ("Rent", "FIXED"),
+        ("Wallet", None),
+    ]

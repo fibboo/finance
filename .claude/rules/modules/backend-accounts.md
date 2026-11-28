@@ -22,7 +22,7 @@ Everything money moves between is a row of `accounts` (`app/models/accounting/ac
 
 A deleted EXPENSE account of an expense or INCOME account of an income answers 422 `ACCOUNT_KIND_MISMATCH` (`TransactionProcessor._validate_counter_account`), since it is not an account the transaction may use. The money side of every transaction must be an ASSET account, which `_validate_account_is_active` checks after the not-found and deleted checks, with the same 422.
 
-The type of a money account or a category is its user-defined classification. It replaced the fixed category types (VARIABLE, FIXED, PERIODIC), which were retired in two deploys (`backend-migrations.md`): `3c68d022c920` let the column stay empty while the previous backend still wrote it, and `ea2313c6598d` dropped it with the trigger that mapped it to a type. New categories, the default ones included, take the user's default category type. `PUT /accounting/accounts/{account_id}` changes the name and description of any account but EQUITY, the color of a money account, the type of a money account or a category and the purpose of an EXPENSE account; a color or a purpose sent for another kind answers 422 `ACCOUNT_KIND_MISMATCH`.
+The type of a money account or a category is its user-defined classification. It replaced the fixed category types (VARIABLE, FIXED, PERIODIC), so a category has no type of its own beside it. New categories, the default ones included, take the user's default category type. `PUT /accounting/accounts/{account_id}` changes the name and description of any account but EQUITY, the color of a money account, the type of a money account or a category and the purpose of an EXPENSE account; a color or a purpose sent for another kind answers 422 `ACCOUNT_KIND_MISMATCH`.
 
 ## Deleted accounts
 
@@ -40,6 +40,6 @@ A transaction that touches a deleted account can be neither created nor deleted 
 
 Category purpose stays nullable in storage so the previous backend can still create accounts between migration and replacement; legacy expense categories are read as Personal, while the new backend writes an explicit purpose.
 
-## Classification compatibility
+## Classification ownership
 
-Migration triggers covered inserts and ownership changes from the previous backend while both versions could write; `user_default_classifications` still creates every new user's default types. The composite foreign key prevents one user's ledger account from retaining a reference to another user's classification after a merge.
+The composite foreign key prevents one user's ledger account from retaining a reference to another user's classification after a merge.
