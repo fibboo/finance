@@ -27,34 +27,10 @@ class AccountKind(str, Enum):
     EXPENSE = "EXPENSE"
 
 
-ACCOUNT_KIND_LABELS: frozendict[AccountKind, str] = frozendict(
-    {
-        AccountKind.ASSET: "Asset",
-        AccountKind.EQUITY: "Equity",
-        AccountKind.INCOME: "Income",
-        AccountKind.EXPENSE: "Expense",
-    }
-)
-
 VISIBLE_ACCOUNT_KINDS: list[AccountKind] = [kind for kind in AccountKind if kind != AccountKind.EQUITY]
 
 AccountColor: TypeAlias = Annotated[str, StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$")]
 AccountName: TypeAlias = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)]
-
-
-class CategoryType(str, Enum):
-    VARIABLE = "VARIABLE"
-    FIXED = "FIXED"
-    PERIODIC = "PERIODIC"
-
-
-CATEGORY_TYPE_LABELS: frozendict[CategoryType, str] = frozendict(
-    {
-        CategoryType.VARIABLE: "Variable",
-        CategoryType.FIXED: "Fixed",
-        CategoryType.PERIODIC: "Periodic",
-    }
-)
 
 
 class CategoryPurpose(str, Enum):
@@ -76,7 +52,6 @@ class AccountCreateBase(AccountBase):
     kind: AccountKind
     currency: CurrencyCode | None = None
     color: AccountColor | None = None
-    category_type: CategoryType | None = None
     category_purpose: CategoryPurpose | None = None
     classification_id: UUID | None = None
 
@@ -102,12 +77,6 @@ class AccountCreateRequest(AccountCreateBase):
             raise ValueError("color can be filled for ASSET accounts only")
 
         is_expense_account: bool = self.kind == AccountKind.EXPENSE
-        if self.category_type is not None and not is_expense_account:
-            raise ValueError("category_type should be filled for EXPENSE accounts only")
-
-        if is_expense_account and "category_type" in self.model_fields_set and self.category_type is None:
-            raise ValueError("category_type should be filled for EXPENSE accounts only")
-
         if is_expense_account != (self.category_purpose is not None):
             raise ValueError("category_purpose should be filled for EXPENSE accounts only")
 
@@ -120,15 +89,11 @@ class AccountCreate(AccountCreateBase):
 
 class AccountUpdate(AccountBase):
     color: AccountColor | None = None
-    category_type: CategoryType | None = None
     category_purpose: CategoryPurpose | None = None
     classification_id: UUID | None = None
 
     @model_validator(mode="after")
-    def validate_category_type(self) -> AccountUpdate:
-        if "category_type" in self.model_fields_set and self.category_type is None:
-            raise ValueError("category_type can not be null")
-
+    def validate_not_null_fields(self) -> AccountUpdate:
         if "category_purpose" in self.model_fields_set and self.category_purpose is None:
             raise ValueError("category_purpose can not be null")
 
@@ -150,7 +115,6 @@ class Account(AccountBase):
     balance: Decimal
     currency: CurrencyCode | None
     color: str | None
-    category_type: CategoryType | None
     category_purpose: CategoryPurpose | None = None
     classification_id: UUID | None = None
     base_balance: Decimal = Field(exclude=True)
@@ -185,7 +149,6 @@ class AccountRequest(Params):
 
     search_term: Annotated[str, StringConstraints(min_length=3)] | None = None
     kinds: list[AccountKind] = VISIBLE_ACCOUNT_KINDS
-    category_types: list[CategoryType] = []
     classification_ids: list[UUID] = []
     category_purposes: list[CategoryPurpose] = []
     statuses: list[EntityStatusType] = [EntityStatusType.ACTIVE]

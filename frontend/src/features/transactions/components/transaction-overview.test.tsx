@@ -14,7 +14,6 @@ const source = {
   balance: '1200.00',
   currency: 'EUR',
   color: null,
-  category_type: null,
   base_currency_rate: '0.9161',
   base_currency_balance: '1309.90',
   status: 'ACTIVE',

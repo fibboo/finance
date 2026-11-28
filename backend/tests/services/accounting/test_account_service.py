@@ -33,7 +33,6 @@ from app.schemas.accounting.account import (
     AccountRestoreRequest,
     AccountUpdate,
     CategoryPurpose,
-    CategoryType,
 )
 from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.accounting.location import LocationCreate
@@ -270,9 +269,7 @@ async def test_get_account_on_date(
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -430,9 +427,7 @@ async def test_get_account_on_date_category(db: AsyncSession):
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -485,13 +480,10 @@ async def test_get_account_not_found(db: AsyncSession):
     assert exc.value.error_code == ErrorCodeType.ENTITY_NOT_FOUND
 
 
-@pytest.mark.parametrize(
-    ("kind", "category_type"),
-    [(AccountKind.EXPENSE, CategoryType.VARIABLE), (AccountKind.INCOME, None)],
-)
+@pytest.mark.parametrize("kind", [AccountKind.EXPENSE, AccountKind.INCOME])
 @pytest.mark.parametrize("balance_date", [None, date(2026, 3, 10)])
 async def test_get_account_deleted_category_or_income_source(
-    db: AsyncSession, kind: AccountKind, category_type: CategoryType | None, balance_date: date | None
+    db: AsyncSession, kind: AccountKind, balance_date: date | None
 ):
     # Arrange
     user_id: UUID = uuid4()
@@ -502,7 +494,6 @@ async def test_get_account_deleted_category_or_income_source(
             "user_id": user_id,
             "name": "Cigarettes",
             "description": "Quit in March",
-            "category_type": category_type,
             "status": EntityStatusType.DELETED,
         },
         commit=True,
@@ -518,7 +509,6 @@ async def test_get_account_deleted_category_or_income_source(
     assert account.kind == kind
     assert account.name == "Cigarettes"
     assert account.description == "Quit in March"
-    assert account.category_type == category_type
     assert account.category_purpose == (CategoryPurpose.PERSONAL if kind == AccountKind.EXPENSE else None)
     assert account.status == EntityStatusType.DELETED
     assert account.balance == Decimal("0")
@@ -566,7 +556,6 @@ async def test_get_account_deleted_category_of_another_user(db: AsyncSession):
             "kind": AccountKind.EXPENSE,
             "user_id": uuid4(),
             "name": "Cigarettes",
-            "category_type": CategoryType.VARIABLE,
             "status": EntityStatusType.DELETED,
         },
         commit=True,
@@ -835,9 +824,7 @@ async def test_restore_account_body_without_name_ok(
 ):
     # Arrange
     user_id: UUID = account_owner_id
-    create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
-    )
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.EXPENSE, name="Gym")
     deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
     await db.commit()
@@ -858,9 +845,7 @@ async def test_restore_account_body_without_name_ok(
 async def test_restore_account_new_name_ok(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
     user_id: UUID = account_owner_id
-    create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
-    )
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.EXPENSE, name="Gym")
     deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
     # The active account holds the old name, so only the new name lets the deleted one back
@@ -890,14 +875,10 @@ async def test_restore_account_new_name_ok(db: AsyncSession, db_transaction: Asy
 async def test_restore_account_new_name_taken(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
     # Arrange
     user_id: UUID = account_owner_id
-    create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.EXPENSE, name="Gym", category_type=CategoryType.FIXED
-    )
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.EXPENSE, name="Gym")
     deleted_account: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await account_service.delete_account(db=db, account_id=deleted_account.id, user_id=user_id)
-    taken_create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.EXPENSE, name="Gym membership", category_type=CategoryType.FIXED
-    )
+    taken_create_data: AccountCreateRequest = AccountCreateRequest(kind=AccountKind.EXPENSE, name="Gym membership")
     await account_service.create_account(db=db, user_id=user_id, create_data=taken_create_data)
     await db.commit()
     restore_data: AccountRestoreRequest = AccountRestoreRequest(name="Gym membership")
@@ -917,15 +898,13 @@ async def test_restore_account_new_name_taken(db: AsyncSession, db_transaction: 
     assert account_db.name == "Gym"
 
 
-@pytest.mark.parametrize(
-    "kind, category_type", [(AccountKind.EXPENSE, CategoryType.VARIABLE), (AccountKind.INCOME, None)]
-)
+@pytest.mark.parametrize("kind", [AccountKind.EXPENSE, AccountKind.INCOME])
 async def test_create_account_without_currency_ok(
-    db_transaction: AsyncSession, kind: AccountKind, category_type: CategoryType | None, account_owner_id: UUID
+    db_transaction: AsyncSession, kind: AccountKind, account_owner_id: UUID
 ):
     # Arrange
     user_id: UUID = account_owner_id
-    create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", category_type=category_type)
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account")
 
     # Act
     account: Account = await account_service.create_account(db=db_transaction, user_id=user_id, create_data=create_data)
@@ -934,7 +913,6 @@ async def test_create_account_without_currency_ok(
     # Assert
     assert account.kind == kind
     assert account.currency is None
-    assert account.category_type == category_type
     assert account.category_purpose == (CategoryPurpose.PERSONAL if kind == AccountKind.EXPENSE else None)
     assert account.balance == Decimal("0")
     assert account.base_currency_rate == Decimal("0")
@@ -1097,41 +1075,6 @@ async def test_get_accounts_kinds(db: AsyncSession, account_owner_id: UUID):
     assert [account.name for account in equity_accounts.items] == ["Adjustments"]
 
 
-async def test_get_accounts_category_types(db: AsyncSession, account_owner_id: UUID):
-    # Arrange
-    user_id: UUID = account_owner_id
-    await account_service.create_default_accounts(db=db, user_id=user_id, base_currency="USD")
-    await db.commit()
-
-    default_request: AccountRequest = AccountRequest(size=100)
-    fixed_request: AccountRequest = AccountRequest(category_types=[CategoryType.FIXED])
-    fixed_and_periodic_request: AccountRequest = AccountRequest(
-        category_types=[CategoryType.FIXED, CategoryType.PERIODIC]
-    )
-
-    # Act
-    default_accounts: Page[Account] = await account_service.get_accounts(
-        db=db, request=default_request, user_id=user_id
-    )
-    fixed_accounts: Page[Account] = await account_service.get_accounts(db=db, request=fixed_request, user_id=user_id)
-    fixed_and_periodic_accounts: Page[Account] = await account_service.get_accounts(
-        db=db, request=fixed_and_periodic_request, user_id=user_id
-    )
-
-    # Assert
-    # Wallet and eight categories; the empty default filters nothing
-    assert default_accounts.total == 9
-    # Wallet has no category type and drops out
-    assert [account.name for account in fixed_accounts.items] == ["Subscriptions", "Utilities"]
-    assert [account.name for account in fixed_and_periodic_accounts.items] == [
-        "Clothing",
-        "Health",
-        "Subscriptions",
-        "Travel",
-        "Utilities",
-    ]
-
-
 async def test_get_accounts_search_term(db: AsyncSession, account_owner_id: UUID):
     # Arrange
     user_id: UUID = account_owner_id
@@ -1199,19 +1142,13 @@ async def test_update_account_color(db: AsyncSession, db_transaction: AsyncSessi
     assert account_db.color == "#AABBCC"
 
 
-@pytest.mark.parametrize(
-    "kind, category_type", [(AccountKind.EXPENSE, CategoryType.VARIABLE), (AccountKind.INCOME, None)]
-)
+@pytest.mark.parametrize("kind", [AccountKind.EXPENSE, AccountKind.INCOME])
 async def test_update_account_color_kind_mismatch(
-    db: AsyncSession,
-    db_transaction: AsyncSession,
-    kind: AccountKind,
-    category_type: CategoryType | None,
-    account_owner_id: UUID,
+    db: AsyncSession, db_transaction: AsyncSession, kind: AccountKind, account_owner_id: UUID
 ):
     # Arrange
     user_id: UUID = account_owner_id
-    create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", category_type=category_type)
+    create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account")
     account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
     await db.commit()
 
@@ -1231,58 +1168,6 @@ async def test_update_account_color_kind_mismatch(
     account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
     assert account_db.name == "Account"
     assert account_db.color is None
-
-
-async def test_update_account_category_type_ok(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
-    # Arrange
-    user_id: UUID = account_owner_id
-    create_data: AccountCreateRequest = AccountCreateRequest(
-        kind=AccountKind.EXPENSE, name="Netflix", category_type=CategoryType.VARIABLE
-    )
-    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
-    await db.commit()
-
-    update_data: AccountUpdate = AccountUpdate(name="Netflix", category_type=CategoryType.FIXED)
-
-    # Act
-    account: Account = await account_service.update_account(
-        db=db_transaction, account_id=account_created.id, user_id=user_id, update_data=update_data
-    )
-    await db_transaction.commit()
-
-    # Assert
-    assert account.category_type == CategoryType.FIXED
-
-    account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
-    assert account_db.category_type == CategoryType.FIXED
-
-
-@pytest.mark.parametrize("kind, currency", [(AccountKind.ASSET, "USD"), (AccountKind.INCOME, None)])
-async def test_update_account_category_type_mismatch(
-    db: AsyncSession, db_transaction: AsyncSession, kind: AccountKind, currency: str | None, account_owner_id: UUID
-):
-    # Arrange
-    user_id: UUID = account_owner_id
-    create_data: AccountCreateRequest = AccountCreateRequest(kind=kind, name="Account", currency=currency)
-    account_created: Account = await account_service.create_account(db=db, user_id=user_id, create_data=create_data)
-    await db.commit()
-
-    update_data: AccountUpdate = AccountUpdate(name="Updated", category_type=CategoryType.FIXED)
-
-    # Act / Assert
-    with pytest.raises(AccountKindMismatch) as exc:
-        await account_service.update_account(
-            db=db_transaction, account_id=account_created.id, user_id=user_id, update_data=update_data
-        )
-        await db_transaction.commit()
-
-    assert exc.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-    assert exc.value.log_message == f"Account `{account_created.id}` is not an active account of kind EXPENSE"
-    assert exc.value.error_code == ErrorCodeType.ACCOUNT_KIND_MISMATCH
-
-    account_db: AccountModel = await db.scalar(select(AccountModel).where(AccountModel.id == account_created.id))
-    assert account_db.name == "Account"
-    assert account_db.category_type is None
 
 
 async def test_update_account_equity(db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID):
@@ -1393,7 +1278,6 @@ async def test_delete_account_category_keeps_transactions(db: AsyncSession, db_t
         "user_id": user_id,
         "kind": AccountKind.EXPENSE,
         "name": "Groceries",
-        "category_type": CategoryType.VARIABLE,
     }
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
     location_db: LocationModel = await location_crud.create(
@@ -1537,9 +1421,7 @@ async def test_get_accounts_estimated_base_balance(db: AsyncSession, httpx_mock:
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1604,7 +1486,6 @@ async def test_get_accounts_recent_use_order(db: AsyncSession):
                 "user_id": user_id,
                 "kind": AccountKind.EXPENSE,
                 "name": name,
-                "category_type": CategoryType.VARIABLE,
             },
             commit=True,
         )
@@ -1686,9 +1567,7 @@ async def test_create_category_persists_purpose(
     category: AccountModel = await account_service.create_account(
         db=db_transaction,
         user_id=user_id,
-        create_data=AccountCreateRequest(
-            kind=AccountKind.EXPENSE, name="Work tools", category_type=CategoryType.FIXED, category_purpose=purpose
-        ),
+        create_data=AccountCreateRequest(kind=AccountKind.EXPENSE, name="Work tools", category_purpose=purpose),
     )
     await db_transaction.commit()
 
@@ -1710,7 +1589,6 @@ async def test_update_category_purpose_preserves_type_and_balances(
             user_id=user_id,
             kind=AccountKind.EXPENSE,
             name="Work tools",
-            category_type=CategoryType.FIXED,
             category_purpose=CategoryPurpose.INCOME_COST,
         ),
         commit=True,
@@ -1729,7 +1607,7 @@ async def test_update_category_purpose_preserves_type_and_balances(
     # assert
     expected_purpose: CategoryPurpose = CategoryPurpose.PERSONAL if change_purpose else CategoryPurpose.INCOME_COST
     assert updated.category_purpose == expected_purpose
-    assert updated.category_type == CategoryType.FIXED
+    assert updated.classification_id == category.classification_id
     assert updated.balance == category.balance
     assert updated.base_currency_balance == Decimal("0.00")
     stored_purpose: CategoryPurpose = await db.scalar(
@@ -1759,29 +1637,28 @@ async def test_update_money_account_refuses_category_purpose(db: AsyncSession, d
 
 
 @pytest.mark.parametrize(
-    "purpose,search,category_type,statuses,expected_names",
+    "purpose,search,statuses,expected_names",
     [
-        (CategoryPurpose.PERSONAL, None, None, [EntityStatusType.ACTIVE], ["Legacy", "Personal"]),
-        (CategoryPurpose.INCOME_COST, "tools", CategoryType.FIXED, [EntityStatusType.ACTIVE], ["Work tools"]),
-        (CategoryPurpose.INCOME_COST, None, None, [EntityStatusType.DELETED], ["Old tools"]),
-        (CategoryPurpose.PERSONAL, "tools", None, [EntityStatusType.ACTIVE], []),
+        (CategoryPurpose.PERSONAL, None, [EntityStatusType.ACTIVE], ["Legacy", "Personal"]),
+        (CategoryPurpose.INCOME_COST, "tools", [EntityStatusType.ACTIVE], ["Work tools"]),
+        (CategoryPurpose.INCOME_COST, None, [EntityStatusType.DELETED], ["Old tools"]),
+        (CategoryPurpose.PERSONAL, "tools", [EntityStatusType.ACTIVE], []),
     ],
 )
 async def test_get_accounts_combines_purpose_with_other_filters(
     db: AsyncSession,
     purpose: CategoryPurpose,
     search: str | None,
-    category_type: CategoryType | None,
     statuses: list[EntityStatusType],
     expected_names: list[str],
 ):
     # arrange
     user_id: UUID = uuid4()
-    for name, stored_purpose, stored_type, status_value in [
-        ("Legacy", None, CategoryType.VARIABLE, EntityStatusType.ACTIVE),
-        ("Personal", CategoryPurpose.PERSONAL, CategoryType.FIXED, EntityStatusType.ACTIVE),
-        ("Work tools", CategoryPurpose.INCOME_COST, CategoryType.FIXED, EntityStatusType.ACTIVE),
-        ("Old tools", CategoryPurpose.INCOME_COST, CategoryType.FIXED, EntityStatusType.DELETED),
+    for name, stored_purpose, status_value in [
+        ("Legacy", None, EntityStatusType.ACTIVE),
+        ("Personal", CategoryPurpose.PERSONAL, EntityStatusType.ACTIVE),
+        ("Work tools", CategoryPurpose.INCOME_COST, EntityStatusType.ACTIVE),
+        ("Old tools", CategoryPurpose.INCOME_COST, EntityStatusType.DELETED),
     ]:
         await account_crud.create(
             db=db,
@@ -1789,7 +1666,6 @@ async def test_get_accounts_combines_purpose_with_other_filters(
                 "user_id": user_id,
                 "kind": AccountKind.EXPENSE,
                 "name": name,
-                "category_type": stored_type,
                 "category_purpose": stored_purpose,
                 "status": status_value,
             },
@@ -1800,12 +1676,7 @@ async def test_get_accounts_combines_purpose_with_other_filters(
         obj_in=AccountCreate(user_id=user_id, kind=AccountKind.ASSET, name="Wallet", currency="USD"),
         commit=True,
     )
-    request = AccountRequest(
-        category_purposes=[purpose],
-        search_term=search,
-        statuses=statuses,
-        category_types=[] if category_type is None else [category_type],
-    )
+    request = AccountRequest(category_purposes=[purpose], search_term=search, statuses=statuses)
 
     # act
     result: Page[Account] = await account_service.get_accounts(db=db, user_id=user_id, request=request)
@@ -1815,7 +1686,7 @@ async def test_get_accounts_combines_purpose_with_other_filters(
     assert all(category.category_purpose == purpose for category in result.items)
 
 
-async def test_update_account_classification_filters_alongside_legacy_type(
+async def test_update_account_classification_moves_category_into_type_filter(
     db: AsyncSession, db_transaction: AsyncSession, account_owner_id: UUID
 ):
     # arrange
@@ -1824,21 +1695,19 @@ async def test_update_account_classification_filters_alongside_legacy_type(
     custom_type = await classification_crud.create(
         db=db, obj_in={"user_id": account_owner_id, "kind": kind, "name": "Subscriptions"}, commit=True
     )
-    category, _ = await account_crud.create_batch(
+    category, food = await account_crud.create_batch(
         db=db,
         objs_in=[
             AccountCreate(
                 user_id=account_owner_id,
                 kind=AccountKind.EXPENSE,
                 name="Streaming",
-                category_type=CategoryType.FIXED,
                 classification_id=default.id,
             ),
             AccountCreate(
                 user_id=account_owner_id,
                 kind=AccountKind.EXPENSE,
                 name="Food",
-                category_type=CategoryType.VARIABLE,
                 classification_id=custom_type.id,
             ),
         ],
@@ -1859,10 +1728,10 @@ async def test_update_account_classification_filters_alongside_legacy_type(
     matches = await account_service.get_accounts(
         db=db,
         user_id=account_owner_id,
-        request=AccountRequest(classification_ids=[custom_type.id], category_types=[CategoryType.FIXED]),
+        request=AccountRequest(classification_ids=[custom_type.id]),
     )
     assert updated.classification_id == custom_type.id
-    assert [account.id for account in matches.items] == [category.id]
+    assert sorted(account.id for account in matches.items) == sorted([category.id, food.id])
 
 
 @pytest.mark.parametrize("is_foreign", [True, False])

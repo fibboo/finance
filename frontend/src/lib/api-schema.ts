@@ -785,7 +785,6 @@ export interface components {
             currency: string | null;
             /** Color */
             color: string | null;
-            category_type: components["schemas"]["CategoryType"] | null;
             category_purpose?: components["schemas"]["CategoryPurpose"] | null;
             /** Classification Id */
             classification_id?: string | null;
@@ -808,7 +807,6 @@ export interface components {
             currency?: string | null;
             /** Color */
             color?: string | null;
-            category_type?: components["schemas"]["CategoryType"] | null;
             category_purpose?: components["schemas"]["CategoryPurpose"] | null;
             /** Classification Id */
             classification_id?: string | null;
@@ -831,7 +829,6 @@ export interface components {
             description?: string | null;
             /** Color */
             color?: string | null;
-            category_type?: components["schemas"]["CategoryType"] | null;
             category_purpose?: components["schemas"]["CategoryPurpose"] | null;
             /** Classification Id */
             classification_id?: string | null;
@@ -840,10 +837,6 @@ export interface components {
         AccountingDictionaries: {
             /** Currencies */
             currencies: components["schemas"]["DictionaryItem"][];
-            /** Account Kinds */
-            account_kinds: components["schemas"]["DictionaryItem"][];
-            /** Category Types */
-            category_types: components["schemas"]["DictionaryItem"][];
             /** Category Purposes */
             category_purposes?: components["schemas"]["DictionaryItem"][] | null;
             /** Transaction Types */
@@ -885,11 +878,6 @@ export interface components {
          * @enum {string}
          */
         CategoryPurpose: "PERSONAL" | "INCOME_COST";
-        /**
-         * CategoryType
-         * @enum {string}
-         */
-        CategoryType: "VARIABLE" | "FIXED" | "PERIODIC";
         /** Classification */
         Classification: {
             /** Name */
@@ -1450,7 +1438,6 @@ export interface operations {
                 size?: number;
                 search_term?: string | null;
                 kinds?: components["schemas"]["AccountKind"][];
-                category_types?: components["schemas"]["CategoryType"][];
                 classification_ids?: string[];
                 category_purposes?: components["schemas"]["CategoryPurpose"][];
                 statuses?: components["schemas"]["EntityStatusType"][];
@@ -3334,7 +3321,6 @@ type ReadonlyArray<T> = [
 ] ? Readonly<Exclude<T, undefined>> : Readonly<Exclude<T, undefined>[]>;
 export const accountKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["AccountKind"]> = ["ASSET", "EQUITY", "INCOME", "EXPENSE"];
 export const categoryPurposeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryPurpose"]> = ["PERSONAL", "INCOME_COST"];
-export const categoryTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["CategoryType"]> = ["VARIABLE", "FIXED", "PERIODIC"];
 export const classificationKindValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ClassificationKind"]> = ["MONEY_ACCOUNT", "EXPENSE_CATEGORY"];
 export const entityStatusTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["EntityStatusType"]> = ["ACTIVE", "DELETED"];
 export const errorCodeTypeValues: ReadonlyArray<FlattenedDeepRequired<components>["schemas"]["ErrorCodeType"]> = ["ENTITY_NOT_FOUND", "INTEGRITY_ERROR", "NAME_ALREADY_EXISTS", "CLASSIFICATION_REPLACEMENT_REQUIRED", "INVALID_CLASSIFICATION_REPLACEMENT", "IMPORT_FILE_INVALID", "IMPORT_IN_PROGRESS", "NOT_IMPLEMENTED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_AUTH_DATA", "ACCOUNT_UPDATE_FORBIDDEN", "ACCOUNT_DELETION_FORBIDDEN", "LAST_ACCOUNT_DELETION_FORBIDDEN", "DELETED_ACCOUNT_TRANSACTION_FORBIDDEN", "NO_ACCOUNT_BASE_CURRENCY_RATE", "CURRENCY_MISMATCH", "ACCOUNT_KIND_MISMATCH", "MOVEMENT_NOT_ALLOWED", "TRANSACTION_TYPE_CHANGE_NOT_ALLOWED", "FIELD_REQUIRED", "FIELD_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_AMOUNT_REQUIRED", "TRANSFER_AMOUNT_MISMATCH", "DESTINATION_AMOUNT_NOT_ALLOWED", "BASE_CURRENCY_NOT_SET", "BASE_CURRENCY_ALREADY_SET", "BASE_CURRENCY_MISMATCH", "USERNAME_ALREADY_TAKEN", "REDIRECT_URI_NOT_ALLOWED", "ORIGIN_NOT_ALLOWED", "PROVIDER_UNAVAILABLE", "PROVIDER_ALREADY_LINKED", "IDENTITY_LINKED_TO_ANOTHER_USER", "LAST_IDENTITY_UNLINK_FORBIDDEN"];

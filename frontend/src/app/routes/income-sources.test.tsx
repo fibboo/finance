@@ -18,7 +18,6 @@ const salary = {
   balance: '0',
   currency: null,
   color: null,
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '0',
@@ -114,8 +113,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
         transaction_types: [{ key: 'INCOME', label: 'Income' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -568,11 +565,6 @@ test('shows the chosen transaction of an income source with the source as plain 
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'INCOME', label: 'Income' },
-        ],
-        category_types: [],
         transaction_types: [{ key: 'INCOME', label: 'Income' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),

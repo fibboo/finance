@@ -13,7 +13,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.account import AccountKind, CategoryType
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.currency import Currency
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
@@ -62,7 +62,6 @@ async def test_get_currencies_recent_use_order(db: AsyncSession):
                 "user_id": owner_id,
                 "kind": AccountKind.EXPENSE,
                 "name": "Groceries",
-                "category_type": CategoryType.VARIABLE,
             },
             commit=True,
         )

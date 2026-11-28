@@ -39,7 +39,6 @@ const groceries = {
   balance: '0',
   currency: null,
   color: null,
-  category_type: 'VARIABLE',
   classification_id: variableType.id,
   base_currency_rate: '1',
   status: 'ACTIVE',
@@ -59,7 +58,6 @@ const rent = {
   name: 'Rent',
   description: null,
   id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e61',
-  category_type: 'FIXED',
   classification_id: fixedType.id,
 } satisfies components['schemas']['Account'];
 
@@ -88,7 +86,6 @@ const rentPayment = {
         id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
         kind: 'ASSET',
         currency: 'USD',
-        category_type: null,
       },
     },
     {
@@ -146,12 +143,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-          { key: 'PERIODIC', label: 'Periodic' },
-        ],
         category_purposes: [
           { key: 'PERSONAL', label: 'Personal' },
           { key: 'INCOME_COST', label: 'Income costs' },
@@ -320,7 +311,6 @@ test('reads the toggle from the URL and drops a type that is no current type, su
     }),
   ).toBeChecked();
   expect(screen.getByRole('switch', { name: 'Deleted' })).not.toBeChecked();
-  expect(requestedQueries.some((query) => query.has('category_types'))).toBe(false);
   expect(requestedQueries.some((query) => query.has('classification_ids'))).toBe(false);
   const params = new URLSearchParams(router.state.location.search);
   expect(params.has('category_type')).toBe(false);
@@ -1200,14 +1190,6 @@ test('keeps the transactions column and the card in place while another category
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1273,14 +1255,6 @@ test('shows the details of the top transaction beside the transactions of a cate
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1382,14 +1356,6 @@ test('keeps the frame of the transaction card while another transaction loads on
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1458,14 +1424,6 @@ test('moves the focus between the category and its top transaction with Left and
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1532,14 +1490,6 @@ test('keeps the focus in the delete confirmation with Right on a wide desktop', 
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1664,14 +1614,6 @@ test('keeps the chosen category when the keys are pressed in the details of a tr
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1722,14 +1664,6 @@ test('drops a chosen transaction that is not of the shown category on a wide des
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),

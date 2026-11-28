@@ -17,7 +17,7 @@ from app.models.accounting.location import Location
 from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
 from app.models.user.user import User
-from app.schemas.accounting.account import AccountKind, AdjustmentCreate, CategoryType
+from app.schemas.accounting.account import AccountKind, AdjustmentCreate
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import MovementRequest, Transaction as TransactionResponse, TransactionType
 from app.schemas.base import EntityStatusType
@@ -75,7 +75,6 @@ async def test_batch_matches_creating_transactions_in_date_order(
                 "kind": AccountKind.EXPENSE,
                 "user_id": user_id,
                 "name": "Food",
-                "category_type": CategoryType.VARIABLE,
             },
             commit=True,
         )
@@ -234,7 +233,6 @@ async def test_batch_rolls_back_when_recalculation_changes_deleted_account(
             "kind": AccountKind.EXPENSE,
             "user_id": user_id,
             "name": "Food",
-            "category_type": CategoryType.VARIABLE,
         },
         commit=True,
     )

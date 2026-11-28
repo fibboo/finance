@@ -15,7 +15,7 @@ from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryType
+from app.schemas.accounting.account import AccountCreate, AccountKind
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
@@ -81,9 +81,7 @@ async def test_recalculate_accounts_back_dated_income_revalues_later_expense(
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -221,9 +219,7 @@ async def test_recalculate_accounts_deleted_income_revalues_later_expense(
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -352,9 +348,7 @@ async def test_recalculate_accounts_expense_without_rate_returns_to_unvalued(
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -483,9 +477,7 @@ async def test_recalculate_accounts_revalued_transfers_recalculate_receiving_acc
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -667,9 +659,7 @@ async def test_recalculate_accounts_back_dated_adjustment_takes_rate_of_its_date
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -814,9 +804,7 @@ async def test_recalculate_accounts_deleted_account_balance_change_forbidden(
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -938,9 +926,7 @@ async def test_recalculate_accounts_income_values_unvalued_expenses(db: AsyncSes
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1067,9 +1053,7 @@ async def test_recalculate_accounts_transfer_repaying_debt_posts_exchange_differ
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1172,9 +1156,7 @@ async def test_recalculate_accounts_deleted_debt_removes_exchange_difference(
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1269,9 +1251,7 @@ async def test_recalculate_accounts_deleted_income_returns_valued_expenses_to_un
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1384,9 +1364,7 @@ async def test_recalculate_accounts_rate_leaves_out_unvalued_expenses(db: AsyncS
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(

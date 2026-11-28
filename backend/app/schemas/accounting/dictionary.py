@@ -5,8 +5,6 @@ from app.schemas.dictionary import DictionaryItem
 
 class AccountingDictionaries(BaseModel):
     currencies: list[DictionaryItem]
-    account_kinds: list[DictionaryItem]
-    category_types: list[DictionaryItem]
     category_purposes: list[DictionaryItem] | None = None
     transaction_types: list[DictionaryItem]
     transaction_orders: list[DictionaryItem]

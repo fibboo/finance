@@ -17,7 +17,6 @@ const salary = {
   balance: '0',
   currency: null,
   color: null,
-  category_type: null,
   base_currency_rate: '0',
   status: 'ACTIVE',
   base_currency_balance: '0',

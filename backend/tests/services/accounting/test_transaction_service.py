@@ -27,7 +27,6 @@ from app.schemas.accounting.account import (
     AccountKind,
     AdjustmentCreate,
     AdjustmentRequest,
-    CategoryType,
 )
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
@@ -103,7 +102,6 @@ async def test_get_transactions(db: AsyncSession):
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -329,7 +327,6 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
@@ -435,7 +432,6 @@ async def test_get_transactions_by_accounts(db: AsyncSession):
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Old cafe",
-        category_type=CategoryType.VARIABLE,
     )
     category_deleted_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data)
     expense_create_data: MovementRequest = MovementRequest(
@@ -588,9 +584,7 @@ async def test_get_transactions_by_date(db: AsyncSession):
         "base_balance": Decimal("2000"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
-    category_create_data: AccountCreate = AccountCreate(
-        user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-    )
+    category_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food")
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
     location_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     location_db: LocationModel = await location_crud.create(db=db, obj_in=location_create_data, commit=True)
@@ -680,9 +674,7 @@ async def test_get_transactions_order_after_edit(
     )
     category = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user.id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location = await location_crud.create(db=db, obj_in=LocationCreate(user_id=user.id, name="Shop"), commit=True)
@@ -743,9 +735,7 @@ async def test_get_transactions_by_locations(db: AsyncSession):
         "base_balance": Decimal("2000"),
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
-    category_create_data: AccountCreate = AccountCreate(
-        user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-    )
+    category_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food")
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
     shop_create_data: LocationCreate = LocationCreate(user_id=user_id, name="Some shop")
     shop_db: LocationModel = await location_crud.create(db=db, obj_in=shop_create_data, commit=True)
@@ -765,7 +755,7 @@ async def test_get_transactions_by_locations(db: AsyncSession):
     other_account_create_data: dict = {**account_create_data, "user_id": other_user_id}
     other_account_db: AccountModel = await account_crud.create(db=db, obj_in=other_account_create_data, commit=True)
     other_category_create_data: AccountCreate = AccountCreate(
-        user_id=other_user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
+        user_id=other_user_id, kind=AccountKind.EXPENSE, name="Food"
     )
     other_category_db: AccountModel = await account_crud.create(db=db, obj_in=other_category_create_data, commit=True)
     other_location_create_data: LocationCreate = LocationCreate(user_id=other_user_id, name="Other shop")
@@ -905,13 +895,9 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
     wallet_create_data: dict = {**account_create_data, "name": "Wallet"}
     wallet_db: AccountModel = await account_crud.create(db=db, obj_in=wallet_create_data, commit=True)
-    groceries_create_data: AccountCreate = AccountCreate(
-        user_id=user_id, kind=AccountKind.EXPENSE, name="Groceries", category_type=CategoryType.VARIABLE
-    )
+    groceries_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Groceries")
     groceries_db: AccountModel = await account_crud.create(db=db, obj_in=groceries_create_data, commit=True)
-    taxi_create_data: AccountCreate = AccountCreate(
-        user_id=user_id, kind=AccountKind.EXPENSE, name="Taxi", category_type=CategoryType.VARIABLE
-    )
+    taxi_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Taxi")
     taxi_db: AccountModel = await account_crud.create(db=db, obj_in=taxi_create_data, commit=True)
     income_source_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.INCOME, name="Salary")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
@@ -931,7 +917,7 @@ async def test_get_transactions_by_search_term(db: AsyncSession):
     other_account_create_data: dict = {**account_create_data, "user_id": other_user_id}
     other_account_db: AccountModel = await account_crud.create(db=db, obj_in=other_account_create_data, commit=True)
     other_category_create_data: AccountCreate = AccountCreate(
-        user_id=other_user_id, kind=AccountKind.EXPENSE, name="Groceries", category_type=CategoryType.VARIABLE
+        user_id=other_user_id, kind=AccountKind.EXPENSE, name="Groceries"
     )
     other_category_db: AccountModel = await account_crud.create(db=db, obj_in=other_category_create_data, commit=True)
     other_location_create_data: LocationCreate = LocationCreate(user_id=other_user_id, name="Mall")
@@ -1319,14 +1305,14 @@ async def test_get_transaction_not_found_wrong_user(db: AsyncSession):
     [
         (
             {"kind": AccountKind.ASSET, "name": "Checking USD", "currency": "USD"},
-            {"kind": AccountKind.EXPENSE, "name": "Food", "category_type": CategoryType.VARIABLE},
+            {"kind": AccountKind.EXPENSE, "name": "Food"},
             TransactionType.EXPENSE,
             True,
             None,
         ),
         (
             {"kind": AccountKind.ASSET, "name": "Credit card USD", "currency": "USD"},
-            {"kind": AccountKind.EXPENSE, "name": "Food", "category_type": CategoryType.VARIABLE},
+            {"kind": AccountKind.EXPENSE, "name": "Food"},
             TransactionType.EXPENSE,
             True,
             None,
@@ -1419,7 +1405,7 @@ async def test_create_transaction_type_from_account_kinds(
     "from_account_data, to_account_data",
     [
         (
-            {"kind": AccountKind.EXPENSE, "name": "Food", "category_type": CategoryType.VARIABLE},
+            {"kind": AccountKind.EXPENSE, "name": "Food"},
             {"kind": AccountKind.ASSET, "name": "Checking USD", "currency": "USD"},
         ),
         (
@@ -1428,7 +1414,7 @@ async def test_create_transaction_type_from_account_kinds(
         ),
         (
             {"kind": AccountKind.INCOME, "name": "Best Job"},
-            {"kind": AccountKind.EXPENSE, "name": "Food", "category_type": CategoryType.VARIABLE},
+            {"kind": AccountKind.EXPENSE, "name": "Food"},
         ),
         (
             {"kind": AccountKind.EQUITY, "name": "Adjustments"},
@@ -1489,9 +1475,7 @@ async def test_create_transaction_from_account_not_found(db: AsyncSession, db_tr
     user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
     user_id: UUID = user_db.id
 
-    category_create_data: AccountCreate = AccountCreate(
-        user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-    )
+    category_create_data: AccountCreate = AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food")
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
     from_account_id: UUID = uuid4()
@@ -1553,9 +1537,7 @@ async def test_create_transaction_account_of_other_user(db: AsyncSession, db_tra
         username="test 1", registration_provider=ProviderType.TELEGRAM, base_currency="USD"
     )
     other_user_db: UserModel = await user_crud.create(db=db, obj_in=user_create_data, commit=True)
-    category_create_data: AccountCreate = AccountCreate(
-        user_id=other_user_db.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-    )
+    category_create_data: AccountCreate = AccountCreate(user_id=other_user_db.id, kind=AccountKind.EXPENSE, name="Food")
     other_category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
     user_create_data: UserCreate = UserCreate(
@@ -1696,9 +1678,7 @@ async def test_get_transactions_estimates_unvalued(db: AsyncSession, httpx_mock:
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1785,9 +1765,7 @@ async def test_update_transaction_type_change_not_allowed(db: AsyncSession, db_t
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(

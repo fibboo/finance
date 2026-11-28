@@ -29,7 +29,7 @@ from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountKind, CategoryType
+from app.schemas.accounting.account import Account, AccountCreate, AccountCreateRequest, AccountKind
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import MovementRequest, Transaction, TransactionCreate, TransactionType
@@ -64,7 +64,6 @@ async def test_create_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -172,7 +171,6 @@ async def test_create_expense_other_currency_rounds_base_amount(
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -218,7 +216,6 @@ async def test_create_expense_account_not_found(db: AsyncSession, db_transaction
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -273,7 +270,6 @@ async def test_create_expense_no_base_rate_stores_unvalued(db: AsyncSession, db_
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -330,7 +326,6 @@ async def test_create_expense_currency_mismatch(db: AsyncSession, db_transaction
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -396,7 +391,6 @@ async def test_create_expense_unknown_destination_currency(db: AsyncSession, db_
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -461,7 +455,6 @@ async def test_create_expense_category_of_other_user(db: AsyncSession, db_transa
         user_id=other_user_db.id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -523,7 +516,6 @@ async def test_create_expense_deleted_category(db: AsyncSession, db_transaction:
         "kind": AccountKind.EXPENSE,
         "user_id": user_id,
         "name": "Food",
-        "category_type": CategoryType.VARIABLE,
         "status": EntityStatusType.DELETED,
     }
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
@@ -591,7 +583,6 @@ async def test_create_expense_location_of_other_user(db: AsyncSession, db_transa
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -658,7 +649,6 @@ async def test_create_expense_deleted_location(db: AsyncSession, db_transaction:
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -723,7 +713,6 @@ async def test_delete_ok(db: AsyncSession, db_transaction: AsyncSession):
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -795,7 +784,6 @@ async def test_create_expense_emptying_account_takes_base_balance(db: AsyncSessi
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -852,7 +840,6 @@ async def test_create_expense_from_emptied_account_stores_unvalued(db: AsyncSess
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -915,7 +902,6 @@ async def test_create_expense_opposite_signs_stores_unvalued(db: AsyncSession, d
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -986,7 +972,6 @@ async def test_delete_expense_restores_account_balances(
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1078,7 +1063,6 @@ async def test_create_expense_deleted_account(db: AsyncSession, db_transaction: 
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1139,7 +1123,6 @@ async def test_delete_deleted_account(db: AsyncSession, db_transaction: AsyncSes
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1215,7 +1198,6 @@ async def test_create_expense_concurrent_keeps_both_balance_changes(
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1284,7 +1266,6 @@ async def test_create_expense_new_base_currency_account_ok(db: AsyncSession, db_
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1332,7 +1313,6 @@ async def test_create_expense_from_income_account(db: AsyncSession, db_transacti
         "kind": AccountKind.EXPENSE,
         "user_id": user_id,
         "name": "Food",
-        "category_type": CategoryType.VARIABLE,
     }
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
     location_db: LocationModel = await location_crud.create(
@@ -1475,7 +1455,6 @@ async def test_create_expense_field_not_allowed_for_type(
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1540,7 +1519,6 @@ async def test_create_expense_base_currency_amount_not_allowed(db: AsyncSession,
         user_id=user_id,
         kind=AccountKind.EXPENSE,
         name="Food",
-        category_type=CategoryType.VARIABLE,
     )
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
 
@@ -1606,9 +1584,7 @@ async def test_create_expense_back_dated_takes_rate_of_its_date(db: AsyncSession
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1693,9 +1669,7 @@ async def test_create_expense_back_dated_on_emptied_account_ok(db: AsyncSession,
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1785,9 +1759,7 @@ async def test_delete_expense_revalues_later_expense(db: AsyncSession, db_transa
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1885,16 +1857,12 @@ async def test_update_expense_ok(db: AsyncSession, db_transaction: AsyncSession)
     )
     old_category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     new_category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Rent", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Rent"),
         commit=True,
     )
     old_location_db: LocationModel = await location_crud.create(
@@ -1995,9 +1963,7 @@ async def test_update_expense_revalues_later_expense(db: AsyncSession, db_transa
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -2098,7 +2064,7 @@ async def test_update_expense_crossing_zero_revalues_repayment_crossing_back(
     category: Account = await account_service.create_account(
         db=db,
         user_id=user_id,
-        create_data=AccountCreateRequest(kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE),
+        create_data=AccountCreateRequest(kind=AccountKind.EXPENSE, name="Food"),
     )
     location_db: LocationModel = await location_crud.create(
         db=db, obj_in=LocationCreate(user_id=user_id, name="Shop"), commit=True
@@ -2216,9 +2182,7 @@ async def test_update_expense_after_income_drops_valued_date(db: AsyncSession, d
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -2307,9 +2271,7 @@ async def test_update_expense_deleted_account(db: AsyncSession, db_transaction: 
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -2404,9 +2366,7 @@ async def test_update_expense_to_other_account_revalues_later_expense_of_old_acc
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(

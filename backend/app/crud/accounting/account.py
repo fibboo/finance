@@ -31,9 +31,6 @@ class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):
             self.model.kind.in_(request.kinds),
         )
 
-        if len(request.category_types) > 0:
-            query = query.where(self.model.category_type.in_(request.category_types))
-
         if len(request.classification_ids) > 0:
             query = query.where(self.model.classification_id.in_(request.classification_ids))
 

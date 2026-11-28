@@ -17,7 +17,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: '#4D8FBF',
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -57,8 +56,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'USD', label: 'US Dollar' }],
-        account_kinds: [{ key: 'ASSET', label: 'Asset' }],
-        category_types: [],
         transaction_types: [],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -772,7 +769,6 @@ test('drops the account param of an account that is not a money account', async 
     kind: 'EXPENSE',
     currency: null,
     color: null,
-    category_type: 'VARIABLE',
   } satisfies components['schemas']['Account'];
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
@@ -1043,7 +1039,6 @@ const groceries = {
   balance: '0',
   currency: null,
   color: null,
-  category_type: 'VARIABLE',
   base_currency_rate: '0',
   base_currency_balance: '0.00',
 } satisfies components['schemas']['Account'];
@@ -1110,11 +1105,6 @@ function serveAccountTransactions() {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'USD', label: 'US Dollar' }],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
         transaction_types: [
           { key: 'EXPENSE', label: 'Expense' },
           { key: 'TRANSFER', label: 'Transfer' },

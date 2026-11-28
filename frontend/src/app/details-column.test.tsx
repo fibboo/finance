@@ -17,7 +17,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: null,
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -31,7 +30,6 @@ const groceries = {
   kind: 'EXPENSE',
   balance: '0',
   currency: null,
-  category_type: 'VARIABLE',
   classification_id: '20000000-0000-4000-8000-000000000002',
   base_currency_rate: '0',
   base_currency_balance: '0.00',
@@ -43,7 +41,6 @@ const salary = {
   description: null,
   id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60',
   kind: 'INCOME',
-  category_type: null,
   classification_id: null,
 } satisfies components['schemas']['Account'];
 
@@ -121,12 +118,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-          { key: 'INCOME', label: 'Income' },
-        ],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),

@@ -17,7 +17,6 @@ const account = {
   balance: '412.50',
   currency: 'USD',
   color: null,
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -44,8 +43,6 @@ test.each([
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'USD', label: 'US Dollar' }],
-        account_kinds: [{ key: 'ASSET', label: 'Asset' }],
-        category_types: [],
         transaction_types: [],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -120,8 +117,6 @@ test('shows the account when its types fail to load', async () => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'USD', label: 'US Dollar' }],
-        account_kinds: [{ key: 'ASSET', label: 'Asset' }],
-        category_types: [],
         transaction_types: [],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),

@@ -15,7 +15,6 @@ const wallet = {
   balance: '4120.00',
   currency: 'EUR',
   color: null,
-  category_type: null,
   classification_id: '4e5f6a7b-8c9d-4e0f-9a1b-2c3d4e5f6a7b',
   base_currency_rate: '0.8547',
   status: 'ACTIVE',
@@ -29,7 +28,6 @@ const category = {
   kind: 'EXPENSE',
   balance: '0',
   currency: null,
-  category_type: 'FIXED',
   classification_id: '6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d',
   base_currency_rate: '0',
   base_currency_balance: '0.00',
@@ -40,7 +38,6 @@ const incomeSource = {
   name: 'Salary',
   id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a',
   kind: 'INCOME',
-  category_type: null,
   classification_id: null,
 } satisfies components['schemas']['Account'];
 

@@ -22,7 +22,7 @@ from app.exceptions.conflict_409 import (
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountKind, CategoryType
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.base import CurrencyCode
 from app.schemas.error_response import ErrorCodeType
@@ -255,22 +255,21 @@ async def test_set_base_currency_ok(db: AsyncSession, db_transaction: AsyncSessi
         accounts[account_db.name] = (
             account_db.kind,
             account_db.currency,
-            account_db.category_type,
             account_db.balance,
             account_db.base_balance,
         )
 
     assert accounts == {
-        "Wallet": (AccountKind.ASSET, "EUR", None, Decimal("0"), Decimal("0")),
-        "Groceries": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0"), Decimal("0")),
-        "Eating out": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0"), Decimal("0")),
-        "Transport": (AccountKind.EXPENSE, None, CategoryType.VARIABLE, Decimal("0"), Decimal("0")),
-        "Utilities": (AccountKind.EXPENSE, None, CategoryType.FIXED, Decimal("0"), Decimal("0")),
-        "Subscriptions": (AccountKind.EXPENSE, None, CategoryType.FIXED, Decimal("0"), Decimal("0")),
-        "Travel": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0"), Decimal("0")),
-        "Health": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0"), Decimal("0")),
-        "Clothing": (AccountKind.EXPENSE, None, CategoryType.PERIODIC, Decimal("0"), Decimal("0")),
-        "Adjustments": (AccountKind.EQUITY, None, None, Decimal("0"), Decimal("0")),
+        "Wallet": (AccountKind.ASSET, "EUR", Decimal("0"), Decimal("0")),
+        "Groceries": (AccountKind.EXPENSE, None, Decimal("0"), Decimal("0")),
+        "Eating out": (AccountKind.EXPENSE, None, Decimal("0"), Decimal("0")),
+        "Transport": (AccountKind.EXPENSE, None, Decimal("0"), Decimal("0")),
+        "Utilities": (AccountKind.EXPENSE, None, Decimal("0"), Decimal("0")),
+        "Subscriptions": (AccountKind.EXPENSE, None, Decimal("0"), Decimal("0")),
+        "Travel": (AccountKind.EXPENSE, None, Decimal("0"), Decimal("0")),
+        "Health": (AccountKind.EXPENSE, None, Decimal("0"), Decimal("0")),
+        "Clothing": (AccountKind.EXPENSE, None, Decimal("0"), Decimal("0")),
+        "Adjustments": (AccountKind.EQUITY, None, Decimal("0"), Decimal("0")),
     }
 
 

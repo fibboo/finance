@@ -14,7 +14,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: null,
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -62,7 +61,6 @@ const category = {
   kind: 'EXPENSE',
   balance: '0',
   currency: null,
-  category_type: 'VARIABLE',
   base_currency_rate: '0',
   base_currency_balance: '0.00',
 } satisfies components['schemas']['Account'];
