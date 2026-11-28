@@ -34,6 +34,13 @@ def downgrade() -> None:
         ),
     )
     op.execute("""
+        UPDATE accounts SET category_type = upper(classifications.name)
+        FROM classifications
+        WHERE classifications.id = accounts.classification_id
+          AND accounts.kind = 'EXPENSE'
+          AND upper(classifications.name) IN ('VARIABLE', 'FIXED', 'PERIODIC')
+    """)
+    op.execute("""
         CREATE FUNCTION assign_legacy_account_classification() RETURNS trigger LANGUAGE plpgsql AS $$
         DECLARE
             classification_kind classifications.kind%TYPE;

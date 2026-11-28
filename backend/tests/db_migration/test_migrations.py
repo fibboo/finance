@@ -251,3 +251,36 @@ def test_money_account_kind_revision_keeps_same_name_accounts(postgresql, monkey
         (account_ids["WALLET"], "WALLET 3", "ASSET", "ACTIVE", -5, "Asset"),
         (account_ids["Old loan"], "Old loan", "ASSET", "DELETED", 0, "Liability"),
     ]
+
+
+def test_category_type_revisions_downgrade_from_classifications(postgresql, monkeypatch):
+    # arrange
+    database_url = f"postgresql+asyncpg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}"
+    monkeypatch.setattr(database_settings, "database_url", database_url)
+    alembic_config = Config("alembic.ini")
+    command.upgrade(alembic_config, "head")
+    user_id = postgresql.execute(
+        "INSERT INTO users (username, registration_provider) VALUES ('owner', 'TELEGRAM') RETURNING id"
+    ).fetchone()[0]
+    # the user trigger creates the default types, Asset and Variable; Fixed and Bills are the user's own
+    for name in ("Fixed", "Bills"):
+        postgresql.execute(
+            "INSERT INTO classifications (user_id, kind, name) VALUES (%s, 'EXPENSE_CATEGORY', %s)", (user_id, name)
+        )
+    for account_name, classification_name in (("Rent", "Fixed"), ("Food", "Variable"), ("Power", "Bills")):
+        postgresql.execute(
+            "INSERT INTO accounts (user_id, kind, name, classification_id) "
+            "SELECT %s, 'EXPENSE', %s, id FROM classifications WHERE user_id = %s AND name = %s",
+            (user_id, account_name, user_id, classification_name),
+        )
+    postgresql.execute(
+        "INSERT INTO accounts (user_id, kind, name, currency) VALUES (%s, 'ASSET', 'Wallet', 'USD')", (user_id,)
+    )
+    postgresql.commit()
+
+    # act
+    command.downgrade(alembic_config, "878bcc08a8a3")
+
+    # assert
+    rows = postgresql.execute("SELECT name, category_type FROM accounts ORDER BY name").fetchall()
+    assert rows == [("Food", "VARIABLE"), ("Power", "VARIABLE"), ("Rent", "FIXED"), ("Wallet", None)]
