@@ -1,11 +1,12 @@
 import csv
 import re
+from dataclasses import dataclass
 from datetime import date, datetime, UTC
 from decimal import Decimal
 from hashlib import sha256
 from io import StringIO
 from pathlib import PureWindowsPath
-from typing import Any
+from typing import Any, TypeAlias
 from uuid import UUID
 
 from fastapi import UploadFile
@@ -14,21 +15,33 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.configs.logging_settings import get_logger
+from app.crud.accounting.account import account_crud
+from app.crud.accounting.classification import classification_crud
 from app.crud.accounting.currency import currency_crud
-from app.crud.accounting.transaction_import import transaction_import_crud, transaction_import_row_crud
+from app.crud.accounting.location import location_crud
+from app.crud.accounting.transaction_import import (
+    ImportTransactionKey,
+    transaction_import_crud,
+    transaction_import_row_crud,
+)
 from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import ImportInProgress
 from app.exceptions.not_fount_404 import EntityNotFound
-from app.exceptions.unprocessable_422 import ImportFileInvalid
+from app.exceptions.unprocessable_422 import ImportDecisionsInvalid, ImportFileInvalid
 from app.models.accounting.transaction_import import (
     TransactionImport as ImportModel,
     TransactionImportRow as ImportRowModel,
 )
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.transaction import TRANSACTION_TYPE_LABELS, TransactionType
 from app.schemas.accounting.transaction_import import (
     IMPORT_COLUMN_HEADERS,
     ImportColumn,
+    ImportDecisionsRequest,
+    ImportDuplicateDecision,
+    ImportEntityGroup,
     ImportFileFormat,
+    ImportMatchIssue,
     ImportRowError,
     ImportRowErrorCode,
     TransactionImport,
@@ -37,7 +50,8 @@ from app.schemas.accounting.transaction_import import (
     TransactionImportStatus,
 )
 from app.schemas.base import CurrencyCode
-from app.services.accounting import transaction_import_reader
+from app.services.accounting import transaction_import_matching, transaction_import_reader
+from app.services.accounting.transaction_import_matching import EntityIdentity, EntityMatches
 from app.services.accounting.transaction_import_reader import CellValue, ImportFileRows, RawRow
 
 logger = get_logger(logger_name=__name__)
@@ -59,13 +73,13 @@ _COLUMN_FIELDS: frozendict[ImportColumn, str] = frozendict(
     }
 )
 _REQUIRED_COLUMNS: frozenset[ImportColumn] = frozenset(
-    (ImportColumn.TYPE, ImportColumn.DATE, ImportColumn.FROM, ImportColumn.AMOUNT, ImportColumn.CURRENCY)
+    (ImportColumn.TYPE, ImportColumn.DATE, ImportColumn.AMOUNT, ImportColumn.CURRENCY)
 )
 _REQUIRED_BY_TYPE: frozendict[TransactionType, frozenset[ImportColumn]] = frozendict(
     {
         TransactionType.EXPENSE: frozenset((ImportColumn.TO,)),
-        TransactionType.INCOME: frozenset((ImportColumn.TO, ImportColumn.TO_CURRENCY, ImportColumn.INCOME_MONTH)),
-        TransactionType.TRANSFER: frozenset((ImportColumn.TO, ImportColumn.TO_CURRENCY)),
+        TransactionType.INCOME: frozenset((ImportColumn.FROM, ImportColumn.TO_CURRENCY, ImportColumn.INCOME_MONTH)),
+        TransactionType.TRANSFER: frozenset((ImportColumn.TO_CURRENCY,)),
         TransactionType.ADJUSTMENT: frozenset(),
     }
 )
@@ -135,6 +149,7 @@ async def upload(*, db: AsyncSession, user_id: UUID, file: UploadFile) -> Transa
             "ignored_columns": file_rows.ignored_columns,
         },
     )
+    review: _ImportReview = await _review_import(db=db, import_db=import_db, rows=rows)
     records: list[dict[str, Any]] = []
     for row in rows:
         record: dict[str, Any] = row.model_dump(exclude={"errors"})
@@ -143,7 +158,7 @@ async def upload(*, db: AsyncSession, user_id: UUID, file: UploadFile) -> Transa
         records.append(record)
 
     await transaction_import_row_crud.insert_rows(db=db, rows=records)
-    result: TransactionImport = await _serialize_import(db=db, import_db=import_db)
+    result: TransactionImport = await _serialize_import(db=db, import_db=import_db, review=review)
     return result
 
 
@@ -165,21 +180,72 @@ async def get_import(*, db: AsyncSession, user_id: UUID, import_id: UUID) -> Tra
 async def get_rows(
     *, db: AsyncSession, user_id: UUID, import_id: UUID, request: TransactionImportRowsRequest
 ) -> Page[TransactionImportRow]:
-    await _get_owned_import(db=db, user_id=user_id, import_id=import_id)
-    rows: Page[ImportRowModel] = await transaction_import_row_crud.get_page(db=db, import_id=import_id, request=request)
-    result = Page[TransactionImportRow].model_validate(rows)
+    import_db: ImportModel = await _get_owned_import(db=db, user_id=user_id, import_id=import_id)
+    review: _ImportReview = await _review_import(db=db, import_db=import_db)
+    rows: list[TransactionImportRow] = [
+        row
+        for row in review.rows
+        if (request.has_errors is None or (len(row.errors) > 0) == request.has_errors)
+        and (request.is_duplicate is None or _is_duplicate(row=row) == request.is_duplicate)
+    ]
+    page_rows: list[TransactionImportRow] = rows[request.to_raw_params().as_slice()]
+    result: Page[TransactionImportRow] = Page[TransactionImportRow].create(page_rows, params=request, total=len(rows))
+    return result
+
+
+async def save_decisions(
+    *, db: AsyncSession, user_id: UUID, import_id: UUID, request: ImportDecisionsRequest
+) -> TransactionImport:
+    import_db: ImportModel = await _get_owned_import(db=db, user_id=user_id, import_id=import_id, with_for_update=True)
+    if import_db.status != TransactionImportStatus.REVIEW:
+        raise ImportInProgress(logger=logger)
+
+    stored_rows: list[ImportRowModel] = await transaction_import_row_crud.get_rows(db=db, import_id=import_id)
+    rows: list[TransactionImportRow] = [TransactionImportRow.model_validate(row) for row in stored_rows]
+    review: _ImportReview = await _review_import(db=db, import_db=import_db, rows=rows, request=request)
+    saved = ImportDecisionsRequest(
+        entities=request.entities,
+        duplicates=[
+            ImportDuplicateDecision(row_number=row.row_number, is_kept=row.is_kept)
+            for row in review.rows
+            if row.is_kept is not None
+        ],
+    )
+    updated_import: ImportModel = await transaction_import_crud.update_api(
+        db=db, db_obj=import_db, obj_in={"decisions": saved.model_dump(mode="json"), "preview": None}
+    )
+    reviews: list[dict[str, Any]] = []
+    for stored, row in zip(stored_rows, review.rows, strict=True):
+        errors: list[dict] = [error.model_dump(mode="json") for error in row.errors]
+        if (stored.errors, stored.duplicate_transaction_id, stored.duplicate_row_number, stored.is_kept) != (
+            errors,
+            row.duplicate_transaction_id,
+            row.duplicate_row_number,
+            row.is_kept,
+        ):
+            reviews.append(
+                {
+                    "id": stored.id,
+                    "errors": errors,
+                    "duplicate_transaction_id": row.duplicate_transaction_id,
+                    "duplicate_row_number": row.duplicate_row_number,
+                    "is_kept": row.is_kept,
+                }
+            )
+
+    await transaction_import_row_crud.update_reviews(db=db, reviews=reviews)
+    result: TransactionImport = await _serialize_import(db=db, import_db=updated_import, review=review)
     return result
 
 
 async def get_report(*, db: AsyncSession, user_id: UUID, import_id: UUID) -> str:
-    await _get_owned_import(db=db, user_id=user_id, import_id=import_id)
-    rows: list[ImportRowModel] = await transaction_import_row_crud.get_error_rows(db=db, import_id=import_id)
+    import_db: ImportModel = await _get_owned_import(db=db, user_id=user_id, import_id=import_id)
+    review: _ImportReview = await _review_import(db=db, import_db=import_db)
     with StringIO(newline="") as report:
         writer = csv.writer(report)
         writer.writerow(("Row", "Column", "Problem", "Correction"))
-        for row in rows:
-            for stored_error in row.errors:
-                error = ImportRowError.model_validate(stored_error)
+        for row in review.rows:
+            for error in row.errors:
                 column: str = IMPORT_COLUMN_HEADERS[error.column] if error.column is not None else ""
                 writer.writerow((row.row_number, column, error.message, error.correction))
 
@@ -211,8 +277,21 @@ async def _get_owned_import(
     return import_db
 
 
-async def _serialize_import(*, db: AsyncSession, import_db: ImportModel) -> TransactionImport:
-    row_count, error_row_count = await transaction_import_row_crud.get_counts(db=db, import_id=import_db.id)
+async def _serialize_import(
+    *, db: AsyncSession, import_db: ImportModel, review: _ImportReview | None = None
+) -> TransactionImport:
+    if review is None:
+        review = await _review_import(db=db, import_db=import_db)
+
+    error_row_count: int = sum(len(row.errors) > 0 for row in review.rows)
+    duplicates: list[TransactionImportRow] = [row for row in review.rows if _is_duplicate(row=row)]
+    undecided_duplicate_count: int = sum(row.is_kept is None for row in duplicates)
+    is_ready_for_preview: bool = (
+        import_db.status == TransactionImportStatus.REVIEW
+        and error_row_count == 0
+        and undecided_duplicate_count == 0
+        and all(group.issue is None for group in review.entities)
+    )
     applied_at: datetime | None = await transaction_import_crud.get_last_applied_at(
         db=db, user_id=import_db.user_id, file_hash=import_db.file_hash
     )
@@ -221,7 +300,11 @@ async def _serialize_import(*, db: AsyncSession, import_db: ImportModel) -> Tran
         status=import_db.status,
         file_name=import_db.file_name,
         file_format=import_db.file_format,
-        row_count=row_count,
+        row_count=len(review.rows),
+        entities=review.entities,
+        duplicate_row_count=len(duplicates),
+        undecided_duplicate_count=undecided_duplicate_count,
+        is_ready_for_preview=is_ready_for_preview,
         error_row_count=error_row_count,
         ignored_columns=import_db.ignored_columns,
         already_imported_on=applied_at.astimezone(UTC).date() if applied_at is not None else None,
@@ -229,6 +312,140 @@ async def _serialize_import(*, db: AsyncSession, import_db: ImportModel) -> Tran
         created_at=import_db.created_at,
         updated_at=import_db.updated_at,
     )
+    return result
+
+
+@dataclass(frozen=True)
+class _ImportReview:
+    rows: list[TransactionImportRow]
+    entities: list[ImportEntityGroup]
+
+
+DuplicateKey: TypeAlias = tuple[TransactionType, date, EntityIdentity, EntityIdentity | None, Decimal]
+
+
+async def _review_import(
+    *,
+    db: AsyncSession,
+    import_db: ImportModel,
+    rows: list[TransactionImportRow] | None = None,
+    request: ImportDecisionsRequest | None = None,
+) -> _ImportReview:
+    if rows is None:
+        stored: list[ImportRowModel] = await transaction_import_row_crud.get_rows(db=db, import_id=import_db.id)
+        rows = [TransactionImportRow.model_validate(row) for row in stored]
+
+    decisions: ImportDecisionsRequest = request or ImportDecisionsRequest.model_validate(
+        import_db.decisions or {"entities": [], "duplicates": []}
+    )
+    for row in rows:
+        row.errors = _file_errors(row=row)
+
+    accounts = await account_crud.get_user_accounts(db=db, user_id=import_db.user_id)
+    locations = await location_crud.get_user_locations(db=db, user_id=import_db.user_id)
+    classifications = await classification_crud.get_user_classifications(db=db, user_id=import_db.user_id)
+    matches: EntityMatches = transaction_import_matching.match_entities(
+        rows=rows,
+        accounts=accounts,
+        locations=locations,
+        classifications=classifications,
+        decisions=decisions.entities,
+        validate_decisions=request is not None,
+    )
+    row_keys: dict[int, DuplicateKey] = {}
+    transaction_keys: set[ImportTransactionKey] = set()
+    for row in rows:
+        key: DuplicateKey | None = _get_duplicate_key(row=row, matches=matches)
+        if key is not None:
+            row_keys[row.row_number] = key
+            kind, day, from_id, to_id, amount = key
+            if isinstance(from_id, UUID) and (to_id is None or isinstance(to_id, UUID)):
+                transaction_keys.add(ImportTransactionKey(kind, day, from_id, to_id, amount))
+
+    ledger_matches: dict[ImportTransactionKey, UUID] = await transaction_import_row_crud.find_duplicate_transactions(
+        db=db,
+        user_id=import_db.user_id,
+        keys=transaction_keys,
+        equity_ids=[account.id for account in accounts if account.kind == AccountKind.EQUITY],
+    )
+    duplicate_decisions: dict[int, bool] = {decision.row_number: decision.is_kept for decision in decisions.duplicates}
+    if request is not None and len(duplicate_decisions) != len(decisions.duplicates):
+        raise ImportDecisionsInvalid(reason="A duplicate row can only be decided once", logger=logger)
+
+    first_rows: dict[DuplicateKey, int] = {}
+    decision_rows: set[int] = set()
+    for row in rows:
+        old_reference: tuple[UUID | None, int | None] = (row.duplicate_transaction_id, row.duplicate_row_number)
+        key = row_keys.get(row.row_number)
+        row.duplicate_transaction_id = None
+        row.duplicate_row_number = None
+        row.is_kept = None
+        if key is not None:
+            row.duplicate_transaction_id = ledger_matches.get(key)
+            if row.duplicate_transaction_id is None:
+                first: int = first_rows.setdefault(key, row.row_number)
+                row.duplicate_row_number = first if first != row.row_number else None
+
+        if _is_duplicate(row=row):
+            decision_rows.add(row.row_number)
+            reference: tuple[UUID | None, int | None] = (row.duplicate_transaction_id, row.duplicate_row_number)
+            if request is not None or reference == old_reference:
+                row.is_kept = duplicate_decisions.get(row.row_number)
+
+        if old_reference != (None, None):
+            decision_rows.add(row.row_number)
+
+    if request is not None and not duplicate_decisions.keys() <= decision_rows:
+        raise ImportDecisionsInvalid(reason="Duplicate decision refers to a row without a duplicate", logger=logger)
+
+    result = _ImportReview(rows=rows, entities=matches.groups)
+    return result
+
+
+def _file_errors(*, row: TransactionImportRow) -> list[ImportRowError]:
+    errors: list[ImportRowError] = []
+    required: frozenset[ImportColumn] = _REQUIRED_COLUMNS | _REQUIRED_BY_TYPE.get(row.transaction_type, frozenset())
+    for error in row.errors:
+        if isinstance(error.code, ImportMatchIssue) or error.code == ImportRowErrorCode.SAME_ACCOUNT:
+            continue
+
+        if error.code == ImportRowErrorCode.FIELD_REQUIRED and error.column not in required:
+            continue
+
+        errors.append(error)
+
+    return errors
+
+
+def _get_duplicate_key(*, row: TransactionImportRow, matches: EntityMatches) -> DuplicateKey | None:
+    from_id: EntityIdentity | None = matches.assignments.get((row.row_number, ImportColumn.FROM))
+    to_id: EntityIdentity | None = matches.assignments.get((row.row_number, ImportColumn.TO))
+    if row.transaction_type == TransactionType.TRANSFER and from_id is not None and from_id == to_id:
+        row.errors.append(
+            ImportRowError(
+                column=ImportColumn.TO,
+                code=ImportRowErrorCode.SAME_ACCOUNT,
+                message="A transfer needs two different accounts",
+                correction=None,
+            )
+        )
+        return None
+
+    if (
+        from_id is None
+        or row.transaction_type is None
+        or row.transaction_date is None
+        or row.amount is None
+        or (row.transaction_type != TransactionType.ADJUSTMENT and to_id is None)
+    ):
+        return None
+
+    result: DuplicateKey = (row.transaction_type, row.transaction_date, from_id, to_id, row.amount)
+    return result
+
+
+def _is_duplicate(*, row: TransactionImportRow) -> bool:
+    result: bool = row.duplicate_transaction_id is not None or row.duplicate_row_number is not None
     return result
 
 

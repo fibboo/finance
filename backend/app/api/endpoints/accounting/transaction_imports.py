@@ -9,6 +9,7 @@ from starlette import status
 from app.api import transaction_import_responses
 from app.api.deps import DbTransaction, get_db, get_onboarded_user_id, get_user_id
 from app.schemas.accounting.transaction_import import (
+    ImportDecisionsRequest,
     ImportFileFormat,
     TransactionImport,
     TransactionImportRow,
@@ -76,11 +77,22 @@ async def get_transaction_import_rows(
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_user_id),
 ) -> Page[TransactionImportRow]:
-    """List the rows of a transaction import in file order, optionally filtered by validation errors."""
+    """List import rows in file order, optionally filtered by errors or suspected duplicates."""
     rows: Page[TransactionImportRow] = await transaction_import_service.get_rows(
         db=db, user_id=user_id, import_id=import_id, request=request
     )
     return rows
+
+
+@router.put("/{import_id}/decisions")
+async def save_transaction_import_decisions(
+    *, db: DbTransaction, import_id: UUID, request: ImportDecisionsRequest, user_id: UUID = Depends(get_user_id)
+) -> TransactionImport:
+    """Replace the entity and duplicate decisions for a transaction import in review."""
+    transaction_import: TransactionImport = await transaction_import_service.save_decisions(
+        db=db, user_id=user_id, import_id=import_id, request=request
+    )
+    return transaction_import
 
 
 @router.get(

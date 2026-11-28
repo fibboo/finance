@@ -2,7 +2,19 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Date, DateTime, ForeignKey, func, Index, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    func,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,6 +34,8 @@ class TransactionImport(Base):
     file_format: Mapped[str] = mapped_column(String(4))
     file_hash: Mapped[str] = mapped_column(String(64))
     ignored_columns: Mapped[list[str]] = mapped_column(JSONB)
+    decisions: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
+    preview: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
     failure: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -58,3 +72,8 @@ class TransactionImportRow(Base):
     location_name: Mapped[str | None] = mapped_column(Text)
     comment: Mapped[str | None] = mapped_column(Text)
     errors: Mapped[list[dict[str, str | None]]] = mapped_column(JSONB)
+    duplicate_transaction_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("transactions.id", name="transaction_import_row_duplicate_transaction_fk", ondelete="SET NULL")
+    )
+    duplicate_row_number: Mapped[int | None] = mapped_column(Integer)
+    is_kept: Mapped[bool | None] = mapped_column(Boolean)
