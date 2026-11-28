@@ -22,7 +22,11 @@ Everything money moves between is a row of `accounts` (`app/models/accounting/ac
 
 A deleted EXPENSE account of an expense or INCOME account of an income answers 422 `ACCOUNT_KIND_MISMATCH` (`TransactionProcessor._validate_counter_account`), since it is not an account the transaction may use. The money side of every transaction must be an ASSET account, which `_validate_account_is_active` checks after the not-found and deleted checks, with the same 422.
 
+<<<<<<< HEAD
 The type of a money account or a category is its user-defined classification. It replaced the fixed category types (VARIABLE, FIXED, PERIODIC), so a category has no type of its own beside it. New categories, the default ones included, take the user's default category type. `PUT /accounting/accounts/{account_id}` changes the name and description of any account but EQUITY, the color of a money account, the type of a money account or a category and the purpose of an EXPENSE account; a color or a purpose sent for another kind answers 422 `ACCOUNT_KIND_MISMATCH`.
+=======
+The type of a money account or a category is its user-defined classification. The fixed category types (VARIABLE, FIXED, PERIODIC) it replaced are no longer read, written or served: `3c68d022c920` drops the `account_category_type_by_kind` check so the new backend can leave the `category_type` column empty while the previous one, which still writes it, serves during the deploy, and the column goes in a later revision of its own deploy (`backend-migrations.md`), tracked by issue #591. Until then the model keeps the column in the table, so the models still match the revisions, but leaves it out of the mapper (`exclude_properties`): no query of this backend names it, so it keeps working once the next deploy drops the column while it still serves. New categories, the default ones included, take the user's default category type. `PUT /accounting/accounts/{account_id}` changes the name and description of any account but EQUITY, the color of a money account, the type of a money account or a category and the purpose of an EXPENSE account; a color or a purpose sent for another kind answers 422 `ACCOUNT_KIND_MISMATCH`.
+>>>>>>> origin/main
 
 ## Deleted accounts
 
@@ -42,4 +46,8 @@ Category purpose stays nullable in storage so the previous backend can still cre
 
 ## Classification ownership
 
+<<<<<<< HEAD
 The composite foreign key prevents one user's ledger account from retaining a reference to another user's classification after a merge.
+=======
+User-defined types were added beside the legacy category type so that the previous backend could keep writing it during the rollout. Migration triggers cover inserts and ownership changes from the previous backend while both versions can write; `legacy_account_classification` maps the `category_type` such a backend writes to a type and goes together with the column. The composite foreign key prevents one user's ledger account from retaining a reference to another user's classification after a merge.
+>>>>>>> origin/main
