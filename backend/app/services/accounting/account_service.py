@@ -34,6 +34,7 @@ from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import classification_service, currency_service, exchange_rate_service, ledger_service
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
@@ -47,7 +48,6 @@ DEFAULT_CATEGORIES: tuple[str, ...] = (
     "Health",
     "Clothing",
 )
-from app.utils import utils
 
 
 def _get_integrity_exception(*, exception: IntegrityError, user_id: UUID) -> ConflictException:
