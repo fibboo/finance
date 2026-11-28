@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { classificationQueries } from '@/features/accounts/api/classification-queries';
-import type { AccountOptionChoices } from '@/features/transactions/components/account-option-metadata';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 import { isThrownWithoutData } from '@/lib/query-meta';
 

@@ -3,6 +3,7 @@ import { Link, type To } from 'react-router';
 
 import { readAccountColor } from '@/lib/account-colors';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
+import { type AccountOptionChoices, readAccountMetaText } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -12,40 +13,8 @@ import { isDeletedAccount, type TransactionEntry } from './transaction-view';
 
 type Account = components['schemas']['Account'];
 type Posting = components['schemas']['Posting'];
-type DictionaryItem = components['schemas']['DictionaryItem'];
 
 export type ReadAccountLink = (account: Readonly<Account>) => To | undefined;
-
-function readLabel({
-  items,
-  key,
-  name,
-}: Readonly<{ items: readonly DictionaryItem[]; key: string; name: string }>): string {
-  const item = items.find((dictionaryItem) => dictionaryItem.key === key);
-  if (item === undefined) {
-    throw new Error(`The ${name} ${key} has no label.`);
-  }
-
-  return item.label;
-}
-
-function readKindText({
-  account,
-  accountKinds,
-  categoryTypes,
-}: Readonly<{
-  account: Account;
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
-}>): string {
-  const kindLabel = readLabel({ items: accountKinds, key: account.kind, name: 'account kind' });
-  const detail =
-    account.category_type === null
-      ? account.currency
-      : readLabel({ items: categoryTypes, key: account.category_type, name: 'category type' });
-  const kindText = detail === null ? kindLabel : `${kindLabel} · ${detail}`;
-  return kindText;
-}
 
 function readBaseAmount(posting: Posting): number | undefined {
   const baseAmountText = posting.base_amount ?? posting.estimated_base_amount;
@@ -118,8 +87,7 @@ type TransactionEntryBlockProps = Readonly<{
   entry: TransactionEntry;
   baseCurrency: string;
   referenceBaseAmount?: number | undefined;
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
+  accountOptionChoices: AccountOptionChoices;
   readAccountLink: ReadAccountLink;
 }>;
 
@@ -127,8 +95,7 @@ export function TransactionEntryBlock({
   entry,
   baseCurrency,
   referenceBaseAmount,
-  accountKinds,
-  categoryTypes,
+  accountOptionChoices,
   readAccountLink,
 }: TransactionEntryBlockProps) {
   const titleId = useId();
@@ -157,7 +124,7 @@ export function TransactionEntryBlock({
           </span>
           <span className={styles['metadata']}>
             <span className={styles['note']}>
-              {readKindText({ account, accountKinds, categoryTypes })}
+              {readAccountMetaText({ account, choices: accountOptionChoices })}
             </span>
             {balanceText !== undefined && <span className={styles['note']}>{balanceText}</span>}
           </span>

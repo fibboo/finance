@@ -5,7 +5,7 @@ import { beforeEach, expect, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
-import { server } from '@/test/setup';
+import { defaultCategoryTypeId, server } from '@/test/setup';
 
 import { DetailsColumn } from './details-column';
 
@@ -32,6 +32,7 @@ const groceries = {
   balance: '0',
   currency: null,
   category_type: 'VARIABLE',
+  classification_id: '20000000-0000-4000-8000-000000000002',
   base_currency_rate: '0',
   base_currency_balance: '0.00',
 } satisfies components['schemas']['Account'];
@@ -43,6 +44,7 @@ const salary = {
   id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60',
   kind: 'INCOME',
   category_type: null,
+  classification_id: null,
 } satisfies components['schemas']['Account'];
 
 const expense = {
@@ -154,7 +156,7 @@ test.each([
   {
     kind: 'a category',
     account: groceries,
-    meta: 'Expense · Variable',
+    meta: 'Groceries type',
     transactionsHref: `/transactions?category_ids=${groceries.id}`,
     deleteLabel: 'Delete category',
   },
@@ -173,6 +175,22 @@ test.each([
       http.get(`http://localhost/api/accounting/accounts/${account.id}`, () =>
         HttpResponse.json(account),
       ),
+      http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+        HttpResponse.json([
+          {
+            id: defaultCategoryTypeId,
+            name: 'Standard',
+            kind: 'EXPENSE_CATEGORY',
+            is_default: true,
+          },
+          {
+            id: groceries.classification_id,
+            name: 'Groceries type',
+            kind: 'EXPENSE_CATEGORY',
+            is_default: false,
+          },
+        ] satisfies components['schemas']['Classification'][]),
+      ),
     );
 
     // act
@@ -185,7 +203,7 @@ test.each([
     expect(
       await within(details).findByRole('heading', { level: 2, name: account.name }),
     ).toBeInTheDocument();
-    expect(within(details).getByText(meta)).toBeInTheDocument();
+    expect(await within(details).findByText(meta)).toBeInTheDocument();
     expect(within(details).queryByText('$0.00')).not.toBeInTheDocument();
     expect(within(details).queryByRole('link', { name: 'Adjust balance' })).not.toBeInTheDocument();
     expect(within(details).getByRole('link', { name: 'Transactions' })).toHaveAttribute(

@@ -3,6 +3,7 @@ import type { To } from 'react-router';
 
 import { DetailDescription } from '@/components/details-panel/detail-description';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
+import { type AccountOptionChoices, readAccountMetaText } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 
 import { AccountActions } from './account-actions';
@@ -12,33 +13,12 @@ import { AccountMark } from './account-mark';
 import styles from './account-overview.module.css';
 
 type Account = components['schemas']['Account'];
-type DictionaryItem = components['schemas']['DictionaryItem'];
-
-function readMetaText({
-  account,
-  baseCurrency,
-  accountKinds,
-  categoryTypes,
-}: Readonly<{
-  account: Readonly<Account>;
-  baseCurrency: string;
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
-}>): string {
-  const kindLabel = accountKinds.find((kind) => kind.key === account.kind)?.label;
-  const detail = isMoneyAccountKind(account.kind)
-    ? (account.currency ?? baseCurrency)
-    : categoryTypes.find((categoryType) => categoryType.key === account.category_type)?.label;
-  const metaText = [kindLabel, detail].filter((part) => part !== undefined).join(' · ');
-  return metaText;
-}
 
 type AccountOverviewProps = Readonly<{
   isCompact: boolean;
   account: Readonly<Account>;
   baseCurrency: string;
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
+  accountOptionChoices: AccountOptionChoices;
   adjustBalanceLink: To;
   transactionsLink: To;
   transactionsLinkId: string;
@@ -51,8 +31,7 @@ export function AccountOverview({
   isCompact,
   account,
   baseCurrency,
-  accountKinds,
-  categoryTypes,
+  accountOptionChoices,
   adjustBalanceLink,
   transactionsLink,
   transactionsLinkId,
@@ -81,7 +60,7 @@ export function AccountOverview({
         )}
         <div className={styles['heading']}>
           <span className={styles['meta']}>
-            {readMetaText({ account, baseCurrency, accountKinds, categoryTypes })}
+            {readAccountMetaText({ account, choices: accountOptionChoices })}
             {isDeleted && <span className={styles['badge']}>Deleted</span>}
           </span>
           <h2 id={titleId} className={styles['title']}>

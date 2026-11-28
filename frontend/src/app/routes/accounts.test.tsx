@@ -319,6 +319,7 @@ const mainCard = {
   currency: 'EUR',
   color: '#5B6CD9',
   description: 'Salary card, Intesa',
+  classification_id: '20000000-0000-4000-8000-000000000001',
   base_currency_rate: '0.9161',
   base_currency_balance: '3471.20',
 } satisfies components['schemas']['Account'];
@@ -327,6 +328,17 @@ test('opens an account from its row with its balance, description and actions', 
   // arrange
   const user = userEvent.setup();
   server.use(
+    http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', () =>
+      HttpResponse.json([
+        { id: defaultMoneyTypeId, name: 'Standard', kind: 'MONEY_ACCOUNT', is_default: true },
+        {
+          id: mainCard.classification_id,
+          name: 'Spending',
+          kind: 'MONEY_ACCOUNT',
+          is_default: false,
+        },
+      ] satisfies components['schemas']['Classification'][]),
+    ),
     http.get('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json({
         items: [wallet, mainCard],
@@ -348,7 +360,7 @@ test('opens an account from its row with its balance, description and actions', 
   // assert
   const details = await screen.findByRole('dialog', { name: 'Account details' });
   expect(await within(details).findByRole('heading', { name: 'Main card' })).toBeInTheDocument();
-  expect(details).toHaveTextContent('Asset · EUR');
+  expect(details).toHaveTextContent('Spending · EUR');
   expect(details).toHaveTextContent('€3,180.00');
   expect(details).toHaveTextContent('$3,471.20 · rate 0.9161');
   expect(details).toHaveTextContent('Salary card, Intesa');

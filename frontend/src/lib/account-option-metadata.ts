@@ -1,8 +1,6 @@
-import type { EntityPickerItem } from '@/components/entity-picker/entity-picker';
-import { readMoneyAccountColor } from '@/lib/account-colors';
-import { isMoneyAccountKind } from '@/lib/account-kinds';
-import type { components } from '@/lib/api-schema';
-import { readClassificationLabel } from '@/lib/classification-label';
+import { isMoneyAccountKind } from './account-kinds';
+import type { components } from './api-schema';
+import { readClassificationLabel } from './classification-label';
 
 type Account = components['schemas']['Account'];
 type Classification = components['schemas']['Classification'];
@@ -63,24 +61,19 @@ export function joinAccountOptionLabels(labels: readonly (string | undefined)[])
   return text;
 }
 
-export function toAccountPickerItem({
+export function readAccountMetaText({
   account,
   choices,
 }: Readonly<{
   account: Readonly<Account>;
   choices: AccountOptionChoices | undefined;
-}>): EntityPickerItem {
+}>): string {
+  if (account.kind === 'INCOME') {
+    const kindLabel = choices?.accountKinds?.find(({ key }) => key === account.kind)?.label;
+    return kindLabel ?? '';
+  }
+
   const metadata = readAccountOptionMetadata({ account, choices });
-  const item = {
-    id: account.id,
-    name: account.name,
-    color: readMoneyAccountColor(account),
-    description: account.description?.trim(),
-    note: joinAccountOptionLabels([
-      metadata.type,
-      metadata.isHighlighted ? undefined : metadata.detail,
-    ]),
-    highlightedNote: metadata.isHighlighted ? metadata.detail : undefined,
-  };
-  return item;
+  const metaText = joinAccountOptionLabels([metadata.type, metadata.detail]);
+  return metaText;
 }

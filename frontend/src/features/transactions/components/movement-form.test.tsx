@@ -70,7 +70,7 @@ const optionChoices = {
       is_default: false,
     },
   ],
-} satisfies import('./account-option-metadata').AccountOptionChoices;
+} satisfies import('@/lib/account-option-metadata').AccountOptionChoices;
 
 const currencies = [
   { key: 'EUR', label: 'Euro' },

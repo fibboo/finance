@@ -25,7 +25,7 @@ import {
   type MovementFormValues,
   readAccountCurrency,
 } from '../schemas/transaction-form';
-import type { AccountOptionChoices } from './account-option-metadata';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import { AmountField } from './amount-field';
 import { readAmountInputProps } from './amount-input';
 import { CalendarButton } from './calendar-button';

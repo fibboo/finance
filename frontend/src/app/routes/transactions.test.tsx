@@ -1531,11 +1531,13 @@ test('shows the selected transaction with its From and To, location and comment'
   expect(within(details).getByText('1 USD = 0.9165 EUR')).toBeInTheDocument();
   // From the money account To the category: its mark, name, kind, amount and base-currency value
   expect(within(details).getByRole('region', { name: 'From' })).toHaveTextContent(
-    'WWalletAsset · USDBalance $412.50-€42.80',
+    'WWalletEveryday account · USDBalance $412.50-€42.80',
   );
-  expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
-    'GGroceriesExpense · Variable+€42.80',
-  );
+  await waitFor(() => {
+    expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
+      'GGroceriesEveryday costs+€42.80',
+    );
+  });
   // the money account and the category open in place of the card
   expect(within(details).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
     'href',
@@ -2108,10 +2110,10 @@ test('collapses the valuation postings of a transfer into one exchange differenc
   // assert
   const details = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(await within(details).findByRole('region', { name: 'From' })).toHaveTextContent(
-    'WWalletAsset · USDBalance $412.50-$62.39',
+    'WWalletEveryday account · USDBalance $412.50-$62.39',
   );
   expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
-    'SSavingsAsset · EURBalance €300.00+€56.18',
+    'SSavingsEveryday account · EURBalance €300.00+€56.18',
   );
   expect(within(details).queryByText('Adjustments')).not.toBeInTheDocument();
   // the exchange difference and rate, then the empty location and comment
@@ -2156,7 +2158,7 @@ test('shows an adjustment that grows the balance as one To block', async () => {
   // assert
   const details = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(await within(details).findByRole('region', { name: 'To' })).toHaveTextContent(
-    'WWalletAsset · USDBalance $412.50+$12.00',
+    'WWalletEveryday account · USDBalance $412.50+$12.00',
   );
   expect(within(details).queryByRole('region', { name: 'From' })).not.toBeInTheDocument();
   expect(within(details).queryByText('Adjustments')).not.toBeInTheDocument();

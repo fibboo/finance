@@ -31,6 +31,7 @@ import type { components } from '@/lib/api-schema';
 
 import { writeClosedEntry, writeSelectedEntry } from './selected-entry';
 import { readTransactionsLink } from './transactions-link';
+import { useAccountOptionChoices } from './use-account-option-choices';
 
 type Account = components['schemas']['Account'];
 type DictionaryItem = components['schemas']['DictionaryItem'];
@@ -175,6 +176,11 @@ function SelectedAccount({
     ...accountQueries.detail(accountId ?? ''),
     enabled: accountId !== undefined,
   });
+  const accountOptionChoices = useAccountOptionChoices({
+    dictionaries,
+    isEnabled: account !== undefined,
+    hasCategories: account?.kind === 'EXPENSE',
+  });
   const isOpened = back !== undefined;
   const isAccountRevealEnabled = !isOpened && (isDesktop || !isShownByDefault);
   useEffect(() => {
@@ -236,6 +242,7 @@ function SelectedAccount({
         accountId={accountId}
         baseCurrency={baseCurrency}
         dictionaries={dictionaries}
+        accountOptionChoices={accountOptionChoices}
         readAdjustBalanceLink={(shownAccount) => ({
           search: writeNewAdjustment({ searchParams, accountId: shownAccount.id }).toString(),
         })}

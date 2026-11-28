@@ -7,7 +7,7 @@ import {
   type ItemIdParam,
   type TransactionFilters,
 } from '../api/transaction-filters';
-import type { AccountOptionChoices } from './account-option-metadata';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import { AmountFilter } from './amount-filter';
 import { itemFilters, readItemFilterLabel, type FilterItems } from './filter-labels';
 import styles from './filters-panel.module.css';

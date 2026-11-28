@@ -5,6 +5,7 @@ import { DetailDescription } from '@/components/details-panel/detail-description
 import { type DetailsBack, DetailsPanel } from '@/components/details-panel/details-panel';
 import { LoadError } from '@/components/load-error/load-error';
 import { isMoneyAccountKind } from '@/lib/account-kinds';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 
 import { accountQueries } from '../api/account-queries';
@@ -30,6 +31,7 @@ type AccountDetailsProps = Readonly<{
   accountId: string | undefined;
   baseCurrency: string;
   dictionaries: AccountingDictionaries | undefined;
+  accountOptionChoices: AccountOptionChoices;
   readAdjustBalanceLink: (account: Readonly<Account>) => To;
   readTransactionsLink: (account: Readonly<Account>) => To;
   transactionsLinkId: string;
@@ -51,6 +53,7 @@ export function AccountDetails({
   accountId,
   baseCurrency,
   dictionaries,
+  accountOptionChoices,
   readAdjustBalanceLink,
   readTransactionsLink,
   transactionsLinkId,
@@ -163,8 +166,7 @@ export function AccountDetails({
             isCompact={form === 'compact-panel'}
             account={account}
             baseCurrency={baseCurrency}
-            accountKinds={dictionaries.account_kinds}
-            categoryTypes={dictionaries.category_types}
+            accountOptionChoices={accountOptionChoices}
             adjustBalanceLink={readAdjustBalanceLink(account)}
             transactionsLink={readTransactionsLink(account)}
             transactionsLinkId={transactionsLinkId}

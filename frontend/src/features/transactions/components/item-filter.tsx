@@ -12,7 +12,7 @@ import {
   type AccountOptionChoices,
   joinAccountOptionLabels,
   readAccountOptionMetadata,
-} from './account-option-metadata';
+} from '@/lib/account-option-metadata';
 import styles from './item-filter.module.css';
 
 type FilterItem = components['schemas']['Account'] | components['schemas']['Location'];
