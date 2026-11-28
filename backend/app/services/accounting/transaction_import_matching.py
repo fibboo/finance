@@ -311,7 +311,12 @@ def _resolve_decision(
         return decision.entity_id
 
     new_entity: ImportNewEntity | None = decision.new_entity
-    if decision.entity_id is not None or new_entity is None or new_entity.currency != decision.currency:
+    if (
+        decision.entity_id is not None
+        or new_entity is None
+        or "\x00" in new_entity.name
+        or new_entity.currency != decision.currency
+    ):
         return None
 
     classification_id: UUID | None = new_entity.classification_id

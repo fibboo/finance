@@ -11,6 +11,7 @@ from fastapi import UploadFile
 
 from app.crud.accounting.account import account_crud
 from app.crud.accounting.location import location_crud
+from app.crud.accounting.posting import posting_crud
 from app.crud.accounting.transaction import transaction_crud
 from app.crud.accounting.transaction_import import transaction_import_crud, transaction_import_row_crud
 from app.crud.user.user import user_crud
@@ -18,8 +19,7 @@ from app.exceptions.conflict_409 import ImportInProgress
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import ImportDecisionsInvalid, ImportFileInvalid
 from app.schemas.accounting.account import AccountKind
-from app.schemas.accounting.posting import PostingCreate
-from app.schemas.accounting.transaction import TransactionCreate, TransactionType
+from app.schemas.accounting.transaction import TransactionType
 from app.schemas.accounting.transaction_import import (
     IMPORT_COLUMN_HEADERS,
     ImportColumn,
@@ -338,8 +338,16 @@ async def test_concurrent_first_uploads_leave_one_open_import(db, db_transaction
     assert stored.status == TransactionImportStatus.CANCELLED
 
 
+@pytest.mark.parametrize(
+    ("assigned_rows", "last_account", "expected_issue", "expected_error"),
+    [
+        ([2, 3], None, ImportMatchIssue.UNASSIGNED, ImportMatchIssue.UNASSIGNED),
+        (None, None, None, ImportRowErrorCode.SAME_ACCOUNT),
+        ([2, 3], "second", None, None),
+    ],
+)
 async def test_save_decisions_resolves_rows_recomputes_duplicates_and_clears_preview(
-    db, db_transaction, import_user_id
+    db, db_transaction, import_user_id, assigned_rows, last_account, expected_issue, expected_error
 ):
     # arrange
     first, second = await account_crud.create_batch(
@@ -350,89 +358,74 @@ async def test_save_decisions_resolves_rows_recomputes_duplicates_and_clears_pre
             {"user_id": import_user_id, "name": "Second card", "kind": AccountKind.ASSET, "currency": "EUR"},
         ],
     )
-    content = (
-        ",".join(IMPORT_COLUMN_HEADERS.values()) + "\n"
-        "Adjustment,2025-03-01,,,-5,EUR,,,,,,\n"
-        "Adjustment,2025-03-01,,,-5,EUR,,,,,,\n"
-        "Transfer,2025-03-01,,First card,5,EUR,,EUR,,,,\n"
-    ).encode()
-    imported = await upload(
-        db=db_transaction, user_id=import_user_id, file=UploadFile(file=BytesIO(content), filename="bank.csv")
+    imported = await transaction_import_crud.create(
+        db=db,
+        commit=True,
+        obj_in={
+            "user_id": import_user_id,
+            "status": TransactionImportStatus.REVIEW,
+            "file_name": "bank.csv",
+            "file_format": "CSV",
+            "file_hash": "a" * 64,
+            "ignored_columns": [],
+            "preview": {"row_count": 3},
+        },
     )
-    await transaction_import_crud.update_orm(db=db_transaction, id=imported.id, obj_in={"preview": {"row_count": 3}})
+    rows = {"import_id": imported.id, "transaction_date": date(2025, 3, 1), "currency": "EUR", "errors": []}
+    await transaction_import_row_crud.create_batch(
+        db=db,
+        commit=True,
+        objs_in=[
+            {**rows, "row_number": 2, "transaction_type": TransactionType.ADJUSTMENT, "amount": Decimal(-5)},
+            {**rows, "row_number": 3, "transaction_type": TransactionType.ADJUSTMENT, "amount": Decimal(-5)},
+            {
+                **rows,
+                "row_number": 4,
+                "transaction_type": TransactionType.TRANSFER,
+                "amount": Decimal(5),
+                "to_name": first.name,
+                "to_currency": "EUR",
+            },
+        ],
+    )
     selection = ImportEntityDecision(
         kind=ImportEntityKind.MONEY_ACCOUNT,
         name=None,
         currency="EUR",
-        row_numbers=[2, 3],
+        row_numbers=assigned_rows,
         action=ImportEntityAction.USE_EXISTING,
         entity_id=first.id,
     )
+    entities = [selection]
+    duplicates = []
+    if last_account == "second":
+        entities.append(selection.model_copy(update={"entity_id": second.id, "row_numbers": [4]}))
+        duplicates.append(ImportDuplicateDecision(row_number=3, is_kept=False))
 
     # act
-    partial = await save_decisions(
-        db=db_transaction,
-        user_id=import_user_id,
-        import_id=imported.id,
-        request=ImportDecisionsRequest(entities=[selection], duplicates=[]),
-    )
-    same_account = await save_decisions(
-        db=db_transaction,
-        user_id=import_user_id,
-        import_id=imported.id,
-        request=ImportDecisionsRequest(entities=[selection.model_copy(update={"row_numbers": None})], duplicates=[]),
-    )
-    invalid_rows = await get_rows(
-        db=db_transaction,
-        user_id=import_user_id,
-        import_id=imported.id,
-        request=TransactionImportRowsRequest(has_errors=True),
-    )
     saved = await save_decisions(
         db=db_transaction,
         user_id=import_user_id,
         import_id=imported.id,
-        request=ImportDecisionsRequest(
-            entities=[selection, selection.model_copy(update={"entity_id": second.id, "row_numbers": [4]})],
-            duplicates=[ImportDuplicateDecision(row_number=3, is_kept=False)],
-        ),
+        request=ImportDecisionsRequest(entities=entities, duplicates=duplicates),
     )
     await db_transaction.commit()
-    reloaded = await get_import(db=db, user_id=import_user_id, import_id=imported.id)
-    duplicate_page = await get_rows(
-        db=db,
-        user_id=import_user_id,
-        import_id=imported.id,
-        request=TransactionImportRowsRequest(is_duplicate=True),
-    )
-    other_page = await get_rows(
-        db=db,
-        user_id=import_user_id,
-        import_id=imported.id,
-        request=TransactionImportRowsRequest(is_duplicate=False),
-    )
-    stored = await transaction_import_crud.get(db=db, id=imported.id)
-    stored_duplicate = await transaction_import_row_crud.get(db=db, import_id=imported.id, row_number=3)
 
     # assert
-    assert imported.entities[0].issue == ImportMatchIssue.AMBIGUOUS
-    assert partial.entities[0].issue == ImportMatchIssue.UNASSIGNED
-    assert (partial.error_row_count, partial.duplicate_row_count, partial.undecided_duplicate_count) == (1, 1, 1)
-    assert not partial.is_ready_for_preview
-    assert not same_account.is_ready_for_preview
-    assert [(row.row_number, row.errors[0].code) for row in invalid_rows.items] == [
-        (4, ImportRowErrorCode.SAME_ACCOUNT)
-    ]
-    assert saved.is_ready_for_preview and reloaded.is_ready_for_preview
-    assert reloaded.entities[0].decisions[0].row_numbers == [2, 3]
-    assert (saved.error_row_count, saved.duplicate_row_count, saved.undecided_duplicate_count) == (0, 1, 0)
-    (duplicate,) = duplicate_page.items
-    assert (duplicate.row_number, duplicate.duplicate_row_number, duplicate.is_kept) == (3, 2, False)
-    assert [row.row_number for row in other_page.items] == [2, 4]
-    assert stored.preview is None
-    assert stored.decisions["duplicates"] == [{"row_number": 3, "is_kept": False}]
+    assert saved.entities[0].issue == expected_issue
+    assert saved.entities[0].decisions == entities
+    assert saved.is_ready_for_preview == (expected_error is None)
+    assert saved.error_row_count == int(expected_error is not None)
+    assert saved.duplicate_row_count == 1
+    assert saved.undecided_duplicate_count == int(last_account is None)
+    await db.refresh(imported)
+    assert imported.preview is None
+    assert imported.decisions["duplicates"] == [entry.model_dump(mode="json") for entry in duplicates]
+    stored_duplicate = await transaction_import_row_crud.get(db=db, import_id=imported.id, row_number=3)
     assert stored_duplicate.duplicate_row_number == 2
-    assert stored_duplicate.is_kept is False
+    assert stored_duplicate.is_kept is (False if last_account is not None else None)
+    stored_transfer = await transaction_import_row_crud.get(db=db, import_id=imported.id, row_number=4)
+    assert [error["code"] for error in stored_transfer.errors] == ([expected_error] if expected_error else [])
 
 
 async def test_revised_upload_matches_only_active_owned_transactions_and_preserves_adjustment_sign(
@@ -449,44 +442,50 @@ async def test_revised_upload_matches_only_active_owned_transactions_and_preserv
         ],
     )
     location = await location_crud.create(db=db, commit=True, obj_in={"user_id": import_user_id, "name": "No location"})
-    expense_fields = TransactionCreate(
-        user_id=import_user_id,
-        transaction_type=TransactionType.EXPENSE,
-        transaction_date=date(2025, 3, 1),
-        base_currency_amount=None,
-        location_id=location.id,
+    expense_fields = {
+        "user_id": import_user_id,
+        "transaction_type": TransactionType.EXPENSE,
+        "base_currency_amount": None,
+        "location_id": location.id,
+    }
+    expense, deleted, foreign, adjustment = await transaction_crud.create_batch(
+        db=db,
+        commit=True,
+        objs_in=[
+            {**expense_fields, "transaction_date": date(2025, 3, 1)},
+            {**expense_fields, "transaction_date": date(2025, 3, 2), "status": EntityStatusType.DELETED},
+            {**expense_fields, "transaction_date": date(2025, 3, 3), "user_id": uuid4()},
+            {
+                "user_id": import_user_id,
+                "transaction_type": TransactionType.ADJUSTMENT,
+                "transaction_date": date(2025, 3, 4),
+                "base_currency_amount": Decimal(5),
+            },
+        ],
     )
-    expense_postings = [
-        PostingCreate(account_id=card.id, amount=Decimal(-5), currency="EUR", base_amount=None),
-        PostingCreate(account_id=category.id, amount=Decimal(5), currency="EUR", base_amount=None),
-    ]
-    expense = await transaction_crud.create_with_postings(
-        db=db_transaction,
-        obj_in=expense_fields,
-        postings=expense_postings,
-    )
-    deleted = await transaction_crud.create_with_postings(
-        db=db_transaction,
-        obj_in=expense_fields.model_copy(update={"transaction_date": date(2025, 3, 2)}),
-        postings=expense_postings,
-    )
-    await transaction_crud.update_orm(db=db_transaction, id=deleted.id, obj_in={"status": EntityStatusType.DELETED})
-    await transaction_crud.create_with_postings(
-        db=db_transaction,
-        obj_in=expense_fields.model_copy(update={"transaction_date": date(2025, 3, 3), "user_id": uuid4()}),
-        postings=expense_postings,
-    )
-    adjustment = await transaction_crud.create_with_postings(
-        db=db_transaction,
-        obj_in=TransactionCreate(
-            user_id=import_user_id,
-            transaction_type=TransactionType.ADJUSTMENT,
-            transaction_date=date(2025, 3, 4),
-            base_currency_amount=Decimal(5),
-        ),
-        postings=[
-            PostingCreate(account_id=equity.id, amount=Decimal(-5), currency="EUR", base_amount=Decimal(-5)),
-            PostingCreate(account_id=card.id, amount=Decimal(5), currency="EUR", base_amount=Decimal(5)),
+    await posting_crud.create_batch(
+        db=db,
+        commit=True,
+        objs_in=[
+            {
+                "transaction_id": transaction.id,
+                "account_id": account_id,
+                "amount": Decimal(amount),
+                "currency": "EUR",
+                "base_amount": None,
+            }
+            for transaction in (expense, deleted, foreign)
+            for account_id, amount in ((card.id, -5), (category.id, 5))
+        ]
+        + [
+            {
+                "transaction_id": adjustment.id,
+                "account_id": account_id,
+                "amount": Decimal(amount),
+                "currency": "EUR",
+                "base_amount": Decimal(amount),
+            }
+            for account_id, amount in ((equity.id, -5), (card.id, 5))
         ],
     )
     content = (
@@ -503,18 +502,16 @@ async def test_revised_upload_matches_only_active_owned_transactions_and_preserv
         db=db_transaction, user_id=import_user_id, file=UploadFile(file=BytesIO(content), filename="revised.csv")
     )
     await db_transaction.commit()
-    rows = await get_rows(
-        db=db,
-        user_id=import_user_id,
-        import_id=imported.id,
-        request=TransactionImportRowsRequest(is_duplicate=True),
-    )
 
     # assert
     assert (imported.duplicate_row_count, imported.undecided_duplicate_count) == (2, 2)
-    assert [(row.row_number, row.duplicate_transaction_id, row.is_kept) for row in rows.items] == [
+    stored = await transaction_import_row_crud.get_rows(db=db, import_id=imported.id)
+    assert [(row.row_number, row.duplicate_transaction_id, row.is_kept) for row in stored] == [
         (2, expense.id, None),
+        (3, None, None),
+        (4, None, None),
         (5, adjustment.id, None),
+        (6, None, None),
     ]
 
 
@@ -532,9 +529,31 @@ async def test_save_decisions_rejects_invalid_existing_accounts(db, db_transacti
             "status": EntityStatusType.DELETED if invalid_account == "deleted" else EntityStatusType.ACTIVE,
         },
     )
-    content = (",".join(IMPORT_COLUMN_HEADERS.values()) + "\nAdjustment,2025-03-01,Card,,-5,EUR,,,,,,\n").encode()
-    imported = await upload(
-        db=db_transaction, user_id=import_user_id, file=UploadFile(file=BytesIO(content), filename="bank.csv")
+    imported = await transaction_import_crud.create(
+        db=db,
+        commit=True,
+        obj_in={
+            "user_id": import_user_id,
+            "status": TransactionImportStatus.REVIEW,
+            "file_name": "bank.csv",
+            "file_format": "CSV",
+            "file_hash": "a" * 64,
+            "ignored_columns": [],
+        },
+    )
+    await transaction_import_row_crud.create(
+        db=db,
+        commit=True,
+        obj_in={
+            "import_id": imported.id,
+            "row_number": 2,
+            "transaction_type": TransactionType.ADJUSTMENT,
+            "transaction_date": date(2025, 3, 1),
+            "currency": "EUR",
+            "from_name": "Card",
+            "amount": Decimal(-5),
+            "errors": [],
+        },
     )
     request = ImportDecisionsRequest(
         entities=[
@@ -553,17 +572,25 @@ async def test_save_decisions_rejects_invalid_existing_accounts(db, db_transacti
     with pytest.raises(ImportDecisionsInvalid):
         await save_decisions(db=db_transaction, user_id=import_user_id, import_id=imported.id, request=request)
 
-    stored = await transaction_import_crud.get(db=db_transaction, id=imported.id)
-    assert stored.decisions is None
+    # assert
+    await db.refresh(imported)
+    assert imported.decisions is None
 
 
-async def test_save_decisions_rejects_cancelled_import(db_transaction, import_user_id):
+async def test_save_decisions_rejects_cancelled_import(db, db_transaction, import_user_id):
     # arrange
-    content = (",".join(IMPORT_COLUMN_HEADERS.values()) + "\n").encode()
-    imported = await upload(
-        db=db_transaction, user_id=import_user_id, file=UploadFile(file=BytesIO(content), filename="bank.csv")
+    imported = await transaction_import_crud.create(
+        db=db,
+        commit=True,
+        obj_in={
+            "user_id": import_user_id,
+            "status": TransactionImportStatus.CANCELLED,
+            "file_name": "bank.csv",
+            "file_format": "CSV",
+            "file_hash": "a" * 64,
+            "ignored_columns": [],
+        },
     )
-    await discard(db=db_transaction, user_id=import_user_id, import_id=imported.id)
 
     # act / assert
     with pytest.raises(ImportInProgress):
@@ -575,45 +602,118 @@ async def test_save_decisions_rejects_cancelled_import(db_transaction, import_us
         )
 
 
-async def test_create_decisions_validate_account_fields_and_can_plan_a_new_entity(db_transaction, import_user_id):
+@pytest.mark.parametrize(
+    ("name", "has_unknown_classification", "is_valid"),
+    [("Cash", False, True), ("Cash", True, False), ("Cash\x00", False, False)],
+)
+async def test_create_decisions_validate_account_fields_and_can_plan_a_new_entity(
+    db, db_transaction, import_user_id, name, has_unknown_classification, is_valid
+):
     # arrange
-    content = (
-        ",".join(IMPORT_COLUMN_HEADERS.values()) + "\n"
-        "Adjustment,2025-03-01,Card,,-5,EUR,,,,,,\n"
-        "Adjustment,2025-03-01,Cash,,-5,EUR,,,,,,\n"
-    ).encode()
-    imported = await upload(
-        db=db_transaction, user_id=import_user_id, file=UploadFile(file=BytesIO(content), filename="bank.csv")
+    imported = await transaction_import_crud.create(
+        db=db,
+        commit=True,
+        obj_in={
+            "user_id": import_user_id,
+            "status": TransactionImportStatus.REVIEW,
+            "file_name": "bank.csv",
+            "file_format": "CSV",
+            "file_hash": "a" * 64,
+            "ignored_columns": [],
+            "preview": {"row_count": 2},
+        },
+    )
+    await transaction_import_row_crud.create_batch(
+        db=db,
+        commit=True,
+        objs_in=[
+            {
+                "import_id": imported.id,
+                "row_number": row_number,
+                "transaction_type": TransactionType.ADJUSTMENT,
+                "transaction_date": date(2025, 3, 1),
+                "currency": "EUR",
+                "from_name": from_name,
+                "amount": Decimal(-5),
+                "errors": [],
+            }
+            for row_number, from_name in ((2, "Card"), (3, "Cash"))
+        ],
     )
     new_account = ImportEntityDecision(
         kind=ImportEntityKind.MONEY_ACCOUNT,
         name="Card",
         currency="EUR",
         action=ImportEntityAction.CREATE,
-        new_entity=ImportNewEntity(name="Cash", currency="EUR"),
+        new_entity=ImportNewEntity(
+            name=name,
+            currency="EUR",
+            classification_id=uuid4() if has_unknown_classification else None,
+        ),
     )
-    invalid_account = new_account.model_copy(
-        update={"new_entity": ImportNewEntity(name="Cash", currency="EUR", classification_id=uuid4())}
-    )
+    request = ImportDecisionsRequest(entities=[new_account], duplicates=[])
+    if not is_valid:
+        # act / assert
+        with pytest.raises(ImportDecisionsInvalid):
+            await save_decisions(db=db_transaction, user_id=import_user_id, import_id=imported.id, request=request)
 
-    # act / assert
-    with pytest.raises(ImportDecisionsInvalid):
-        await save_decisions(
-            db=db_transaction,
-            user_id=import_user_id,
-            import_id=imported.id,
-            request=ImportDecisionsRequest(entities=[invalid_account], duplicates=[]),
-        )
+        await db.refresh(imported)
+        assert imported.decisions is None
+        assert imported.preview == {"row_count": 2}
+        return
 
     # act
-    saved = await save_decisions(
-        db=db_transaction,
-        user_id=import_user_id,
-        import_id=imported.id,
-        request=ImportDecisionsRequest(entities=[new_account], duplicates=[]),
-    )
+    saved = await save_decisions(db=db_transaction, user_id=import_user_id, import_id=imported.id, request=request)
+    await db_transaction.commit()
 
     # assert
     assert saved.entities[0].decisions == [new_account]
     assert (saved.duplicate_row_count, saved.undecided_duplicate_count) == (1, 1)
-    assert await account_crud.get_user_accounts(db=db_transaction, user_id=import_user_id) == []
+    await db.refresh(imported)
+    assert imported.decisions == request.model_dump(mode="json")
+    assert await account_crud.get_user_accounts(db=db, user_id=import_user_id) == []
+
+
+@pytest.mark.parametrize(("is_duplicate", "expected_rows"), [(True, [3]), (False, [2, 4])])
+async def test_get_rows_filters_duplicates(db, import_user_id, is_duplicate, expected_rows):
+    # arrange
+    imported = await transaction_import_crud.create(
+        db=db,
+        commit=True,
+        obj_in={
+            "user_id": import_user_id,
+            "status": TransactionImportStatus.REVIEW,
+            "file_name": "bank.csv",
+            "file_format": "CSV",
+            "file_hash": "a" * 64,
+            "ignored_columns": [],
+        },
+    )
+    await transaction_import_row_crud.create_batch(
+        db=db,
+        commit=True,
+        objs_in=[
+            {
+                "import_id": imported.id,
+                "row_number": number,
+                "transaction_type": TransactionType.ADJUSTMENT,
+                "transaction_date": date(2025, 3, 1),
+                "currency": "EUR",
+                "from_name": "Card",
+                "amount": Decimal(amount),
+                "errors": [],
+            }
+            for number, amount in ((2, -5), (3, -5), (4, 5))
+        ],
+    )
+
+    # act
+    page = await get_rows(
+        db=db,
+        user_id=import_user_id,
+        import_id=imported.id,
+        request=TransactionImportRowsRequest(is_duplicate=is_duplicate),
+    )
+
+    # assert
+    assert [row.row_number for row in page.items] == expected_rows
