@@ -29,7 +29,6 @@ MONEY_ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_classification_id_name
 
 class Account(Base):
     __tablename__ = "accounts"
-    __mapper_args__ = {"exclude_properties": ["category_type"]}
     __table_args__ = (
         ForeignKeyConstraint(
             ["user_id", "classification_id"],
@@ -70,7 +69,6 @@ class Account(Base):
     balance: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
     currency: Mapped[str | None] = mapped_column(String(3), ForeignKey(Currency.code), nullable=True)
     color: Mapped[str | None] = mapped_column(String(7), nullable=True)
-    category_type: Mapped[str | None] = mapped_column(String(8), nullable=True)
     classification_id: Mapped[UUID | None] = mapped_column(DB_UUID, index=True)
     category_purpose: Mapped[CategoryPurpose | None] = mapped_column(
         Enum(CategoryPurpose, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
