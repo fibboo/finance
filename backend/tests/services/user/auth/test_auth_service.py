@@ -32,7 +32,7 @@ from app.models.user.authorization_request import AuthorizationRequest as Author
 from app.models.user.external_user import ExternalUser as ExternalUserModel
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountKind, CategoryType
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.transaction import TransactionType
 from app.schemas.base import EntityStatusType
 from app.schemas.error_response import ErrorCodeType
@@ -2318,7 +2318,6 @@ async def test_complete_link_identity_of_another_user(
                 "user_id": other_user_db.id,
                 "kind": AccountKind.EXPENSE,
                 "name": "Groceries",
-                "category_type": CategoryType.VARIABLE,
             },
             {"user_id": user_db.id, "kind": AccountKind.ASSET, "name": "Wallet", "currency": "USD"},
         ],

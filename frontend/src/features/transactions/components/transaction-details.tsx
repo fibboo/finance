@@ -1,6 +1,7 @@
 import { keepPreviousData, type QueryKey, useQuery } from '@tanstack/react-query';
 
 import { DetailsPanel } from '@/components/details-panel/details-panel';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 
 import { readTransactionLinkId } from '../api/selected-transaction';
@@ -25,6 +26,7 @@ type TransactionDetailsProps = Readonly<{
   isTransactionPending: boolean;
   baseCurrency: string;
   dictionaries: AccountingDictionaries | undefined;
+  accountOptionChoices: AccountOptionChoices;
   readAccountLink: ReadAccountLink;
   readLocationLink: ReadLocationLink;
   relatedQueryKeys: readonly QueryKey[];
@@ -40,6 +42,7 @@ export function TransactionDetails({
   isTransactionPending,
   baseCurrency,
   dictionaries,
+  accountOptionChoices,
   readAccountLink,
   readLocationLink,
   relatedQueryKeys,
@@ -103,8 +106,7 @@ export function TransactionDetails({
               transaction={transaction}
               baseCurrency={baseCurrency}
               transactionTypes={dictionaries.transaction_types}
-              accountKinds={dictionaries.account_kinds}
-              categoryTypes={dictionaries.category_types}
+              accountOptionChoices={accountOptionChoices}
               readAccountLink={readAccountLink}
               readLocationLink={readLocationLink}
               closeButton={closeButton}

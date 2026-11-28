@@ -18,7 +18,6 @@ const cigarettes = {
   balance: '0',
   currency: null,
   color: null,
-  category_type: 'VARIABLE',
   base_currency_rate: '1',
   status: 'DELETED',
   base_currency_balance: '0',
@@ -73,7 +72,6 @@ test('names an income source in the window and in the reason an active one holds
   const scholarship = {
     ...cigarettes,
     kind: 'INCOME',
-    category_type: null,
     name: 'Scholarship',
   } satisfies components['schemas']['Account'];
   server.use(

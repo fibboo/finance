@@ -17,7 +17,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: '#2E8C7A',
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',

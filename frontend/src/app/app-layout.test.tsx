@@ -117,8 +117,6 @@ test.each([
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [],
-        category_types: [],
         transaction_types: [
           { key: 'EXPENSE', label: 'Expense' },
           { key: 'ADJUSTMENT', label: 'Adjustment' },

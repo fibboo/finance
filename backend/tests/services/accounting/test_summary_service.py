@@ -14,7 +14,7 @@ from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountCreate, AccountKind, AccountUpdate, CategoryPurpose, CategoryType
+from app.schemas.accounting.account import AccountCreate, AccountKind, AccountUpdate, CategoryPurpose
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.summary import Summary
@@ -111,7 +111,6 @@ async def test_get_summary_ok(db: AsyncSession):
             user_id=user_id,
             kind=AccountKind.EXPENSE,
             name="Food",
-            category_type=CategoryType.VARIABLE,
         ),
         commit=True,
     )
@@ -348,7 +347,6 @@ async def test_get_summary_spent_more_than_earned(db: AsyncSession):
             user_id=user_id,
             kind=AccountKind.EXPENSE,
             name="Rent",
-            category_type=CategoryType.FIXED,
         ),
         commit=True,
     )
@@ -466,7 +464,6 @@ async def test_get_summary_money_accounts_only(db: AsyncSession):
             "kind": AccountKind.EXPENSE,
             "user_id": user_id,
             "name": "Groceries",
-            "category_type": CategoryType.VARIABLE,
             "balance": Decimal("70.00"),
             "base_balance": Decimal("70.00"),
         },
@@ -519,9 +516,7 @@ async def test_get_summary_unvalued_spent_by_currency(db: AsyncSession):
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -624,9 +619,7 @@ async def test_get_summary_estimates_unvalued_at_market_rate(db: AsyncSession, h
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -688,9 +681,7 @@ async def test_get_summary_estimate_rates_of_estimated_currencies(db: AsyncSessi
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_db.id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -778,7 +769,6 @@ async def test_summary_partitions_income_costs_after_historical_reclassification
             user_id=user_id,
             kind=AccountKind.EXPENSE,
             name="Taxes",
-            category_type=CategoryType.PERIODIC,
             category_purpose=CategoryPurpose.INCOME_COST,
         ),
         commit=True,
@@ -789,16 +779,13 @@ async def test_summary_partitions_income_costs_after_historical_reclassification
             "user_id": user_id,
             "kind": AccountKind.EXPENSE,
             "name": "Personal",
-            "category_type": CategoryType.VARIABLE,
             "category_purpose": None,
         },
         commit=True,
     )
     changed: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Subscriptions", category_type=CategoryType.FIXED
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Subscriptions"),
         commit=True,
     )
     location: LocationModel = await location_crud.create(

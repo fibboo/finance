@@ -23,7 +23,7 @@ from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.posting import Posting as PostingModel
 from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountKind, AdjustmentCreate, CategoryType
+from app.schemas.accounting.account import AccountKind, AdjustmentCreate
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.transaction import MovementRequest, Transaction, TransactionType
 from app.schemas.base import EntityStatusType
@@ -885,7 +885,6 @@ async def test_create_adjustment_category_account(db: AsyncSession, db_transacti
         "kind": AccountKind.EXPENSE,
         "user_id": user_id,
         "name": "Groceries",
-        "category_type": CategoryType.VARIABLE,
     }
     account_db: AccountModel = await account_crud.create(db=db, obj_in=account_create_data, commit=True)
 
@@ -1042,7 +1041,6 @@ async def test_update_adjustment_new_date_revalues_later_postings(db: AsyncSessi
         "kind": AccountKind.EXPENSE,
         "user_id": user_id,
         "name": "Groceries",
-        "category_type": CategoryType.VARIABLE,
     }
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
     location_db: LocationModel = await location_crud.create(

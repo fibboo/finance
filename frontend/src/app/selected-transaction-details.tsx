@@ -22,6 +22,7 @@ import { ApiError, NOT_FOUND_STATUS } from '@/lib/api-error';
 import type { components } from '@/lib/api-schema';
 
 import { TransactionFormSkeleton } from './transaction-form-skeleton';
+import { useAccountOptionChoices } from './use-account-option-choices';
 import { useMovementChoices } from './use-movement-choices';
 
 type AccountingDictionaries = components['schemas']['AccountingDictionaries'];
@@ -67,6 +68,12 @@ function SelectedTransaction({
     enabled: transactionId !== undefined,
   });
   const choices = useMovementChoices(isEditing ? transaction?.transaction_type : undefined);
+  const accountOptionChoices = useAccountOptionChoices({
+    dictionaries,
+    isEnabled: transactionId !== undefined,
+    hasCategories: transaction?.transaction_type === 'EXPENSE',
+    isFailureThrown: false,
+  });
   const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
   if (isNotFound && isShownByDefault) {
     return null;
@@ -97,6 +104,7 @@ function SelectedTransaction({
         isTransactionPending={isTransactionPending}
         baseCurrency={baseCurrency}
         dictionaries={dictionaries}
+        accountOptionChoices={accountOptionChoices}
         readAccountLink={readAccountLink}
         readLocationLink={readLocationLink}
         relatedQueryKeys={relatedQueryKeys}

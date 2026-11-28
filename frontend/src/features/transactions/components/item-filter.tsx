@@ -6,13 +6,13 @@ import type { z } from 'zod';
 import { readMoneyAccountColor } from '@/lib/account-colors';
 import type { components } from '@/lib/api-schema';
 import { SearchField } from '@/components/search-field/search-field';
-
-import { itemFilterFormSchema } from '../schemas/transaction-filter-forms';
 import {
   type AccountOptionChoices,
   joinAccountOptionLabels,
   readAccountOptionMetadata,
-} from './account-option-metadata';
+} from '@/lib/account-option-metadata';
+
+import { itemFilterFormSchema } from '../schemas/transaction-filter-forms';
 import styles from './item-filter.module.css';
 
 type FilterItem = components['schemas']['Account'] | components['schemas']['Location'];

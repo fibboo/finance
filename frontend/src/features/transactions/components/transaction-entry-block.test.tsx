@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
 
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
 
@@ -14,7 +15,7 @@ const wallet = {
   balance: '4120.00',
   currency: 'EUR',
   color: null,
-  category_type: null,
+  classification_id: '4e5f6a7b-8c9d-4e0f-9a1b-2c3d4e5f6a7b',
   base_currency_rate: '0.8547',
   status: 'ACTIVE',
   base_currency_balance: '4820.40',
@@ -27,7 +28,7 @@ const category = {
   kind: 'EXPENSE',
   balance: '0',
   currency: null,
-  category_type: 'FIXED',
+  classification_id: '6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d',
   base_currency_rate: '0',
   base_currency_balance: '0.00',
 } satisfies components['schemas']['Account'];
@@ -37,18 +38,40 @@ const incomeSource = {
   name: 'Salary',
   id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a',
   kind: 'INCOME',
-  category_type: null,
+  classification_id: null,
 } satisfies components['schemas']['Account'];
 
-const accountKinds = [
-  { key: 'ASSET', label: 'Asset' },
-  { key: 'EXPENSE', label: 'Expense' },
-  { key: 'INCOME', label: 'Income' },
-] satisfies components['schemas']['DictionaryItem'][];
-
-const categoryTypes = [
-  { key: 'FIXED', label: 'Fixed' },
-] satisfies components['schemas']['DictionaryItem'][];
+const accountOptionChoices = {
+  moneyAccountTypes: [
+    {
+      id: '4e5f6a7b-8c9d-4e0f-9a1b-2c3d4e5f6a7b',
+      name: 'Spending',
+      kind: 'MONEY_ACCOUNT',
+      is_default: true,
+    },
+    {
+      id: '5f6a7b8c-9d0e-4f1a-8b2c-3d4e5f6a7b8c',
+      name: 'Reserve',
+      kind: 'MONEY_ACCOUNT',
+      is_default: false,
+    },
+  ],
+  expenseCategoryTypes: [
+    {
+      id: '6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d',
+      name: 'Bills',
+      kind: 'EXPENSE_CATEGORY',
+      is_default: true,
+    },
+    {
+      id: '7b8c9d0e-1f2a-4b3c-8d4e-5f6a7b8c9d0e',
+      name: 'Leisure',
+      kind: 'EXPENSE_CATEGORY',
+      is_default: false,
+    },
+  ],
+  categoryPurposes: [{ key: 'PERSONAL', label: 'Personal' }],
+} satisfies AccountOptionChoices;
 
 test.each([
   {
@@ -56,42 +79,49 @@ test.each([
     account: wallet,
     pageEntryId: null,
     href: `/accounts?account=${wallet.id}`,
-    text: 'FromWWalletAsset · EURBalance €4,120.00-€900.00≈ -$1,053.00',
+    text: 'FromWWalletSpending · EURBalance €4,120.00-€900.00≈ -$1,053.00',
   },
   {
     kind: 'shows a deleted money account struck through, without a balance or a link',
     account: { ...wallet, status: 'DELETED' },
     pageEntryId: null,
     href: null,
-    text: 'FromWWallet, deletedAsset · EUR-€900.00≈ -$1,053.00',
+    text: 'FromWWallet, deletedSpending · EUR-€900.00≈ -$1,053.00',
   },
   {
-    kind: 'shows a category with its type and a link',
+    kind: 'shows a category with its type, its purpose and a link',
     account: category,
     pageEntryId: null,
     href: `/accounts?account=${category.id}`,
-    text: 'FromRRentExpense · Fixed-€900.00≈ -$1,053.00',
+    text: 'FromRRentBills · Personal-€900.00≈ -$1,053.00',
   },
   {
     kind: 'shows the category of the page as plain text',
     account: category,
     pageEntryId: category.id,
     href: null,
-    text: 'FromRRentExpense · Fixed-€900.00≈ -$1,053.00',
+    text: 'FromRRentBills · Personal-€900.00≈ -$1,053.00',
   },
   {
     kind: 'shows a deleted category struck through, without a link',
     account: { ...category, status: 'DELETED' },
     pageEntryId: null,
     href: null,
-    text: 'FromRRent, deletedExpense · Fixed-€900.00≈ -$1,053.00',
+    text: 'FromRRent, deletedBills · Personal-€900.00≈ -$1,053.00',
   },
   {
-    kind: 'shows an income source with its kind',
+    kind: 'shows only the purpose of a category without a classification',
+    account: { ...category, classification_id: null },
+    pageEntryId: null,
+    href: `/accounts?account=${category.id}`,
+    text: 'FromRRentPersonal-€900.00≈ -$1,053.00',
+  },
+  {
+    kind: 'shows an income source as such',
     account: incomeSource,
     pageEntryId: null,
     href: `/accounts?account=${incomeSource.id}`,
-    text: 'FromSSalaryIncome-€900.00≈ -$1,053.00',
+    text: 'FromSSalaryIncome source-€900.00≈ -$1,053.00',
   },
 ] satisfies {
   kind: string;
@@ -114,8 +144,7 @@ test.each([
         },
       }}
       baseCurrency="USD"
-      accountKinds={accountKinds}
-      categoryTypes={categoryTypes}
+      accountOptionChoices={accountOptionChoices}
       readAccountLink={(linkedAccount) =>
         linkedAccount.id === pageEntryId
           ? undefined
@@ -144,14 +173,13 @@ test('leaves out the estimate of an amount in the base currency', async () => {
         },
       }}
       baseCurrency="USD"
-      accountKinds={accountKinds}
-      categoryTypes={categoryTypes}
+      accountOptionChoices={accountOptionChoices}
       readAccountLink={() => undefined}
     />,
   );
 
   // assert
   expect(await screen.findByRole('region', { name: 'To' })).toHaveTextContent(
-    'ToWWalletAsset · USDBalance $1,204.50+$62.39',
+    'ToWWalletSpending · USDBalance $1,204.50+$62.39',
   );
 });

@@ -9,6 +9,7 @@ import { type CreateFormProps, EntityPicker } from '@/components/entity-picker/e
 import { AmountCalculator } from '@/components/amount-calculator/amount-calculator';
 import { useToday } from '@/hooks/use-today';
 import { readAccountColor } from '@/lib/account-colors';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 import { readIsoDate, toDateText } from '@/lib/format-date';
 import { formatMoney } from '@/lib/format-money';
@@ -32,7 +33,7 @@ import { readDateInputProps } from './date-input';
 import { FormHeader, NEW_TRANSACTION_TITLE, type TypeChoice } from './form-header';
 import { InputRow } from './input-row';
 import { readBaseCurrencyHint, readEnteredRate } from './movement-config';
-import { type AccountOptionChoices, toAccountPickerItem } from './account-option-metadata';
+import { toAccountPickerItem } from './account-picker-item';
 import { readMoneyAccountNote } from './money-account-item';
 import { addOwnChoices } from './movement-values';
 import { PickerRow } from './picker-row';

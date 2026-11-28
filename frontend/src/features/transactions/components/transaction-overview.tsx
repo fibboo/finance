@@ -2,6 +2,7 @@ import { type ReactNode, useId } from 'react';
 import { Link, type To } from 'react-router';
 
 import { ActionBar } from '@/components/action-bar/action-bar';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 import { formatMoney } from '@/lib/format-money';
 
@@ -101,8 +102,7 @@ type TransactionOverviewProps = Readonly<{
   transaction: Readonly<Transaction>;
   baseCurrency: string;
   transactionTypes: readonly DictionaryItem[];
-  accountKinds: readonly DictionaryItem[];
-  categoryTypes: readonly DictionaryItem[];
+  accountOptionChoices: AccountOptionChoices;
   readAccountLink: ReadAccountLink;
   readLocationLink: ReadLocationLink;
   closeButton: ReactNode;
@@ -114,8 +114,7 @@ export function TransactionOverview({
   transaction,
   baseCurrency,
   transactionTypes,
-  accountKinds,
-  categoryTypes,
+  accountOptionChoices,
   readAccountLink,
   readLocationLink,
   closeButton,
@@ -166,8 +165,7 @@ export function TransactionOverview({
           entry={entry}
           baseCurrency={baseCurrency}
           referenceBaseAmount={view.currency === baseCurrency ? view.amount : baseAmount}
-          accountKinds={accountKinds}
-          categoryTypes={categoryTypes}
+          accountOptionChoices={accountOptionChoices}
           readAccountLink={readAccountLink}
         />
       ))}

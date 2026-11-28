@@ -12,6 +12,7 @@ import {
 import { AmountCalculator } from '@/components/amount-calculator/amount-calculator';
 import { useToday } from '@/hooks/use-today';
 import { readMoneyAccountColor } from '@/lib/account-colors';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 import { toDateText } from '@/lib/format-date';
 
@@ -25,7 +26,6 @@ import {
   type MovementFormValues,
   readAccountCurrency,
 } from '../schemas/transaction-form';
-import type { AccountOptionChoices } from './account-option-metadata';
 import { AmountField } from './amount-field';
 import { readAmountInputProps } from './amount-input';
 import { CalendarButton } from './calendar-button';

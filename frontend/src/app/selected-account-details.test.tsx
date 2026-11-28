@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { expect, test, vi } from 'vitest';
 
@@ -17,7 +17,6 @@ const account = {
   balance: '412.50',
   currency: 'USD',
   color: null,
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -44,8 +43,6 @@ test.each([
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'USD', label: 'US Dollar' }],
-        account_kinds: [{ key: 'ASSET', label: 'Asset' }],
-        category_types: [],
         transaction_types: [],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -104,4 +101,49 @@ test.each([
   // assert
   await screen.findByText('Savings');
   expect(screen.getByRole('list', { name: 'Accounts' }).scrollLeft).toBe(scrollLeft);
+});
+
+test('shows the account when its types fail to load', async () => {
+  // arrange
+  let isTypeRequestFailed = false;
+  server.use(
+    http.get(`http://localhost/api/accounting/accounts/${account.id}`, () =>
+      HttpResponse.json(account),
+    ),
+    http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', () => {
+      isTypeRequestFailed = true;
+      return HttpResponse.json({ message: 'Internal server error' }, { status: 500 });
+    }),
+    http.get('http://localhost/api/dictionaries/accounting', () =>
+      HttpResponse.json({
+        currencies: [{ key: 'USD', label: 'US Dollar' }],
+        transaction_types: [],
+        transaction_orders: [],
+      } satisfies components['schemas']['AccountingDictionaries']),
+    ),
+  );
+
+  // act
+  render(
+    <SelectedAccountDetails
+      form="panel"
+      baseCurrency="USD"
+      accountCount={3}
+      shownAccount={{
+        kind: 'selected',
+        defaultAccountId: account.id,
+        isDefaultAccountPending: false,
+        isParamIgnored: false,
+      }}
+      isKeptOpenOnDesktop
+      isMoneyAccountOnly
+    />,
+  );
+
+  // assert
+  await waitFor(() => {
+    expect(isTypeRequestFailed).toBe(true);
+  });
+  expect(await screen.findByRole('heading', { level: 2, name: 'Savings' })).toBeInTheDocument();
+  expect(await screen.findByText('USD')).toBeInTheDocument();
 });

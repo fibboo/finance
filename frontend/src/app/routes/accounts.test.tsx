@@ -17,7 +17,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: '#4D8FBF',
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -57,8 +56,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'USD', label: 'US Dollar' }],
-        account_kinds: [{ key: 'ASSET', label: 'Asset' }],
-        category_types: [],
         transaction_types: [],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -319,6 +316,7 @@ const mainCard = {
   currency: 'EUR',
   color: '#5B6CD9',
   description: 'Salary card, Intesa',
+  classification_id: '20000000-0000-4000-8000-000000000001',
   base_currency_rate: '0.9161',
   base_currency_balance: '3471.20',
 } satisfies components['schemas']['Account'];
@@ -327,6 +325,17 @@ test('opens an account from its row with its balance, description and actions', 
   // arrange
   const user = userEvent.setup();
   server.use(
+    http.get('http://localhost/api/accounting/classifications/MONEY_ACCOUNT', () =>
+      HttpResponse.json([
+        { id: defaultMoneyTypeId, name: 'Standard', kind: 'MONEY_ACCOUNT', is_default: true },
+        {
+          id: mainCard.classification_id,
+          name: 'Spending',
+          kind: 'MONEY_ACCOUNT',
+          is_default: false,
+        },
+      ] satisfies components['schemas']['Classification'][]),
+    ),
     http.get('http://localhost/api/accounting/accounts', () =>
       HttpResponse.json({
         items: [wallet, mainCard],
@@ -348,7 +357,7 @@ test('opens an account from its row with its balance, description and actions', 
   // assert
   const details = await screen.findByRole('dialog', { name: 'Account details' });
   expect(await within(details).findByRole('heading', { name: 'Main card' })).toBeInTheDocument();
-  expect(details).toHaveTextContent('Asset · EUR');
+  expect(details).toHaveTextContent('Spending · EUR');
   expect(details).toHaveTextContent('€3,180.00');
   expect(details).toHaveTextContent('$3,471.20 · rate 0.9161');
   expect(details).toHaveTextContent('Salary card, Intesa');
@@ -760,7 +769,6 @@ test('drops the account param of an account that is not a money account', async 
     kind: 'EXPENSE',
     currency: null,
     color: null,
-    category_type: 'VARIABLE',
   } satisfies components['schemas']['Account'];
   server.use(
     http.get('http://localhost/api/accounting/accounts', () =>
@@ -1031,7 +1039,6 @@ const groceries = {
   balance: '0',
   currency: null,
   color: null,
-  category_type: 'VARIABLE',
   base_currency_rate: '0',
   base_currency_balance: '0.00',
 } satisfies components['schemas']['Account'];
@@ -1098,11 +1105,6 @@ function serveAccountTransactions() {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [{ key: 'USD', label: 'US Dollar' }],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
         transaction_types: [
           { key: 'EXPENSE', label: 'Expense' },
           { key: 'TRANSFER', label: 'Transfer' },

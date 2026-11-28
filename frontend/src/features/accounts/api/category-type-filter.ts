@@ -1,10 +1,7 @@
 import { z } from 'zod';
 
-import { categoryTypeValues, type components } from '@/lib/api-schema';
-
 import type { Classification } from './classification-queries';
 
-type CategoryType = components['schemas']['CategoryType'];
 type ClassificationFilterParam = 'account_type' | 'category_type';
 
 export function readClassificationFilter({
@@ -25,12 +22,6 @@ export function readClassificationFilter({
     ? classifications.find((classification) => classification.id === parsed.data)?.id
     : undefined;
   return classificationId;
-}
-
-export function readLegacyCategoryType(searchParams: URLSearchParams): CategoryType | undefined {
-  const parsed = z.enum(categoryTypeValues).safeParse(searchParams.get('category_type'));
-  const categoryType = parsed.success ? parsed.data : undefined;
-  return categoryType;
 }
 
 export function writeClassificationFilter({

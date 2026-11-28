@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.accounting.classification import Classification
 from app.models.accounting.currency import Currency
 from app.models.base import Base
-from app.schemas.accounting.account import AccountKind, CategoryPurpose, CategoryType
+from app.schemas.accounting.account import AccountKind, CategoryPurpose
 from app.schemas.base import EntityStatusType
 
 ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_kind_name"
@@ -29,6 +29,7 @@ MONEY_ACCOUNT_UNIQUE_NAME_INDEX = "account_unique_user_id_classification_id_name
 
 class Account(Base):
     __tablename__ = "accounts"
+    __mapper_args__ = {"exclude_properties": ["category_type"]}
     __table_args__ = (
         ForeignKeyConstraint(
             ["user_id", "classification_id"],
@@ -46,10 +47,6 @@ class Account(Base):
         CheckConstraint(
             f"(currency IS NOT NULL) = (kind = '{AccountKind.ASSET.value}')",
             name="account_currency_by_kind",
-        ),
-        CheckConstraint(
-            f"(category_type IS NOT NULL) = (kind = '{AccountKind.EXPENSE.value}')",
-            name="account_category_type_by_kind",
         ),
         CheckConstraint(
             f"color IS NULL OR kind = '{AccountKind.ASSET.value}'",
@@ -73,10 +70,7 @@ class Account(Base):
     balance: Mapped[Decimal] = mapped_column(Numeric, nullable=False, server_default="0")
     currency: Mapped[str | None] = mapped_column(String(3), ForeignKey(Currency.code), nullable=True)
     color: Mapped[str | None] = mapped_column(String(7), nullable=True)
-    category_type: Mapped[CategoryType | None] = mapped_column(
-        Enum(CategoryType, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),
-        nullable=True,
-    )
+    category_type: Mapped[str | None] = mapped_column(String(8), nullable=True)
     classification_id: Mapped[UUID | None] = mapped_column(DB_UUID, index=True)
     category_purpose: Mapped[CategoryPurpose | None] = mapped_column(
         Enum(CategoryPurpose, native_enum=False, validate_strings=True, values_callable=lambda x: [i.value for i in x]),

@@ -28,29 +28,26 @@ from app.schemas.accounting.account import (
     AccountRequest,
     AccountRestoreRequest,
     AccountUpdate,
-    CategoryType,
 )
 from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.accounting.posting import PostingCreate
 from app.schemas.accounting.transaction import TransactionCreate, TransactionType
 from app.schemas.base import CurrencyCode, EntityStatusType
 from app.services.accounting import classification_service, currency_service, exchange_rate_service, ledger_service
+from app.utils import utils
 
 logger = get_logger(logger_name=__name__)
 
-DEFAULT_CATEGORIES: frozendict[str, CategoryType] = frozendict(
-    {
-        "Groceries": CategoryType.VARIABLE,
-        "Eating out": CategoryType.VARIABLE,
-        "Transport": CategoryType.VARIABLE,
-        "Utilities": CategoryType.FIXED,
-        "Subscriptions": CategoryType.FIXED,
-        "Travel": CategoryType.PERIODIC,
-        "Health": CategoryType.PERIODIC,
-        "Clothing": CategoryType.PERIODIC,
-    }
+DEFAULT_CATEGORIES: tuple[str, ...] = (
+    "Groceries",
+    "Eating out",
+    "Transport",
+    "Utilities",
+    "Subscriptions",
+    "Travel",
+    "Health",
+    "Clothing",
 )
-from app.utils import utils
 
 
 def _get_integrity_exception(*, exception: IntegrityError, user_id: UUID) -> ConflictException:
@@ -75,8 +72,6 @@ async def create_account(*, db: AsyncSession, create_data: AccountCreateRequest,
     account_data = AccountCreate(
         **create_data.model_dump(exclude={"classification_id"}), user_id=user_id, classification_id=classification_id
     )
-    if account_data.kind == AccountKind.EXPENSE and account_data.category_type is None:
-        account_data.category_type = CategoryType.VARIABLE
     try:
         account_db: AccountModel = await account_crud.create(db=db, obj_in=account_data)
 
@@ -98,13 +93,12 @@ async def create_default_accounts(*, db: AsyncSession, user_id: UUID, base_curre
             classification_id=default_ids[ClassificationKind.MONEY_ACCOUNT],
         )
     ]
-    for name, category_type in DEFAULT_CATEGORIES.items():
+    for name in DEFAULT_CATEGORIES:
         create_data.append(
             AccountCreate(
                 user_id=user_id,
                 kind=AccountKind.EXPENSE,
                 name=name,
-                category_type=category_type,
                 classification_id=default_ids[ClassificationKind.EXPENSE_CATEGORY],
             )
         )
@@ -250,9 +244,6 @@ async def update_account(*, db: AsyncSession, account_id: UUID, update_data: Acc
     )
     if account_db is None or account_db.kind == AccountKind.EQUITY:
         raise EntityNotFound(entity=AccountModel, search_params={"id": account_id, "user_id": user_id}, logger=logger)
-
-    if update_data.category_type is not None and account_db.kind != AccountKind.EXPENSE:
-        raise AccountKindMismatch(account_id=account_id, kinds=[AccountKind.EXPENSE], logger=logger)
 
     if update_data.category_purpose is not None and account_db.kind != AccountKind.EXPENSE:
         raise AccountKindMismatch(account_id=account_id, kinds=[AccountKind.EXPENSE], logger=logger)

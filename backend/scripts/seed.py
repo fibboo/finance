@@ -21,7 +21,7 @@ from app.models.accounting.posting import Posting
 from app.models.accounting.transaction import Transaction
 from app.models.user.external_user import ExternalUser
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import Account, AccountCreateRequest, AccountKind, AdjustmentRequest, CategoryType
+from app.schemas.accounting.account import Account, AccountCreateRequest, AccountKind, AdjustmentRequest
 from app.schemas.accounting.location import Location, LocationCreateRequest
 from app.schemas.accounting.transaction import MovementRequest
 from app.schemas.user.external_user import ProviderType
@@ -58,8 +58,8 @@ FULL_ACCOUNTS: list[AccountCreateRequest] = [
     AccountCreateRequest(name="Intesa credit", kind=AccountKind.ASSET, currency="EUR", color="#8A6FD1"),
     AccountCreateRequest(name="Salary", kind=AccountKind.INCOME),
     AccountCreateRequest(name="Freelance gigs", kind=AccountKind.INCOME),
-    AccountCreateRequest(name="Household", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
-    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
+    AccountCreateRequest(name="Household", kind=AccountKind.EXPENSE),
+    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE),
 ]
 
 SPENDING = [
@@ -123,9 +123,9 @@ SMALL_ACCOUNTS: list[AccountCreateRequest] = [
     AccountCreateRequest(name="Credit card", kind=AccountKind.ASSET, currency="USD", color="#C2613F"),
     AccountCreateRequest(name="Salary", kind=AccountKind.INCOME),
     AccountCreateRequest(name="Gifts", kind=AccountKind.INCOME),
-    AccountCreateRequest(name="Household", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
-    AccountCreateRequest(name="Hobbies", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
-    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE, category_type=CategoryType.VARIABLE),
+    AccountCreateRequest(name="Household", kind=AccountKind.EXPENSE),
+    AccountCreateRequest(name="Hobbies", kind=AccountKind.EXPENSE),
+    AccountCreateRequest(name="Pets", kind=AccountKind.EXPENSE),
 ]
 SMALL_OPENING_BALANCES = [
     ("Wallet", Decimal("200.00"), None),

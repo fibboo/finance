@@ -16,7 +16,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: null,
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -28,7 +27,6 @@ const groceries = {
   id: '3c2b1a04-8c1a-4b9e-9d1f-0e6a7f0c2f4e',
   kind: 'EXPENSE',
   currency: null,
-  category_type: 'VARIABLE',
 } satisfies components['schemas']['Account'];
 
 const salary = {
@@ -36,7 +34,6 @@ const salary = {
   name: 'Salary',
   id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
   kind: 'INCOME',
-  category_type: null,
 } satisfies components['schemas']['Account'];
 
 const market = {
@@ -78,8 +75,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [],
-        category_types: [],
         transaction_types: [{ key: 'ADJUSTMENT', label: 'Adjustment' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -174,8 +169,6 @@ test('drops the preset account once the type of the new transaction changes', as
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [],
-        category_types: [],
         transaction_types: [
           { key: 'EXPENSE', label: 'Expense' },
           { key: 'ADJUSTMENT', label: 'Adjustment' },
@@ -292,8 +285,6 @@ test.each([true, false])(
       http.get('http://localhost/api/dictionaries/accounting', () =>
         HttpResponse.json({
           currencies: [],
-          account_kinds: [],
-          category_types: [{ key: 'VARIABLE', label: 'Variable' }],
           category_purposes: [
             { key: 'PERSONAL', label: 'Personal' },
             { key: 'INCOME_COST', label: 'Income costs' },

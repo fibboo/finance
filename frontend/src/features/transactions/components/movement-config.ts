@@ -1,10 +1,11 @@
 import type { EntityPickerItem } from '@/components/entity-picker/entity-picker';
+import type { AccountOptionChoices } from '@/lib/account-option-metadata';
 import type { components } from '@/lib/api-schema';
 import { formatMoney, formatRate } from '@/lib/format-money';
 
 import type { MovementTransactionType } from '../api/new-transaction';
 import { readAccountCurrency, readAmountText } from '../schemas/transaction-form';
-import { type AccountOptionChoices, toAccountPickerItem } from './account-option-metadata';
+import { toAccountPickerItem } from './account-picker-item';
 import { readRateText } from './transaction-view';
 
 type Account = components['schemas']['Account'];

@@ -18,7 +18,7 @@ from app.exceptions.not_fount_404 import EntityNotFound
 from app.models.accounting.account import Account as AccountModel
 from app.models.accounting.location import Location as LocationModel
 from app.models.accounting.transaction import Transaction as TransactionModel
-from app.schemas.accounting.account import AccountKind, CategoryType
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.location import (
     Location,
     LocationCreate,
@@ -646,7 +646,6 @@ async def test_get_locations_recent_use_order(db: AsyncSession):
             "user_id": user_id,
             "kind": AccountKind.EXPENSE,
             "name": "Groceries",
-            "category_type": CategoryType.VARIABLE,
         },
         commit=True,
     )

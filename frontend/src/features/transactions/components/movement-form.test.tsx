@@ -18,7 +18,6 @@ const euroCard = {
   balance: '1240.00',
   currency: 'EUR',
   color: '#5B6CD9',
-  category_type: null,
   base_currency_rate: '0.9090909091',
   status: 'ACTIVE',
   base_currency_balance: '1364.00',
@@ -32,7 +31,7 @@ const groceries = {
   balance: '0',
   currency: null,
   color: null,
-  category_type: 'VARIABLE',
+  classification_id: 'd98162e0-2f4b-4a4d-8ace-1a18cd1af002',
   base_currency_rate: '0',
   base_currency_balance: '0',
 } satisfies components['schemas']['Account'];
@@ -55,7 +54,6 @@ const transactionTypes = [
 ] satisfies components['schemas']['DictionaryItem'][];
 
 const optionChoices = {
-  legacyCategoryTypes: [{ key: 'VARIABLE', label: 'Variable' }],
   expenseCategoryTypes: [
     {
       id: 'd98162e0-2f4b-4a4d-8ace-1a18cd1af002',
@@ -70,7 +68,7 @@ const optionChoices = {
       is_default: false,
     },
   ],
-} satisfies import('./account-option-metadata').AccountOptionChoices;
+} satisfies import('@/lib/account-option-metadata').AccountOptionChoices;
 
 const currencies = [
   { key: 'EUR', label: 'Euro' },
@@ -113,7 +111,6 @@ const salary = {
   id: '4a52f0e1-1d7b-4a52-9f3a-0b5c1f0e8d44',
   kind: 'INCOME',
   color: null,
-  category_type: null,
 } satisfies components['schemas']['Account'];
 
 const expense = {
@@ -343,7 +340,7 @@ test('lists the categories with their category type', async () => {
   await user.click(screen.getByRole('button', { name: /^Category/ }));
 
   // assert
-  expect(screen.getByRole('button', { name: 'Groceries Variable' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Groceries Everyday' })).toBeInTheDocument();
 });
 
 test('lists the income sources with their description', async () => {
@@ -1202,7 +1199,6 @@ const exchangeDifference = {
   name: 'Exchange differences',
   id: '2b4f5a1d-9c3e-4e6a-8c7d-9e0f1a2b3c77',
   kind: 'EQUITY',
-  category_type: null,
 } satisfies components['schemas']['Account'];
 
 test.each([

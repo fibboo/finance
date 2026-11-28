@@ -23,7 +23,7 @@ from app.models.accounting.transaction import Transaction as TransactionModel
 from app.models.user.authorization_request import AuthorizationRequest as AuthorizationRequestModel
 from app.models.user.refresh_token import RefreshToken as RefreshTokenModel
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import AccountKind, CategoryPurpose, CategoryType
+from app.schemas.accounting.account import AccountKind, CategoryPurpose
 from app.schemas.accounting.classification import ClassificationKind
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
@@ -91,7 +91,6 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
                 "user_id": user_db.id,
                 "kind": AccountKind.EXPENSE,
                 "name": "Groceries",
-                "category_type": CategoryType.VARIABLE,
                 "category_purpose": CategoryPurpose.INCOME_COST,
             },
             {"user_id": user_db.id, "kind": AccountKind.EQUITY, "name": "Adjustments"},
@@ -113,7 +112,6 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
                 "user_id": other_user_db.id,
                 "kind": AccountKind.EXPENSE,
                 "name": "groceries",
-                "category_type": CategoryType.FIXED,
                 "category_purpose": CategoryPurpose.PERSONAL,
             },
             {
@@ -121,7 +119,6 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
                 "kind": AccountKind.EXPENSE,
                 "name": "Travel",
                 "classification_id": source_type.id,
-                "category_type": CategoryType.PERIODIC,
             },
             {"user_id": other_user_db.id, "kind": AccountKind.EQUITY, "name": "Adjustments"},
             {
@@ -274,7 +271,6 @@ async def test_merge_ok(db: AsyncSession, db_transaction: AsyncSession):
         (deleted_wallet_db.id, "Wallet", EntityStatusType.DELETED),
         (savings_wallet_db.id, "Wallet", EntityStatusType.ACTIVE),
     ]
-    assert accounts_after_db[1].category_type == CategoryType.VARIABLE
     assert accounts_after_db[1].category_purpose == CategoryPurpose.INCOME_COST
     other_wallet_after_db: AccountModel = accounts_after_db[3]
     assert other_wallet_after_db.balance == Decimal("10")

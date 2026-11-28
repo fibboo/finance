@@ -11,7 +11,7 @@ from app.crud.user.user import user_crud
 from app.exceptions.conflict_409 import ClassificationReplacementRequired, NameAlreadyExists
 from app.exceptions.not_fount_404 import EntityNotFound
 from app.exceptions.unprocessable_422 import InvalidClassificationReplacement
-from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryPurpose, CategoryType
+from app.schemas.accounting.account import AccountCreate, AccountKind, CategoryPurpose
 from app.schemas.accounting.classification import ClassificationKind, ClassificationNameRequest
 from app.schemas.base import EntityStatusType
 from app.schemas.user.external_user import ProviderType
@@ -74,7 +74,6 @@ async def test_delete_default_classification_reassigns_archived_and_active_categ
             user_id=account_owner_id,
             kind=AccountKind.EXPENSE,
             name="Groceries",
-            category_type=CategoryType.FIXED,
             classification_id=default.id,
         ),
         commit=True,
@@ -87,7 +86,6 @@ async def test_delete_default_classification_reassigns_archived_and_active_categ
             "name": "Supplies",
             "status": EntityStatusType.DELETED,
             "classification_id": active.classification_id,
-            "category_type": CategoryType.PERIODIC,
             "category_purpose": CategoryPurpose.INCOME_COST,
         },
         commit=True,
@@ -109,11 +107,9 @@ async def test_delete_default_classification_reassigns_archived_and_active_categ
 
     # assert
     categories = await account_crud.get_user_accounts(db=db, user_id=account_owner_id)
-    assert [
-        (row.id, row.classification_id, row.category_type, row.category_purpose, row.status) for row in categories
-    ] == [
-        (active.id, replacement.id, CategoryType.FIXED, CategoryPurpose.PERSONAL, EntityStatusType.ACTIVE),
-        (archived.id, replacement.id, CategoryType.PERIODIC, CategoryPurpose.INCOME_COST, EntityStatusType.DELETED),
+    assert [(row.id, row.classification_id, row.category_purpose, row.status) for row in categories] == [
+        (active.id, replacement.id, CategoryPurpose.PERSONAL, EntityStatusType.ACTIVE),
+        (archived.id, replacement.id, CategoryPurpose.INCOME_COST, EntityStatusType.DELETED),
     ]
     classifications = await get_classifications(db=db, user_id=account_owner_id, kind=kind)
     assert [(row.id, row.is_default) for row in classifications] == [(replacement.id, True)]

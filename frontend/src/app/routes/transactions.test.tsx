@@ -31,7 +31,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: null,
-  category_type: null,
   classification_id: dailyAccountType.id,
   base_currency_rate: '1',
   status: 'ACTIVE',
@@ -44,7 +43,6 @@ const category = {
   id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
   kind: 'EXPENSE',
   currency: null,
-  category_type: 'VARIABLE',
   classification_id: spendingType.id,
 } satisfies components['schemas']['Account'];
 
@@ -129,16 +127,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EQUITY', label: 'Equity' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-          { key: 'PERIODIC', label: 'Periodic' },
-        ],
         category_purposes: [{ key: 'INCOME_COST', label: 'Income costs' }],
         transaction_types: [
           { key: 'EXPENSE', label: 'Expense' },
@@ -570,7 +558,6 @@ test('clears the income sources when categories are applied', async () => {
     name: 'Salary',
     id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60',
     kind: 'INCOME',
-    category_type: null,
   } satisfies components['schemas']['Account'];
   const requestedAccountIds: string[][] = [];
   server.use(
@@ -634,7 +621,6 @@ test('drops the income sources of a URL that also has categories', async () => {
     name: 'Salary',
     id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60',
     kind: 'INCOME',
-    category_type: null,
   } satisfies components['schemas']['Account'];
   const requestedAccountIds: string[][] = [];
   server.use(
@@ -1531,11 +1517,13 @@ test('shows the selected transaction with its From and To, location and comment'
   expect(within(details).getByText('1 USD = 0.9165 EUR')).toBeInTheDocument();
   // From the money account To the category: its mark, name, kind, amount and base-currency value
   expect(within(details).getByRole('region', { name: 'From' })).toHaveTextContent(
-    'WWalletAsset · USDBalance $412.50-€42.80',
+    'WWalletEveryday account · USDBalance $412.50-€42.80',
   );
-  expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
-    'GGroceriesExpense · Variable+€42.80',
-  );
+  await waitFor(() => {
+    expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
+      'GGroceriesEveryday costs+€42.80',
+    );
+  });
   // the money account and the category open in place of the card
   expect(within(details).getByRole('link', { name: 'Wallet' })).toHaveAttribute(
     'href',
@@ -1952,7 +1940,7 @@ test('leaves the adjustment account out of the balances the deletion recalculate
         ...categoryPosting,
         amount: '-12.00',
         base_amount: '-12.00',
-        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY' },
       },
       { ...walletPosting, amount: '12.00', base_amount: '12.00' },
     ],
@@ -2057,7 +2045,6 @@ test('collapses the valuation postings of a transfer into one exchange differenc
     ...category,
     name: 'Adjustments',
     kind: 'EQUITY',
-    category_type: null,
   } satisfies components['schemas']['Account'];
   const transfer = {
     ...expense,
@@ -2108,10 +2095,10 @@ test('collapses the valuation postings of a transfer into one exchange differenc
   // assert
   const details = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(await within(details).findByRole('region', { name: 'From' })).toHaveTextContent(
-    'WWalletAsset · USDBalance $412.50-$62.39',
+    'WWalletEveryday account · USDBalance $412.50-$62.39',
   );
   expect(within(details).getByRole('region', { name: 'To' })).toHaveTextContent(
-    'SSavingsAsset · EURBalance €300.00+€56.18',
+    'SSavingsEveryday account · EURBalance €300.00+€56.18',
   );
   expect(within(details).queryByText('Adjustments')).not.toBeInTheDocument();
   // the exchange difference and rate, then the empty location and comment
@@ -2130,7 +2117,7 @@ test('shows an adjustment that grows the balance as one To block', async () => {
         ...categoryPosting,
         amount: '-12.00',
         base_amount: '-12.00',
-        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY' },
       },
       { ...walletPosting, amount: '12.00', base_amount: '12.00' },
     ],
@@ -2156,7 +2143,7 @@ test('shows an adjustment that grows the balance as one To block', async () => {
   // assert
   const details = await screen.findByRole('dialog', { name: 'Transaction details' });
   expect(await within(details).findByRole('region', { name: 'To' })).toHaveTextContent(
-    'WWalletAsset · USDBalance $412.50+$12.00',
+    'WWalletEveryday account · USDBalance $412.50+$12.00',
   );
   expect(within(details).queryByRole('region', { name: 'From' })).not.toBeInTheDocument();
   expect(within(details).queryByText('Adjustments')).not.toBeInTheDocument();
@@ -2489,7 +2476,7 @@ test('saves the adjustment edited from its details and refreshes its details', a
         ...categoryPosting,
         amount: '-12.00',
         base_amount: '-12.00',
-        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY' },
       },
       { ...walletPosting, amount: '12.00', base_amount: '12.00' },
     ],
@@ -2502,7 +2489,7 @@ test('saves the adjustment edited from its details and refreshes its details', a
         ...categoryPosting,
         amount: '-50.00',
         base_amount: '-50.00',
-        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY' },
       },
       { ...walletPosting, amount: '50.00', base_amount: '50.00' },
     ],
@@ -2576,7 +2563,7 @@ test('blocks Edit with the name of the deleted account of an adjustment', async 
         ...categoryPosting,
         amount: '-12.00',
         base_amount: '-12.00',
-        account: { ...category, name: 'Adjustments', kind: 'EQUITY', category_type: null },
+        account: { ...category, name: 'Adjustments', kind: 'EQUITY' },
       },
       {
         ...walletPosting,

@@ -19,17 +19,6 @@ async def test_get_accounting_dictionaries(db: AsyncSession):
         DictionaryItem(key="TRY", label="Turkish Lira"),
         DictionaryItem(key="RUB", label="Russian Ruble"),
     ]
-    assert dictionaries.account_kinds == [
-        DictionaryItem(key="ASSET", label="Asset"),
-        DictionaryItem(key="EQUITY", label="Equity"),
-        DictionaryItem(key="INCOME", label="Income"),
-        DictionaryItem(key="EXPENSE", label="Expense"),
-    ]
-    assert dictionaries.category_types == [
-        DictionaryItem(key="VARIABLE", label="Variable"),
-        DictionaryItem(key="FIXED", label="Fixed"),
-        DictionaryItem(key="PERIODIC", label="Periodic"),
-    ]
     assert dictionaries.transaction_types == [
         DictionaryItem(key="EXPENSE", label="Expense"),
         DictionaryItem(key="INCOME", label="Income"),

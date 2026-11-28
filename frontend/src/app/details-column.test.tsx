@@ -5,7 +5,7 @@ import { beforeEach, expect, test } from 'vitest';
 
 import type { components } from '@/lib/api-schema';
 import { render } from '@/test/render';
-import { server } from '@/test/setup';
+import { defaultCategoryTypeId, server } from '@/test/setup';
 
 import { DetailsColumn } from './details-column';
 
@@ -17,7 +17,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: null,
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -31,7 +30,7 @@ const groceries = {
   kind: 'EXPENSE',
   balance: '0',
   currency: null,
-  category_type: 'VARIABLE',
+  classification_id: '20000000-0000-4000-8000-000000000002',
   base_currency_rate: '0',
   base_currency_balance: '0.00',
 } satisfies components['schemas']['Account'];
@@ -42,7 +41,7 @@ const salary = {
   description: null,
   id: '2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60',
   kind: 'INCOME',
-  category_type: null,
+  classification_id: null,
 } satisfies components['schemas']['Account'];
 
 const expense = {
@@ -119,12 +118,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-          { key: 'INCOME', label: 'Income' },
-        ],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -154,14 +147,14 @@ test.each([
   {
     kind: 'a category',
     account: groceries,
-    meta: 'Expense · Variable',
+    meta: 'Groceries type',
     transactionsHref: `/transactions?category_ids=${groceries.id}`,
     deleteLabel: 'Delete category',
   },
   {
     kind: 'an income source',
     account: salary,
-    meta: 'Income',
+    meta: 'Income source',
     transactionsHref: `/transactions?income_source_ids=${salary.id}`,
     deleteLabel: 'Delete income source',
   },
@@ -172,6 +165,22 @@ test.each([
     server.use(
       http.get(`http://localhost/api/accounting/accounts/${account.id}`, () =>
         HttpResponse.json(account),
+      ),
+      http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
+        HttpResponse.json([
+          {
+            id: defaultCategoryTypeId,
+            name: 'Standard',
+            kind: 'EXPENSE_CATEGORY',
+            is_default: true,
+          },
+          {
+            id: groceries.classification_id,
+            name: 'Groceries type',
+            kind: 'EXPENSE_CATEGORY',
+            is_default: false,
+          },
+        ] satisfies components['schemas']['Classification'][]),
       ),
     );
 
@@ -185,7 +194,7 @@ test.each([
     expect(
       await within(details).findByRole('heading', { level: 2, name: account.name }),
     ).toBeInTheDocument();
-    expect(within(details).getByText(meta)).toBeInTheDocument();
+    expect(await within(details).findByText(meta)).toBeInTheDocument();
     expect(within(details).queryByText('$0.00')).not.toBeInTheDocument();
     expect(within(details).queryByRole('link', { name: 'Adjust balance' })).not.toBeInTheDocument();
     expect(within(details).getByRole('link', { name: 'Transactions' })).toHaveAttribute(

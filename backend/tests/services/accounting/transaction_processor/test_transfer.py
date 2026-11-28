@@ -32,7 +32,6 @@ from app.schemas.accounting.account import (
     AccountCreate,
     AccountKind,
     AdjustmentCreate,
-    CategoryType,
 )
 from app.schemas.accounting.location import LocationCreate
 from app.schemas.accounting.posting import PostingCreate
@@ -1343,9 +1342,7 @@ async def test_account_cache_equals_active_postings(db: AsyncSession, db_transac
         kind=AccountKind.ASSET, user_id=user_db.id, name="Card EUR", currency="EUR"
     )
     card_db: AccountModel = await account_crud.create(db=db, obj_in=card_create_data, commit=True)
-    category_create_data: AccountCreate = AccountCreate(
-        kind=AccountKind.EXPENSE, user_id=user_db.id, name="Food", category_type=CategoryType.VARIABLE
-    )
+    category_create_data: AccountCreate = AccountCreate(kind=AccountKind.EXPENSE, user_id=user_db.id, name="Food")
     category_db: AccountModel = await account_crud.create(db=db, obj_in=category_create_data, commit=True)
     income_source_create_data: AccountCreate = AccountCreate(kind=AccountKind.INCOME, user_id=user_db.id, name="Salary")
     income_source_db: AccountModel = await account_crud.create(db=db, obj_in=income_source_create_data, commit=True)
@@ -1748,9 +1745,7 @@ async def test_update_transfer_onto_day_of_later_income_values_it_after_the_inco
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(
@@ -1894,9 +1889,7 @@ async def test_update_transfer_reversed_returns_expense_it_valued_to_waiting(
     )
     category_db: AccountModel = await account_crud.create(
         db=db,
-        obj_in=AccountCreate(
-            user_id=user_id, kind=AccountKind.EXPENSE, name="Food", category_type=CategoryType.VARIABLE
-        ),
+        obj_in=AccountCreate(user_id=user_id, kind=AccountKind.EXPENSE, name="Food"),
         commit=True,
     )
     location_db: LocationModel = await location_crud.create(

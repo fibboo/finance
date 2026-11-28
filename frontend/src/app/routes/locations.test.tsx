@@ -43,7 +43,6 @@ const wallet = {
   balance: '412.50',
   currency: 'USD',
   color: null,
-  category_type: null,
   base_currency_rate: '1',
   status: 'ACTIVE',
   base_currency_balance: '412.50',
@@ -56,7 +55,6 @@ const groceries = {
   kind: 'EXPENSE',
   balance: '0',
   currency: null,
-  category_type: 'VARIABLE',
   base_currency_balance: '0',
 } satisfies components['schemas']['Account'];
 
@@ -124,8 +122,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [],
-        category_types: [],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -736,11 +732,6 @@ test('shows the chosen transaction of a location with the location as plain text
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [{ key: 'VARIABLE', label: 'Variable' }],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),

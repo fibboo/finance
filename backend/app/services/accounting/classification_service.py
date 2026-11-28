@@ -18,20 +18,15 @@ from app.exceptions.unprocessable_422 import AccountClassificationNotAllowed, In
 from app.models.accounting.account import Account as AccountModel, MONEY_ACCOUNT_UNIQUE_NAME_INDEX
 from app.models.accounting.classification import Classification as ClassificationModel, CLASSIFICATION_UNIQUE_NAME_INDEX
 from app.models.user.user import User as UserModel
-from app.schemas.accounting.account import (
-    ACCOUNT_KIND_LABELS,
-    AccountKind,
-    CATEGORY_TYPE_LABELS,
-    CategoryType,
-)
+from app.schemas.accounting.account import AccountKind
 from app.schemas.accounting.classification import Classification, ClassificationKind, ClassificationNameRequest
 
 logger = get_logger(logger_name=__name__)
 
 DEFAULT_CLASSIFICATION_NAMES: frozendict[ClassificationKind, str] = frozendict(
     {
-        ClassificationKind.MONEY_ACCOUNT: ACCOUNT_KIND_LABELS[AccountKind.ASSET],
-        ClassificationKind.EXPENSE_CATEGORY: CATEGORY_TYPE_LABELS[CategoryType.VARIABLE],
+        ClassificationKind.MONEY_ACCOUNT: "Asset",
+        ClassificationKind.EXPENSE_CATEGORY: "Variable",
     }
 )
 

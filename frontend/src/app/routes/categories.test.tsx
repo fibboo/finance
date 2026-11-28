@@ -39,7 +39,6 @@ const groceries = {
   balance: '0',
   currency: null,
   color: null,
-  category_type: 'VARIABLE',
   classification_id: variableType.id,
   base_currency_rate: '1',
   status: 'ACTIVE',
@@ -59,7 +58,6 @@ const rent = {
   name: 'Rent',
   description: null,
   id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e61',
-  category_type: 'FIXED',
   classification_id: fixedType.id,
 } satisfies components['schemas']['Account'];
 
@@ -88,7 +86,6 @@ const rentPayment = {
         id: '7f0c2f4e-8c1a-4b9e-9d1f-0e6a3c2b1a03',
         kind: 'ASSET',
         currency: 'USD',
-        category_type: null,
       },
     },
     {
@@ -146,12 +143,6 @@ beforeEach(() => {
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-          { key: 'PERIODIC', label: 'Periodic' },
-        ],
         category_purposes: [
           { key: 'PERSONAL', label: 'Personal' },
           { key: 'INCOME_COST', label: 'Income costs' },
@@ -253,49 +244,6 @@ test('requests the chosen type and only the active categories with Deleted off a
   expect(searchParams.get('deleted')).toBe('off');
 });
 
-test('shows and clears a legacy filter even when there is only one current type', async () => {
-  // arrange
-  const user = userEvent.setup();
-  server.use(
-    http.get('http://localhost/api/accounting/classifications/EXPENSE_CATEGORY', () =>
-      HttpResponse.json([variableType]),
-    ),
-    http.get('http://localhost/api/accounting/accounts', ({ request }) => {
-      const query = new URL(request.url).searchParams;
-      const items = query.get('category_types') === 'FIXED' ? [rent] : [groceries, rent];
-      return HttpResponse.json({
-        items,
-        total: items.length,
-        page: 1,
-        size: 100,
-        pages: 1,
-      } satisfies components['schemas']['Page_Account_']);
-    }),
-  );
-  const { router } = render(<Component />, {
-    initialEntries: ['/categories?category_type=FIXED&category_purpose=PERSONAL&deleted=off'],
-  });
-  const clearLegacy = await screen.findByRole('button', {
-    name: 'Clear legacy type filter: Fixed',
-  });
-  const catalog = await screen.findByRole('region', { name: 'Categories', busy: false });
-  expect(catalog).toHaveTextContent('Rent');
-  expect(catalog).not.toHaveTextContent('Groceries');
-  expect(screen.queryByRole('group', { name: 'Category type' })).not.toBeInTheDocument();
-
-  // act
-  await user.click(clearLegacy);
-
-  // assert
-  const unfiltered = await screen.findByRole('region', { name: 'Categories', busy: false });
-  expect(unfiltered).toHaveTextContent('Groceries');
-  expect(clearLegacy).not.toBeInTheDocument();
-  const params = new URLSearchParams(router.state.location.search);
-  expect(params.has('category_type')).toBe(false);
-  expect(params.get('category_purpose')).toBe('PERSONAL');
-  expect(params.get('deleted')).toBe('off');
-});
-
 test('opens with Deleted off when it was turned off on an earlier visit and stores turning it on', async () => {
   // arrange
   const user = userEvent.setup();
@@ -331,7 +279,7 @@ test('opens with Deleted off when it was turned off on an earlier visit and stor
   expect(new URLSearchParams(router.state.location.search).get('deleted')).toBe('on');
 });
 
-test('reads the type and the toggle from the URL and drops a type the dictionary lacks', async () => {
+test('reads the toggle from the URL and drops a type that is no current type, such as a legacy key', async () => {
   // arrange
   const requestedQueries: URLSearchParams[] = [];
   server.use(
@@ -349,7 +297,9 @@ test('reads the type and the toggle from the URL and drops a type the dictionary
   );
 
   // act
-  render(<Component />, { initialEntries: ['/categories?category_type=OTHER&deleted=off'] });
+  const { router } = render(<Component />, {
+    initialEntries: ['/categories?category_type=FIXED&deleted=off'],
+  });
 
   // assert
   expect(
@@ -361,7 +311,10 @@ test('reads the type and the toggle from the URL and drops a type the dictionary
     }),
   ).toBeChecked();
   expect(screen.getByRole('switch', { name: 'Deleted' })).not.toBeChecked();
-  expect(requestedQueries.some((query) => query.has('category_types'))).toBe(false);
+  expect(requestedQueries.some((query) => query.has('classification_ids'))).toBe(false);
+  const params = new URLSearchParams(router.state.location.search);
+  expect(params.has('category_type')).toBe(false);
+  expect(params.get('deleted')).toBe('off');
 });
 
 test('searches from 3 characters and clears the search into a focused field when nothing matches', async () => {
@@ -1237,14 +1190,6 @@ test('keeps the transactions column and the card in place while another category
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1310,14 +1255,6 @@ test('shows the details of the top transaction beside the transactions of a cate
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1419,14 +1356,6 @@ test('keeps the frame of the transaction card while another transaction loads on
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1495,14 +1424,6 @@ test('moves the focus between the category and its top transaction with Left and
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1569,14 +1490,6 @@ test('keeps the focus in the delete confirmation with Right on a wide desktop', 
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1701,14 +1614,6 @@ test('keeps the chosen category when the keys are pressed in the details of a tr
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1759,14 +1664,6 @@ test('drops a chosen transaction that is not of the shown category on a wide des
     http.get('http://localhost/api/dictionaries/accounting', () =>
       HttpResponse.json({
         currencies: [],
-        account_kinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'EXPENSE', label: 'Expense' },
-        ],
-        category_types: [
-          { key: 'VARIABLE', label: 'Variable' },
-          { key: 'FIXED', label: 'Fixed' },
-        ],
         transaction_types: [{ key: 'EXPENSE', label: 'Expense' }],
         transaction_orders: [],
       } satisfies components['schemas']['AccountingDictionaries']),
@@ -1963,8 +1860,8 @@ test('keeps purpose together with search, type and Deleted in the request and UR
         (category) =>
           (!query.has('search_term') ||
             category.name.toLowerCase().includes(query.get('search_term') ?? '')) &&
-          (!query.has('category_types') ||
-            category.category_type === query.get('category_types')) &&
+          (!query.has('classification_ids') ||
+            category.classification_id === query.get('classification_ids')) &&
           (!query.has('category_purposes') ||
             category.category_purpose === query.get('category_purposes')),
       );
@@ -1972,7 +1869,7 @@ test('keeps purpose together with search, type and Deleted in the request and UR
     }),
   );
   const { router } = render(<Component />, {
-    initialEntries: ['/categories?search=tools&category_type=FIXED&deleted=off'],
+    initialEntries: [`/categories?search=tools&category_type=${fixedType.id}&deleted=off`],
   });
   const purpose = await screen.findByRole('group', { name: 'Category purpose' });
 
@@ -1985,7 +1882,7 @@ test('keeps purpose together with search, type and Deleted in the request and UR
       requestedQueries.some(
         (query) =>
           query.getAll('category_purposes').join() === 'INCOME_COST' &&
-          query.getAll('category_types').join() === 'FIXED' &&
+          query.getAll('classification_ids').join() === fixedType.id &&
           query.get('search_term') === 'tools' &&
           query.getAll('statuses').join() === 'ACTIVE',
       ),
@@ -1993,7 +1890,7 @@ test('keeps purpose together with search, type and Deleted in the request and UR
   });
   const params = new URLSearchParams(router.state.location.search);
   expect(params.get('category_purpose')).toBe('INCOME_COST');
-  expect(params.get('category_type')).toBe('FIXED');
+  expect(params.get('category_type')).toBe(fixedType.id);
   expect(params.get('search')).toBe('tools');
   expect(params.get('deleted')).toBe('off');
   expect(await screen.findByRole('region', { name: 'Categories', busy: false })).toHaveTextContent(
@@ -2023,7 +1920,9 @@ test('hides the transaction pane until clearing filters that match no categories
     }),
   );
   const { router } = render(<Component />, {
-    initialEntries: ['/categories?category_purpose=INCOME_COST&category_type=FIXED&deleted=off'],
+    initialEntries: [
+      `/categories?category_purpose=INCOME_COST&category_type=${fixedType.id}&deleted=off`,
+    ],
   });
   await screen.findByText('No categories match these filters');
   expect(screen.queryByRole('region', { name: /^Transactions/ })).not.toBeInTheDocument();
