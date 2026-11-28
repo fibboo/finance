@@ -73,12 +73,6 @@ const accountOptionChoices = {
       is_default: false,
     },
   ],
-  accountKinds: [
-    { key: 'ASSET', label: 'Asset' },
-    { key: 'EXPENSE', label: 'Expense' },
-    { key: 'INCOME', label: 'Income' },
-  ],
-  legacyCategoryTypes: [{ key: 'FIXED', label: 'Fixed' }],
   categoryPurposes: [{ key: 'PERSONAL', label: 'Personal' }],
 } satisfies AccountOptionChoices;
 
@@ -119,18 +113,11 @@ test.each([
     text: 'FromRRent, deletedBills · Personal-€900.00≈ -$1,053.00',
   },
   {
-    kind: 'shows the legacy type of a category without a classification',
-    account: { ...category, classification_id: null },
-    pageEntryId: null,
-    href: `/accounts?account=${category.id}`,
-    text: 'FromRRentFixed · Personal-€900.00≈ -$1,053.00',
-  },
-  {
-    kind: 'shows an income source with its kind',
+    kind: 'shows an income source as such',
     account: incomeSource,
     pageEntryId: null,
     href: `/accounts?account=${incomeSource.id}`,
-    text: 'FromSSalaryIncome-€900.00≈ -$1,053.00',
+    text: 'FromSSalaryIncome source-€900.00≈ -$1,053.00',
   },
 ] satisfies {
   kind: string;

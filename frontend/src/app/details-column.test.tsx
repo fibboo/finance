@@ -163,7 +163,7 @@ test.each([
   {
     kind: 'an income source',
     account: salary,
-    meta: 'Income',
+    meta: 'Income source',
     transactionsHref: `/transactions?income_source_ids=${salary.id}`,
     deleteLabel: 'Delete income source',
   },

@@ -29,8 +29,6 @@ export function useAccountOptionChoices({
   const choices = {
     moneyAccountTypes,
     expenseCategoryTypes,
-    accountKinds: dictionaries?.account_kinds,
-    legacyCategoryTypes: dictionaries?.category_types,
     categoryPurposes: dictionaries?.category_purposes ?? undefined,
   };
   return choices;

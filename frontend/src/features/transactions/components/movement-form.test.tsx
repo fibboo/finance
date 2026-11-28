@@ -33,6 +33,7 @@ const groceries = {
   currency: null,
   color: null,
   category_type: 'VARIABLE',
+  classification_id: 'd98162e0-2f4b-4a4d-8ace-1a18cd1af002',
   base_currency_rate: '0',
   base_currency_balance: '0',
 } satisfies components['schemas']['Account'];
@@ -55,7 +56,6 @@ const transactionTypes = [
 ] satisfies components['schemas']['DictionaryItem'][];
 
 const optionChoices = {
-  legacyCategoryTypes: [{ key: 'VARIABLE', label: 'Variable' }],
   expenseCategoryTypes: [
     {
       id: 'd98162e0-2f4b-4a4d-8ace-1a18cd1af002',
@@ -343,7 +343,7 @@ test('lists the categories with their category type', async () => {
   await user.click(screen.getByRole('button', { name: /^Category/ }));
 
   // assert
-  expect(screen.getByRole('button', { name: 'Groceries Variable' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Groceries Everyday' })).toBeInTheDocument();
 });
 
 test('lists the income sources with their description', async () => {

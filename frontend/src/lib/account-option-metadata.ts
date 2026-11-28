@@ -9,10 +9,10 @@ type DictionaryItem = components['schemas']['DictionaryItem'];
 export type AccountOptionChoices = Readonly<{
   moneyAccountTypes?: readonly Classification[] | undefined;
   expenseCategoryTypes?: readonly Classification[] | undefined;
-  accountKinds?: readonly DictionaryItem[] | undefined;
-  legacyCategoryTypes?: readonly DictionaryItem[] | undefined;
   categoryPurposes?: readonly DictionaryItem[] | undefined;
 }>;
+
+const INCOME_SOURCE_TEXT = 'Income source';
 
 type AccountOptionMetadata = Readonly<{
   type: string | undefined;
@@ -27,14 +27,13 @@ export function readAccountOptionMetadata({
   account: Readonly<Account>;
   choices: AccountOptionChoices | undefined;
 }>): AccountOptionMetadata {
-  const { classification_id, kind, category_type, category_purpose, currency } = account;
+  const { classification_id, kind, category_purpose, currency } = account;
   if (kind === 'EXPENSE') {
     const purpose = category_purpose ?? 'PERSONAL';
     return {
       type: readClassificationLabel({
         classifications: choices?.expenseCategoryTypes,
         classificationId: classification_id,
-        legacyLabel: choices?.legacyCategoryTypes?.find(({ key }) => key === category_type)?.label,
       }),
       detail: choices?.categoryPurposes?.find(({ key }) => key === purpose)?.label,
       isHighlighted: purpose === 'INCOME_COST',
@@ -46,7 +45,6 @@ export function readAccountOptionMetadata({
       type: readClassificationLabel({
         classifications: choices?.moneyAccountTypes,
         classificationId: classification_id,
-        legacyLabel: choices?.accountKinds?.find(({ key }) => key === kind)?.label,
       }),
       detail: currency ?? undefined,
       isHighlighted: false,
@@ -69,8 +67,7 @@ export function readAccountMetaText({
   choices: AccountOptionChoices | undefined;
 }>): string {
   if (account.kind === 'INCOME') {
-    const kindLabel = choices?.accountKinds?.find(({ key }) => key === account.kind)?.label;
-    return kindLabel ?? '';
+    return INCOME_SOURCE_TEXT;
   }
 
   const metadata = readAccountOptionMetadata({ account, choices });

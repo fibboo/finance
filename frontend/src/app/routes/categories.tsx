@@ -40,7 +40,6 @@ import { accountMutations } from '@/features/accounts/api/account-mutations';
 import { ACCOUNT_PAGE_SIZE, accountQueries } from '@/features/accounts/api/account-queries';
 import {
   readClassificationFilter,
-  readLegacyCategoryType,
   writeClassificationFilter,
 } from '@/features/accounts/api/category-type-filter';
 import { classificationQueries } from '@/features/accounts/api/classification-queries';
@@ -100,10 +99,6 @@ export function Component() {
     param: 'category_type',
     classifications,
   });
-  const legacyCategoryType = readLegacyCategoryType(searchParams);
-  const legacyCategoryTypeLabel =
-    dictionaries?.category_types.find(({ key }) => key === legacyCategoryType)?.label ??
-    legacyCategoryType;
   const categoryPurposes =
     dictionaries === undefined
       ? undefined
@@ -125,16 +120,12 @@ export function Component() {
       order: 'recent_use',
       statuses: isDeletedShown ? ['ACTIVE', 'DELETED'] : ['ACTIVE'],
       ...(searchTerm !== undefined && { search_term: searchTerm }),
-      ...(legacyCategoryType !== undefined && { category_types: [legacyCategoryType] }),
       ...(classificationId !== undefined && { classification_ids: [classificationId] }),
       ...(categoryPurpose !== undefined && { category_purposes: [categoryPurpose] }),
     }),
     throwOnError: isThrownWithoutData,
   });
-  const isFiltered =
-    classificationId !== undefined ||
-    legacyCategoryType !== undefined ||
-    categoryPurpose !== undefined;
+  const isFiltered = classificationId !== undefined || categoryPurpose !== undefined;
   const isNothingMatched =
     (searchTerm !== undefined || isFiltered) && categoryPage?.items.length === 0;
   const hasNoEntries = searchTerm === undefined && !isFiltered && categoryPage?.items.length === 0;
@@ -227,7 +218,7 @@ export function Component() {
                     kind: 'shown',
                     legend: 'Category type',
                     options: classifications.map(({ id, name }) => ({ key: id, label: name })),
-                    chosenKey: classificationId ?? legacyCategoryType,
+                    chosenKey: classificationId,
                     onChoose: chooseClassification,
                   }
                 : undefined
@@ -270,19 +261,6 @@ export function Component() {
                   ))}
                 </div>
               </fieldset>
-            )}
-            {legacyCategoryTypeLabel !== undefined && (
-              <button
-                type="button"
-                className={styles['legacyType']}
-                aria-label={`Clear legacy type filter: ${legacyCategoryTypeLabel}`}
-                onClick={() => {
-                  document.getElementById(CATEGORY_SEARCH_FIELD_ID)?.focus();
-                  chooseClassification(undefined);
-                }}
-              >
-                Type: {legacyCategoryTypeLabel} <span aria-hidden="true">×</span>
-              </button>
             )}
           </CatalogFilters>
           {isNothingMatched ? (

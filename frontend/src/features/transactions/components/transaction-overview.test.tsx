@@ -312,14 +312,7 @@ test.each([
       }}
       baseCurrency="USD"
       transactionTypes={[{ key: transactionType, label: transactionType }]}
-      accountOptionChoices={{
-        accountKinds: [
-          { key: 'ASSET', label: 'Asset' },
-          { key: 'INCOME', label: 'Income' },
-          { key: 'EXPENSE', label: 'Expense' },
-          { key: 'EQUITY', label: 'Equity' },
-        ],
-      }}
+      accountOptionChoices={{}}
       readAccountLink={() => undefined}
       readLocationLink={() => undefined}
       closeButton={null}
